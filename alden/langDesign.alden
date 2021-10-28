@@ -1,0 +1,46 @@
+# This is a comment
+
+get users from "./users"; 
+
+task @greet(name) -> "Hello " + name; 
+
+
+task @loop(numFrom, numTo)
+    let result = ""
+	for i = numFrom to numTo then
+		result = i
+	end
+	return result
+endTask
+
+
+task @main()
+	let result = 8 + (let x = 6)
+	return result
+endTask
+
+let name = "John"
+let age = 25
+if name == "John" then
+	let result = @greet(name)
+	return result
+else
+	let result = "Hello " + name
+	return result
+
+print("name")
+
+if age > 18 and name == "John" and then
+	let result = "You are old enough"
+	return print(result)
+else
+	let result = "You are not old enough"
+	return print(result)
+
+format("Hello {name}", name)
+format("This is a {0} {1}", "test1", "test2")
+format"Hello :name:"
+
+let a = "a"
+let a += "a"
+let abc = a + "b" + "c"
