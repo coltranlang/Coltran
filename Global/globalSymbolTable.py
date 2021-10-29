@@ -61,9 +61,6 @@ class Global:
     def __init__(self, parent=None):
         self.symbols = {}
         self.parent = parent
-        self.true = self.get("true")
-        self.false = self.get("false")
-        self.none = self.get("none")
 
     def get(self, name):
         value = self.symbols.get(name, None)
@@ -83,8 +80,8 @@ class Global:
 
     def setGlobal(self):
         self.set("none", "none")
-        self.set("true",  "true")
-        self.set("false", "false")
+        self.set("Boolean",  "true")
+        self.set("Boolean", "false")
 
     def remove(self, name):
         del self.symbols[name]

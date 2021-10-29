@@ -696,10 +696,13 @@ class String(Value):
         return copy
 
     def is_true(self):
-        return self.value == "true" if self.value > 0 else "false"
+        return "true" if len(self.value) > 0 else "false"
+    
+    def __str__(self) -> str:
+        return self.value
 
     def __repr__(self):
-        return f'{self.value}'
+        return f'"{self.value}"'
 
 
 class List(Value):
@@ -771,6 +774,9 @@ class List(Value):
         copy.setPosition(self.pos_start, self.pos_end)
         copy.setContext(self.context)
         return copy
+    
+    def __str__(self):
+        return ", ".join([str(x) for x in self.elements])
 
     def __repr__(self):
         return f'[{", ".join([str(x) for x in self.elements])}]'
@@ -792,7 +798,7 @@ class BaseTask(Value):
             return res.failure(Program.error()['Runtime']({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"{len(args)} arguments passed, but {arg_names} expected {len(arg_names)}",
+                'message': f"{len(args)} arguments passed, but {self.name} expected {len(arg_names)}",
                 'context': self.context
             }))
 
@@ -800,7 +806,7 @@ class BaseTask(Value):
             return res.failure(Program.error()['Runtime']({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"{len(args)} few arguments passed, but {arg_names} expects {len(arg_names)}",
+                'message': f"{len(args)} few arguments passed, but {self.name} expects {len(arg_names)}",
                 'context': self.context
             }))
         return res.success(None)
@@ -845,7 +851,7 @@ class Task(BaseTask):
         return copy
 
     def __repr__(self):
-        return ""
+        return f"<Task {self.name}>"
 
 
 class BuiltInTask(BaseTask):
@@ -858,6 +864,7 @@ class BuiltInTask(BaseTask):
 
         method_name = f'execute_{self.name}'
         method = getattr(self, method_name, self.no_visiit)
+        
         
         res.register(self.check_and_populate_args(method.arg_names, args, exec_context))
         if res.error: return res
@@ -875,6 +882,8 @@ class BuiltInTask(BaseTask):
             'context': self.context
         }))
         
+   
+        
     def copy(self):
         copy = BuiltInTask(self.name)
         copy.setContext(self.context)
@@ -884,10 +893,6 @@ class BuiltInTask(BaseTask):
     def __repr__(self):
         return f"<built-in task {self.name}>"
     
-    def execute_print(self, exec_context):
-       print(str(exec_context.symbolTable.get('value')))
-       return RuntimeResult().success(String(''))
-    execute_print.arg_names = ['value']
 
 
 
@@ -1116,9 +1121,44 @@ class Interpreter:
             args.append(res.register(self.visit(arg_node, context)))
             if res.error:
                 return res
-
+        builtintask = value_to_call.name
+        
+        
+        if builtintask == "print":
+            for arg in args:
+                value = arg
+                print(value)
+            return res.success('')
+        
+        if builtintask == "exit":
+            if len(args) == 0:
+                sys.exit()
+            elif len(args) > 1:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    'message': f"{len(args)} arguments passed, but exit takes 0 or 1 argument(s)",
+                    "context": context
+                }))
+            if isinstance(args[0], Number):
+                if args[0].value == 0:
+                    sys.exit(0)
+                elif args[0].value == 1:
+                    sys.exit(1)
+                else: return res.failure(Program.error()["Runtime"]({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    'message': f"{args[0].value} is not a valid exit code",
+                    "context": context
+                }))
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    'message': f"{args[0]} is not a valid argument for exit",
+                    "context": context
+                }))
         return_value = res.register(value_to_call.execute(args))
         if res.error: return res
         return_value = return_value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
-        #return res.success(return_value)
-        return res.success('')
+        return res.success(return_value)

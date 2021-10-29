@@ -14,5 +14,3 @@ while True:
             print("")
         elif result:
             print(result)
-  
-

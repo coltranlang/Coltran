@@ -253,7 +253,7 @@ class Lexer:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': 'Invalid string or missing "'
+                'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column)
             })
         self.advance()
         return Token(tokenList.TT_STRING, string, pos_start, self.pos)
@@ -285,7 +285,7 @@ class Lexer:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': "Invalid string or missing '"
+                'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column)
             })
         self.advance()
         return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)

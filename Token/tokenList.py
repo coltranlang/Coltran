@@ -46,13 +46,11 @@ KEYWORDS = [
     'or',
     'not',
     'if',
-    '?',
     'then',
     'elif',
     'else',
     'for',
     'to',
-    # 'format',
     'get',
     'from',
     'step',
@@ -62,4 +60,14 @@ KEYWORDS = [
     'return',
     'continue',
     'break',
+]
+
+
+BUILTINTASKS = [
+    'print',
+    'len',
+    'append',
+    'pop',
+    'del',
+    'format'
 ]

@@ -5,9 +5,11 @@ from Parser.parser import Parser
 from Interpreter.interpreter import Context, Interpreter, BuiltInTask
 from Global.globalSymbolTable import Global
 
-BuiltInTask.print = BuiltInTask('print')
+BuiltInTask.print = BuiltInTask("print")
+BuiltInTask.exit = BuiltInTask("exit")
 GlobalSymbolTable = Global()
-GlobalSymbolTable.set('print', BuiltInTask('print'))
+GlobalSymbolTable.set('print', BuiltInTask.print)
+GlobalSymbolTable.set('exit', BuiltInTask.exit)
 GlobalSymbolTable.setGlobal()
 
 class Program:

@@ -716,7 +716,7 @@ class Parser:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': f'Expected an identifier, {self.current_token.value} is a reserved keyword'
+                    'message': f"Expected an identifier, '{self.current_token.value}' is a reserved keyword"
                 }))
             if self.current_token.type != tokenList.TT_IDENTIFIER:
                 return res.failure(Program.error()['Syntax']({
