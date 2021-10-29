@@ -391,7 +391,7 @@ class Number(Value):
             if self.value == "none" or other.value == "none":
                 return None, self.illegal_operation_typerror(error)
             else:
-                return String(self.value + other.value).setContext(self.context), None
+                return Number(self.value + other.value).setContext(self.context), None
         else:
             return None, self.illegal_operation(other)
 
