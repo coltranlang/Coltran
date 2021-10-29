@@ -1,7 +1,6 @@
 import sys
 from Parser.stringsWithArrows import *
 
-
 class Program:
     def error():
         def Default(name, message):
@@ -62,6 +61,9 @@ class Global:
     def __init__(self, parent=None):
         self.symbols = {}
         self.parent = parent
+        self.true = self.get("true")
+        self.false = self.get("false")
+        self.none = self.get("none")
 
     def get(self, name):
         value = self.symbols.get(name, None)
@@ -83,19 +85,8 @@ class Global:
         self.set("none", "none")
         self.set("true",  "true")
         self.set("false", "false")
-        
+
     def remove(self, name):
         del self.symbols[name]
-
-
-
-class Boolean:
-    def __init__(self, value):
-        self.value = value
-
-    def __repr__(self):
-        return self.value
-
-
 
 

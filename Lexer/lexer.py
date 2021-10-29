@@ -95,11 +95,20 @@ class Lexer:
             elif self.current_char == '^':
                 tokens.append(Token(tokenList.TT_POWER, pos_start=self.pos))
                 self.advance()
+            elif self.current_char == ':':
+                tokens.append(Token(tokenList.TT_COLON, pos_start=self.pos))
+                self.advance()
             elif self.current_char == '(':
                 tokens.append(Token(tokenList.TT_LPAREN, pos_start=self.pos))
                 self.advance()
             elif self.current_char == ')':
                 tokens.append(Token(tokenList.TT_RPAREN, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == '[':
+                tokens.append(Token(tokenList.TT_LSQBRACKET, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == ']':
+                tokens.append(Token(tokenList.TT_RSQBRACKET, pos_start=self.pos))
                 self.advance()
             # elif self.current_char == ':':
             #     tokens.append(self.make_concat())

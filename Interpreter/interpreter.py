@@ -8,8 +8,6 @@ class TypeOf:
     def __init__(self, type):
         self.type = type
 
-    # def match(value):
-
     def getType(self):
         result = ''
         if self.type == 'true':
@@ -28,7 +26,6 @@ class Context:
         self.display_name = display_name
         self.parent = parent
         self.parent_entry_pos = parent_entry_pos
-        self.children = {}
         self.symbolTable = None
 
 
@@ -107,6 +104,9 @@ class Program:
             'Type': Type
         }
         return methods
+
+    def NoneValue():
+        return 'none'
 
     def print(*args):
         for arg in args:
@@ -333,6 +333,9 @@ class Value:
                 'pos_end': other.pos_end,
                 'context': other.context
             })
+
+    def none_value(self):
+        return Program.NoneValue()
 
     def illegal_operation_typerror(self, other=None):
         errorDetail = {
@@ -616,11 +619,11 @@ class String(Value):
             return String(setNumber(str(self.value)) * setNumber(str(other.value))).setContext(self.context), None
         elif other.value == "false":
             return String(setNumber(str(self.value)) * setNumber(str(other.value))).setContext(self.context), None
-        elif other.value == "none":
+        elif other.value == "none" or self.value == "none":
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"can't multiply 'string' of type 'none'",
+                'message': f"can't perform multiplication on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
                 'context': self.context
             }
             return None, self.illegal_operation_typerror(error)
@@ -628,7 +631,7 @@ class String(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"can't multiply 'string' of type 'string'",
+                'message': f"can't perform multiplication on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
                 'context': self.context
             }
             return None, self.illegal_operation_typerror(error)
@@ -643,11 +646,11 @@ class String(Value):
             return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)), None
         elif other.value == "false":
             return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)), None
-        elif other.value == "none":
+        elif other.value == "none" or self.value == "none":
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"can't use 'and' on 'string' of type 'none'",
+                'message': f"can't perform and on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
                 'context': self.context
             }
             return None, self.illegal_operation_typerror(error)
@@ -693,50 +696,146 @@ class String(Value):
         return copy
 
     def is_true(self):
-        return self.value == "true" if self.value else "false"
+        return self.value == "true" if self.value > 0 else "false"
 
     def __repr__(self):
         return f'{self.value}'
 
 
-class Task(Value):
-    def __init__(self, name, body_node, arg_names):
+class List(Value):
+    def __init__(self, elements=None):
+        super().__init__()
+        self.elements = elements if elements is not None else []
+        self.value = self.elements
+
+    def added_to(self, other):
+        new_list = self.copy()
+        new_list.elements.append(other)
+        return new_list, None
+
+    def subtracted_by(self, other):
+        if isinstance(other, Number):
+            new_list = self.copy()
+            try:
+                new_list.elements.pop(other.value)
+                return new_list, None
+            except:
+                return None, "none"
+        else:
+            return None, self.illegal_operation(other)
+
+    def divided_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Did you mean to use the `:` operator to get the element at a certain index?",
+            'context': self.context
+        }
+        return None, self.illegal_operation_typerror(error)
+
+    def multiplied_by(self, other):
+        if isinstance(other, List):
+            new_list = self.copy()
+            new_list.elements.extend(other.elements)
+            return new_list, None
+        else:
+            return None, self.illegal_operation(other)
+
+    def get_index(self, other):
+        if isinstance(other, Number):
+            try:
+                return self.elements[other.value], None
+            except:
+                return None, self.none_value()
+        else:
+            return None, self.illegal_operation(other)
+
+    def copy(self):
+        copy = List(self.elements)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+
+    def get_element_at(self, index):
+        return self.elements[index]
+
+    def set_element_at(self, index, value):
+        self.elements[index] = value
+        return self
+
+    def length(self):
+        return len(self.elements)
+
+    def copy(self):
+        copy = List(self.elements)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+
+    def __repr__(self):
+        return f'[{", ".join([str(x) for x in self.elements])}]'
+
+
+class BaseTask(Value):
+    def __init__(self, name):
         super().__init__()
         self.name = name or "<anonymous>"
+
+    def generate_new_context(self):
+        new_context = Context(self.name, self.context, self.pos_start)
+        new_context.symbolTable = Global(new_context.parent.symbolTable)
+        return new_context
+
+    def check_args(self, arg_names, args):
+        res = RuntimeResult()
+        if len(args) > len(arg_names):
+            return res.failure(Program.error()['Runtime']({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"{len(args)} arguments passed, but {arg_names} expected {len(arg_names)}",
+                'context': self.context
+            }))
+
+        if len(args) < len(arg_names):
+            return res.failure(Program.error()['Runtime']({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"{len(args)} few arguments passed, but {arg_names} expects {len(arg_names)}",
+                'context': self.context
+            }))
+        return res.success(None)
+
+    def populate_args(self, arg_names, args, exec_context):
+        for i in range(len(args)):
+            arg_name = arg_names[i]
+            arg_value = args[i]
+            arg_value.setContext(exec_context)
+            exec_context.symbolTable.set(arg_name, arg_value)
+
+    def check_and_populate_args(self, arg_names, args, exec_ctx):
+        res = RuntimeResult()
+        res.register(self.check_args(arg_names, args))
+        if res.error:return res
+        self.populate_args(arg_names, args, exec_ctx)
+        return res.success(None)
+
+
+class Task(BaseTask):
+    def __init__(self, name, body_node, arg_names):
+        super().__init__(name)
         self.body_node = body_node
         self.arg_names = arg_names
 
     def execute(self, args):
         res = RuntimeResult()
         interpreter = Interpreter()
-        new_context = Context(self.name, self.context, self.pos_start)
-        new_context.symbol_table = Global(new_context.parent.symbol_table)
+        exec_context = self.generate_new_context()
 
-        if len(args) > len(self.arg_names):
-            return res.failure(Program.error()['Runtime']({
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"{len(args)} arguments passed, but {self.name} requires {len(self.arg_names)}",
-                'context': self.context
-            }))
+        res.register(self.check_and_populate_args(self.arg_names, args, exec_context))
+        if res.error: return res
 
-        if len(args) < len(self.arg_names):
-            return res.failure(Program.error()['Runtime']({
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"{len(args)} few arguments passed, but {self.name} expects {len(self.arg_names)}",
-                'context': self.context
-            }))
-
-        for i in range(len(args)):
-            arg_name = self.arg_names[i]
-            arg_value = args[i]
-            arg_value.setContext(new_context)
-            new_context.symbol_table.set(arg_name, arg_value)
-
-        value = res.register(interpreter.visit(self.body_node, new_context))
-        if res.error:
-            return res
+        value = res.register(interpreter.visit(self.body_node, exec_context))
+        if res.error: return res
         return res.success(value)
 
     def copy(self):
@@ -749,14 +848,65 @@ class Task(Value):
         return ""
 
 
+class BuiltInTask(BaseTask):
+    def __init__(self, name):
+        super().__init__(name)
+        
+    def execute(self, args):
+        res = RuntimeResult()
+        exec_context = self.generate_new_context()
+
+        method_name = f'execute_{self.name}'
+        method = getattr(self, method_name, self.no_visiit)
+        
+        res.register(self.check_and_populate_args(method.arg_names, args, exec_context))
+        if res.error: return res
+        
+        return_value = res.register(method(exec_context))
+        if res.error: return res
+        return res.success(return_value)
+    
+    def no_visiit(self, node, exec_context):
+        res = RuntimeResult()
+        return res.failure(Program.error()['Runtime']({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"{self.name} is not a supported built-in task",
+            'context': self.context
+        }))
+        
+    def copy(self):
+        copy = BuiltInTask(self.name)
+        copy.setContext(self.context)
+        copy.setPosition(self.pos_start, self.pos_end)
+        return copy
+    
+    def __repr__(self):
+        return f"<built-in task {self.name}>"
+    
+    def execute_print(self, exec_context):
+       print(str(exec_context.symbolTable.get('value')))
+       return RuntimeResult().success(String(''))
+    execute_print.arg_names = ['value']
+
+
+
+        
 class Interpreter:
     def visit(self, node, context):
         method_name = f'visit_{type(node).__name__}'
-        method = getattr(self, method_name, self.generic_visit)
+        method = getattr(self, method_name, self.no_visiit)
         return method(node, context)
 
-    def generic_visit(self, node, context):
-        raise Exception(f'No visit_{type(node).__name__} method defined')
+    def no_visiit(self, node, context):
+        res = RuntimeResult()
+        return res.failure(Program.error()['Runtime']({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f'No visit_{type(node).__name__} method defined',
+            'context': self.context
+        }))
+        
 
     def visit_NumberNode(self, node, context):
         return RuntimeResult().success(
@@ -770,6 +920,16 @@ class Interpreter:
                 context).setPosition(node.pos_start, node.pos_end)
         )
 
+    def visit_ListNode(self, node, context):
+        res = RuntimeResult()
+        elements = []
+        for element_node in node.elements:
+            element_value = res.register(self.visit(element_node, context))
+            if res.error:
+                return res
+            elements.append(element_value)
+        return res.success(List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+
     def visit_BooleanNode(self, node, context):
         return RuntimeResult().success(
             Number(node.tok.value).setContext(
@@ -779,7 +939,7 @@ class Interpreter:
     def visit_VarAccessNode(self, node, context):
         res = RuntimeResult()
         var_name = node.name.value
-        value = context.symbol_table.get(var_name)
+        value = context.symbolTable.get(var_name)
         if not value:
             return res.failure(Program.error()['Runtime']({
                 'pos_start': node.pos_start,
@@ -787,7 +947,7 @@ class Interpreter:
                 'message': f'{var_name} is not defined',
                 'context': context
             }))
-        value = value.copy().setPosition(node.pos_start, node.pos_end)
+        value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(value)
 
     def visit_VarAssignNode(self, node, context):
@@ -797,9 +957,9 @@ class Interpreter:
         if res.error:
             return res
         if node.variable_keyword_token == "let":
-            context.symbol_table.set(var_name, value)
+            context.symbolTable.set(var_name, value)
         elif node.variable_keyword_token == "final":
-            context.symbol_table.set_final(var_name, value)
+            context.symbolTable.set_final(var_name, value)
         return res.success(None)  # return res.success(value)
 
     def visit_BinOpNode(self, node, context):
@@ -820,6 +980,8 @@ class Interpreter:
             result, error = left.powred_by(right)
         elif node.op_tok.type == tokenList.TT_MOD:
             result, error = left.modulo(right)
+        elif node.op_tok.type == tokenList.TT_COLON:
+            result, error = left.get_index(right)
         elif node.op_tok.type == tokenList.TT_EQEQ:
             result, error = left.get_comparison_eq(right)
         elif node.op_tok.type == tokenList.TT_NEQ:
@@ -880,6 +1042,7 @@ class Interpreter:
 
     def visit_ForNode(self, node, context):
         res = RuntimeResult()
+        elements = []
         start_value = res.register(self.visit(node.start_value_node, context))
         if res.error:
             return res
@@ -896,29 +1059,30 @@ class Interpreter:
         i = start_value.value
 
         if step_value.value >= 0:
-            def condition(): return i < end_value.value
+            condition = lambda: i < end_value.value
         else:
-            def condition(): return i > end_value.value
+            condition = lambda: i > end_value.value
         while condition():
-            context.symbol_table.set(node.var_name_token.value, Number(i))
+            context.symbolTable.set(node.var_name_token.value, Number(i))
             i += step_value.value
-            res.register(self.visit(node.body_node, context))
+            elements.append(res.register(self.visit(node.body_node, context)))
             if res.error:
                 return res
-        return res.success(None)
+        return res.success(List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
     def visit_WhileNode(self, node, context):
         res = RuntimeResult()
+        elements = []
         while True:
             condition = res.register(self.visit(node.condition_node, context))
             if res.error:
                 return res
             if not condition.is_true():
                 break
-            res.register(self.visit(node.body_node, context))
+            elements.append(res.register(self.visit(node.body_node, context)))
             if res.error:
                 return res
-        return res.success(None)
+        return res.success(List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
     def visit_TaskDefNode(self, node, context):
         res = RuntimeResult()
@@ -928,16 +1092,16 @@ class Interpreter:
         task_value = Task(task_name, body_node, arg_names).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.task_name_token:
-            context.symbol_table.set(task_name, task_value)
+            context.symbolTable.set(task_name, task_value)
 
-        # if task_name in context.symbol_table.symbols:
+        # if task_name in context.symbolTable.symbols:
         #     return res.failure(Program.error()["Runtime"]({
         #         "pos_start": node.pos_start,
         #         "pos_end": node.pos_end,
         #         "message": "Task with name '{}' already defined".format(task_name),
         #         "context": context
         #     }))
-        # print(context.symbol_table.symbols)
+        # print(context.symbolTable.symbols)
         return res.success(task_value)
 
     def visit_CallNode(self, node, context):
@@ -945,8 +1109,7 @@ class Interpreter:
         args = []
 
         value_to_call = res.register(self.visit(node.node_to_call, context))
-        if res.error:
-            return res
+        if res.error: return res
         value_to_call = value_to_call.copy().setPosition(node.pos_start, node.pos_end)
 
         for arg_node in node.args_nodes:
@@ -955,6 +1118,7 @@ class Interpreter:
                 return res
 
         return_value = res.register(value_to_call.execute(args))
-        if res.error:
-            return res
-        return res.success(return_value)
+        if res.error: return res
+        return_value = return_value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
+        #return res.success(return_value)
+        return res.success('')

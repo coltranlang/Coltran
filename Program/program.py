@@ -2,12 +2,13 @@
 import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
-from Interpreter.interpreter import Context, Interpreter, Number
+from Interpreter.interpreter import Context, Interpreter, BuiltInTask
 from Global.globalSymbolTable import Global
 
+BuiltInTask.print = BuiltInTask('print')
 GlobalSymbolTable = Global()
+GlobalSymbolTable.set('print', BuiltInTask('print'))
 GlobalSymbolTable.setGlobal()
-
 
 class Program:
     def error():
@@ -54,7 +55,7 @@ class Program:
         
         interpreter = Interpreter()
         context = Context('<program>')
-        context.symbol_table = GlobalSymbolTable
+        context.symbolTable = GlobalSymbolTable
         result = interpreter.visit(ast.node, context)
         return result.value, result.error
 

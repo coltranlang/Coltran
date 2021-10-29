@@ -10,8 +10,9 @@ task @loop(numFrom, numTo)
 	for i = numFrom to numTo then
 		result = i
 	end
-	return result
+	return results
 endTask
+
 
 
 task @main()

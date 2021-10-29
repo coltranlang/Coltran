@@ -5,11 +5,11 @@ while True:
     if text:
         result, error = Program.run("<stdin>",text)
         if error:
-            print(error.as_string())
+            print(error)
         elif result:
             print(result)
     else:
-        result, error = Program.runFile("./test/main.alden")
+        result, error = Program.runFile("./aldenlang/main.alden")
         if error:
             print("")
         elif result:
