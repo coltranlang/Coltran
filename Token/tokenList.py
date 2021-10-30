@@ -62,7 +62,7 @@ KEYWORDS = [
     'endFor',
     'return',
     'continue',
-    'break'
+    'break',
 ]
 
 

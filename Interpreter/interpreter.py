@@ -1072,6 +1072,9 @@ class Interpreter:
                 return res
             elements.append(element_value)
         return res.success(Statement(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+   
+   
+   
     def visit_NumberNode(self, node, context):
         return RuntimeResult().success(
             Number(node.tok.value).setContext(

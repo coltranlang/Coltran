@@ -70,9 +70,11 @@ class Lexer:
         while self.current_char != None:
             if self.current_char in ' \t':
                 self.advance()
-            elif self.current_char in '\n':
+            elif self.current_char == ';' or self.current_char == '\n':
                 tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos, pos_end=self.pos))
                 self.advance()
+            elif self.current_char == '#':
+                self.make_comment()
             elif self.current_char in tokenList.DIGITS:
                 tokens.append(self.make_number())
             elif self.current_char in tokenList.LETTERS:
@@ -288,7 +290,13 @@ class Lexer:
         self.advance()
         return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)
 
+    def make_comment(self):
+        self.advance()
 
+        while self.current_char != '\n':
+            self.advance()
+
+        self.advance()
 class Position:
     def __init__(self, index, line, column, fileName, fileText):
         self.index = index

@@ -290,6 +290,8 @@ class Parser:
         if not res.error and self.current_token.type != tokenList.TT_EOF:
             return res.failure(Program.error()['Syntax'](options))
         return res
+    
+    
     def statements(self):
         res = ParseResult()
         statements = []
@@ -319,7 +321,6 @@ class Parser:
                 more_statements = False
                 continue
             statements.append(statement)
-            
         return res.success(StatementsNode(statements, pos_start, self.current_token.pos_end.copy()))
 
     

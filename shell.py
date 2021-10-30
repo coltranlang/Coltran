@@ -12,6 +12,6 @@ while True:
     else:
         result, error = Program.runFile("./aldenlang/main.alden")
         if error:
-            print(error)
+            print("")
         elif result:
-             result
+            print(result)
