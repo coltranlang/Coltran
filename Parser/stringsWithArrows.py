@@ -23,4 +23,4 @@ def stringsWithArrows(text, pos_start, pos_end):
         index_end = text.find('\n', index_start + 1)
         if index_end < 0: index_end = len(text)
 
-    return result.replace('\t', '')
+    return result.replace(' \t', '')

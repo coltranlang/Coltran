@@ -1,0 +1,2 @@
+let name = "value";
+for i = 1 to 10 then let name = "value";

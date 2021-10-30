@@ -68,7 +68,7 @@ class Lexer:
     def make_tokens(self):
         tokens = []
         while self.current_char != None:
-            if self.current_char in ' \t':
+            if self.current_char in ' \t' or self.current_char in tokenList.TT_WHITESPACE:
                 self.advance()
             elif self.current_char == ';' or self.current_char == '\n':
                 tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos, pos_end=self.pos))

@@ -2,7 +2,7 @@ from Program.program import Program
 
 while True:
     text = input('alden >> ')
-    if text.strip(): continue
+    #if text.strip(): continue
     if text:
         result, error = Program.run("<stdin>",text)
         if error:
