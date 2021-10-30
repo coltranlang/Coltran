@@ -82,6 +82,7 @@ class Program:
         context = Context('<program>')
         context.symbolTable = GlobalSymbolTable
         result = interpreter.visit(ast.node, context)
+        
         return result.value, result.error
 
     def runFile(fileName):

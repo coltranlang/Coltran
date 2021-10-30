@@ -31,6 +31,7 @@ TT_RBRACES = 'BRACES'
 TT_LSQBRACKET = 'LSQBRACKET'
 TT_RSQBRACKET = 'RSQBRACKET'
 TT_KEYWORD = 'KEYWORD'
+TT_NEWLINE = 'NEWLINE'
 TT_EOF = 'EOF'
 
 LETTERS = '@$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -56,7 +57,8 @@ KEYWORDS = [
     'step',
     'while',
     'task',
-    'end',
+    'endTask',
+    'endFor'
     'return',
     'continue',
     'break',
@@ -69,5 +71,11 @@ BUILTINTASKS = [
     'append',
     'pop',
     'del',
-    'format'
+    'len',
+    'clear',
+    'exit',
+    'intInput',
+    'floatInput',
+    'format',
+    'toString'
 ]

@@ -364,6 +364,27 @@ class Value:
         return Program.error()['Type'](errorDetail)
 
 
+class Statement(Value):
+    def __init__(self, elements=None):
+        super().__init__()
+        self.elements = elements if elements is not None else []
+        self.value = self.elements
+
+
+    def copy(self):
+        copy = Statement(self.elements)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+
+    def __str__(self):
+        for element in self.elements:
+            return str(element)
+        return ''
+
+    def __repr__(self):
+        return f'[{", ".join([str(x) for x in self.elements])}]'
+
 class Number(Value):
     def __init__(self, value):
         super().__init__()
@@ -792,11 +813,6 @@ class List(Value):
         else:
             return None, self.illegal_operation(other)
 
-    def copy(self):
-        copy = List(self.elements)
-        copy.setPosition(self.pos_start, self.pos_end)
-        copy.setContext(self.context)
-        return copy
 
     def get_element_at(self, index):
         return self.elements[index]
@@ -1019,20 +1035,26 @@ class Interpreter:
         return method(node, context)
 
     def no_visiit(self, node, context):
-        res = RuntimeResult()
-        return res.failure(Program.error()['Runtime']({
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f'No visit_{type(node).__name__} method defined',
-            'context': self.context
-        }))
+        raise Exception(f'No visit_{type(node).__name__} method defined')
 
+    
+    def visit_StatementsNode(self, node, context):
+        res = RuntimeResult()
+        elements = []
+        for element_node in node.elements:
+            element_value = res.register(self.visit(element_node, context))
+            if res.error:
+                return res
+            elements.append(element_value)
+        return res.success(Statement(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
     def visit_NumberNode(self, node, context):
         return RuntimeResult().success(
             Number(node.tok.value).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
 
+    
+    
     def visit_StringNode(self, node, context):
         return RuntimeResult().success(
             String(node.tok.value).setContext(

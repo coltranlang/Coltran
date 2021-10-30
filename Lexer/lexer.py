@@ -70,6 +70,9 @@ class Lexer:
         while self.current_char != None:
             if self.current_char in ' \t':
                 self.advance()
+            elif self.current_char in ';\n':
+                tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos, pos_end=self.pos))
+                self.advance()
             elif self.current_char in tokenList.DIGITS:
                 tokens.append(self.make_number())
             elif self.current_char in tokenList.LETTERS:
@@ -126,9 +129,6 @@ class Lexer:
                 tokens.append(self.make_less_than())
             elif self.current_char == '>':
                 tokens.append(self.make_greater_than())
-            elif self.current_char == ';':
-                tokens.append(Token(tokenList.TT_EOF, pos_start=self.pos))
-                self.advance()
             else:
                 pos_start = self.pos.copy()
                 char = self.current_char

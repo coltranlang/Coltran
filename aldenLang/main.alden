@@ -1,1 +1,4 @@
 task @greet(name) -> "Hello " + name
+
+let name = "World"
+let greeting = @greet(name)
