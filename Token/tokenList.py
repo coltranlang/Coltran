@@ -11,7 +11,7 @@ TT_MOD = 'MODULO'
 TT_LPAREN = 'LPAREN'
 TT_RPAREN = 'RPAREN'
 TT_POWER = 'POWER'
-TT_EQ ='EQ',
+TT_EQ ='EQ'
 TT_NEQ ='NEQ'
 TT_EQEQ ='EQEQ'
 TT_GT ='GT'
@@ -26,12 +26,13 @@ TT_ARROW = 'ARROW'
 TT_STRING = 'STRING'
 TT_SINGLE_STRING = 'SINGLE_STRING'
 TT_FORMAT = 'FORMAT'
-TT_LBRACES = 'BRACES'
-TT_RBRACES = 'BRACES'
+TT_LBRACES = 'LBRACES'
+TT_RBRACES = 'RBRACES'
 TT_LSQBRACKET = 'LSQBRACKET'
 TT_RSQBRACKET = 'RSQBRACKET'
 TT_KEYWORD = 'KEYWORD'
 TT_NEWLINE = 'NEWLINE'
+TT_WHITESPACE = 'WHITESPACE'
 TT_EOF = 'EOF'
 
 LETTERS = '@$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -58,10 +59,10 @@ KEYWORDS = [
     'while',
     'task',
     'endTask',
-    'endFor'
+    'endFor',
     'return',
     'continue',
-    'break',
+    'break'
 ]
 
 

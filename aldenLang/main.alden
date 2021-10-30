@@ -2,3 +2,11 @@ task @greet(name) -> "Hello " + name
 
 let name = "World"
 let greeting = @greet(name)
+
+
+let list1 = [1,2,3,4]
+let result = ''
+
+for i = 0 to len(list1) then
+    let result = append(list1, list1:i * 2) 
+endFor

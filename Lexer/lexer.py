@@ -70,7 +70,7 @@ class Lexer:
         while self.current_char != None:
             if self.current_char in ' \t':
                 self.advance()
-            elif self.current_char in ';\n':
+            elif self.current_char in '\n':
                 tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos, pos_end=self.pos))
                 self.advance()
             elif self.current_char in tokenList.DIGITS:
@@ -113,8 +113,6 @@ class Lexer:
             elif self.current_char == ']':
                 tokens.append(Token(tokenList.TT_RSQBRACKET, pos_start=self.pos))
                 self.advance()
-            # elif self.current_char == ':':
-            #     tokens.append(self.make_concat())
             elif self.current_char == ',':
                 tokens.append(Token(tokenList.TT_COMMA, pos_start=self.pos))
                 self.advance()

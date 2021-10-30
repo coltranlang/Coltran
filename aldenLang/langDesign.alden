@@ -9,7 +9,7 @@ task @loop(numFrom, numTo)
     let result = ""
 	for i = numFrom to numTo then
 		result = i
-	end
+	endFor
 	return results
 endTask
 

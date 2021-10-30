@@ -382,9 +382,6 @@ class Statement(Value):
             return str(element)
         return ''
 
-    def __repr__(self):
-        return f'[{", ".join([str(x) for x in self.elements])}]'
-
 class Number(Value):
     def __init__(self, value):
         super().__init__()
@@ -734,9 +731,6 @@ class String(Value):
         return f'"{self.value}"'
 
 
-
-
-
 class Boolean:
     def __init__(self, value):
         self.value = value
@@ -763,6 +757,38 @@ class Boolean:
 
     def __repr__(self):
         return f'{self.value}'
+    
+    
+class NoneType:
+    def __init__(self):
+        self.setPosition(0, 0)
+        self.setContext(None)
+
+    def setPosition(self, pos_start, pos_end):
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        return self
+
+    def setContext(self, context=None):
+        self.context = context
+        return self
+
+    def copy(self):
+        copy = NoneType()
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+
+    def __str__(self):
+        return "none"
+
+    def __repr__(self):
+        return f'{self.value}'
+    
+    
+Boolean.true = Boolean("true")
+Boolean.false = Boolean("false")
+NoneType.none = NoneType()
 
 
 class List(Value):
@@ -831,10 +857,12 @@ class List(Value):
         return copy
 
     def __str__(self):
-        return ", ".join([str(x) for x in self.elements])
+        # returnlist with brackets
+        if len(self.elements) > 0:
+            return f"[{', '.join([str(x) for x in self.elements])}]"
+        else:
+            return "[]"
 
-    def __repr__(self):
-        return f'[{", ".join([str(x) for x in self.elements])}]'
 
 
 class BaseTask(Value):
@@ -883,10 +911,11 @@ class BaseTask(Value):
 
 
 class Task(BaseTask):
-    def __init__(self, name, body_node, arg_names):
+    def __init__(self, name, body_node, arg_names, return_null):
         super().__init__(name)
         self.body_node = body_node
         self.arg_names = arg_names
+        self.return_null = return_null
 
     def execute(self, args):
         res = RuntimeResult()
@@ -895,16 +924,14 @@ class Task(BaseTask):
 
         res.register(self.check_and_populate_args(
             self.arg_names, args, exec_context))
-        if res.error:
-            return res
+        if res.error: return res
 
         value = res.register(interpreter.visit(self.body_node, exec_context))
-        if res.error:
-            return res
-        return res.success(value)
+        if res.error:return res
+        return res.success(NoneType.none if self.return_null else value)
 
     def copy(self):
-        copy = Task(self.name, self.body_node, self.arg_names)
+        copy = Task(self.name, self.body_node, self.arg_names, self.return_null)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -963,8 +990,6 @@ class BuiltInTask(BaseTask):
     def execute_append(self, exec_context):
         res = RuntimeResult()
         list = exec_context.symbolTable.get("list")
-        
-        print(TypeOf(list).getType())
         value = exec_context.symbolTable.get("value")
         if isinstance(list, List):
             list.elements.append(value)
@@ -1162,7 +1187,7 @@ class Interpreter:
 
     def visit_IfNode(self, node, context):
         res = RuntimeResult()
-        for condition, expr in node.cases:
+        for condition, expr, return_null in node.cases:
             condition_value = res.register(self.visit(condition, context))
             if res.error:
                 return res
@@ -1171,15 +1196,15 @@ class Interpreter:
                 expr_value = res.register(self.visit(expr, context))
                 if res.error:
                     return res
-                return res.success(expr_value)
-
+                return res.success(NoneType.none if return_null else expr_value)
         if node.else_case:
-            else_value = res.register(self.visit(node.else_case, context))
+            expr, return_null = node.else_case
+            else_value = res.register(self.visit(expr, context))
             if res.error:
                 return res
-            return res.success(else_value)
+            return res.success(NoneType.none if return_null else else_value)
 
-        return res.success(None)
+        return res.success(NoneType.none)
 
     def visit_ForNode(self, node, context):
         res = RuntimeResult()
@@ -1209,7 +1234,7 @@ class Interpreter:
             elements.append(res.register(self.visit(node.body_node, context)))
             if res.error:
                 return res
-        return res.success(List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+        return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
     def visit_WhileNode(self, node, context):
         res = RuntimeResult()
@@ -1223,14 +1248,14 @@ class Interpreter:
             elements.append(res.register(self.visit(node.body_node, context)))
             if res.error:
                 return res
-        return res.success(List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+        return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
     def visit_TaskDefNode(self, node, context):
         res = RuntimeResult()
         task_name = node.task_name_token.value if node.task_name_token else None
         body_node = node.body_node
         arg_names = [arg_name.value for arg_name in node.args_name_tokens]
-        task_value = Task(task_name, body_node, arg_names).setContext(
+        task_value = Task(task_name, body_node, arg_names, node.return_null).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.task_name_token:
             context.symbolTable.set(task_name, task_value)
