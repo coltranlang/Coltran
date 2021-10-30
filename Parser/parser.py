@@ -281,7 +281,7 @@ class Parser:
             self.current_token = None
 
     def parse(self):
-        res = self.expr()
+        res = self.statements()
         options = {
             'pos_start': self.current_token.pos_start,
             'pos_end': self.current_token.pos_end,
