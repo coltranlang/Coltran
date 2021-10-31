@@ -70,7 +70,7 @@ class Lexer:
             if self.current_char in ' \t' or self.current_char in tokenList.TT_WHITESPACE:
                 self.advance()
                 
-            elif self.current_char in ';\n':
+            elif self.current_char in '\n':
                 tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos))
                 self.advance()
             # elif self.current_char == '#':
