@@ -62,19 +62,19 @@ class Lexer:
 
     def advance(self):
         self.pos.advance(self.current_char)
-        self.current_char = self.fileText[self.pos.index] if self.pos.index < len(
-            self.fileText) else None
+        self.current_char = self.fileText[self.pos.index] if self.pos.index < len(self.fileText) else None
 
     def make_tokens(self):
         tokens = []
         while self.current_char != None:
             if self.current_char in ' \t' or self.current_char in tokenList.TT_WHITESPACE:
                 self.advance()
-            elif self.current_char == ';' or self.current_char == '\n':
-                tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos, pos_end=self.pos))
+                
+            elif self.current_char in ';\n':
+                tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos))
                 self.advance()
-            elif self.current_char == '#':
-                self.make_comment()
+            # elif self.current_char == '#':
+            #     self.make_comment()
             elif self.current_char in tokenList.DIGITS:
                 tokens.append(self.make_number())
             elif self.current_char in tokenList.LETTERS:
@@ -115,9 +115,6 @@ class Lexer:
             elif self.current_char == ']':
                 tokens.append(Token(tokenList.TT_RSQBRACKET, pos_start=self.pos))
                 self.advance()
-            elif self.current_char == ',':
-                tokens.append(Token(tokenList.TT_COMMA, pos_start=self.pos))
-                self.advance()
             elif self.current_char == '!':
                 tok, error = self.make_not_equals()
                 if error:
@@ -129,10 +126,14 @@ class Lexer:
                 tokens.append(self.make_less_than())
             elif self.current_char == '>':
                 tokens.append(self.make_greater_than())
+            elif self.current_char == ',':
+                    tokens.append(Token(tokenList.TT_COMMA, pos_start=self.pos))
+                    self.advance()
             else:
                 pos_start = self.pos.copy()
                 char = self.current_char
-                return tokens, Program.error()['IllegalCharacter'](
+                self.advance()
+                return [], Program.error()['IllegalCharacter'](
                     {
                         'originator': char,
                         'pos_start': pos_start

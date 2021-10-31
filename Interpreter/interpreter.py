@@ -172,8 +172,11 @@ class RuntimeResult:
             self.error = res.error
         return res.value
 
-    def success(self, value):
-        self.value = value
+    def success(self, value=None):
+        if value:
+            self.value = value
+        else:
+            self.value = ''
         return self
 
     def failure(self, error):
@@ -199,7 +202,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'+' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'+' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"Illegal operation '+' not allowed",
             'context': self.context
         })
 
@@ -207,15 +210,14 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'-' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
-            'context': self.context
+            'message': f"'-' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"Illegal operation '-' not allowed",
         })
 
     def multiplied_by(self, other):
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'*' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'*' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '*' not allowed",
             'context': self.context
         })
 
@@ -223,7 +225,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'/' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'/' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '/' not allowed",
             'context': self.context
         })
 
@@ -231,7 +233,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'**' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'**' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '**' not allowed",
             'context': self.context
         })
 
@@ -239,7 +241,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'%' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'%' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '%' not allowed",
             'context': self.context
         })
 
@@ -247,7 +249,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'==' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'==' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '==' not allowed",
             'context': self.context
         })
 
@@ -255,7 +257,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'!=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'!=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '!=' not allowed",
             'context': self.context
         })
 
@@ -263,7 +265,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'<' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'<' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '<' not allowed",
             'context': self.context
         })
 
@@ -271,7 +273,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'>' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'>' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '>' not allowed",
             'context': self.context
         })
 
@@ -279,7 +281,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'<=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'<=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '<=' not allowed",
             'context': self.context
         })
 
@@ -287,7 +289,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'>=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'>=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}"  if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '>=' not allowed",
             'context': self.context
         })
 
@@ -295,7 +297,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'&&' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'&&' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '&&' not allowed",
             'context': self.context
         })
 
@@ -303,7 +305,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'||' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'||' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '||' not allowed",
             'context': self.context
         })
 
@@ -311,7 +313,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'!' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}",
+            'message': f"'!' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '!' not allowed",
             'context': self.context
         })
 
@@ -329,7 +331,7 @@ class Value:
             other = self
         if hasattr(other, 'value'):
             return Program.error()["Syntax"]({
-                'message': f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}',
+                'message': f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}' if self.value != None and other.value != None else f'Illegal operation for type {TypeOf(self.value).getType()}',
                 'pos_start': other.pos_start,
                 'pos_end': other.pos_end,
                 'context': other.context
@@ -356,7 +358,7 @@ class Value:
             other = self
         if not 'message' in other:
             if hasattr(other, 'value'):
-                errorDetail['message'] = f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}',
+                errorDetail['message'] = f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}'
                 return Program.error()['Syntax'](errorDetail)
             else:
                 errorDetail['message'] = f"illegal operation"
@@ -780,7 +782,7 @@ class NoneType:
         return copy
 
     def __str__(self):
-        return "none"
+        return ""
 
     def __repr__(self):
         return f'{self.value}'
@@ -1129,7 +1131,7 @@ class Interpreter:
             context.symbolTable.set(var_name, value)
         elif node.variable_keyword_token == "final":
             context.symbolTable.set_final(var_name, value)
-        return res.success(None)  # return res.success(value)
+        return res.success()  # return res.success(value)
 
     def visit_BinOpNode(self, node, context):
         res = RuntimeResult()

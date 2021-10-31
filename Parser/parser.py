@@ -99,7 +99,7 @@ class BooleanNode:
             self.value = True
         elif tok.value == 'false':
             self.value = False
-        elif tok.value == 'null':
+        elif tok.value == 'none':
             self.value = None
         self.pos_start = self.tok.pos_start
         self.pos_end = self.tok.pos_end
@@ -226,10 +226,13 @@ class ParseResult:
     
     
     def register(self, res):
-        self.last_registered_advance_count = res.advance_count
-        self.advance_count += res.advance_count
-        if res.error: self.error = res.error
-        return res.node
+        self.last_registered_advance_count = res.advance_count if res else 0
+        self.advance_count += res.advance_count if res else 0
+        if res:
+            if res.error:
+                self.error = res.error
+        else: self.error = ''
+        return res.node if res else ''
 
 
     def try_register(self, res):
@@ -775,7 +778,7 @@ class Parser:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "Expected a closing parenthesis ')'"
+                    'message': "Expected ')'"
                 }))
         elif tok.type == tokenList.TT_LSQBRACKET:
             list_expr = res.register(self.list_expr())
@@ -801,11 +804,11 @@ class Parser:
             task_node = res.register(self.task_def())
             if res.error:   return res
             return res.success(task_node)
-        return Program.error()['Syntax']({
-            'pos_start': tok.pos_start,
-            'pos_end': tok.pos_end,
-            'message': "Invalid syntax or unknown token"
-        })
+        # return res.failure(Program.error()['Syntax']({
+        #     'pos_start': tok.pos_start,
+        #     'pos_end': tok.pos_end,
+        #     'message': "Invalid syntax or unknown token"
+        # }))
 
     def call(self):
         res = ParseResult()

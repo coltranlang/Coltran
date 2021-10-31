@@ -1,2 +1,10 @@
-let name = "value";
-for i = 1 to 10 then let name = "value";
+let list = [1,2,3,4,5]
+let result = ''
+for i = 1 to 10 then
+    let result = append(list, list:i*2)
+endFor
+
+task @greet(name)
+    let r = "Hello, " + name
+    print(r)
+endTask

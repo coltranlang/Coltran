@@ -59,10 +59,10 @@ KEYWORDS = [
     'while',
     'task',
     'endTask',
-    'endFor',
     'return',
     'continue',
     'break',
+    'endFor'
 ]
 
 
