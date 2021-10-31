@@ -1,4 +1,3 @@
-import re
 from Parser.stringsWithArrows import *
 from Token.token import Token
 from Token import tokenList
@@ -16,11 +15,14 @@ class Program:
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
             }
-            Program.printError(Program.asString(isDetail))
+            if detail['exit']:
+                Program.printErrorExit(Program.asString(isDetail))
+            else:
+                Program.printError(Program.asString(isDetail))
 
         def Runtime(options):
             error = f'Runtime error {options["originator"]} at line {options["line"]}'
-            Program.printError(error)
+            Program.printErrorExit(error)
         methods = {
             'Syntax': Syntax,
             'Runtime': Runtime
@@ -38,10 +40,14 @@ class Program:
     def printError(*args):
         for arg in args:
             print(arg)
+        
+    def printErrorExit(*args):
+        for arg in args:
+            print(arg)
         sys.exit(1)
 
     def asString(detail):
-        result = f'\nFile {detail["pos_start"].fileName}, line {detail["pos_start"].line + 1}'
+        result = f'\nFile {detail["pos_start"].fileName}, line {detail["pos_start"].line + 1}, column {detail["pos_start"].column + 1}'
         result += '\n\n' +  \
             stringsWithArrows(
                 detail["pos_start"].fileText, detail["pos_start"], detail["pos_end"])
@@ -285,13 +291,19 @@ class Parser:
 
     def parse(self):
         res = self.statements()
-        options = {
+        error = {
             'pos_start': self.current_token.pos_start,
             'pos_end': self.current_token.pos_end,
-            'message': "Invalid syntax or unknown token"
+            'message': "Invalid syntax or unknown token",
+            'exit': True
         }
         if not res.error and self.current_token.type != tokenList.TT_EOF:
-            return res.failure(Program.error()['Syntax'](options))
+            value = self.current_token.value
+            message =  "Invalid syntax or unknown token '{}'".format(self.current_token.value)
+            error['message'] = message
+            if (value == "endTask"):
+                error['message'] = "Cannot end task here, without starting it, perhaps you forgot to add 'task' before 'endTask'?"
+            return res.failure(Program.error()['Syntax'](error))
         return res
     
     
@@ -363,7 +375,8 @@ class Parser:
                         {
                             'pos_start': self.current_token.pos_start,
                             'pos_end': self.current_token.pos_end,
-                            'message': 'Expected "endIf"'
+                            'message': 'Expected "endIf"',
+                            'exit': False
                         }
                     ))
             else:
@@ -393,15 +406,13 @@ class Parser:
         res = ParseResult()
         cases = []
         else_case = None
-        pos_start = self.current_token.pos_start
-        condition = res.register(self.expr())
-        if res.error: return res
+        
         if not self.current_token.matches(tokenList.TT_KEYWORD, case_name):
             return res.failure(Program.error()['Syntax'](
                 {
-                    'pos_start': pos_start,
-                    'pos_end': self.current_token.pos_start,
-                    'message': "Expected '" + case_name + "'"
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': 'Expected "{}"'.format(case_name)
                 }
             ))
         res.register_advancement()
@@ -413,11 +424,12 @@ class Parser:
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'then'):
             return res.failure(Program.error()['Syntax'](
                 {
-                    'pos_start': pos_start,
-                    'pos_end': self.current_token.pos_start,
-                    'message': "Expected 'then'",
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': 'Expected "then"'
                 }
             ))
+            
         res.register_advancement()
         self.advance()
         
@@ -441,12 +453,11 @@ class Parser:
             expr = res.register(self.expr())
             if res.error: return res
             cases.append((condition, expr, False))
-            
             all_cases = res.register(self.if_expr_b_or_c())
             if res.error: return res
             new_cases, else_case = all_cases
             cases.extend(new_cases)
-            
+        
         return res.success((cases, else_case))
     
     

@@ -6,6 +6,7 @@ from Interpreter.interpreter import Context, Interpreter, BuiltInTask
 from Global.globalSymbolTable import Global
 
 BuiltInTask.print = BuiltInTask("print")
+BuiltInTask.println = BuiltInTask("println")
 BuiltInTask.exit = BuiltInTask("exit")
 BuiltInTask.input = BuiltInTask("input")
 BuiltInTask.intInput = BuiltInTask("intInput")
@@ -20,7 +21,8 @@ BuiltInTask.remove = BuiltInTask("remove")
 BuiltInTask.clearList = BuiltInTask("clearList")
 
 GlobalSymbolTable = Global()
-GlobalSymbolTable.set('print', BuiltInTask.print)
+GlobalSymbolTable.set('print', BuiltInTask.print)   
+GlobalSymbolTable.set('println', BuiltInTask.println)
 GlobalSymbolTable.set('exit', BuiltInTask.exit)
 GlobalSymbolTable.set('input', BuiltInTask.input)
 GlobalSymbolTable.set('intInput', BuiltInTask.intInput) 

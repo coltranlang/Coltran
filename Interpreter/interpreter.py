@@ -19,6 +19,8 @@ class TypeOf:
             result = 'boolean'
         elif self.type == 'none':
             result = 'none'
+        elif self.type == 'str':
+            result = 'string'
         elif isinstance(self.type, Number):
             if re.match(regex, str(self.type)):
                 result = 'float'
@@ -65,11 +67,11 @@ class Program:
     def error():
         def Default(name, message):
             error = f'\n{name}: {message}\n'
-            Program.printNoExitError(error)
+            Program.printError(error)
 
         def IllegalCharacter(options):
             error = f'\nIllegal character: {options["originator"]}\n\nin File: {options["pos_start"].fileName} at line {options["pos_start"].line + 1}\n'
-            Program.printError(error)
+            Program.printErrorExit(error)
 
         def Syntax(detail):
             isDetail = {
@@ -80,7 +82,10 @@ class Program:
                 'pos_end': detail['pos_end'],
                 'context': detail['context']
             }
-            Program.printError(Program.asStringTraceBack(isDetail))
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
 
         def Runtime(detail):
             isDetail = {
@@ -91,7 +96,10 @@ class Program:
                 'pos_end': detail['pos_end'],
                 'context': detail['context']
             }
-            Program.printError(Program.asStringTraceBack(isDetail))
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
 
         def Type(detail):
             isDetail = {
@@ -102,7 +110,10 @@ class Program:
                 'pos_end': detail['pos_end'],
                 'context': detail['context']
             }
-            Program.printError(Program.asStringTraceBack(isDetail))
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
 
         methods = {
             'Default': Default,
@@ -127,11 +138,11 @@ class Program:
     def printError(*args):
         for arg in args:
             print(arg)
-        sys.exit(1)
 
-    def printNoExitError(*args):
+    def printErrorExit(*args):
         for arg in args:
             print(arg)
+        sys.exit(1)
 
     def asString(detail):
         result = f'\n{detail["name"]}: {detail["message"]}\n'
@@ -326,37 +337,40 @@ class Value:
     def is_true(self):
         return "false"
 
-    def illegal_operation(self, other=None):
+    def illegal_operation(self, error, other=None):
         if not other:
             other = self
         if hasattr(other, 'value'):
             return Program.error()["Syntax"]({
                 'message': f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}' if self.value != None and other.value != None else f'Illegal operation for type {TypeOf(self.value).getType()}',
-                'pos_start': other.pos_start,
-                'pos_end': other.pos_end,
-                'context': other.context
+                'pos_start': error['pos_start'],
+                'pos_end': error['pos_end'],
+                'context': error['context'],
+                'exit': error['exit']
             })
         else:
             return Program.error()["Syntax"]({
                 'message': f"Illegal operation",
-                'pos_start': other.pos_start,
-                'pos_end': other.pos_end,
-                'context': other.context
+                'pos_start': error['pos_start'],
+                'pos_end': error['pos_end'],
+                'context': error['context'],
+                'exit': error['exit']
             })
 
     def none_value(self):
         return Program.NoneValue()
 
-    def illegal_operation_typerror(self, other=None):
+    def illegal_operation_typerror(self, error, other=None):
         errorDetail = {
-            'pos_start': other['pos_start'],
-            'pos_end': other['pos_end'],
-            'message': other['message'],
-            'context': other['context']
+            'pos_start': error['pos_start'],
+            'pos_end': error['pos_end'],
+            'message': error['message'],
+            'context': error['context'],
+            'exit': error['exit']
         }
         if not other:
             other = self
-        if not 'message' in other:
+        if not 'message' in error:
             if hasattr(other, 'value'):
                 errorDetail['message'] = f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}'
                 return Program.error()['Syntax'](errorDetail)
@@ -442,7 +456,8 @@ class Number(Value):
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
             'message': f"can't multiply {TypeOf(self.value).getType()} with {TypeOf(other.value).getType()}",
-            'context': self.context
+            'context': self.context,
+            'exit': False
         }
         if self.value == "none" or other.value == "none":
             return None, self.illegal_operation_typerror(error)
@@ -480,7 +495,8 @@ class Number(Value):
                     'pos_start': other.pos_start,
                     'pos_end': other.pos_end,
                     'message': 'division by zero',
-                    'context': self.context
+                    'context': self.context,
+                    'exit': False
                 })
             return Number(setNumber(self.value) / setNumber(other.value)).setContext(self.context), None
         else:
@@ -631,43 +647,40 @@ class String(Value):
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
             'message': f"can't perform concatenation on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-            'context': self.context
+            'context': self.context,
+            'exit': False
         }
         if other.value == "true" or other.value == "false" or other.value == "none" or self.value == "true" or self.value == "false" or self.value == "none":
-            return None, self.illegal_operation_typerror(error)
+            return None, self.illegal_operation_typerror(error, other)
         if isinstance(other, Number):
             return String(setNumber(str(self.value)) + setNumber(str(other.value))).setContext(self.context), None
         if isinstance(other, String):
             return String(setNumber(str(self.value)) + setNumber(str(other.value))).setContext(self.context), None
         else:
-            return None, self.illegal_operation(other)
+            return None, self.illegal_operation(error,other)
 
     def multiplied_by(self, other):
+        error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't perform multiplication on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                'context': self.context,
+                'exit': False
+            }
         if other.value == "true":
             return String(setNumber(str(self.value)) * setNumber(str(other.value))).setContext(self.context), None
         elif other.value == "false":
             return String(setNumber(str(self.value)) * setNumber(str(other.value))).setContext(self.context), None
         elif other.value == "none" or self.value == "none":
-            error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't perform multiplication on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-                'context': self.context
-            }
             return None, self.illegal_operation_typerror(error)
         if isinstance(other, String):
-            error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't perform multiplication on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-                'context': self.context
-            }
+            
             return None, self.illegal_operation_typerror(error)
 
         if isinstance(other, Number):
-            return String(setNumber(str(self.value)) * setNumber(str(other.value))).setContext(self.context), None
+            return String(setNumber(str(self.value)) * setNumber(other.value)).setContext(self.context), None
         else:
-            return None, self.illegal_operation(self, other)
+            return None, self.illegal_operation(self, error, other)
 
     def and_by(self, other):
         if other.value == "true":
@@ -679,7 +692,8 @@ class String(Value):
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"can't perform and on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-                'context': self.context
+                'context': self.context,
+                'exit': False
             }
             return None, self.illegal_operation_typerror(error)
         if isinstance(other, String):
@@ -805,6 +819,13 @@ class List(Value):
         return new_list, None
 
     def subtracted_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Illegal operation on list",
+            'context': self.context,
+            'exit': False
+        }
         if isinstance(other, Number):
             new_list = self.copy()
             try:
@@ -813,33 +834,48 @@ class List(Value):
             except:
                 return None, "none"
         else:
-            return None, self.illegal_operation(other)
+            return None, self.illegal_operation(error,other)
 
     def divided_by(self, other):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
             'message': f"Did you mean to use the `:` operator to get the element at a certain index?",
-            'context': self.context
+            'context': self.context,
+            'exit': False
         }
-        return None, self.illegal_operation_typerror(error)
+        return None, self.illegal_operation_typerror(error, other)
 
     def multiplied_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Illegal operation on list",
+            'context': self.context,
+            'exit': False
+        }
         if isinstance(other, List):
             new_list = self.copy()
             new_list.elements.extend(other.elements)
             return new_list, None
         else:
-            return None, self.illegal_operation(other)
+            return None, self.illegal_operation(error, other)
 
     def get_index(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Illegal operation on list",
+            'context': self.context,
+            'exit': False
+        }
         if isinstance(other, Number):
             try:
                 return self.elements[other.value], None
             except:
                 return None, self.none_value()
         else:
-            return None, self.illegal_operation(other)
+            return None, self.illegal_operation(error,other)
 
 
     def get_element_at(self, index):
@@ -1073,7 +1109,7 @@ class Interpreter:
             if res.error:
                 return res
             elements.append(element_value)
-        return res.success(Statement(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+        return res.success(Statement(elements).setContext(context).setPosition(node.pos_start, node.pos_end)) 
    
    
    
@@ -1116,7 +1152,8 @@ class Interpreter:
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f'{var_name} is not defined',
-                'context': context
+                'context': context,
+                'exit': False
             }))
         value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(value)
@@ -1172,7 +1209,10 @@ class Interpreter:
         if error:
             return res.failure(error)
         else:
-            return res.success(result.setPosition(node.pos_start, node.pos_end))
+            if hasattr(result, 'setPosition'):
+                return res.success(result.setPosition(node.pos_start, node.pos_end))
+            else:
+                return res.success(result)
 
     def visit_UnaryOpNode(self, node, context):
         res = RuntimeResult()
@@ -1294,6 +1334,12 @@ class Interpreter:
             for arg in args:
                 value = arg
                 print(value)
+                return res.success(String('').setPosition(node.pos_start, node.pos_end))
+            
+        if builtintask == "println":
+            for arg in args:
+                value = str(arg)
+                print(value + "\n")
                 return res.success(String('').setPosition(node.pos_start, node.pos_end))
 
         if builtintask == "exit":

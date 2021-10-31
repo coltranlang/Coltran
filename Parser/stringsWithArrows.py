@@ -1,6 +1,5 @@
 def stringsWithArrows(text, pos_start, pos_end):
     result = ''
-
     # Calculate indices
     index_start = max(text.rfind('\n', 0, pos_start.index), 0)
     index_end = text.find('\n', index_start + 1)
@@ -17,7 +16,7 @@ def stringsWithArrows(text, pos_start, pos_end):
         # Append to result
         result += line + '\n'
         result += ' ' * column_start + '^' * (column_end - column_start)
-
+        
         # Re-calculate indices
         index_start = index_end
         index_end = text.find('\n', index_start + 1)

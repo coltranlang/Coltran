@@ -8,7 +8,7 @@ class Program:
     def error():
         def IllegalCharacter(options):
             error = f'\nFile: {options["pos_start"].fileName} at line {options["pos_start"].line + 1}\n\nSyntaxError: Illegal character unexpected  {options["originator"]}\n'
-            Program.printError(error)
+            Program.printErrorExit(error)
 
         def Syntax(detail):
             isDetail = {
@@ -18,7 +18,10 @@ class Program:
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
             }
-            Program.printError(Program.asString(isDetail))
+            if detail['exit']:
+                Program.printErrorExit(Program.asString(isDetail))
+            else:
+                Program.printError(Program.asString(isDetail))
 
         def Runtime(options):
             error = f'Runtime error {options["originator"]} at line {options["line"]}'
@@ -39,6 +42,11 @@ class Program:
             print(str(type(arg)) + " <===> " + str(arg))
 
     def printError(*args):
+        for arg in args:
+            print(arg)
+        #sys.exit(1)
+        
+    def printErrorExit(*args):
         for arg in args:
             print(arg)
         sys.exit(1)
@@ -73,8 +81,8 @@ class Lexer:
             elif self.current_char in '\n':
                 tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos))
                 self.advance()
-            # elif self.current_char == '#':
-            #     self.make_comment()
+            elif self.current_char == '#':
+                self.make_comment()
             elif self.current_char in tokenList.DIGITS:
                 tokens.append(self.make_number())
             elif self.current_char in tokenList.LETTERS:
@@ -254,7 +262,8 @@ class Lexer:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column)
+                'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column),
+                'exit': True
             })
         self.advance()
         return Token(tokenList.TT_STRING, string, pos_start, self.pos)

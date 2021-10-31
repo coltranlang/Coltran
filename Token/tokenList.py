@@ -48,10 +48,12 @@ KEYWORDS = [
     'or',
     'not',
     'if',
+    'endIf',
     'then',
     'elif',
     'else',
     'for',
+    'endFor',
     'to',
     'get',
     'from',
@@ -62,7 +64,6 @@ KEYWORDS = [
     'return',
     'continue',
     'break',
-    'endFor'
 ]
 
 
