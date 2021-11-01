@@ -920,7 +920,8 @@ class BaseTask(Value):
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args)} arguments given, but {self.name}() expected {len(arg_names)}",
-                'context': self.context
+                'context': self.context,
+                'exit': True
             }))
 
         if len(args) < len(arg_names):
@@ -928,7 +929,8 @@ class BaseTask(Value):
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args)} few arguments given, but {self.name}() expects {len(arg_names)}",
-                'context': self.context
+                'context': self.context,
+                'exit': True
             }))
         return res.success(None)
 
@@ -1270,7 +1272,17 @@ class Interpreter:
         i = start_value.value
 
         if step_value.value >= 0:
-            def condition(): return i < end_value.value
+            if not isinstance(start_value, Number) or not isinstance(end_value, Number):
+                return res.failure(
+                    Program.error()['Syntax']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': 'For loop not supported between ints and strings',
+                        'exit': False
+                    })
+                )
+            def condition(): return i < end_value.value 
         else:
             def condition(): return i > end_value.value
         while condition():

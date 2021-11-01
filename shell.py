@@ -13,7 +13,7 @@ while True:
             else:
                 print(result)
     else:
-        result, error = Program.runFile("./aldenlang/main.alden")
+        result, error = Program.runFile("./aldenlang/fizzBuzz.alden")
         if error:
             print("")
         elif result:
