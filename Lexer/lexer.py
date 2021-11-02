@@ -146,7 +146,6 @@ class Lexer:
                         'originator': char,
                         'pos_start': pos_start
                     })
-
         tokens.append(Token(tokenList.TT_EOF, pos_start=self.pos))
         return tokens, None
 
@@ -238,6 +237,7 @@ class Lexer:
 
     def make_string(self):
         string = ''
+        character = True
         pos_start = self.pos.copy()
         escape_character = False
         self.advance()
@@ -247,15 +247,25 @@ class Lexer:
         }
 
         while self.current_char != None and (self.current_char != '"' or escape_character):
-            if escape_character:
-                string += escape_characters.get(self.current_char,
-                                                self.current_char)
-            else:
-                if self.current_char == '\\':
-                    escape_character = True
+            if self.current_char == '\\':
+                self.advance()
+                if self.current_char in escape_characters:
+                    string += escape_characters[self.current_char]
                 else:
+                    character = False
+                    Program.error()['Syntax']({
+                        'pos_start': pos_start,
+                        'pos_end': self.pos,
+                        'message': 'Invalid escape character',
+                        'exit': True
+                    })
+                    
+            else:
+                if character:
                     string += self.current_char
-
+                else:
+                    string = ''
+                    return Token(tokenList.TT_STRING, string, pos_start, self.pos)
             self.advance()
             escape_character = False 
         if self.current_char == None:
@@ -307,6 +317,9 @@ class Lexer:
             self.advance()
 
         self.advance()
+
+
+
 class Position:
     def __init__(self, index, line, column, fileName, fileText):
         self.index = index

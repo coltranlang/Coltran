@@ -1,16 +1,21 @@
 let list = [1,2,3,4,5]
 let result = ''
-final verfied = false
+let verfied = false
 let age = 18
 
 # Loop list and append it to result
 for i = 1 to 10 then
-    let result = append(list, list:i*2)
+    let result = i
+    if i == 5 then
+        let result = '5 is my favorite number'
+    endIf
+    println(result)
 endFor
 
 task @greet(name)
     let r = "Hello, " + name
-    print(r)
+    if name == "Bob" then
+       return "Hello, Bob"
 endTask
 
 if verfied then
@@ -19,5 +24,5 @@ else
     let age = 18
 endIf
 
-print("Age: " + age)
-println("This is a test " + "Hey")
+println("Age: " + age)
+println(@greet("Bob") + "!" + " is " + age + if age >= 18 then " years old" else " years young")

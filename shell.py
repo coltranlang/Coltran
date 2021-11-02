@@ -13,24 +13,8 @@ while True:
             else:
                 print(result)
     else:
-        result, error = Program.runFile("./aldenlang/fizzBuzz.alden")
+        result, error = Program.runFile("./aldenlang/input.alden")
         if error:
             print("")
         elif result:
             result
-            
-# import basic
-
-# while True:
-# 	text = input('basic > ')
-# 	if text.strip() == "":
-# 	    continue
-# 	result, error = basic.runFile("./aldenlang/main.alden")
-
-# 	if error:
-# 		print(error.as_string())
-# 	elif result:
-# 		if len(result.elements) == 1:
-# 			print(repr(result.elements[0]))
-# 		else:
-# 			print(repr(result))

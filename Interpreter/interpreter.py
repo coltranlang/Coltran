@@ -4,6 +4,7 @@ import Token.tokenList as tokenList
 from Global.globalSymbolTable import Global
 import sys
 import re
+import time
 
 regex = '[+-]?[0-9]+\.[0-9]+'
 
@@ -175,24 +176,60 @@ class Program:
 
 class RuntimeResult:
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.value = None
         self.error = None
-
+        self.func_return_value = None
+        self.loop_continue = False
+        self.loop_break = False
+        
+        
     def register(self, res):
-        if res.error:
-            self.error = res.error
+        self.error = res.error
+        self.func_return_value = res.func_return_value
+        self.loop_continue = res.loop_continue
+        self.loop_break = res.loop_break
         return res.value
 
-    def success(self, value=None):
-        if value:
-            self.value = value
-        else:
-            self.value = ''
+    def success(self, value):
+        self.reset()
+        self.value = value
+        return self
+    
+    def success_return(self, value):
+        self.reset()
+        self.func_return_value = value
+        return self
+    
+    def success_continue(self):
+        self.reset()
+        self.loop_continue = True
+        return self
+    
+    def success_break(self):
+        self.reset()
+        self.loop_break = True
         return self
 
     def failure(self, error):
+        self.reset()
         self.error = error
         return self
+    
+    def noreturn(self):
+        self.reset()
+        return self
+
+
+    def should_return(self):
+        return (
+            self.error or
+            self.func_return_value or
+            self.loop_continue or
+            self.loop_break
+        )
 
 
 class Value:
@@ -395,8 +432,12 @@ class Statement(Value):
 
     def __str__(self):
         for element in self.elements:
-            return str(element)
+            if element == None:
+                return ""
+            else:
+                return str(element)
         return ''
+
 
 class Number(Value):
     def __init__(self, value):
@@ -944,18 +985,17 @@ class BaseTask(Value):
     def check_and_populate_args(self, arg_names, args, exec_ctx):
         res = RuntimeResult()
         res.register(self.check_args(arg_names, args))
-        if res.error:
-            return res
+        if res.should_return(): return res
         self.populate_args(arg_names, args, exec_ctx)
         return res.success(None)
 
 
 class Task(BaseTask):
-    def __init__(self, name, body_node, arg_names, return_null):
+    def __init__(self, name, body_node, arg_names, implicit_return):
         super().__init__(name)
         self.body_node = body_node
         self.arg_names = arg_names
-        self.return_null = return_null
+        self.implicit_return = implicit_return
 
     def execute(self, args):
         res = RuntimeResult()
@@ -964,20 +1004,23 @@ class Task(BaseTask):
 
         res.register(self.check_and_populate_args(
             self.arg_names, args, exec_context))
-        if res.error: return res
+        if res.should_return(): return res
 
         value = res.register(interpreter.visit(self.body_node, exec_context))
-        if res.error:return res
-        return res.success(NoneType.none if self.return_null else value)
+        if res.should_return() and res.func_return_value == None: return res
+        
+        return_value = (
+            value if self.implicit_return else None) or res.func_return_value or NoneType.none
+        return res.success(return_value)
 
     def copy(self):
-        copy = Task(self.name, self.body_node, self.arg_names, self.return_null)
+        copy = Task(self.name, self.body_node, self.arg_names, self.implicit_return)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
 
     def __repr__(self):
-        return f"<Task {self.name}>"
+        return f"<Task {str(self.name)}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
 
 class BuiltInTask(BaseTask):
@@ -993,11 +1036,11 @@ class BuiltInTask(BaseTask):
 
         res.register(self.check_and_populate_args(
             method.arg_names, args, exec_context))
-        if res.error:
+        if res.should_return():
             return res
 
         return_value = res.register(method(exec_context))
-        if res.error:
+        if res.should_return():
             return res
         return res.success(return_value)
 
@@ -1090,7 +1133,7 @@ class BuiltInTask(BaseTask):
         return copy
 
     def __repr__(self):
-        return f"<built-in task {self.name}>"
+        return f"<{str(self.name)}()>, [ built-in task ]"
 
 
 class Interpreter:
@@ -1108,7 +1151,7 @@ class Interpreter:
         elements = []
         for element_node in node.elements:
             element_value = res.register(self.visit(element_node, context))
-            if res.error:
+            if res.should_return():
                 return res
             elements.append(element_value)
         return res.success(Statement(elements).setContext(context).setPosition(node.pos_start, node.pos_end)) 
@@ -1129,15 +1172,17 @@ class Interpreter:
                 context).setPosition(node.pos_start, node.pos_end)
         )
 
+
     def visit_ListNode(self, node, context):
         res = RuntimeResult()
         elements = []
         for element_node in node.elements:
             element_value = res.register(self.visit(element_node, context))
-            if res.error:
+            if res.should_return():
                 return res
             elements.append(element_value)
         return res.success(List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+
 
     def visit_BooleanNode(self, node, context):
         return RuntimeResult().success(
@@ -1150,13 +1195,14 @@ class Interpreter:
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
         if not value:
-            return res.failure(Program.error()['Runtime']({
+            Program.error()['Runtime']({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f'{var_name} is not defined',
                 'context': context,
-                'exit': False
-            }))
+                'exit': True
+            })
+            return res.noreturn()
         value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(value)
 
@@ -1164,18 +1210,18 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.variable_name_token.value
         value = res.register(self.visit(node.value_node, context))
-        if res.error:
+        if res.should_return():
             return res
         if node.variable_keyword_token == "let":
             context.symbolTable.set(var_name, value)
         elif node.variable_keyword_token == "final":
             context.symbolTable.set_final(var_name, value)
-        return res.success()  # return res.success(value)
+        return res.success(value)
 
     def visit_BinOpNode(self, node, context):
         res = RuntimeResult()
         left = res.register(self.visit(node.left_node, context))
-        if res.error:
+        if res.should_return():
             return res
         right = res.register(self.visit(node.right_node, context))
         if node.op_tok.type == tokenList.TT_PLUS:
@@ -1219,7 +1265,7 @@ class Interpreter:
     def visit_UnaryOpNode(self, node, context):
         res = RuntimeResult()
         number = res.register(self.visit(node.node, context))
-        if res.error:
+        if res.should_return():
             return res
         error = None
 
@@ -1236,18 +1282,18 @@ class Interpreter:
         res = RuntimeResult()
         for condition, expr, return_null in node.cases:
             condition_value = res.register(self.visit(condition, context))
-            if res.error:
+            if res.should_return():
                 return res
 
             if condition_value.is_true():
                 expr_value = res.register(self.visit(expr, context))
-                if res.error:
+                if res.should_return():
                     return res
                 return res.success(NoneType.none if return_null else expr_value)
         if node.else_case:
             expr, return_null = node.else_case
             else_value = res.register(self.visit(expr, context))
-            if res.error:
+            if res.should_return():
                 return res
             return res.success(NoneType.none if return_null else else_value)
 
@@ -1257,22 +1303,22 @@ class Interpreter:
         res = RuntimeResult()
         elements = []
         start_value = res.register(self.visit(node.start_value_node, context))
-        if res.error:
+        if res.should_return():
             return res
         end_value = res.register(self.visit(node.end_value_node, context))
-        if res.error:
+        if res.should_return():
             return res
         if node.step_value_node:
             step_value = res.register(
                 self.visit(node.step_value_node, context))
-            if res.error:
+            if res.should_return():
                 return res
         else:
             step_value = Number(1)
         i = start_value.value
 
         if step_value.value >= 0:
-            if not isinstance(start_value, Number) or not isinstance(end_value, Number):
+            if not isinstance(start_value, Number) or not isinstance(end_value, Number) or not isinstance(step_value,Number):
                 return res.failure(
                     Program.error()['Syntax']({
                         'pos_start': node.pos_start,
@@ -1282,15 +1328,21 @@ class Interpreter:
                         'exit': False
                     })
                 )
-            def condition(): return i < end_value.value 
+            condition = lambda: i < end_value.value
         else:
-            def condition(): return i > end_value.value
-        while condition():
+            condition = lambda: i > end_value.value
+            
+        while condition(): 
             context.symbolTable.set(node.var_name_token.value, Number(i))
             i += step_value.value
-            elements.append(res.register(self.visit(node.body_node, context)))
-            if res.error:
-                return res
+            value = res.register(self.visit(node.body_node, context))
+            if res.should_return() and res.loop_continue == False and res.loop_break == False: return res
+            
+            if res.loop_continue: continue
+            
+            if res.loop_break: break
+            
+            elements.append(value)
         return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
     def visit_WhileNode(self, node, context):
@@ -1298,21 +1350,27 @@ class Interpreter:
         elements = []
         while True:
             condition = res.register(self.visit(node.condition_node, context))
-            if res.error:
+            if res.should_return():
                 return res
             if not condition.is_true():
                 break
-            elements.append(res.register(self.visit(node.body_node, context)))
-            if res.error:
-                return res
-        return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+            value = res.register(self.visit(node.body_node, context))
+            if res.should_return() and res.loop_continue == False and res.loop_break == False: return res
+            
+            if res.loop_continue: continue
+            
+            if res.loop_break: break
+            
+            elements.append(value)
+            
+        return res.success(NoneType.none if node.implicit_return else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
     def visit_TaskDefNode(self, node, context):
         res = RuntimeResult()
         task_name = node.task_name_token.value if node.task_name_token else None
         body_node = node.body_node
         arg_names = [arg_name.value for arg_name in node.args_name_tokens]
-        task_value = Task(task_name, body_node, arg_names, node.return_null).setContext(
+        task_value = Task(task_name, body_node, arg_names, node.implicit_return).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.task_name_token:
             context.symbolTable.set(task_name, task_value)
@@ -1332,26 +1390,25 @@ class Interpreter:
         args = []
 
         value_to_call = res.register(self.visit(node.node_to_call, context))
-        if res.error:
-            return res
+        if res.should_return(): return res
         value_to_call = value_to_call.copy().setPosition(node.pos_start, node.pos_end)
 
         for arg_node in node.args_nodes:
             args.append(res.register(self.visit(arg_node, context)))
-            if res.error:
+            if res.should_return():
                 return res
         builtintask = value_to_call.name
 
         if builtintask == "print":
             for arg in args:
                 value = arg
-                print(value)
+                print(value, end="")
                 return res.success(String('').setPosition(node.pos_start, node.pos_end))
             
         if builtintask == "println":
             for arg in args:
                 value = str(arg)
-                print(value + "\n")
+                print(value)
                 return res.success(String('').setPosition(node.pos_start, node.pos_end))
 
         if builtintask == "exit":
@@ -1407,7 +1464,7 @@ class Interpreter:
                         "context": context
                     }))
 
-        if builtintask == 'intInput':
+        if builtintask == 'inputInt':
             if len(args) > 1:
                 return res.failure(Program.error()["Runtime"]({
                     "pos_start": node.pos_start,
@@ -1436,7 +1493,7 @@ class Interpreter:
                         "context": context
                     }))
 
-        if builtintask == 'floatInput':
+        if builtintask == 'inputFloat':
             if len(args) > 1:
                 return res.failure(Program.error()["Runtime"]({
                     "pos_start": node.pos_start,
@@ -1477,6 +1534,29 @@ class Interpreter:
                 os.system('cls' if os.name == 'nt' else 'clear')
                 return res.success(None)
 
+
+        if builtintask == 'delay':
+            if len(args) == 0 or len(args) > 1:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    'message': f"{len(args)} arguments given, but delay() takes 1 argument",
+                    "context": context,
+                    'exit': False
+                }))
+                
+            if isinstance(args[0], Number):
+                time.sleep(args[0].value)
+                return res.success(None)
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    'message': f"{args[0].value} is not a valid argument for delay()",
+                    "context": context,
+                    'exit': False
+                }))
+
         # if builtintask == 'len':
             # if len(args) > 1:
             #     return res.failure(Program.error()["Runtime"]({
@@ -1493,17 +1573,17 @@ class Interpreter:
             #         "context": context
             #     }))
             # if len(args) == 1:
-                if isinstance(args[0], List):
-                    return res.success(Number(len(args[0].elements)).setPosition(node.pos_start, node.pos_end).setContext(context))
-                if isinstance(args[0], String):
-                    return res.success(Number(len(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-                else:
-                    return res.failure(Program.error()["Runtime"]({
-                        "pos_start": node.pos_start,
-                        "pos_end": node.pos_end,
-                        'message': f"{args[0].value} is not a valid argument for len()",
-                        "context": context
-                    }))
+                # if isinstance(args[0], List):
+                #     return res.success(Number(len(args[0].elements)).setPosition(node.pos_start, node.pos_end).setContext(context))
+                # if isinstance(args[0], String):
+                #     return res.success(Number(len(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+                # else:
+                #     return res.failure(Program.error()["Runtime"]({
+                #         "pos_start": node.pos_start,
+                #         "pos_end": node.pos_end,
+                #         'message': f"{args[0].value} is not a valid argument for len()",
+                #         "context": context
+                #     }))
 
         # if builtintask == 'append':
         #     if len(args) > 2:
@@ -1540,8 +1620,26 @@ class Interpreter:
         #             }))
 
         return_value = res.register(value_to_call.execute(args))
-        if res.error:
-            return res
+        if res.should_return(): return res
         return_value = return_value.copy().setPosition(
             node.pos_start, node.pos_end).setContext(context)
+        print(return_value)
         return res.success(return_value)
+
+
+    def visit_ReturnNode(self, node, context):
+        res = RuntimeResult()
+        
+        if node.node_to_return:
+            value = res.register(self.visit(node.node_to_return, context))
+            if res.should_return(): return res
+        else:
+            value = NoneType.none
+        return res.success_return(value)
+    
+    
+    def visit_ContinueNode(self, node, context):
+        return RuntimeResult().success_continue()
+    
+    def visit_BreakNode(self, node, context):
+        return RuntimeResult().success_break()
