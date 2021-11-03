@@ -1,27 +1,34 @@
-
-
-task @getNumber()
-    let result = inputInt("\nGuess a number between 1 and 10 ")
-    let n= 2
-    let b = 3
-    let c = 4
-    if result == n then
-        println("\nYou guessed the number!")
-    elif result < n then
-        println("\nYou guessed too low!")
-    else
-        println("\nYou guessed too high!")
-    endIf
-    let d = 5
-    let e = 6
-    if result < 1 or result > 10 then
-         print("\nThat is not a valid number")
-         @getNumber()
-    endIf
+println("\nLet us play a game\n")
+task @getName()
+    let result = input("What is your name? ")
     return result
 endTask
 
 
+task @getAge()
+    let result = input("\nHow old are you? ")
+    return result
+endTask
 
 
-@getNumber()
+task @getNumber()
+    let result = inputInt("\nGuess a number between 1 and 10 ")
+    if result < 1 or result > 10 then
+        print("\nThat is not a valid number")
+        return @getNumber()
+    endIf
+    return result
+endTask
+
+task @result()
+    let name = @getName()
+    let age = @getAge()
+    let number = @getNumber()
+    let result = "\nYour name is " + name + ", you are " + age + " years old, and you guessed " + number + "."
+    print("\n" + "Calculating..." + "\n")
+    delay(2)
+    println("\n" + result)
+endTask
+
+
+@result()
