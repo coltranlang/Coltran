@@ -429,10 +429,10 @@ class Parser:
                 statements = res.register(self.statements())
                 if res.error: return res
                 else_case = (statements, True)
-                
                 if self.current_token.matches(tokenList.TT_KEYWORD, 'endIf'):
                     res.register_advancement()
                     self.advance()
+                    
                 else:
                     return res.failure(Program.error()['Syntax'](
                         {

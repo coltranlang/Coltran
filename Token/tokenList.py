@@ -60,6 +60,7 @@ KEYWORDS = [
     'from',
     'step',
     'while',
+    'endWhile',
     'task',
     'endTask',
     'return',

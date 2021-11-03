@@ -1,4 +1,5 @@
 
+from os import error
 import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
@@ -90,6 +91,26 @@ class Program:
         return result.value, result.error
 
     def runFile(fileName):
-        with open(fileName, 'r') as file:
-            text = file.read()
-            return Program.run(fileName, text)
+        try:
+            with open(fileName, 'r') as file:
+                text = file.read()
+                # check if file is ending with .alden
+                if fileName[-6:] != ".alden":
+                    print("File is not alden file")
+                    return
+                else:
+                    return Program.run(fileName, text)
+        except FileNotFoundError:
+            print(f'File {fileName} not found')
+            
+    def runRepl():
+        while True:
+            text = input('>>> ')
+            result, error = Program.run("<stdin>",text)
+            if error:
+                print(error)
+            elif result:
+                if result == None:
+                    result
+                else:
+                    print(result)
