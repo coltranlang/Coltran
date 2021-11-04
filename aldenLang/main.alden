@@ -26,3 +26,5 @@ endIf
 
 println("Age: " + age)
 println(@greet("Bob") + "!" + " is " + age + if age >= 18 then " years old" else " years young")
+
+print("A", "b")

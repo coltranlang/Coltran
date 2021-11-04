@@ -1,5 +1,3 @@
-
-from os import error
 import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
@@ -88,7 +86,9 @@ class Program:
         context.symbolTable = GlobalSymbolTable
         result = interpreter.visit(ast.node, context)
         
-        return result.value, result.error
+        if hasattr(result, 'value') and hasattr(result, 'error'):
+            return result.value, result.error
+        return result, None
 
     def runFile(fileName):
         try:
@@ -103,14 +103,26 @@ class Program:
         except FileNotFoundError:
             print(f'File {fileName} not found')
             
-    def runRepl():
+    def repl():
         while True:
             text = input('>>> ')
-            result, error = Program.run("<stdin>",text)
+            result, error = Program.run("<stdin>", text)
             if error:
                 print(error)
             elif result:
                 if result == None:
                     result
                 else:
-                    print(result)
+                    if result == "()":  # empty result, parser is returning ParserResult() or RuntimeResult() so we can't print it
+                        result
+                    else:
+                        print(result)
+    def runRepl():
+        try:
+            Program.repl()
+        except KeyboardInterrupt:
+            print("\nExit?")
+            print('Use exit() to exit')
+            Program.runRepl()
+            
+

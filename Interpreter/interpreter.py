@@ -8,6 +8,7 @@ import time
 
 regex = '[+-]?[0-9]+\.[0-9]+'
 
+
 class TypeOf:
     def __init__(self, type):
         self.type = type
@@ -66,9 +67,12 @@ def setNumber(token):
 
 class Program:
     def error():
-        def Default(name, message):
-            error = f'\n{name}: {message}\n'
-            Program.printError(error)
+        def Default(detail):
+            error = f"\n{detail['name']}: {detail['message']}\n"
+            if detail['exit']:
+                Program.printErrorExit(error)
+            else:
+                Program.printError(error)
 
         def IllegalCharacter(options):
             error = f'\nIllegal character: {options["originator"]}\n\nin File: {options["pos_start"].fileName} at line {options["pos_start"].line + 1}\n'
@@ -162,7 +166,6 @@ class Program:
         return result
 
     def generateTraceBack(detail):
-        # print(detail)
         result = ''
         pos = detail['pos_start']
         context = detail['context']
@@ -184,30 +187,31 @@ class RuntimeResult:
         self.func_return_value = None
         self.loop_continue = False
         self.loop_break = False
-        
-        
-    def register(self, res):
-        self.error = res.error
-        self.func_return_value = res.func_return_value
-        self.loop_continue = res.loop_continue
-        self.loop_break = res.loop_break
-        return res.value
 
+    def register(self, res):
+        if hasattr(res, 'value' and 'error' and 'func_return_value' and 'loop_break' and 'loop_continue'):
+            self.error = res.error
+            self.func_return_value = res.func_return_value
+            self.loop_continue = res.loop_continue
+            self.loop_break = res.loop_break
+            return res.value
+        else:
+            return res
     def success(self, value):
         self.reset()
         self.value = value
         return self
-    
+
     def success_return(self, value):
         self.reset()
         self.func_return_value = value
         return self
-    
+
     def success_continue(self):
         self.reset()
         self.loop_continue = True
         return self
-    
+
     def success_break(self):
         self.reset()
         self.loop_break = True
@@ -217,11 +221,10 @@ class RuntimeResult:
         self.reset()
         self.error = error
         return self
-    
+
     def noreturn(self):
         self.reset()
         return self
-
 
     def should_return(self):
         return (
@@ -337,7 +340,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'>=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}"  if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '>=' not allowed",
+            'message': f"'>=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '>=' not allowed",
             'context': self.context
         })
 
@@ -422,7 +425,6 @@ class Statement(Value):
         super().__init__()
         self.elements = elements if elements is not None else []
         self.value = self.elements
-
 
     def copy(self):
         copy = Statement(self.elements)
@@ -687,27 +689,28 @@ class String(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't perform concatenation on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'message': f"can't perform concatenation on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}" if hasattr(other, 'value') and hasattr(self, 'value') else f"can't perform concatenation on type none",
             'context': self.context,
             'exit': False
         }
-        if other.value == "true" or other.value == "false" or other.value == "none" or self.value == "true" or self.value == "false" or self.value == "none":
-            return None, self.illegal_operation_typerror(error, other)
+        if hasattr(other, 'value') and hasattr(self, 'value'):
+            if other.value == "true" or other.value == "false" or other.value == "none" or self.value == "true" or self.value == "false" or self.value == "none":
+                return None, self.illegal_operation_typerror(error, other)
         if isinstance(other, Number):
             return String(setNumber(str(self.value)) + setNumber(str(other.value))).setContext(self.context), None
         if isinstance(other, String):
             return String(setNumber(str(self.value)) + setNumber(str(other.value))).setContext(self.context), None
         else:
-            return None, self.illegal_operation(error,other)
+            return None, self.illegal_operation(error, other)
 
     def multiplied_by(self, other):
         error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't perform multiplication on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-                'context': self.context,
-                'exit': False
-            }
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't perform multiplication on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
         if other.value == "true":
             return String(setNumber(str(self.value)) * setNumber(str(other.value))).setContext(self.context), None
         elif other.value == "false":
@@ -715,7 +718,7 @@ class String(Value):
         elif other.value == "none" or self.value == "none":
             return None, self.illegal_operation_typerror(error)
         if isinstance(other, String):
-            
+
             return None, self.illegal_operation_typerror(error)
 
         if isinstance(other, Number):
@@ -814,8 +817,8 @@ class Boolean:
 
     def __repr__(self):
         return f'{self.value}'
-    
-    
+
+
 class NoneType:
     def __init__(self):
         self.setPosition(0, 0)
@@ -841,8 +844,8 @@ class NoneType:
 
     def __repr__(self):
         return f'{self.value}'
-    
-    
+
+
 Boolean.true = Boolean("true")
 Boolean.false = Boolean("false")
 NoneType.none = NoneType()
@@ -875,7 +878,7 @@ class List(Value):
             except:
                 return None, "none"
         else:
-            return None, self.illegal_operation(error,other)
+            return None, self.illegal_operation(error, other)
 
     def divided_by(self, other):
         error = {
@@ -916,8 +919,7 @@ class List(Value):
             except:
                 return None, self.none_value()
         else:
-            return None, self.illegal_operation(error,other)
-
+            return None, self.illegal_operation(error, other)
 
     def get_element_at(self, index):
         return self.elements[index]
@@ -941,7 +943,6 @@ class List(Value):
             return f"[{', '.join([str(x) for x in self.elements])}]"
         else:
             return "[]"
-
 
 
 class BaseTask(Value):
@@ -985,7 +986,8 @@ class BaseTask(Value):
     def check_and_populate_args(self, arg_names, args, exec_ctx):
         res = RuntimeResult()
         res.register(self.check_args(arg_names, args))
-        if res.should_return(): return res
+        if res.should_return():
+            return res
         self.populate_args(arg_names, args, exec_ctx)
         return res.success(None)
 
@@ -1004,17 +1006,20 @@ class Task(BaseTask):
 
         res.register(self.check_and_populate_args(
             self.arg_names, args, exec_context))
-        if res.should_return(): return res
+        if res.should_return():
+            return res
 
         value = res.register(interpreter.visit(self.body_node, exec_context))
-        if res.should_return() and res.func_return_value == None: return res
-        
+        if res.should_return() and res.func_return_value == None:
+            return res
+
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
         return res.success(return_value)
 
     def copy(self):
-        copy = Task(self.name, self.body_node, self.arg_names, self.implicit_return)
+        copy = Task(self.name, self.body_node,
+                    self.arg_names, self.implicit_return)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -1068,8 +1073,7 @@ class BuiltInTask(BaseTask):
         if isinstance(value, String):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
     execute_len.arg_names = ["value"]
-    
-    
+
     def execute_append(self, exec_context):
         res = RuntimeResult()
         list = exec_context.symbolTable.get("list")
@@ -1109,7 +1113,7 @@ class BuiltInTask(BaseTask):
                 'context': self.context
             }))
     execute_pop.arg_names = ["list", "index"]
-    
+
     def execute_extend(self, exec_context):
         res = RuntimeResult()
         list = exec_context.symbolTable.get("list")
@@ -1143,9 +1147,8 @@ class Interpreter:
         return method(node, context)
 
     def no_visiit(self, node, context):
-        raise Exception(f'No visit_{type(node).__name__} method defined')
+        return RuntimeResult().success(None)
 
-    
     def visit_StatementsNode(self, node, context):
         res = RuntimeResult()
         elements = []
@@ -1154,24 +1157,19 @@ class Interpreter:
             if res.should_return():
                 return res
             elements.append(element_value)
-        return res.success(Statement(elements).setContext(context).setPosition(node.pos_start, node.pos_end)) 
-   
-   
-   
+        return res.success(Statement(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+
     def visit_NumberNode(self, node, context):
         return RuntimeResult().success(
             Number(node.tok.value).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
 
-    
-    
     def visit_StringNode(self, node, context):
         return RuntimeResult().success(
             String(node.tok.value).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
-
 
     def visit_ListNode(self, node, context):
         res = RuntimeResult()
@@ -1182,7 +1180,6 @@ class Interpreter:
                 return res
             elements.append(element_value)
         return res.success(List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
-
 
     def visit_BooleanNode(self, node, context):
         return RuntimeResult().success(
@@ -1200,7 +1197,7 @@ class Interpreter:
                 'pos_end': node.pos_end,
                 'message': f'{var_name} is not defined',
                 'context': context,
-                'exit': True
+                'exit': False
             })
             return res.noreturn()
         value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
@@ -1220,47 +1217,47 @@ class Interpreter:
 
     def visit_BinOpNode(self, node, context):
         res = RuntimeResult()
-        left = res.register(self.visit(node.left_node, context))
-        if res.should_return():
-            return res
-        right = res.register(self.visit(node.right_node, context))
-        if node.op_tok.type == tokenList.TT_PLUS:
-            result, error = left.added_to(right)
-        elif node.op_tok.type == tokenList.TT_MINUS:
-            result, error = left.subtracted_by(right)
-        elif node.op_tok.type == tokenList.TT_MUL:
-            result, error = left.multiplied_by(right)
-        elif node.op_tok.type == tokenList.TT_DIVISION:
-            result, error = left.divided_by(right)
-        elif node.op_tok.type == tokenList.TT_POWER:
-            result, error = left.powred_by(right)
-        elif node.op_tok.type == tokenList.TT_MOD:
-            result, error = left.modulo(right)
-        elif node.op_tok.type == tokenList.TT_COLON:
-            result, error = left.get_index(right)
-        elif node.op_tok.type == tokenList.TT_EQEQ:
-            result, error = left.get_comparison_eq(right)
-        elif node.op_tok.type == tokenList.TT_NEQ:
-            result, error = left.get_comparison_ne(right)
-        elif node.op_tok.type == tokenList.TT_LT:
-            result, error = left.get_comparison_lt(right)
-        elif node.op_tok.type == tokenList.TT_GT:
-            result, error = left.get_comparison_gt(right)
-        elif node.op_tok.type == tokenList.TT_LTE:
-            result, error = left.get_comparison_lte(right)
-        elif node.op_tok.type == tokenList.TT_GTE:
-            result, error = left.get_comparison_gte(right)
-        elif node.op_tok.matches(tokenList.TT_KEYWORD, 'and'):
-            result, error = left.and_by(right)
-        elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
-            result, error = left.or_by(right)
-        if error:
-            return res.failure(error)
-        else:
-            if hasattr(result, 'setPosition'):
-                return res.success(result.setPosition(node.pos_start, node.pos_end))
+        try:
+            left = res.register(self.visit(node.left_node, context))
+            if res.should_return():
+                return res
+            right = res.register(self.visit(node.right_node, context))
+            if node.op_tok.type == tokenList.TT_PLUS:
+                result, error = left.added_to(right)
+            elif node.op_tok.type == tokenList.TT_MINUS:
+                result, error = left.subtracted_by(right)
+            elif node.op_tok.type == tokenList.TT_MUL:
+                result, error = left.multiplied_by(right)
+            elif node.op_tok.type == tokenList.TT_DIVISION:
+                result, error = left.divided_by(right)
+            elif node.op_tok.type == tokenList.TT_POWER:
+                result, error = left.powred_by(right)
+            elif node.op_tok.type == tokenList.TT_MOD:
+                result, error = left.modulo(right)
+            elif node.op_tok.type == tokenList.TT_COLON:
+                result, error = left.get_index(right)
+            elif node.op_tok.type == tokenList.TT_EQEQ:
+                result, error = left.get_comparison_eq(right)
+            elif node.op_tok.type == tokenList.TT_NEQ:
+                result, error = left.get_comparison_ne(right)
+            elif node.op_tok.type == tokenList.TT_LT:
+                result, error = left.get_comparison_lt(right)
+            elif node.op_tok.type == tokenList.TT_GT:
+                result, error = left.get_comparison_gt(right)
+            elif node.op_tok.type == tokenList.TT_LTE:
+                result, error = left.get_comparison_lte(right)
+            elif node.op_tok.type == tokenList.TT_GTE:
+                result, error = left.get_comparison_gte(right)
+            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'and'):
+                result, error = left.and_by(right)
+            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
+                result, error = left.or_by(right)
+            if error:
+                return res.failure(error)
             else:
-                return res.success(result)
+                return res.success(result.setPosition(node.pos_start, node.pos_end))
+        except AttributeError or TypeError or ValueError:
+            return RuntimeResult()
 
     def visit_UnaryOpNode(self, node, context):
         res = RuntimeResult()
@@ -1318,7 +1315,7 @@ class Interpreter:
         i = start_value.value
 
         if step_value.value >= 0:
-            if not isinstance(start_value, Number) or not isinstance(end_value, Number) or not isinstance(step_value,Number):
+            if not isinstance(start_value, Number) or not isinstance(end_value, Number) or not isinstance(step_value, Number):
                 return res.failure(
                     Program.error()['Syntax']({
                         'pos_start': node.pos_start,
@@ -1328,20 +1325,24 @@ class Interpreter:
                         'exit': False
                     })
                 )
-            condition = lambda: i < end_value.value
+
+            def condition(): return i < end_value.value
         else:
-            condition = lambda: i > end_value.value
-            
-        while condition(): 
+            def condition(): return i > end_value.value
+
+        while condition():
             context.symbolTable.set(node.var_name_token.value, Number(i))
             i += step_value.value
             value = res.register(self.visit(node.body_node, context))
-            if res.should_return() and res.loop_continue == False and res.loop_break == False: return res
-            
-            if res.loop_continue: continue
-            
-            if res.loop_break: break
-            
+            if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                return res
+
+            if res.loop_continue:
+                continue
+
+            if res.loop_break:
+                break
+
             elements.append(value)
         return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
@@ -1355,14 +1356,17 @@ class Interpreter:
             if not condition.is_true():
                 break
             value = res.register(self.visit(node.body_node, context))
-            if res.should_return() and res.loop_continue == False and res.loop_break == False: return res
-            
-            if res.loop_continue: continue
-            
-            if res.loop_break: break
-            
+            if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                return res
+
+            if res.loop_continue:
+                continue
+
+            if res.loop_break:
+                break
+
             elements.append(value)
-            
+
         return res.success(NoneType.none if node.implicit_return else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
     def visit_TaskDefNode(self, node, context):
@@ -1387,259 +1391,261 @@ class Interpreter:
 
     def visit_CallNode(self, node, context):
         res = RuntimeResult()
-        args = []
+        try:
+            args = []
 
-        value_to_call = res.register(self.visit(node.node_to_call, context))
-        if res.should_return(): return res
-        value_to_call = value_to_call.copy().setPosition(node.pos_start, node.pos_end)
-
-        for arg_node in node.args_nodes:
-            args.append(res.register(self.visit(arg_node, context)))
+            value_to_call = res.register(self.visit(
+                node.node_to_call, context)) if node.node_to_call else None
             if res.should_return():
                 return res
-        builtintask = value_to_call.name
+            value_to_call = value_to_call.copy().setPosition(node.pos_start, node.pos_end)
 
-        if builtintask == "print":
-            for arg in args:
-                value = arg
-                print(value, end="")
-                return res.success(String('').setPosition(node.pos_start, node.pos_end))
-            
-        if builtintask == "println":
-            for arg in args:
-                value = str(arg)
-                print(value)
+            for arg_node in node.args_nodes:
+                args.append(res.register(self.visit(arg_node, context)))
+                if res.should_return():
+                    return res
+            builtintask = value_to_call.name
+            if builtintask == "print":
+                for arg in args:
+                    value = str(arg.value)
+                    print(value, end="")
                 return res.success(String('').setPosition(node.pos_start, node.pos_end))
 
-        if builtintask == "exit":
-            if len(args) == 0:
-                sys.exit()
-            elif len(args) > 1:
-                return res.failure(Program.error()["Runtime"]({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"{len(args)} arguments given, but exit() takes 0 or 1 argument(s)",
-                    "context": context
-                }))
-            if isinstance(args[0], Number):
-                if args[0].value == 0:
-                    sys.exit(0)
-                elif args[0].value == 1:
-                    sys.exit(1)
+            if builtintask == "println":
+                for arg in args:
+                    value = str(arg)
+                    print(value)
+                return res.success(String('').setPosition(node.pos_start, node.pos_end))
+
+            if builtintask == "exit":
+                if len(args) == 0:
+                    sys.exit()
+                elif len(args) > 1:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": node.pos_start,
+                        "pos_end": node.pos_end,
+                        'message': f"{len(args)} arguments given, but exit() takes 0 or 1 argument(s)",
+                        "context": context
+                    }))
+                if isinstance(args[0], Number):
+                    if args[0].value == 0:
+                        sys.exit(0)
+                    elif args[0].value == 1:
+                        sys.exit(1)
+                    else:
+                        return res.failure(Program.error()["Runtime"]({
+                            "pos_start": node.pos_start,
+                            "pos_end": node.pos_end,
+                            'message': f"{args[0].value} is not a valid exit code",
+                            "context": context
+                        }))
                 else:
                     return res.failure(Program.error()["Runtime"]({
                         "pos_start": node.pos_start,
                         "pos_end": node.pos_end,
-                        'message': f"{args[0].value} is not a valid exit code",
+                        'message': f"{args[0]} is not a valid argument for exit()",
                         "context": context
                     }))
-            else:
-                return res.failure(Program.error()["Runtime"]({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"{args[0]} is not a valid argument for exit()",
-                    "context": context
-                }))
 
-        if builtintask == "input":
-            if len(args) > 1:
-                return res.failure(Program.error()["Runtime"]({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"{len(args)} arguments given, but input() takes 0 or 1 argument(s)",
-                    "context": context
-                }))
-            if len(args) == 0:
-                input_value = input()
-                return res.success(String(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
-            if len(args) == 1:
-                if isinstance(args[0], String):
-                    input_value = input(args[0].value)
+            if builtintask == "input":
+                if len(args) > 1:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": node.pos_start,
+                        "pos_end": node.pos_end,
+                        'message': f"{len(args)} arguments given, but input() takes 0 or 1 argument(s)",
+                        "context": context
+                    }))
+                if len(args) == 0:
+                    input_value = input()
                     return res.success(String(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
+                if len(args) == 1:
+                    if isinstance(args[0], String):
+                        input_value = input(args[0].value)
+                        return res.success(String(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
+                    else:
+                        return res.failure(Program.error()["Runtime"]({
+                            "pos_start": node.pos_start,
+                            "pos_end": node.pos_end,
+                            'message': f"{args[0]} is not a valid argument for input()",
+                            "context": context
+                        }))
+
+            if builtintask == 'inputInt':
+                if len(args) > 1:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": node.pos_start,
+                        "pos_end": node.pos_end,
+                        'message': f"{len(args)} arguments given, but intInput() takes 0 or 1 argument(s)",
+                        "context": context
+                    }))
+                if len(args) == 0:
+                    input_value = int(input())
+                    return res.success(Number(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
+                if len(args) == 1:
+                    if isinstance(args[0], String):
+                        while True:
+                            text = input(args[0].value)
+                            try:
+                                number = int(text)
+                                break
+                            except ValueError:
+                                print("Invalid input, please try again")
+                        return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
+                    else:
+                        return res.failure(Program.error()["Runtime"]({
+                            "pos_start": node.pos_start,
+                            "pos_end": node.pos_end,
+                            'message': f"{args[0].value} is not a valid argument for intInput()",
+                            "context": context
+                        }))
+
+            if builtintask == 'inputFloat':
+                if len(args) > 1:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": node.pos_start,
+                        "pos_end": node.pos_end,
+                        'message': f"{len(args)} arguments given, but floatInput() takes 0 or 1 argument(s)",
+                        "context": context
+                    }))
+                if len(args) == 0:
+                    input_value = float(input())
+                    return res.success(Number(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
+                if len(args) == 1:
+                    if isinstance(args[0], String):
+                        while True:
+                            text = input(args[0].value)
+                            try:
+                                number = float(text)
+                                break
+                            except ValueError:
+                                print("Invalid input, please try again")
+                        return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
+                    else:
+                        return res.failure(Program.error()["Runtime"]({
+                            "pos_start": node.pos_start,
+                            "pos_end": node.pos_end,
+                            'message': f"{args[0].value} is not a valid argument for floatInput()",
+                            "context": context
+                        }))
+
+            if builtintask == 'clear':
+                if len(args) > 0:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": node.pos_start,
+                        "pos_end": node.pos_end,
+                        'message': f"{len(args)} arguments given, but clear() takes no argument",
+                        "context": context
+                    }))
+                if len(args) == 0:
+                    os.system('cls' if os.name == 'nt' else 'clear')
+                    return res.success(None)
+
+            if builtintask == 'delay':
+                if len(args) == 0 or len(args) > 1:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": node.pos_start,
+                        "pos_end": node.pos_end,
+                        'message': f"{len(args)} arguments given, but delay() takes 1 argument",
+                        "context": context,
+                        'exit': False
+                    }))
+
+                if isinstance(args[0], Number):
+                    time.sleep(args[0].value)
+                    return res.success(None)
                 else:
                     return res.failure(Program.error()["Runtime"]({
                         "pos_start": node.pos_start,
                         "pos_end": node.pos_end,
-                        'message': f"{args[0]} is not a valid argument for input()",
-                        "context": context
+                        'message': f"{args[0].value} is not a valid argument for delay()",
+                        "context": context,
+                        'exit': False
                     }))
 
-        if builtintask == 'inputInt':
-            if len(args) > 1:
-                return res.failure(Program.error()["Runtime"]({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"{len(args)} arguments given, but intInput() takes 0 or 1 argument(s)",
-                    "context": context
-                }))
-            if len(args) == 0:
-                input_value = int(input())
-                return res.success(Number(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
-            if len(args) == 1:
-                if isinstance(args[0], String):
-                    while True:
-                        text = input(args[0].value)
-                        try:
-                            number = int(text)
-                            break
-                        except ValueError:
-                            print("Invalid input, please try again")
-                    return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
-                else:
-                    return res.failure(Program.error()["Runtime"]({
-                        "pos_start": node.pos_start,
-                        "pos_end": node.pos_end,
-                        'message': f"{args[0].value} is not a valid argument for intInput()",
-                        "context": context
-                    }))
-
-        if builtintask == 'inputFloat':
-            if len(args) > 1:
-                return res.failure(Program.error()["Runtime"]({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"{len(args)} arguments given, but floatInput() takes 0 or 1 argument(s)",
-                    "context": context
-                }))
-            if len(args) == 0:
-                input_value = float(input())
-                return res.success(Number(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
-            if len(args) == 1:
-                if isinstance(args[0], String):
-                    while True:
-                        text = input(args[0].value)
-                        try:
-                            number = float(text)
-                            break
-                        except ValueError:
-                            print("Invalid input, please try again")
-                    return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
-                else:
-                    return res.failure(Program.error()["Runtime"]({
-                        "pos_start": node.pos_start,
-                        "pos_end": node.pos_end,
-                        'message': f"{args[0].value} is not a valid argument for floatInput()",
-                        "context": context
-                    }))
-
-        if builtintask == 'clear':
-            if len(args) > 0:
-                return res.failure(Program.error()["Runtime"]({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"{len(args)} arguments given, but clear() takes no argument",
-                    "context": context
-                }))
-            if len(args) == 0:
-                os.system('cls' if os.name == 'nt' else 'clear')
-                return res.success(None)
-
-
-        if builtintask == 'delay':
-            if len(args) == 0 or len(args) > 1:
-                return res.failure(Program.error()["Runtime"]({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"{len(args)} arguments given, but delay() takes 1 argument",
-                    "context": context,
-                    'exit': False
-                }))
-                
-            if isinstance(args[0], Number):
-                time.sleep(args[0].value)
-                return res.success(None)
-            else:
-                return res.failure(Program.error()["Runtime"]({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"{args[0].value} is not a valid argument for delay()",
-                    "context": context,
-                    'exit': False
-                }))
-
-        # if builtintask == 'len':
-            # if len(args) > 1:
-            #     return res.failure(Program.error()["Runtime"]({
-            #         "pos_start": node.pos_start,
-            #         "pos_end": node.pos_end,
-            #         'message': f"{len(args)} arguments given, but len() takes 1 argument",
-            #         "context": context
-            #     }))
-            # if len(args) == 0:
-            #     return res.failure(Program.error()["Runtime"]({
-            #         "pos_start": node.pos_start,
-            #         "pos_end": node.pos_end,
-            #         'message': f"{len(args)} arguments given, but len() takes 1 argument",
-            #         "context": context
-            #     }))
-            # if len(args) == 1:
-                # if isinstance(args[0], List):
-                #     return res.success(Number(len(args[0].elements)).setPosition(node.pos_start, node.pos_end).setContext(context))
-                # if isinstance(args[0], String):
-                #     return res.success(Number(len(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-                # else:
+            # if builtintask == 'len':
+                # if len(args) > 1:
                 #     return res.failure(Program.error()["Runtime"]({
                 #         "pos_start": node.pos_start,
                 #         "pos_end": node.pos_end,
-                #         'message': f"{args[0].value} is not a valid argument for len()",
+                #         'message': f"{len(args)} arguments given, but len() takes 1 argument",
                 #         "context": context
                 #     }))
+                # if len(args) == 0:
+                #     return res.failure(Program.error()["Runtime"]({
+                #         "pos_start": node.pos_start,
+                #         "pos_end": node.pos_end,
+                #         'message': f"{len(args)} arguments given, but len() takes 1 argument",
+                #         "context": context
+                #     }))
+                # if len(args) == 1:
+                    # if isinstance(args[0], List):
+                    #     return res.success(Number(len(args[0].elements)).setPosition(node.pos_start, node.pos_end).setContext(context))
+                    # if isinstance(args[0], String):
+                    #     return res.success(Number(len(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+                    # else:
+                    #     return res.failure(Program.error()["Runtime"]({
+                    #         "pos_start": node.pos_start,
+                    #         "pos_end": node.pos_end,
+                    #         'message': f"{args[0].value} is not a valid argument for len()",
+                    #         "context": context
+                    #     }))
 
-        # if builtintask == 'append':
-        #     if len(args) > 2:
-        #         return res.failure(Program.error()["Runtime"]({
-        #             "pos_start": node.pos_start,
-        #             "pos_end": node.pos_end,
-        #             'message': f"{len(args)} arguments given, but append() takes 2 argument",
-        #             "context": context
-        #         }))
-        #     if len(args) == 0:
-        #         return res.failure(Program.error()["Runtime"]({
-        #             "pos_start": node.pos_start,
-        #             "pos_end": node.pos_end,
-        #             'message': f"{len(args)} arguments given, but append() takes 2 argument",
-        #             "context": context
-        #         }))
-        #     if len(args) == 1:
-        #         return res.failure(Program.error()["Runtime"]({
-        #             "pos_start": node.pos_start,
-        #             "pos_end": node.pos_end,
-        #             'message': f"{len(args)} arguments given, but append() takes 2 argument",
-        #             "context": context
-        #         }))
-        #     if len(args) == 2:
-        #         if isinstance(args[0], List):
-        #             args[0].elements.append(args[1])
-        #             return res.success(List(args[0].elements).setPosition(node.pos_start, node.pos_end).setContext(context))
-        #         else:
-        #             return res.failure(Program.error()["Runtime"]({
-        #                 "pos_start": node.pos_start,
-        #                 "pos_end": node.pos_end,
-        #                 'message': f"{args[0].value} is not a valid argument for append(), argument must be a list",
-        #                 "context": context
-        #             }))
+            # if builtintask == 'append':
+            #     if len(args) > 2:
+            #         return res.failure(Program.error()["Runtime"]({
+            #             "pos_start": node.pos_start,
+            #             "pos_end": node.pos_end,
+            #             'message': f"{len(args)} arguments given, but append() takes 2 argument",
+            #             "context": context
+            #         }))
+            #     if len(args) == 0:
+            #         return res.failure(Program.error()["Runtime"]({
+            #             "pos_start": node.pos_start,
+            #             "pos_end": node.pos_end,
+            #             'message': f"{len(args)} arguments given, but append() takes 2 argument",
+            #             "context": context
+            #         }))
+            #     if len(args) == 1:
+            #         return res.failure(Program.error()["Runtime"]({
+            #             "pos_start": node.pos_start,
+            #             "pos_end": node.pos_end,
+            #             'message': f"{len(args)} arguments given, but append() takes 2 argument",
+            #             "context": context
+            #         }))
+            #     if len(args) == 2:
+            #         if isinstance(args[0], List):
+            #             args[0].elements.append(args[1])
+            #             return res.success(List(args[0].elements).setPosition(node.pos_start, node.pos_end).setContext(context))
+            #         else:
+            #             return res.failure(Program.error()["Runtime"]({
+            #                 "pos_start": node.pos_start,
+            #                 "pos_end": node.pos_end,
+            #                 'message': f"{args[0].value} is not a valid argument for append(), argument must be a list",
+            #                 "context": context
+            #             }))
 
-        return_value = res.register(value_to_call.execute(args))
-        if res.should_return(): return res
-        return_value = return_value.copy().setPosition(
-            node.pos_start, node.pos_end).setContext(context)
-        print(return_value)
-        return res.success(return_value)
-
+            return_value = res.register(value_to_call.execute(args))
+            if res.should_return():
+                return res
+            return_value = return_value.copy().setPosition(
+                node.pos_start, node.pos_end).setContext(context)
+            return res.success(return_value)
+        except AttributeError or TypeError or ValueError:
+            return RuntimeResult()
 
     def visit_ReturnNode(self, node, context):
         res = RuntimeResult()
-        
+
         if node.node_to_return:
             value = res.register(self.visit(node.node_to_return, context))
-            if res.should_return(): return res
+            if res.should_return():
+                return res
         else:
             value = NoneType.none
         return res.success_return(value)
-    
-    
+
     def visit_ContinueNode(self, node, context):
         return RuntimeResult().success_continue()
-    
+
     def visit_BreakNode(self, node, context):
         return RuntimeResult().success_break()

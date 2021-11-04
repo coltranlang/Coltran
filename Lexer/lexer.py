@@ -8,7 +8,7 @@ class Program:
     def error():
         def IllegalCharacter(options):
             error = f'\nFile: {options["pos_start"].fileName} at line {options["pos_start"].line + 1}\n\nSyntaxError: Illegal character unexpected  {options["originator"]}\n'
-            Program.printErrorExit(error)
+            Program.printError(error)
 
         def Syntax(detail):
             isDetail = {
@@ -204,7 +204,8 @@ class Lexer:
         return None, Program.error()['Syntax']({
             'pos_start': pos_start,
             'pos_end': self.pos,
-            'message': 'Expected = after !'
+            'message': 'Expected = after !',
+            'exit': False
         })
 
     def make_equals(self):

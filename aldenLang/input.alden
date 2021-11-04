@@ -16,7 +16,6 @@ task @getNumber()
     if result < 1 or result > 10 then
         print("\nThat is not a valid number")
         return @getNumber()
-    endIf
     return result
 endTask
 
