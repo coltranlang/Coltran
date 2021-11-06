@@ -42,13 +42,9 @@ def run(file):
 @app.command()
 def init(cmd: str = typer.Argument(""), file: str = typer.Argument("")):
     if cmd:
-        if cmd == "run":
-            if file: 
-                run(file)
-            else:
-                print("No file specified")
-        elif cmd == "repl":
-            repl()
+        run(cmd)
+    elif cmd == "repl":
+        repl()
     else:
         repl()
 

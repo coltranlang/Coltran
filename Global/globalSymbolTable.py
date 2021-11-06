@@ -70,6 +70,9 @@ class Global:
 
     def set(self, name, value):
         self.symbols[name] = value
+        if not value:
+            value = "none"
+        #print(f'{name} = {value}')
 
     def set_final(self, name, value):
         if name in self.symbols:

@@ -82,7 +82,7 @@ class Program:
         if ast.error: return "", ast.error
         
         interpreter = Interpreter()
-        context = Context('<program>')
+        context = Context('<module>')
         context.symbolTable = GlobalSymbolTable
         result = interpreter.visit(ast.node, context)
         

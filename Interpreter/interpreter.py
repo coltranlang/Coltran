@@ -1,4 +1,5 @@
 import os
+from typing import List
 from Parser.stringsWithArrows import *
 import Token.tokenList as tokenList
 from Global.globalSymbolTable import Global
@@ -29,7 +30,14 @@ class TypeOf:
             else:
                 result = 'int'
         else:
-            result = type(self.type).__name__
+            if isinstance(self.type, str) or isinstance(self.type, String):
+                result = 'string'
+            elif isinstance(self.type, bool) or isinstance(self.type, Boolean):
+                result = 'boolean'
+            elif isinstance(self.type, list) or isinstance(self.type, List):
+                result = 'list'
+            else:
+                result = type(self.type).__name__
         return result
 
 
@@ -42,7 +50,7 @@ class Context:
 
 
 def setNumber(token):
-    value = None
+    value = "none"
     if not token and token != 0:
         value = 0
     if token == 'true':
@@ -341,7 +349,7 @@ class Value:
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
             'message': f"'>=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '>=' not allowed",
-            'context': self.context
+            'context': self.context,
         })
 
     def and_by(self, other):
@@ -386,7 +394,7 @@ class Value:
                 'pos_start': error['pos_start'],
                 'pos_end': error['pos_end'],
                 'context': error['context'],
-                'exit': error['exit']
+                'exit': error['exit'] if 'exit' in error else True
             })
         else:
             return Program.error()["Syntax"]({
@@ -406,7 +414,7 @@ class Value:
             'pos_end': error['pos_end'],
             'message': error['message'],
             'context': error['context'],
-            'exit': error['exit']
+            'exit': error['exit'] if 'exit' in error else True
         }
         if not other:
             other = self
@@ -445,7 +453,8 @@ class Number(Value):
     def __init__(self, value):
         super().__init__()
         self.value = value
-
+        
+        
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
         self.pos_end = pos_end
@@ -478,7 +487,7 @@ class Number(Value):
             else:
                 return Number(self.value + other.value).setContext(self.context), None
         else:
-            return None, self.illegal_operation(other)
+            return "None", self.illegal_operation(other)
 
     def subtracted_by(self, other):
         if isinstance(other, Number):
@@ -671,7 +680,6 @@ class String(Value):
     def __init__(self, value):
         super().__init__()
         self.value = value
-
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
         self.pos_end = pos_end
@@ -701,7 +709,7 @@ class String(Value):
         if isinstance(other, String):
             return String(setNumber(str(self.value)) + setNumber(str(other.value))).setContext(self.context), None
         else:
-            return None, self.illegal_operation(error, other)
+            return "None", self.illegal_operation(error, other)
 
     def multiplied_by(self, other):
         error = {
@@ -822,14 +830,14 @@ class Boolean:
 class NoneType:
     def __init__(self):
         self.setPosition(0, 0)
-        self.setContext(None)
+        self.setContext("none")
 
     def setPosition(self, pos_start, pos_end):
         self.pos_start = pos_start
         self.pos_end = pos_end
         return self
 
-    def setContext(self, context=None):
+    def setContext(self, context):
         self.context = context
         return self
 
@@ -840,10 +848,10 @@ class NoneType:
         return copy
 
     def __str__(self):
-        return ""
+        return "none"
 
     def __repr__(self):
-        return f'{self.value}'
+        return f'none'
 
 
 Boolean.true = Boolean("true")
@@ -1147,7 +1155,7 @@ class Interpreter:
         return method(node, context)
 
     def no_visiit(self, node, context):
-        return RuntimeResult().success(None)
+        return RuntimeResult().success("None")
 
     def visit_StatementsNode(self, node, context):
         res = RuntimeResult()
@@ -1191,7 +1199,9 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
-        if not value:
+        if var_name in context.symbolTable.symbols and value is None:
+            value = context.symbolTable.get(NoneType.none)
+        elif value is None:
             Program.error()['Runtime']({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
@@ -1210,8 +1220,12 @@ class Interpreter:
         if res.should_return():
             return res
         if node.variable_keyword_token == "let":
+            if value is None:
+                value = NoneType.none
             context.symbolTable.set(var_name, value)
         elif node.variable_keyword_token == "final":
+            if value is None:
+                value = NoneType.none
             context.symbolTable.set_final(var_name, value)
         return res.success(value)
 
@@ -1371,7 +1385,7 @@ class Interpreter:
 
     def visit_TaskDefNode(self, node, context):
         res = RuntimeResult()
-        task_name = node.task_name_token.value if node.task_name_token else None
+        task_name = node.task_name_token.value if node.task_name_token else "None"
         body_node = node.body_node
         arg_names = [arg_name.value for arg_name in node.args_name_tokens]
         task_value = Task(task_name, body_node, arg_names, node.implicit_return).setContext(
@@ -1404,18 +1418,21 @@ class Interpreter:
                 args.append(res.register(self.visit(arg_node, context)))
                 if res.should_return():
                     return res
+            for arg in args:
+                if arg is None:
+                    args = []
             builtintask = value_to_call.name
             if builtintask == "print":
                 for arg in args:
-                    value = str(arg.value)
+                    value = str(arg)
                     print(value, end="")
-                return res.success(String('').setPosition(node.pos_start, node.pos_end))
+                return res.success(String(str(NoneType.none)).setPosition(node.pos_start, node.pos_end))
 
             if builtintask == "println":
                 for arg in args:
                     value = str(arg)
                     print(value)
-                return res.success(String('').setPosition(node.pos_start, node.pos_end))
+                return res.success(String(str(NoneType.none)).setPosition(node.pos_start, node.pos_end))
 
             if builtintask == "exit":
                 if len(args) == 0:
@@ -1638,9 +1655,13 @@ class Interpreter:
 
         if node.node_to_return:
             value = res.register(self.visit(node.node_to_return, context))
+            if value is None:
+                value = NoneType.none
             if res.should_return():
                 return res
         else:
+            value = NoneType.none
+        if value is None:
             value = NoneType.none
         return res.success_return(value)
 

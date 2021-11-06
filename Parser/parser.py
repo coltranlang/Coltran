@@ -561,7 +561,6 @@ class Parser:
         var_name_token = self.current_token
         res.register_advancement()
         self.advance()
-
         if self.current_token.type != tokenList.TT_EQ:
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -677,7 +676,6 @@ class Parser:
             body = res.register(self.statements())
             if res.error:
                 return res
-
             if not self.current_token.matches(tokenList.TT_KEYWORD, 'endWhile'):
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
@@ -1048,6 +1046,13 @@ class Parser:
             var_name = self.current_token
             res.register_advancement()
             self.advance()
+            if self.current_token.type == tokenList.TT_COMMA:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Assignments on multiple variables are not supported",
+                    'exit': True
+                }))
             if self.current_token.type != tokenList.TT_EQ:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
