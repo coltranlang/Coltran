@@ -195,14 +195,11 @@ class WhileNode:
 
 
 class TaskDefNode:
-    def __init__(self, task_name_token, args_name_tokens, body_node, methods, implicit_return):
+    def __init__(self, task_name_token, args_name_tokens, body_node, implicit_return):
         self.task_name_token = task_name_token
         self.args_name_tokens = args_name_tokens
         self.body_node = body_node
-        self.methods = methods
         self.implicit_return = implicit_return
-        # function methods
-        # self.body_node.methods = methods
         properties = {
             'name': self.task_name_token.value,
             'args': [arg.value for arg in args_name_tokens],
@@ -214,8 +211,7 @@ class TaskDefNode:
         else:
             self.pos_start = self.body_node.pos_start
         self.pos_end = self.body_node.pos_end
-        #self.methods = methods
-        #self.properties = properties
+        self.properties = properties
 
 
 class MethodCallNode:
@@ -710,6 +706,7 @@ class Parser:
 
     def task_def(self):
         res = ParseResult()
+        body = []
         methods = []
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'task'):
             return res.failure(Program.error()['Syntax']({
@@ -801,11 +798,11 @@ class Parser:
             res.register_advancement()
             self.advance()
 
-            body = res.register(self.expr())
+            body = res.register(self.statements())
             if res.error:
                 return res
 
-            return res.success(TaskDefNode(var_name_tokens, arg_name_tokens, body, methods, False))
+            return res.success(TaskDefNode(var_name_tokens, arg_name_tokens, body, False))
         
         
         if self.current_token.type != tokenList.TT_NEWLINE:
@@ -825,25 +822,29 @@ class Parser:
         if res.error: return res
         
         
-        while self.current_token.matches(tokenList.TT_KEYWORD, 'method'):
-            method = res.register(self.method())
-            if res.error: return res
-            methods.append(method)
-            res.register_advancement()
-            self.advance()
+        # while self.current_token.matches(tokenList.TT_KEYWORD, 'method'):
+        #     method = res.register(self.method())
+        #     if res.error: return res
+        #     methods.append(method)
+        #     body = methods
+        #     res.register_advancement()
+        #     self.advance()
             
-        print(methods)    
+            
+            
         if self.current_token.matches(tokenList.TT_KEYWORD, 'endTask'):
             res.register_advancement()
             self.advance()
-            return res.success(TaskDefNode(var_name_tokens, arg_name_tokens, body, methods, False))
+            return res.success(TaskDefNode(var_name_tokens, arg_name_tokens, body, False))
         else:
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
                 'message': "Expected 'endTask'",
                 'exit': False
-            }))            
+            }))     
+            
+    
 
     def method(self):
         res = ParseResult()
@@ -922,7 +923,7 @@ class Parser:
             
             method_body = res.register(self.expr())
             if res.error: return res
-            return res.success(TaskDefNode(method_name, method_arg_name_tokens, method_body, [], True))
+            return res.success(TaskDefNode(method_name, method_arg_name_tokens, method_body, True))
             
             
         if self.current_token.type != tokenList.TT_NEWLINE:
@@ -937,11 +938,10 @@ class Parser:
         self.advance()
         method_body = res.register(self.statements())
         if res.error: return res
-        
         if self.current_token.matches(tokenList.TT_KEYWORD, 'endMethod'):
             res.register_advancement()
             self.advance()
-            return res.success(TaskDefNode(method_name, method_arg_name_tokens, method_body, [], False))
+            return res.success(TaskDefNode(method_name, method_arg_name_tokens, method_body, False))
         else:
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -1304,3 +1304,17 @@ class Parser:
                 return res
             left = BinOpNode(left, op_tok, right)
         return res.success(left)
+
+
+def run(self):
+    def test(self):
+        print("Testing run")
+        return self.test
+        
+        
+        
+        
+        
+        
+        
+    run().test()

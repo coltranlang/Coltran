@@ -1,0 +1,12 @@
+impl @Person(name, age)
+    method getName()
+      print("My name is " + self.name + ".")
+    endMethod
+    method getAge()
+      print("I am " + self.age + " years old.")
+    endMethod
+endImpl
+
+final Person = @Person("John", "25")
+Person.getName()
+Person.getAge()
