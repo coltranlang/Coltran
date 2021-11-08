@@ -72,6 +72,7 @@ class Global:
         self.symbols[name] = value
         if not value:
             value = "none"
+        print(f"{name} is set to {value}")
 
     def set_final(self, name, value):
         if name in self.symbols:

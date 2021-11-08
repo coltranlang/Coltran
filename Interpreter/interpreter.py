@@ -1050,6 +1050,36 @@ class Task(BaseTask):
         return f"<Task {str(self.name)}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
 
+class Class(Value):
+    def __init__(self, name, inherit_from, body_node, pos_start, pos_end):
+        super().__init__()
+        self.name = name
+        self.inherit_from = inherit_from
+        self.body_node = body_node
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        
+        self.methods = {}
+        self.attributes = {}
+    def set_method(self, name, method):
+        self.methods[name] = method
+    def set_attribute(self, name, attribute):
+        self.attributes[name] = attribute
+    def get_method(self, name):
+        return self.methods[name]
+    def get_attribute(self, name):
+        return self.attributes[name]
+    
+    def copy(self):
+        copy = Class(self.name, self.inherit_from, self.body_node,
+                    self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        copy.setPosition(self.pos_start, self.pos_end)
+        return copy
+
+    def __repr__(self):
+        return f"<Class {str(self.name)}>"
+
 class BuiltInTask(BaseTask):
     def __init__(self, name):
         super().__init__(name)
@@ -1438,6 +1468,49 @@ class Interpreter:
         # print(context.symbolTable.symbols)
         return res.success(task_value)
 
+    def visit_ClassNode(self, node, context):
+        res = RuntimeResult()
+        class_name = node.class_name_token.value
+        inherits = node.inherits_name
+        body_node = node.body_node
+        if inherits:
+            inherits_name = inherits.value
+            if inherits_name not in context.symbolTable.symbols:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    "message": "Class '{}' not found".format(inherits_name),
+                    "context": context,
+                    "exit": False
+                }))
+            
+            if not isinstance(context.symbolTable.get(inherits_name), Class):
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    "message": "{} is not a class".format(inherits_name),
+                    "context": context,
+                    "exit": False
+                }))
+                
+            if inherits_name == class_name:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    "message": "Class {} cannot inherit from itself".format(class_name),
+                    "context": context,
+                    "exit": False
+                }))
+                
+            class_value = Class(class_name, inherits_name, body_node, node.pos_start, node.pos_end).setContext(context).setPosition(node.pos_start, node.pos_end)
+        else:
+            class_value = Class(class_name, None, body_node, node.pos_start, node.pos_end).setContext(context).setPosition(node.pos_start, node.pos_end)
+        context.symbolTable.set(class_name, class_value)
+        return res.success(class_value)
+
+        # if task_name in context.symbolTable.symbols:
+        #     return res.failure(Program.error()["Runtime"]({
+    
     # def visit_MethodCallNode(self, node, context):
     #     res = RuntimeResult()
     #     print(node)
