@@ -1,30 +1,14 @@
-let list = [1,2,3,4,5]
-let result = ''
-let verfied = false
-let age = 18
-
-# Loop list and append it to result
-for i = 1 to 10 then
-    let result = i
-    if i == 5 then
-        let result = '5 is my favorite number'
-    endIf
-    println(result)
-endFor
-
-task @greet(name)
-    let r = "Hello, " + name
-    if name == "Bob" then
-       return "Hello, Bob"
+task @Person(name, age)
+    method getName(a,b) 
+        print("Name is " + name)
+    endMethod
+    method getAge() 
+        print('Age is ', age)
+    endMethod
 endTask
 
-if verfied then
-    let age = 30
-else
-    let age = 18
-endIf
 
-println("Age: " + age)
-println(@greet("Bob") + "!" + " is " + age + if age >= 18 then " years old" else " years young")
 
-print("A", "b")
+print(@Person("John", 30))
+
+getAge()

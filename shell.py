@@ -16,7 +16,7 @@ while True:
                 else:
                     print(result)
     else:
-        result, error = Program.runFile("./aldenlang/input.alden")
+        result, error = Program.runFile("./aldenlang/main.alden")
         if error:
             print("")
         elif result:

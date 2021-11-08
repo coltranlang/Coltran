@@ -81,6 +81,19 @@ class Program:
                 Program.printErrorExit(error)
             else:
                 Program.printError(error)
+                
+        def Error(detail):
+            isDetail = {
+                'name': detail['name'],
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
 
         def IllegalCharacter(options):
             error = f'\nIllegal character: {options["originator"]}\n\nin File: {options["pos_start"].fileName} at line {options["pos_start"].line + 1}\n'
@@ -89,7 +102,6 @@ class Program:
         def Syntax(detail):
             isDetail = {
                 'name': 'SyntaxError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -113,6 +125,7 @@ class Program:
                 Program.printErrorExit(Program.asStringTraceBack(isDetail))
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
+     
 
         def Type(detail):
             isDetail = {
@@ -130,6 +143,7 @@ class Program:
 
         methods = {
             'Default': Default,
+            'Error': Error,
             'IllegalCharacter': IllegalCharacter,
             'Syntax': Syntax,
             'Runtime': Runtime,
@@ -1202,7 +1216,16 @@ class Interpreter:
         if var_name in context.symbolTable.symbols and value is None:
             value = context.symbolTable.get(NoneType.none)
         elif value is None:
-            Program.error()['Runtime']({
+            if var_name == "@":
+                return res.failure(Program.error()['Runtime']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"Expected '@' to be followed by an identifier",
+                    'context': context,
+                    'exit': False
+                }))
+            Program.error()['Error']({
+                'name': 'IdentifierError',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f'{var_name} is not defined',
@@ -1385,8 +1408,21 @@ class Interpreter:
 
     def visit_TaskDefNode(self, node, context):
         res = RuntimeResult()
+        print(node, "n")
         task_name = node.task_name_token.value if node.task_name_token else "None"
         body_node = node.body_node
+        methods = node.methods
+        #task_methods = []
+        for method in methods:
+            #task_methods.append(res.register(self.visit(method, context)))
+            if res.should_return(): return res
+            method_name = method.task_name_token.value
+            method_body = method.body_node
+            method_args = [arg.value for arg in method.args_name_tokens]
+            task_method = Task(method_name, method_body, method_args, False).setContext(context).setPosition(method.pos_start, method.pos_end)
+            t = Context(context.symbolTable.set(method_name, task_method))
+            print(t, "t")
+            
         arg_names = [arg_name.value for arg_name in node.args_name_tokens]
         task_value = Task(task_name, body_node, arg_names, node.implicit_return).setContext(
             context).setPosition(node.pos_start, node.pos_end)
@@ -1402,6 +1438,51 @@ class Interpreter:
         #     }))
         # print(context.symbolTable.symbols)
         return res.success(task_value)
+
+    def visit_MethodCallNode(self, node, context):
+        res = RuntimeResult()
+        print(node)
+        method_name = node.method_name_token.value
+        args = []
+        value = res.register(self.visit(node.node_to_call, context))
+        
+        if res.should_return():
+            return res
+
+        if not isinstance(value, Task):
+            return res.failure(Program.error()['Runtime']({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'message': 'Method called on non-task object',
+                'exit': False
+            }))
+            
+        task = value
+        if method_name not in task.methods:
+            return res.failure(Program.error()['Runtime']({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'message': 'Method {} not defined for task {}'.format(method_name, task.name),
+                'exit': False
+            }))
+        method = task.methods[method_name]
+        if len(node.args) != len(method.arg_names):
+            return res.failure(Program.error()['Runtime']({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'message': 'Method {} takes {} arguments but {} were given'.format(method_name, len(method.arg_names), len(node.args)),
+                'exit': False
+            }))
+            
+        for arg_value, arg_name in zip(node.args, method.arg_names):
+            arg_value_obj = res.register(self.visit(arg_value, context))
+            if res.should_return():
+                return res
+            args.append(arg_value_obj)
+        return res.success(method.execute(task, args))
 
     def visit_CallNode(self, node, context):
         res = RuntimeResult()
@@ -1652,17 +1733,14 @@ class Interpreter:
 
     def visit_ReturnNode(self, node, context):
         res = RuntimeResult()
-
+        print(res)
         if node.node_to_return:
             value = res.register(self.visit(node.node_to_return, context))
-            if value is None:
-                value = NoneType.none
-            if res.should_return():
-                return res
+            if value is None: value = NoneType.none
+            if res.should_return(): return res
         else:
             value = NoneType.none
-        if value is None:
-            value = NoneType.none
+        if value is None:  value = NoneType.none
         return res.success_return(value)
 
     def visit_ContinueNode(self, node, context):

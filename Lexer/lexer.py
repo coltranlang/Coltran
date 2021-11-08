@@ -87,6 +87,9 @@ class Lexer:
                 tokens.append(self.make_number())
             elif self.current_char in tokenList.LETTERS:
                 tokens.append(self.make_identifier())
+            elif self.current_char == '.':
+                self.advance()
+                tokens.append(Token(tokenList.TT_DOT, pos_start=self.pos))
             elif self.current_char == '"':
                 tokens.append(self.make_string())
             elif self.current_char == "'":
@@ -183,7 +186,18 @@ class Lexer:
     #     pos_start = self.pos.copy()
     #     self.advance()
     #     return Token(tokenList.TT_COLON, pos_start=pos_start, pos_end=self.pos)
-
+    # def make_method_call(self):
+    #     method_name = ''
+    #     pos_start = self.pos.copy()
+    #     self.advance()
+    #     #get the method name
+    #     while self.current_char != None and self.current_char in tokenList.LETTERS_DIGITS + '_':
+    #         method_name += self.current_char
+    #         self.advance()
+    #     token_type = tokenList.TT_KEYWORD if method_name in tokenList.KEYWORDS else tokenList.TT_IDENTIFIER
+    #     return Token(token_type, method_name, pos_start, self.pos)
+    
+    
     def make_minus_or_arrow(self):
         tok_type = tokenList.TT_MINUS
         pos_start = self.pos.copy()

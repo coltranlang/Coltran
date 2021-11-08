@@ -72,7 +72,7 @@ class Global:
         self.symbols[name] = value
         if not value:
             value = "none"
-        #print(f'{name} = {value}')
+        print(self.symbols)
 
     def set_final(self, name, value):
         if name in self.symbols:
@@ -88,5 +88,12 @@ class Global:
 
     def remove(self, name):
         del self.symbols[name]
+        
+    def __repr__(self):
+        result = {
+            'symbols': self.symbols,
+            'parent': self.parent
+        }
+        return str(result)
 
 

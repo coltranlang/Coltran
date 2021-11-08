@@ -23,6 +23,7 @@ TT_SEMICOLON ='SEMICOLON'
 TT_IDENTIFIER = 'IDENTIFIER'
 TT_COMMA = 'COMMA'
 TT_ARROW = 'ARROW'
+TT_DOT = 'DOT'
 TT_STRING = 'STRING'
 TT_SINGLE_STRING = 'SINGLE_STRING'
 TT_FORMAT = 'FORMAT'
@@ -62,6 +63,8 @@ KEYWORDS = [
     'while',
     'endWhile',
     'task',
+    'method',
+    'endMethod',
     'endTask',
     'return',
     'continue',
