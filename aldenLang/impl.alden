@@ -1,3 +1,4 @@
+# The impl keyword is used to create a class in Alden.
 impl @Person(name, age)
     method getName()
       print("My name is " + self.name + ".")
