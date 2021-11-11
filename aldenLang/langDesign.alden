@@ -8,9 +8,10 @@ task @loop(numFrom, numTo)
     let result = ""
 	for i = numFrom to numTo then
 		result = i
-	end
-	return result
+	endFor
+	return results
 endTask
+
 
 
 task @main()

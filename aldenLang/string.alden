@@ -1,0 +1,12 @@
+let name = "John"
+let message = "Message recived successfully"
+let message_error = "Message not recived"
+let count = 1
+
+let result = fv"Hello, {name}!, {count} {message}"
+let result_error = fv"Hello, {name}!, {count} {message_error}"
+
+let expression = format("Hello, {name}!, {count} {message}", name, count + 1, message)
+
+println(result)
+println(result_error)

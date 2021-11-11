@@ -18,7 +18,10 @@ class Program:
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
             }
-            Program.printError(Program.asString(isDetail))
+            if detail['exit']:
+                Program.printErrorExit(Program.asString(isDetail))
+            else:
+                Program.printError(Program.asString(isDetail))
 
         def Runtime(options):
             error = f'Runtime error {options["originator"]} at line {options["line"]}'
@@ -39,6 +42,11 @@ class Program:
             print(str(type(arg)) + " <===> " + str(arg))
 
     def printError(*args):
+        for arg in args:
+            print(arg)
+        #sys.exit(1)
+        
+    def printErrorExit(*args):
         for arg in args:
             print(arg)
         sys.exit(1)
@@ -62,18 +70,26 @@ class Lexer:
 
     def advance(self):
         self.pos.advance(self.current_char)
-        self.current_char = self.fileText[self.pos.index] if self.pos.index < len(
-            self.fileText) else None
+        self.current_char = self.fileText[self.pos.index] if self.pos.index < len(self.fileText) else None
 
     def make_tokens(self):
         tokens = []
         while self.current_char != None:
-            if self.current_char in ' \t':
+            if self.current_char in ' \t' or self.current_char in tokenList.TT_WHITESPACE:
                 self.advance()
+                
+            elif self.current_char in '\n':
+                tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == '#':
+                self.make_comment()
             elif self.current_char in tokenList.DIGITS:
                 tokens.append(self.make_number())
             elif self.current_char in tokenList.LETTERS:
                 tokens.append(self.make_identifier())
+            elif self.current_char == '.':
+                self.advance()
+                tokens.append(Token(tokenList.TT_DOT, pos_start=self.pos))
             elif self.current_char == '"':
                 tokens.append(self.make_string())
             elif self.current_char == "'":
@@ -95,16 +111,26 @@ class Lexer:
             elif self.current_char == '^':
                 tokens.append(Token(tokenList.TT_POWER, pos_start=self.pos))
                 self.advance()
+            elif self.current_char == ':':
+                tokens.append(Token(tokenList.TT_COLON, pos_start=self.pos))
+                self.advance()
             elif self.current_char == '(':
                 tokens.append(Token(tokenList.TT_LPAREN, pos_start=self.pos))
                 self.advance()
             elif self.current_char == ')':
                 tokens.append(Token(tokenList.TT_RPAREN, pos_start=self.pos))
                 self.advance()
-            # elif self.current_char == ':':
-            #     tokens.append(self.make_concat())
-            elif self.current_char == ',':
-                tokens.append(Token(tokenList.TT_COMMA, pos_start=self.pos))
+            elif self.current_char == '[':
+                tokens.append(Token(tokenList.TT_LSQBRACKET, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == ']':
+                tokens.append(Token(tokenList.TT_RSQBRACKET, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == '{':
+                tokens.append(Token(tokenList.TT_LBRACE, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == '}':
+                tokens.append(Token(tokenList.TT_RBRACE, pos_start=self.pos))
                 self.advance()
             elif self.current_char == '!':
                 tok, error = self.make_not_equals()
@@ -117,18 +143,18 @@ class Lexer:
                 tokens.append(self.make_less_than())
             elif self.current_char == '>':
                 tokens.append(self.make_greater_than())
-            elif self.current_char == ';':
-                tokens.append(Token(tokenList.TT_EOF, pos_start=self.pos))
-                self.advance()
+            elif self.current_char == ',':
+                    tokens.append(Token(tokenList.TT_COMMA, pos_start=self.pos))
+                    self.advance()
             else:
                 pos_start = self.pos.copy()
                 char = self.current_char
-                return tokens, Program.error()['IllegalCharacter'](
+                self.advance()
+                return [], Program.error()['IllegalCharacter'](
                     {
                         'originator': char,
                         'pos_start': pos_start
                     })
-
         tokens.append(Token(tokenList.TT_EOF, pos_start=self.pos))
         return tokens, None
 
@@ -166,7 +192,18 @@ class Lexer:
     #     pos_start = self.pos.copy()
     #     self.advance()
     #     return Token(tokenList.TT_COLON, pos_start=pos_start, pos_end=self.pos)
-
+    # def make_method_call(self):
+    #     method_name = ''
+    #     pos_start = self.pos.copy()
+    #     self.advance()
+    #     #get the method name
+    #     while self.current_char != None and self.current_char in tokenList.LETTERS_DIGITS + '_':
+    #         method_name += self.current_char
+    #         self.advance()
+    #     token_type = tokenList.TT_KEYWORD if method_name in tokenList.KEYWORDS else tokenList.TT_IDENTIFIER
+    #     return Token(token_type, method_name, pos_start, self.pos)
+    
+    
     def make_minus_or_arrow(self):
         tok_type = tokenList.TT_MINUS
         pos_start = self.pos.copy()
@@ -187,7 +224,8 @@ class Lexer:
         return None, Program.error()['Syntax']({
             'pos_start': pos_start,
             'pos_end': self.pos,
-            'message': 'Expected = after !'
+            'message': 'Expected = after !',
+            'exit': False
         })
 
     def make_equals(self):
@@ -220,6 +258,7 @@ class Lexer:
 
     def make_string(self):
         string = ''
+        character = True
         pos_start = self.pos.copy()
         escape_character = False
         self.advance()
@@ -229,28 +268,40 @@ class Lexer:
         }
 
         while self.current_char != None and (self.current_char != '"' or escape_character):
-            if escape_character:
-                string += escape_characters.get(self.current_char,
-                                                self.current_char)
-            else:
-                if self.current_char == '\\':
-                    escape_character = True
+            if self.current_char == '\\':
+                self.advance()
+                if self.current_char in escape_characters:
+                    string += escape_characters[self.current_char]
                 else:
+                    character = False
+                    Program.error()['Syntax']({
+                        'pos_start': pos_start,
+                        'pos_end': self.pos,
+                        'message': 'Invalid escape character',
+                        'exit': False
+                    })
+                    
+            else:
+                if character:
                     string += self.current_char
-
+                else:
+                    string = ''
+                    return Token(tokenList.TT_STRING, string, pos_start, self.pos)
             self.advance()
             escape_character = False 
         if self.current_char == None:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': 'Invalid string or missing "'
+                'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column),
+                'exit': False
             })
         self.advance()
         return Token(tokenList.TT_STRING, string, pos_start, self.pos)
 
     def make_single_string(self):
         string = ''
+        character = True
         pos_start = self.pos.copy()
         escape_character = False
         self.advance()
@@ -260,26 +311,43 @@ class Lexer:
         }
 
         while self.current_char != None and (self.current_char != "'" or escape_character):
-            if escape_character:
-                string += escape_characters.get(self.current_char,
-                                                self.current_char)
-            else:
-                if self.current_char == '\\':
-                    escape_character = True
+            if self.current_char == '\\':
+                self.advance()
+                if self.current_char in escape_characters:
+                    string += escape_characters[self.current_char]
                 else:
-                    string += self.current_char
+                    character = False
+                    Program.error()['Syntax']({
+                        'pos_start': pos_start,
+                        'pos_end': self.pos,
+                        'message': 'Invalid escape character',
+                        'exit': False
+                    })
 
+            else:
+                if character:
+                    string += self.current_char
+                else:
+                    string = ''
+                    return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)
             self.advance()
-            escape_character = False
+            escape_character = False 
             
         if self.current_char == None:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': "Invalid string or missing '"
+                'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column),
+                'exit': False
             })
         self.advance()
         return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)
+    
+    def make_comment(self):
+        self.advance()
+        while self.current_char != None and self.current_char != '\n':
+            self.advance()
+
 
 
 class Position:

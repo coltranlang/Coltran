@@ -1,0 +1,10 @@
+task @fibonacci(num)
+    if num <= 1 then
+        return num
+    else
+        return @fibonacci(num - 1) + @fibonacci(num - 2)
+    endIf
+endTask
+
+final num = @fibonacci(10)
+print(num)
