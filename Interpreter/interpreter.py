@@ -813,6 +813,7 @@ class String(Value):
         return f'"{self.value}"'
 
 
+
 class Boolean:
     def __init__(self, value):
         self.value = value
@@ -1223,6 +1224,41 @@ class Interpreter:
                 context).setPosition(node.pos_start, node.pos_end)
         )
 
+
+    
+    def visit_StringInterpNode(self, node, context):
+        res = RuntimeResult()
+        values_to_replace = node.values_to_replace
+        string_to_interp = node.string_to_interp
+        value = ""
+        if isinstance(values_to_replace, list):
+            for value_to_replace in values_to_replace:
+                    replace_value = context.symbolTable.get(value_to_replace)
+                    value_expr = res.register(self.visit(context.symbolTable.get(node.elements), context))
+                    if replace_value:
+                        value_replaced = str(replace_value)
+                        string_to_interp = string_to_interp.replace(value_to_replace, value_replaced)
+                        string_to_interp = string_to_interp.replace('{', '').replace('}', '')
+                        value = String(string_to_interp).setContext(
+                            context).setPosition(node.pos_start, node.pos_end)
+                    
+                    else:
+                        return res.failure(Program.error()['Runtime']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f'{value_to_replace} is not defined',
+                            'context': context,
+                            'exit': False
+                        }))
+        else:
+            string = values_to_replace
+            value = String(string).setContext(context).setPosition(node.pos_start, node.pos_end)
+            
+        if value:
+            return res.success(value)
+        else:
+            res.noreturn()
+    
     def visit_ListNode(self, node, context):
         res = RuntimeResult()
         elements = []

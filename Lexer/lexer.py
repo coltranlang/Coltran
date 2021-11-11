@@ -94,6 +94,9 @@ class Lexer:
                 tokens.append(self.make_string())
             elif self.current_char == "'":
                 tokens.append(self.make_single_string())
+            elif self.current_char == '`':
+                tokens.append(Token(tokenList.TT_BACKTICK, pos_start=self.pos))
+                self.advance()
             elif self.current_char == '+':
                 tokens.append(Token(tokenList.TT_PLUS, pos_start=self.pos))
                 self.advance()
@@ -125,6 +128,12 @@ class Lexer:
                 self.advance()
             elif self.current_char == ']':
                 tokens.append(Token(tokenList.TT_RSQBRACKET, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == '{':
+                tokens.append(Token(tokenList.TT_LBRACE, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == '}':
+                tokens.append(Token(tokenList.TT_RBRACE, pos_start=self.pos))
                 self.advance()
             elif self.current_char == '!':
                 tok, error = self.make_not_equals()
@@ -272,7 +281,7 @@ class Lexer:
                         'pos_start': pos_start,
                         'pos_end': self.pos,
                         'message': 'Invalid escape character',
-                        'exit': True
+                        'exit': False
                     })
                     
             else:
@@ -288,13 +297,14 @@ class Lexer:
                 'pos_start': pos_start,
                 'pos_end': self.pos,
                 'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column),
-                'exit': True
+                'exit': False
             })
         self.advance()
         return Token(tokenList.TT_STRING, string, pos_start, self.pos)
 
     def make_single_string(self):
         string = ''
+        character = True
         pos_start = self.pos.copy()
         escape_character = False
         self.advance()
@@ -304,27 +314,38 @@ class Lexer:
         }
 
         while self.current_char != None and (self.current_char != "'" or escape_character):
-            if escape_character:
-                string += escape_characters.get(self.current_char,
-                                                self.current_char)
-            else:
-                if self.current_char == '\\':
-                    escape_character = True
+            if self.current_char == '\\':
+                self.advance()
+                if self.current_char in escape_characters:
+                    string += escape_characters[self.current_char]
                 else:
-                    string += self.current_char
+                    character = False
+                    Program.error()['Syntax']({
+                        'pos_start': pos_start,
+                        'pos_end': self.pos,
+                        'message': 'Invalid escape character',
+                        'exit': False
+                    })
 
+            else:
+                if character:
+                    string += self.current_char
+                else:
+                    string = ''
+                    return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)
             self.advance()
-            escape_character = False
+            escape_character = False 
             
         if self.current_char == None:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column)
+                'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column),
+                'exit': False
             })
         self.advance()
         return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)
-
+    
     def make_comment(self):
         self.advance()
         while self.current_char != None and self.current_char != '\n':

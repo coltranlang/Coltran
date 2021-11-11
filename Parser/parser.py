@@ -1,10 +1,49 @@
+from re import split
 from Interpreter.interpreter import Task
 from Parser.stringsWithArrows import *
 from Token.token import Token
 from Token import tokenList
 import sys
+import re
 sys.path.append('./Parser/')
+# def match(pattern, text, pos_start, pos_end):
+#     matches = []
+#     if len(pattern) == 0:
+#         return matches
+#     if len(text) == 0:
+#         return matches
+#     for i in len(text):
+#         if pattern[0] == text[i]:
+#             string = text.substring(i, i+1)
+#             if len(pattern) == 1:
+#                 matches.append(string)
+#             else:
+#                 matches.append(match(pattern[1:], text[i+1:], i+1, i+1))
+#     return matches
 
+class Regex:
+        def __init__(self):
+            self.value = None
+
+        def parse(self, text, pos_start, pos_end):
+            wildcard_token = Token(tokenList.TT_WILDCARD, None, pos_start, pos_end)
+            start_token = Token(tokenList.TT_START, None, pos_start, pos_end)
+            end_token = Token(tokenList.TT_END, None, pos_start, pos_end)
+            comma_token = Token(tokenList.TT_COMMA, None, pos_start, pos_end)
+            arrow_token = Token(tokenList.TT_ARROW, None, pos_start, pos_end)
+            plus_token = Token(tokenList.TT_PLUS, None, pos_start, pos_end)
+            star_token = Token(tokenList.TT_STAR, None, pos_start, pos_end)
+            question_token = Token(tokenList.QUESTION, None, pos_start, pos_end)
+            pipe_token = Token(tokenList.TT_PIPE, None, pos_start, pos_end)
+            
+        def compile(self, pattern):
+            self.pattern = re.compile(pattern)
+            return self
+        def match(self, text):
+            return self.pattern.findall(text)
+        
+
+                   
 
 class Program:
     def error():
@@ -91,6 +130,17 @@ class StringNode:
         return f'{self.tok}'
 
 
+class StringInterpNode:
+    def __init__(self, elements, values_to_replace, string_to_interp, pos_start, pos_end):
+        self.elements = elements
+        self.values_to_replace = values_to_replace
+        self.string_to_interp = string_to_interp
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        
+    def __repr__(self):
+        return f'{self.values_to_replace}'
+
 class ListNode:
     def __init__(self, elements, pos_start, pos_end):
         self.elements = elements
@@ -127,8 +177,8 @@ class VarAssignNode:
         self.variable_keyword_token = variable_keyword_token
         self.variable_name_token = variable_name_token
         self.value_node = value_node
-        self.pos_start = self.variable_name_token.pos_start
-        self.pos_end = self.value_node.pos_end
+        self.pos_start = variable_name_token.pos_start
+        self.pos_end = value_node.pos_end
 
 
 class BinOpNode:
@@ -347,9 +397,6 @@ class Parser:
                 'message': "Invalid syntax or unknown token",
                 'exit': False
             }
-            if self.current_token.type == tokenList.TT_DOT:
-                # mehtod call
-                return self.method_call()
                 
             if not res.error and self.current_token.type != tokenList.TT_EOF:
                 value = self.current_token.value
@@ -1163,6 +1210,34 @@ class Parser:
 
         return res.success(ListNode(elements, pos_start, self.current_token.pos_end.copy()))
 
+    def string_interp(self):
+        res = ParseResult()
+        pos_start = self.current_token.pos_start.copy()
+        inter_pv = None
+        if self.current_token.matches(tokenList.TT_KEYWORD, 'fs'):
+            res.register_advancement()
+            self.advance()
+            string_to_interp = self.current_token.value
+            while self.current_token.type == tokenList.TT_STRING:
+                value = self.current_token.value
+                regex = Regex().compile('{(.*?)}')
+                interp_values = regex.match(value)
+                if interp_values:
+                    inter_pv = interp_values
+                    elements = res.register(self.expr())
+                    return res.success(StringInterpNode(elements, inter_pv, string_to_interp, pos_start, self.current_token.pos_end.copy()))
+                else:
+                    elements = res.register(self.expr())
+                    return res.success(StringInterpNode(elements, value, string_to_interp, pos_start, self.current_token.pos_end.copy()))
+            else:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': f"Expected a string",
+                    'exit': True
+                }))
+        return res.success(StringNode(self.current_token))
+    
     def atom(self):
         res = ParseResult()
         tok = self.current_token
@@ -1238,6 +1313,11 @@ class Parser:
             if res.error:
                 return res
             return res.success(method_def)
+        elif tok.matches(tokenList.TT_KEYWORD, 'fs'):
+            string_interp = res.register(self.string_interp())
+            if res.error:
+                return res
+            return res.success(string_interp)
         # return res.failure(Program.error()['Syntax']({
         #     'pos_start': tok.pos_start,
         #     'pos_end': tok.pos_end,
@@ -1415,3 +1495,8 @@ class Parser:
             left = BinOpNode(left, op_tok, right)
         return res.success(left)
 
+    
+            
+            
+    
+        

@@ -67,12 +67,24 @@ class Global:
         if value == None and self.parent:
             return self.parent.get(name)
         return value
+    
+    def get_by_value(self, value):
+        for key, val in self.symbols.items():
+            if val == "{name} is the best {work}":
+                return key
+        return None
+    
+    def get_by_interp_value(self, value):
+        for key, val in self.symbols.items():
+            if str(val) == value:
+                return key
+        return None
 
     def set(self, name, value):
         self.symbols[name] = value
         if not value:
             value = "none"
-        print(f"{name} is set to {value}")
+        #print(f"{name} is set to {value}")
 
     def set_final(self, name, value):
         if name in self.symbols:
