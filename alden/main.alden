@@ -1,1 +1,1 @@
-task @greet(name) -> "Hello " + name; 
+task @greet(name) -> "Hello " + name;
