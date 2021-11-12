@@ -1,0 +1,9 @@
+# test for str type
+let name = "John"
+let num = 10
+println(name + str(num))
+
+# test for int type
+let num1 = "10"
+let num2 = 20
+println(int(num1) + num2)

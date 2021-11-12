@@ -2,8 +2,28 @@ import sys
 from Token import tokenList
 from Token.token import Token
 from Parser.stringsWithArrows import *
+import re
 
+class Regex:
+        def __init__(self):
+            self.value = None
 
+        def parse(self, text, pos_start, pos_end):
+            wildcard_token = Token(tokenList.TT_WILDCARD, None, pos_start, pos_end)
+            start_token = Token(tokenList.TT_START, None, pos_start, pos_end)
+            end_token = Token(tokenList.TT_END, None, pos_start, pos_end)
+            comma_token = Token(tokenList.TT_COMMA, None, pos_start, pos_end)
+            arrow_token = Token(tokenList.TT_ARROW, None, pos_start, pos_end)
+            plus_token = Token(tokenList.TT_PLUS, None, pos_start, pos_end)
+            star_token = Token(tokenList.TT_STAR, None, pos_start, pos_end)
+            question_token = Token(tokenList.QUESTION, None, pos_start, pos_end)
+            pipe_token = Token(tokenList.TT_PIPE, None, pos_start, pos_end)
+            
+        def compile(self, pattern):
+            self.pattern = re.compile(pattern)
+            return self
+        def match(self, text):
+            return self.pattern.findall(text)
 class Program:
     def error():
         def IllegalCharacter(options):
@@ -72,8 +92,13 @@ class Lexer:
         self.pos.advance(self.current_char)
         self.current_char = self.fileText[self.pos.index] if self.pos.index < len(self.fileText) else None
 
-    def make_tokens(self):
+    def make_tokens(self, token=None):
         tokens = []
+        if token:
+            print(token, "tk")
+            # self.advance()
+            # tokens.append(Token(tokenList.TT_IDENTIFIER, token, self.pos))
+            # print(tokens, "tk")
         while self.current_char != None:
             if self.current_char in ' \t' or self.current_char in tokenList.TT_WHITESPACE:
                 self.advance()
@@ -258,16 +283,25 @@ class Lexer:
 
     def make_string(self):
         string = ''
+        string_concat = ''
         character = True
         pos_start = self.pos.copy()
         escape_character = False
+        
         self.advance()
         escape_characters = {
+            '\\': '\\',
             'n': '\n',
             't': '\t'
+            # '{': '{',
+            # '}': '}',
         }
-
+        
         while self.current_char != None and (self.current_char != '"' or escape_character):
+            # if self.current_char == '{':
+            #     if self.current_char != None and self.current_char != '}':
+            #         self.advance()
+            #         string += '{'
             if self.current_char == '\\':
                 self.advance()
                 if self.current_char in escape_characters:
@@ -284,6 +318,9 @@ class Lexer:
             else:
                 if character:
                     string += self.current_char
+                    regex = Regex().compile('{(.*?)}')
+                    interp_values = regex.match(string)
+                    concat_string = ''
                 else:
                     string = ''
                     return Token(tokenList.TT_STRING, string, pos_start, self.pos)
@@ -293,12 +330,14 @@ class Lexer:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column),
+                'message': "Expected ' \" ' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column),
                 'exit': False
             })
         self.advance()
         return Token(tokenList.TT_STRING, string, pos_start, self.pos)
 
+    def make_interp(self, string, interp_values):
+        pass
     def make_single_string(self):
         string = ''
         character = True
@@ -337,7 +376,7 @@ class Lexer:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': "Expected '\"' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column),
+                'message': 'Expected " \' " at (line: {}, column: {})'.format(self.pos.line + 1, self.pos.column),
                 'exit': False
             })
         self.advance()

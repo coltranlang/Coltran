@@ -1,3 +1,4 @@
+# FizzBuzz
 let num = 16
 
 for i = 0 to num then
@@ -12,3 +13,9 @@ for i = 0 to num then
     endIf
 endFor
 
+
+# Map and Filter
+let arr = [1,2,4,9]
+
+let arr2 = map(arr, (item) => item * 2)
+print(arr2)

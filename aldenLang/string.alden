@@ -1,12 +1,9 @@
-let name = "John"
-let message = "Message recived successfully"
-let message_error = "Message not recived"
-let count = 1
+let name = "Kehinde Akinsanya"
+let occupation = "Software Engineer"
+let id = "123456789"
 
-let result = fv"Hello, {name}!, {count} {message}"
-let result_error = fv"Hello, {name}!, {count} {message_error}"
-
-let expression = format("Hello, {name}!, {count} {message}", name, count + 1, message)
-
-println(result)
-println(result_error)
+# Built in function format values has to be in the same order as the format string
+let description = fv"Hello World, my name is {name} and I am a {occupation} with id {id}"
+let description2 = format("Hello World, my name is %s and I am a %s with id %s", name, occupation, id)
+let description3 = "Hello World, my name is {name} and I am a {occupation} with id {id}".format()
+print(description, description2, description3)

@@ -1,13 +1,12 @@
 task @Person(firstName, lastName, age)
     task @getFullName()
-        print("Your name is " + firstName + " " + lastName)
+       return "Your name is " + firstName + " " + lastName
     endTask
     task @getAge() 
-        print('Your age is ' + age)
+       return "Your age is " + age
     endTask
     return @getFullName()
 endTask
 
 print(@Person("John", "Doe", 30))
-
 

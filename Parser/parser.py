@@ -131,8 +131,8 @@ class StringNode:
 
 
 class StringInterpNode:
-    def __init__(self, elements, values_to_replace, string_to_interp, pos_start, pos_end):
-        self.elements = elements
+    def __init__(self, expr, values_to_replace, string_to_interp, pos_start, pos_end):
+        self.expr = expr
         self.values_to_replace = values_to_replace
         self.string_to_interp = string_to_interp
         self.pos_start = pos_start
@@ -475,7 +475,7 @@ class Parser:
                 'pos_start': pos_start,
                 'pos_end': self.current_token.pos_start,
                 'message': "Expected 'return', 'continue', 'break', 'task', 'endTask', 'if', 'for', 'while', 'do', 'print', 'input', '+', '-', '*', '/', '%', '==', '!=', '<', '>', '<=', '>=', '=', ';', ':', ',' or '{'",
-                'exit': True
+                'exit': False
             }))
         return res.success(expr)
 
@@ -554,7 +554,7 @@ class Parser:
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': 'Expected "{}"'.format(case_name),
-                    'exit': True
+                    'exit': False
                 }
             ))
         res.register_advancement()
@@ -570,7 +570,7 @@ class Parser:
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': 'Expected "then"',
-                    'exit': True
+                    'exit': False
                 }
             ))
         res.register_advancement()
@@ -624,7 +624,8 @@ class Parser:
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
-                'message': "Expected an identifier"
+                'message': "Expected an identifier",
+                'exit': False
             }))
 
         var_name_token = self.current_token
@@ -634,7 +635,8 @@ class Parser:
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
-                'message': "Expected '='"
+                'message': "Expected '='",
+                'exit': False
             }))
         res.register_advancement()
         self.advance()
@@ -647,7 +649,8 @@ class Parser:
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
-                'message': "Expected 'to'"
+                'message': "Expected 'to'",
+                'exit': False
             }))
 
         res.register_advancement()
@@ -671,7 +674,7 @@ class Parser:
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
                 'message': "Expected 'then'",
-                'exit': True
+                'exit': False
             }))
         res.register_advancement()
         self.advance()
@@ -688,7 +691,7 @@ class Parser:
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': "Expected 'endFor'",
-                    'exit': True
+                    'exit': False
                 }))
 
             res.register_advancement()
@@ -703,7 +706,7 @@ class Parser:
         #             'pos_start': self.current_token.pos_start,
         #             'pos_end': self.current_token.pos_end,
         #             'message': 'return is not allowed in for loop',
-        #             'exit': True
+        #             'exit': False
         #         }
         #     ))
 
@@ -717,7 +720,7 @@ class Parser:
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
                 'message': "Expected 'while'",
-                'exit': True
+                'exit': False
             }))
 
         res.register_advancement()
@@ -732,7 +735,7 @@ class Parser:
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
                 'message': "Expected 'then'",
-                'exit': True
+                'exit': False
             }))
 
         res.register_advancement()
@@ -750,7 +753,7 @@ class Parser:
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': "Expected 'endWhile'",
-                    'exit': True
+                    'exit': False
                 }))
             res.register_advancement()
             self.advance()
@@ -1168,7 +1171,7 @@ class Parser:
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
                 'message': "Expected '['",
-                'exit': True
+                'exit': False
             }))
 
         res.register_advancement()
@@ -1184,7 +1187,7 @@ class Parser:
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': "Epected an expression",
-                    'exit': True
+                    'exit': False
                 }))
             elements.append(element)
             while self.current_token.type == tokenList.TT_COMMA:
@@ -1201,7 +1204,7 @@ class Parser:
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': "Expected ',', or ']'",
-                    'exit': True
+                    'exit': False
                 }))
 
             res.register_advancement()
@@ -1217,23 +1220,23 @@ class Parser:
             res.register_advancement()
             self.advance()
             string_to_interp = self.current_token.value
-            while self.current_token.type == tokenList.TT_STRING:
+            while self.current_token.type == tokenList.TT_STRING or self.current_token.type == tokenList.TT_SINGLE_STRING:
                 value = self.current_token.value
                 regex = Regex().compile('{(.*?)}')
                 interp_values = regex.match(value)
                 if interp_values:
                     inter_pv = interp_values
-                    elements = res.register(self.expr())
-                    return res.success(StringInterpNode(elements, inter_pv, string_to_interp, pos_start, self.current_token.pos_end.copy()))
+                    expr = res.register(self.expr())
+                    return res.success(StringInterpNode(expr, inter_pv, string_to_interp, pos_start, self.current_token.pos_end.copy()))
                 else:
-                    elements = res.register(self.expr())
-                    return res.success(StringInterpNode(elements, value, string_to_interp, pos_start, self.current_token.pos_end.copy()))
+                    expr = res.register(self.expr())
+                    return res.success(StringInterpNode(expr, value, string_to_interp, pos_start, self.current_token.pos_end.copy()))
             else:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': f"Expected a string",
-                    'exit': True
+                    'exit': False
                 }))
         return res.success(StringNode(self.current_token))
     
@@ -1321,7 +1324,7 @@ class Parser:
         #     'pos_start': tok.pos_start,
         #     'pos_end': tok.pos_end,
         #     'message': "Invalid syntax or unknown token",
-        #     'exit': True
+        #     'exit': False
         # }))
 
     def call(self):
@@ -1414,7 +1417,7 @@ class Parser:
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
                 'message': "Invalid syntax or unknown token",
-                'exit': True
+                'exit': False
             }))
 
         return res.success(node)
@@ -1427,18 +1430,25 @@ class Parser:
                 tokenList.TT_KEYWORD, 'let') else "final"
             self.advance()
             if(self.current_token.value in tokenList.KEYWORDS):
+                if self.current_token.value == "fv":
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Invalid syntax or unknown token, possibly you meant to use 'fv' instead of 'fv' as an identifier?",
+                        'exit': False
+                    }))
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': f"Expected an identifier, '{self.current_token.value}' is a reserved keyword",
-                    'exit': True
+                    'message': f"Expected an identifier, possibly you meant to use '{self.current_token.value}' instead of '{self.current_token.value}' as an identifier?",
+                    'exit': False
                 }))
             if self.current_token.type != tokenList.TT_IDENTIFIER:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': "Expected an identifier",
-                    'exit': True
+                    'exit': False
                 }))
             var_name = self.current_token
             res.register_advancement()
@@ -1448,14 +1458,14 @@ class Parser:
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': "Assignments on multiple variables are not supported",
-                    'exit': True
+                    'exit': False
                 }))
             if self.current_token.type != tokenList.TT_EQ:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': "Expected '='",
-                    'exit': True
+                    'exit': False
                 }))
             res.register_advancement()
             self.advance()
@@ -1471,7 +1481,7 @@ class Parser:
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
                 'message': "Invalid syntax or unexpected token",
-                'exit': True
+                'exit': False
             }))
         return res.success(node)
 
