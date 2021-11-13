@@ -4,5 +4,23 @@ object file
    type:  "text/plain"
 endObject
 
-let list = [1, 2, 3]
-print(file.name)
+
+task @getCources(student)
+   let courses = []
+   if student == "David" then
+      let cources =  ["Math", "English", "Public Speaking", "History"]
+   else
+      let courses = "No courses for this student"
+   endIf
+endTask
+
+println(file.name)
+
+object Student
+   name: "David",
+   age:  "21",
+   grade: "A",
+   score: @getCources("")
+endObject
+
+println(Student)

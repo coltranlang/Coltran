@@ -1067,7 +1067,6 @@ class Parser:
                 'pos_start': obj_name.pos_start,
                 'pos_end': obj_value.pos_end
             })
-            
             #return res.success(ObjectDefNode(object_name, object_properties))
         else:
             while self.current_token.type == tokenList.TT_NEWLINE:

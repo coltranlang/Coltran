@@ -868,7 +868,6 @@ class String(Value):
         return f'"{self.value}"'
 
 
-
 class Boolean:
     def __init__(self, value):
         self.value = 'true' if value else 'false'
@@ -1022,6 +1021,7 @@ class List(Value):
         else:
             return "[]"
 
+
 class Object(Value):
     def __init__(self, name, properties):
         super().__init__()
@@ -1045,7 +1045,7 @@ class Object(Value):
                     if len(result) == 0:
                         return None, self.key_error(error, property_name)
                     return value, None
-            return None, self.key_error(error, property_name)
+            return "None", self.key_error(error, property_name)
                
     
     def copy(self):
