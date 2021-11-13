@@ -1,0 +1,10 @@
+task @sum(x, y)
+    return x + y
+endTask
+
+# task that returns another task
+task @result(x, y)
+    return @sum(x, y)
+endTask
+
+print(@result(1, 2))

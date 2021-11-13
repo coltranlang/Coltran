@@ -77,6 +77,8 @@ KEYWORDS = [
     'endWhile',
     'task',
     'endTask',
+    'object',
+    'endObject',
     'class',
     'endClass',
     'def',
@@ -88,7 +90,7 @@ KEYWORDS = [
 ]
 
 
-BUILTINTASKS = [
+BUILTIN = [
     'print',
     'len',
     'append',
@@ -97,8 +99,14 @@ BUILTINTASKS = [
     'len',
     'clear',
     'exit',
-    'intInput',
-    'floatInput',
-    'format',
-    'toString'
+    'input',
+    'inputInt',
+    'inputFloat',
+    'str',
+    'int',
+    'float',
+    'bool',
+    'list',
+    'object',
+    'format'
 ]

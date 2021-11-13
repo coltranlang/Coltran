@@ -1,4 +1,8 @@
-object file: {
+object file
    name: "Main",
-   text: "I am a file"
-}
+   text: "I am a file",
+   type:  "text/plain"
+endObject
+
+let list = [1, 2, 3]
+print(file.name)

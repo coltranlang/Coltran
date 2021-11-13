@@ -1,5 +1,4 @@
 import os
-from typing import List
 from Parser.stringsWithArrows import *
 from Token.token import Token
 import Token.tokenList as tokenList
@@ -152,6 +151,20 @@ class Program:
         def Type(detail):
             isDetail = {
                 'name': 'TypeError',
+                'type': 'invalid syntax',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+                
+        def KeyError(detail):
+            isDetail = {
+                'name': 'KeyError',
                 'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
@@ -441,6 +454,15 @@ class Value:
                 'context': error['context'],
                 'exit': error['exit']
             })
+            
+    def key_error(self, error, property):
+            return Program.error()["Syntax"]({
+                'message': error['message'],
+                'pos_start': error['pos_start'],
+                'pos_end': error['pos_end'],
+                'context': error['context'],
+                'exit': error['exit'] if 'exit' in error else True
+            })
 
     def none_value(self):
         return Program.NoneValue()
@@ -722,9 +744,11 @@ class Number(Value):
 
 
 class String(Value):
-    def __init__(self, value):
+    def __init__(self, value, arg=None):
         super().__init__()
         self.value = value
+        if arg:
+            self.value = value + str(arg)
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
         self.pos_end = pos_end
@@ -847,7 +871,7 @@ class String(Value):
 
 class Boolean:
     def __init__(self, value):
-        self.value = value
+        self.value = 'true' if value else 'false'
         self.setPosition(0, 0)
         self.setContext(None)
 
@@ -998,6 +1022,44 @@ class List(Value):
         else:
             return "[]"
 
+class Object(Value):
+    def __init__(self, name, properties):
+        super().__init__()
+        self.properties = properties if properties is not None else {}
+        self.value = self.properties
+        self.name = name
+        
+    def get_property(self, property_name):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Property '{property_name}' does not exist on object '{self.name}'",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(property_name, String):
+            result = []
+            for key, value in self.properties:
+                if key == property_name.value:
+                    result.append(value)
+                    if len(result) == 0:
+                        return None, self.key_error(error, property_name)
+                    return value, None
+            return None, self.key_error(error, property_name)
+               
+    
+    def copy(self):
+        copy = Object(self.name, self.properties)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+    
+    def __str__(self):
+        if self.properties:
+            return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties])}}}"
+        else:
+            return '{}'
+    
 
 class BaseTask(Value):
     def __init__(self, name):
@@ -1417,43 +1479,104 @@ def BuiltInType_Int(args, node, context):
         'exit': False
     }))
 
+def BuiltInType_Float(args, node, context):
+    res = RuntimeResult()
+    if len(args) != 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but float() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+    if isinstance(args[0], Number):
+        return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    if isinstance(args[0], String):
+        try:
+            return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+        except ValueError:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{args[0].value} is not a valid argument for float()",
+                "context": context,
+                'exit': False
+            }))
+    if isinstance(args[0], Boolean):
+        return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    return res.failure(Program.error()["Runtime"]({
+        "pos_start": node.pos_start,
+        "pos_end": node.pos_end,
+        'message': f"{args[0].value} is not a valid argument for float()",
+        "context": context,
+        'exit': False
+    }))
+
+def BuiltInType_Bool(args, node, context):
+    res = RuntimeResult()
+    if len(args) != 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but bool() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+    if isinstance(args[0], Boolean):
+        return res.success(args[0])
+    if isinstance(args[0], Number):
+        return res.success(Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    if isinstance(args[0], String):
+        try:
+            return res.success(Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+        except ValueError:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{args[0].value} is not a valid argument for bool()",
+                "context": context,
+                'exit': False
+            }))
+    return res.failure(Program.error()["Runtime"]({
+        "pos_start": node.pos_start,
+        "pos_end": node.pos_end,
+        'message': f"{args[0].value} is not a valid argument for bool()",
+        "context": context,
+        'exit': False
+    }))
+
+def BuiltInType_List(args, node, context):
+    res = RuntimeResult()
+    if len(args) != 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but list() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+    if isinstance(args[0], List):
+        return res.success(args[0])
+    if isinstance(args[0], Number):
+        return res.success(List([args[0]]).setPosition(node.pos_start, node.pos_end).setContext(context))
+    if isinstance(args[0], String):
+        return res.success(List([String(f"'{char}'") for char in args[0].value]).setPosition(node.pos_start, node.pos_end).setContext(context))
+    if isinstance(args[0], Boolean):
+        return res.success(List([args[0]]).setPosition(node.pos_start, node.pos_end).setContext(context))
+    return res.failure(Program.error()["Runtime"]({
+        "pos_start": node.pos_start,
+        "pos_end": node.pos_end,
+        'message': f"{args[0].value} is not a valid argument for list()",
+        "context": context,
+        'exit': False
+    }))
+
 def BuiltInTask_Format(args, node):
     string = args[0].value
     values_list = args[1].value
     regex = Regex().compile('{(.*?)}')
     matches = regex.match(string)
     
-def BuiltInTask_Exit(args, node, context):
-    res = RuntimeResult()
-    if len(args) == 0:
-                    sys.exit()
-    elif len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but exit() takes 0 or 1 argument(s)",
-            "context": context
-        }))
-    if isinstance(args[0], Number):
-        if args[0].value == 0:
-            sys.exit(0)
-        elif args[0].value == 1:
-            sys.exit(1)
-        else:
-            return res.failure(Program.error()["Runtime"]({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{args[0].value} is not a valid exit code",
-                "context": context
-            }))
-    else:
-        return res.failure(Program.error()["Runtime"]({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{args[0]} is not a valid argument for exit()",
-            "context": context
-        }))
-
 def BuiltInTask_Clear(args, node, context):
     res = RuntimeResult()
     if len(args) > 0:
@@ -1461,7 +1584,8 @@ def BuiltInTask_Clear(args, node, context):
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but clear() takes no argument",
-            "context": context
+            "context": context,
+            'exit': False
         }))
     if len(args) == 0:
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -1486,6 +1610,40 @@ def BuiltInTask_Delay(args, node, context):
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{args[0].value} is not a valid argument for delay()",
+            "context": context,
+            'exit': False
+        }))
+    
+def BuiltInTask_Exit(args, node, context):
+    res = RuntimeResult()
+    if len(args) == 0:
+                    sys.exit()
+    elif len(args) > 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but exit() takes 0 or 1 argument(s)",
+            "context": context,
+            'exit': False
+        }))
+    if isinstance(args[0], Number):
+        if args[0].value == 0:
+            sys.exit(0)
+        elif args[0].value == 1:
+            sys.exit(1)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{args[0].value} is not a valid exit code",
+                "context": context,
+                'exit': False
+            }))
+    else:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{args[0]} is not a valid argument for exit()",
             "context": context,
             'exit': False
         }))
@@ -1517,7 +1675,7 @@ class Interpreter:
 
     def visit_StringNode(self, node, context):
         return RuntimeResult().success(
-            String(node.tok.value).setContext(
+            String(node.tok.value, node.arg).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
 
@@ -1634,6 +1792,8 @@ class Interpreter:
                 result, error = left.modulo(right)
             elif node.op_tok.type == tokenList.TT_COLON:
                 result, error = left.get_index(right)
+            elif node.op_tok.type == tokenList.TT_DOT:
+                result, error = left.get_property(right)
             elif node.op_tok.type == tokenList.TT_EQEQ:
                 result, error = left.get_comparison_eq(right)
             elif node.op_tok.type == tokenList.TT_NEQ:
@@ -1799,6 +1959,21 @@ class Interpreter:
         # print(context.symbolTable.symbols)
         return res.success(task_value)
 
+    def visit_ObjectDefNode(self, node, context):
+        res = RuntimeResult()
+        object_name = node.object_name.value
+        object_value = ""
+        properties = []
+        for prop in node.properties:
+            prop_name = prop['name'].value
+            prop_value = res.register(self.visit(prop['value'], context))
+            if res.should_return():
+                return res
+            properties.append((prop_name, prop_value))
+            object_value = Object(object_name,properties).setContext(context).setPosition(node.pos_start, node.pos_end)
+            context.symbolTable.set(object_name, object_value)
+        return res.success(object_value)
+
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
         class_name = node.class_name_token.value
@@ -1905,40 +2080,32 @@ class Interpreter:
             for arg in args:
                 if arg is None:
                     args = []
-            builtintask = value_to_call.name
+            builtin = value_to_call.name
             
-            if builtintask == "print":
-                return BuiltInTask_Print(args, node)
-
-            if builtintask == "println":
-                return BuiltInTask_PrintLn(args, node)
-
-            if builtintask == "exit":
-                return BuiltInTask_Exit(args, node, context)
-
-            if builtintask == "input":
-                return BuiltInTask_Input(args, node, context)
-
-            if builtintask == 'inputInt':
-                return BuiltInTask_InputInt(args, node, context)
-
-            if builtintask == 'inputFloat':
-                return BuiltInTask_InputFloat(args, node, context)
-
-            if builtintask == 'clear':
-                return BuiltInTask_Clear(args, node, context)
-
-            if builtintask == 'delay':
-                return BuiltInTask_Delay(args, node, context)
-
-            if builtintask == 'format':
-                return BuiltInTask_Format(args)
             
-            if builtintask == 'str':
-                return BuiltInType_Str(args, node, context)
+           
             
-            if builtintask == 'int':
-                return BuiltInType_Int(args, node, context)
+            builtins = {
+                'print': BuiltInTask_Print,
+                'println': BuiltInTask_PrintLn,
+                'input': BuiltInTask_Input,
+                'inputInt': BuiltInTask_InputInt,
+                'inputFloat': BuiltInTask_InputFloat,
+                'format': BuiltInTask_Format,
+                'str': BuiltInType_Str,
+                'int': BuiltInType_Int,
+                'float': BuiltInType_Float,
+                'bool': BuiltInType_Bool,
+                'list': BuiltInType_List,
+                'clear': BuiltInTask_Clear,
+                'delay': BuiltInTask_Delay,
+                'exit': BuiltInTask_Exit
+            }
+            
+            if builtin in builtins:
+                if builtin == 'print' or builtin == 'println':
+                    return builtins[builtin](args,node)
+                return builtins[builtin](args, node, context)
 
             return_value = res.register(value_to_call.execute(args))
             if res.should_return():

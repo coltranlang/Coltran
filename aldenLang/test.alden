@@ -7,3 +7,22 @@ println(name + str(num))
 let num1 = "10"
 let num2 = 20
 println(int(num1) + num2)
+
+# test for float type
+let num3 = "10.5"
+let num4 = 20.5
+println(float(num3) + num4)
+
+# test for bool type
+let bool1 = "1 > 2"
+let bool2 = false
+println(bool(bool1))
+
+# test for list type
+let list1 = "12345"
+let list2 = "1,2,3,4,5"
+let list3 = [1,2,3,4,5]
+let list4 = 'abcde'
+let list5 = 'a,b,c,d,e'
+let list6 = ['a','b','c','d','e']
+println(list(list1), list(list2), list(list3), list(list4), list(list5), list(list6))

@@ -112,9 +112,6 @@ class Lexer:
                 tokens.append(self.make_number())
             elif self.current_char in tokenList.LETTERS:
                 tokens.append(self.make_identifier())
-            elif self.current_char == '.':
-                self.advance()
-                tokens.append(Token(tokenList.TT_DOT, pos_start=self.pos))
             elif self.current_char == '"':
                 tokens.append(self.make_string())
             elif self.current_char == "'":
@@ -138,6 +135,9 @@ class Lexer:
                 self.advance()
             elif self.current_char == ':':
                 tokens.append(Token(tokenList.TT_COLON, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == '.':
+                tokens.append(Token(tokenList.TT_DOT, pos_start=self.pos))
                 self.advance()
             elif self.current_char == '(':
                 tokens.append(Token(tokenList.TT_LPAREN, pos_start=self.pos))

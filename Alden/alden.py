@@ -10,9 +10,6 @@ from Program.program import Program
 app = typer.Typer()
 
 
-# @app.command()
-# def run():
-#    text = input('alden >> ')
    
 def getOs():
     if os.name == 'nt':
