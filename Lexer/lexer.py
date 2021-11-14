@@ -94,23 +94,17 @@ class Lexer:
 
     def make_tokens(self, token=None):
         tokens = []
-        if token:
-            print(token, "tk")
-            # self.advance()
-            # tokens.append(Token(tokenList.TT_IDENTIFIER, token, self.pos))
-            # print(tokens, "tk")
         while self.current_char != None:
-            if self.current_char in ' \t' or self.current_char in tokenList.TT_WHITESPACE:
-                self.advance()
-                
-            elif self.current_char in '\n':
-                tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos))
+            if self.current_char in ' \t':
                 self.advance()
             elif self.current_char == '#':
                 self.make_comment()
+            elif self.current_char in '\n':
+                tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos))
+                self.advance()
             elif self.current_char in tokenList.DIGITS:
                 tokens.append(self.make_number())
-            elif self.current_char in tokenList.LETTERS:
+            elif self.current_char in tokenList.LETTERS_SYMBOLS:
                 tokens.append(self.make_identifier())
             elif self.current_char == '"':
                 tokens.append(self.make_string())
@@ -206,8 +200,7 @@ class Lexer:
     def make_identifier(self):
         identifier_str = ''
         pos_start = self.pos.copy()
-
-        while self.current_char != None and self.current_char in tokenList.LETTERS_DIGITS + '_':
+        while self.current_char != None and self.current_char in tokenList.LETTERS_DIGITS_SYMBOLS:
             identifier_str += self.current_char
             self.advance()
         token_type = tokenList.TT_KEYWORD if identifier_str in tokenList.KEYWORDS else tokenList.TT_IDENTIFIER

@@ -1,26 +1,68 @@
-object file
+object File
    name: "Main",
    text: "I am a file",
-   type:  "text/plain"
-endObject
+   type: object Test
+      check: "I am a file"
+   end
+end
 
+ object Test
+      check: "I am a file"
+   end
+println(File.name.teset)
 
-task @getCources(student)
+task @getCourses(student)
    let courses = []
    if student == "David" then
-      let cources =  ["Math", "English", "Public Speaking", "History"]
+    let courses =  ["Math", "English", "Public Speaking", "History"]
    else
-      let courses = "No courses for this student"
-   endIf
-endTask
+     let courses = "No courses for this student"
+   end
+end
 
-println(file.name)
 
 object Student
    name: "David",
    age:  "21",
    grade: "A",
-   score: @getCources("")
-endObject
+   score: @getCourses
+end
 
-println(Student)
+
+
+
+
+task @getMax(num1, num2)
+   if num1 > num2 then
+      println(num1)
+   else
+      println(num2)
+   end
+end
+
+task @getMin(num1, num2)
+   if num1 < num2 then
+      return num1
+   else
+      return num2
+   end
+end
+
+object Math
+   max: @getMax,
+   min: @getMin
+end
+
+println(Math.max(4,5))
+
+@getMax(1,2)
+print(12)
+
+class Person(age, name)
+    def getName()
+       print("My name is "  + age)
+    end
+    def getAge()
+       print("I am "  + " years old.")
+    end
+end

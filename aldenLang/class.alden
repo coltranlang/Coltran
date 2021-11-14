@@ -1,15 +1,8 @@
-let BasePerson = "BasePerson"
-class @Person() 
-    def constructor(self, name, age)
-        
-    end
+class Person(age, name)
     def getName()
-      print("My name is "  + ".")
+       print("My name is "  + age)
     end
     def getAge()
-      print("I am "  + " years old.")
+       print("I am "  + " years old.")
     end
-    let b = "Hello"
-endClass
-
-print(@Person)
+end
