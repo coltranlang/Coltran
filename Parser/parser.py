@@ -206,8 +206,13 @@ class VarAssignNode:
         self.variable_keyword_token = variable_keyword_token
         self.variable_name_token = variable_name_token
         self.value_node = value_node
-        self.pos_start = variable_name_token.pos_start
-        self.pos_end = value_node.pos_end
+        if type(self.variable_name_token).__name__ == "tuple":
+            for t in self.variable_name_token:
+                self.pos_start = t.pos_start
+                self.pos_end = t.pos_end
+        else:
+            self.pos_start = variable_name_token.pos_start
+            self.pos_end = value_node.pos_end
         
         
 class BooleanNode:
@@ -1483,7 +1488,14 @@ class Parser:
                 if res.error:
                     return res
                 elements.append(element)
-
+                for el in elements:
+                    if el == "":
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Epected an expression",
+                            'exit': False
+                        }))
             if self.current_token.type != tokenList.TT_RPAREN:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
@@ -1708,7 +1720,26 @@ class Parser:
                     'exit': False
                 }))
                 #to be done
-            #if self.current_token.type == tokenList.TT_LPAREN
+            if self.current_token.type == tokenList.TT_LPAREN:
+                expr = res.register(self.expr())
+                if res.error: return res
+                values = expr.elements
+                var_values = ()
+                if self.current_token.type != tokenList.TT_EQ:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected '='",
+                        'exit': False
+                    }))
+                res.register_advancement()
+                self.advance()
+                expr = res.register(self.expr())
+                if res.error:
+                    return res
+                for value in values:
+                    var_values += (value,)
+                return res.success(VarAssignNode(var_values, expr, variable_keyword_token))
             if self.current_token.type != tokenList.TT_IDENTIFIER:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,

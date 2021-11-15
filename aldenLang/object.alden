@@ -8,5 +8,3 @@ object Student
 end
 println(Student)
 
-let (student, id) = Student
-println(student)

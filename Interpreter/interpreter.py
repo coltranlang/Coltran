@@ -178,6 +178,20 @@ class Program:
                 Program.printErrorExit(Program.asStringTraceBack(isDetail))
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
+                
+        def ValueError(detail):
+            isDetail = {
+                'name': 'ValueError',
+                'type': 'invalid syntax',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
 
         methods = {
             'Default': Default,
@@ -186,7 +200,8 @@ class Program:
             'Syntax': Syntax,
             'Runtime': Runtime,
             'Type': Type,
-            'KeyError': KeyError
+            'KeyError': KeyError,
+            'ValueError': ValueError
         }
         return methods
 
@@ -983,6 +998,9 @@ class Pair(Value):
                 return None, self.none_value()
         else:
             return None, self.illegal_operation(error, other)
+        
+    def len(self):
+        return Number(len(self.elements))
 
     def copy(self):
         copy = Pair(self.elements)
@@ -1940,18 +1958,41 @@ class Interpreter:
     
     def visit_VarAssignNode(self, node, context):
         res = RuntimeResult()
-        var_name = node.variable_name_token.value
+        var_name = node.variable_name_token.value if type(node.variable_name_token).__name__ != 'tuple' else ''
         value = res.register(self.visit(node.value_node, context))
-        if res.should_return():
-            return res
-        if node.variable_keyword_token == "let":
-            if value is None:
-                value = NoneType.none
-            context.symbolTable.set(var_name, value)
-        elif node.variable_keyword_token == "final":
-            if value is None:
-                value = NoneType.none
-            context.symbolTable.set_final(var_name, value)
+        if type(node.variable_name_token).__name__ == "tuple":
+            var_name = node.variable_name_token
+            if type(value).__name__ == "Pair":
+                if len(var_name) != len(value.elements):
+                    return res.failure(Program.error()['ValueError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"Expected {len(var_name)} values, got {len(value.elements)}",
+                        'context': context,
+                        'exit': False
+                    }))
+                else:
+                    for i in range(len(var_name)):
+                        context.symbolTable.set(var_name[i].name.value, value.elements[i])
+            else:
+                return res.failure(Program.error()['Runtime']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"Cannot assign {type(value).__name__} to Pair",
+                    'context': context,
+                    'exit': False
+                }))
+        else:
+            if res.should_return():
+                return res
+            if node.variable_keyword_token == "let":
+                if value is None:
+                    value = NoneType.none
+                context.symbolTable.set(var_name, value)
+            elif node.variable_keyword_token == "final":
+                if value is None:
+                    value = NoneType.none
+                context.symbolTable.set_final(var_name, value)
         return res.success(value)
 
     def visit_BinOpNode(self, node, context):

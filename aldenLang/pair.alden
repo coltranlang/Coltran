@@ -1,2 +1,11 @@
-let pair = ('name')
-print(pair)
+let Student = (001, "Kehinde", "Computer Science", "John Tyler") 
+
+let (id, name, course, school) = Student
+
+println(fv"{name} is in {course} at {school} with id {id}")
+
+object File
+    name: "Testing"
+    student: Student
+end
+print(File)
