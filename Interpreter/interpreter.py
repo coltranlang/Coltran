@@ -2,7 +2,7 @@ import os
 from Parser.stringsWithArrows import *
 from Token.token import Token
 import Token.tokenList as tokenList
-from Global.globalSymbolTable import Global
+from Memory.memory import Record
 import sys
 import re
 import time
@@ -30,6 +30,9 @@ class Regex:
         def match(self, text):
             return self.pattern.findall(text)
 
+
+def isEmptyString(value):
+    return value == ""
             
 class TypeOf:
     def __init__(self, type):
@@ -936,6 +939,64 @@ Boolean.false = Boolean("false")
 NoneType.none = NoneType()
 
 
+class Pair(Value):
+    def __init__(self, elements=None):
+        super().__init__()
+        self.elements = elements if elements is not None else ()
+        self.value = self.elements
+
+    def added_to(self, other):
+        new_list = self.copy()
+        new_list.elements += other
+        return new_list, None
+
+    def subtracted_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Illegal operation on pair",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Number):
+            new_list = self.copy()
+            try:
+                new_list.elements = new_list.elements[:-other.value]
+                return new_list, None
+            except:
+                return None, "none"
+        else:
+            return None, self.illegal_operation(error, other)
+
+    def get_index(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Illegal operation on pair",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Number):
+            try:
+                return self.elements[other.value], None
+            except:
+                return None, self.none_value()
+        else:
+            return None, self.illegal_operation(error, other)
+
+    def copy(self):
+        copy = Pair(self.elements)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+
+    def __str__(self):
+        try:
+            return str(self.elements)
+        except:
+            return "()"
+
+
 class List(Value):
     def __init__(self, elements=None):
         super().__init__()
@@ -1021,13 +1082,16 @@ class List(Value):
         copy.setPosition(self.pos_start, self.pos_end)
         copy.setContext(self.context)
         return copy
-
+    
+    
     def __str__(self):
         try:
             return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties])}}}"
         except:
             return "[]"
 
+
+        
 class Object(Value):
     def __init__(self, name, properties):
         super().__init__()
@@ -1127,7 +1191,7 @@ class BaseTask(Value):
 
     def generate_new_context(self):
         new_context = Context(self.name, self.context, self.pos_start)
-        new_context.symbolTable = Global(new_context.parent.symbolTable)
+        new_context.symbolTable = Record(new_context.parent.symbolTable)
         return new_context
 
     def check_args(self, arg_names, args):
@@ -1217,7 +1281,7 @@ class Class(BaseTask):
         res = RuntimeResult()
         # interpreter = Interpreter()
         new_context = Context(self.class_name, self.context, self.pos_start)
-        new_context.symbolTable = Global(new_context.parent.symbolTable)
+        new_context.symbolTable = Record(new_context.parent.symbolTable)
         exec_context = new_context
         print(exec_context)
 
@@ -1818,6 +1882,16 @@ class Interpreter:
             Number(node.tok.value).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
+        
+    def visit_PairNode(self, node, context):
+        res = RuntimeResult()
+        elements = ()
+        for element_node in node.elements:
+            element_value = res.register(self.visit(element_node, context))
+            if res.should_return():
+                return res
+            elements = elements + (element_value,)
+        return res.success(Pair(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
     def visit_VarAccessNode(self, node, context):
         res = RuntimeResult()
@@ -2083,25 +2157,24 @@ class Interpreter:
         object_name = node.object_name.value
         object_value = ""
         properties = {}
-        prop_name = node.properties['name'].value
-        prop_value = res.register(self.visit(
-            node.properties['value'], context))
-        #print(prop_value, "prop_value")
-        if isinstance(prop_value, NoneType):
-            object_value = Object(object_name, []).setContext(context).setPosition(node.pos_start, node.pos_end)
-            context.symbolTable.set(object_name, object_value)
-            #return res.success(object_value)
-        else:
+        
+        for property in node.properties:
+            prop_name = property['name'].value
+            prop_value = res.register(self.visit(property['value'], context))
+            properties = dict(properties, **{prop_name: prop_value})
             if res.should_return():
                 return res
-            properties = {prop_name: prop_value}
-            #print(properties, "prop") 
-            if hasattr(prop_value, 'value'):
-                prop_value = prop_value.value
-            object_value = Object(object_name, properties).setContext(context).setPosition(node.pos_start, node.pos_end)
-            #context.symbolTable.set(object_name, object_value)
+            object_value = Object(object_name, properties).setContext(
+                context).setPosition(node.pos_start, node.pos_end)
+            if isinstance(prop_value, NoneType):
+                object_value = Object(object_name, {'key': {}, 'value': {}}).setContext(
+                    context).setPosition(node.pos_start, node.pos_end)
+                context.symbolTable.set(object_name, object_value)
+            
+        if isEmptyString(object_value):
+            context.symbolTable.set_object(object_name, {'key': {}, 'value': {}})
+        else:
             context.symbolTable.set_object(object_name, object_value)
-        #print(object_value, "object_value")
         return res.success(object_value)
 
     def visit_ClassNode(self, node, context):

@@ -2,7 +2,7 @@ import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
 from Interpreter.interpreter import Context, Interpreter, BuiltInTask
-from Global.globalSymbolTable import Global
+from Memory.memory import Record
 
 BuiltInTask.print = BuiltInTask("print")
 BuiltInTask.println = BuiltInTask("println")
@@ -26,29 +26,29 @@ BuiltInTask.clearList = BuiltInTask("clearList")
 BuiltInTask.delay = BuiltInTask("delay")
 BuiltInTask.format = BuiltInTask("format")
 
-GlobalSymbolTable = Global()
-GlobalSymbolTable.set('print', BuiltInTask.print)   
-GlobalSymbolTable.set('println', BuiltInTask.println)
-GlobalSymbolTable.set('exit', BuiltInTask.exit)
-GlobalSymbolTable.set('input', BuiltInTask.input)
-GlobalSymbolTable.set('inputInt', BuiltInTask.inputInt)
-GlobalSymbolTable.set('inputFloat', BuiltInTask.inputFloat)
-GlobalSymbolTable.set('inputBool', BuiltInTask.inputBool)
-GlobalSymbolTable.set('clear', BuiltInTask.clear)
-GlobalSymbolTable.set('len', BuiltInTask.len)
-GlobalSymbolTable.set('str', BuiltInTask.str)
-GlobalSymbolTable.set('int', BuiltInTask.int)
-GlobalSymbolTable.set('float', BuiltInTask.float)
-GlobalSymbolTable.set('bool', BuiltInTask.bool)
-GlobalSymbolTable.set('list', BuiltInTask.list)
-GlobalSymbolTable.set('append', BuiltInTask.append)
-GlobalSymbolTable.set('pop', BuiltInTask.pop)
-GlobalSymbolTable.set('extend', BuiltInTask.extend)
-GlobalSymbolTable.set('remove', BuiltInTask.remove)
-GlobalSymbolTable.set('clearList', BuiltInTask.clearList)
-GlobalSymbolTable.set('delay', BuiltInTask.delay)
-GlobalSymbolTable.set('format', BuiltInTask.format)
-GlobalSymbolTable.setGlobal()
+Record = Record()
+Record.set('print', BuiltInTask.print)   
+Record.set('println', BuiltInTask.println)
+Record.set('exit', BuiltInTask.exit)
+Record.set('input', BuiltInTask.input)
+Record.set('inputInt', BuiltInTask.inputInt)
+Record.set('inputFloat', BuiltInTask.inputFloat)
+Record.set('inputBool', BuiltInTask.inputBool)
+Record.set('clear', BuiltInTask.clear)
+Record.set('len', BuiltInTask.len)
+Record.set('str', BuiltInTask.str)
+Record.set('int', BuiltInTask.int)
+Record.set('float', BuiltInTask.float)
+Record.set('bool', BuiltInTask.bool)
+Record.set('list', BuiltInTask.list)
+Record.set('append', BuiltInTask.append)
+Record.set('pop', BuiltInTask.pop)
+Record.set('extend', BuiltInTask.extend)
+Record.set('remove', BuiltInTask.remove)
+Record.set('clearList', BuiltInTask.clearList)
+Record.set('delay', BuiltInTask.delay)
+Record.set('format', BuiltInTask.format)
+Record.setRecord()
 
 class Program:
     def error():
@@ -95,7 +95,7 @@ class Program:
         
         interpreter = Interpreter()
         context = Context('<module>')
-        context.symbolTable = GlobalSymbolTable
+        context.symbolTable = Record
         result = interpreter.visit(ast.node, context)
         
         if hasattr(result, 'value') and hasattr(result, 'error'):

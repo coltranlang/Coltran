@@ -55,6 +55,36 @@ TT_QUESTION = 'QUESTION'
 TT_PIPE = 'PIPE'
 
 
+NOT_ALLOWED_OBJECTS_KEYS = [
+    'let',
+    'final',
+    'true',
+    'false',
+    'none',
+    'and',
+    'or',
+    'not',
+    'if',
+    'then',
+    'elif',
+    'else',
+    'for',
+    'to',
+    'get',
+    'from',
+    'step',
+    'while',
+    'task',
+    'object',
+    'class',
+    'def',
+    'end',
+    'return',
+    'continue',
+    'break',
+    'fv'
+]
+
 NOT_ALLOWED_OBJECTS_VALUES = [
     'let',
     'final',
@@ -79,6 +109,10 @@ NOT_ALLOWED_OBJECTS_VALUES = [
     'continue',
     'break',
 ]
+
+
+
+
 KEYWORDS = [
     'let',
     'final',

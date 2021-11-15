@@ -64,8 +64,9 @@ class HashTable:
         self.data = [None] * self.size
 
     def hashFunction(self, key):
-        return key % self.size
-
+        return sum([ord(char) for char in key]) % self.size
+    
+    
     def rehash(self, oldHash):
         return (oldHash + 1) % self.size
 
@@ -101,6 +102,8 @@ class HashTable:
     def __setitem__(self, key, data):
         self.set(key, data)
 
+
+
 class Stack:
     def __init__(self):
         self.stack = []
@@ -117,11 +120,38 @@ class Stack:
     def isEmpty(self):
         return len(self.stack) == 0
 
-    def __str__(self):
-        return str(self.stack)
+    def __repr__(self):
+        output = 'Current stack:\n'
+        for item in self.stack:
+            output += str(item) + '\n'
+        return output
 
 
-class Global:
+class Environment:
+    def __init__(self, parent=None):
+        self.members = HashTable(1000)
+        self.parent = parent
+
+    def get(self, key):
+        value = self.members.get(key)
+        if value == None and self.parent:
+            value = self.parent.get(key)
+        if value == None:
+            return "none"
+        return value
+    
+    def set(self, key, value):
+        self.members.set(key, value)
+        
+    def __repr__(self):
+        output = 'Current environment:\n'
+        for item in self.members.getSlots():
+            if item != None:
+                output += str(item) + '\n'
+        return output
+
+
+class Record:
     def __init__(self, parent=None):
         self.symbols = {}
         self.parent = parent
@@ -147,7 +177,7 @@ class Global:
         self.symbols[name] = value
         if not value:
             value = "none"
-        #print(f"{name} is set to {value}")
+        print(f"{name} is set to {value}")
 
     def set_object(self, obj_name, object):
         if obj_name in self.symbols:
@@ -169,7 +199,7 @@ class Global:
         else:
             self.symbols[name] = value
 
-    def setGlobal(self):
+    def setRecord(self):
         self.set("none", "none")
         self.set("Boolean",  "true")
         self.set("Boolean", "false")
@@ -187,3 +217,11 @@ class Global:
 
 
 
+# hash = HashTable(1000)
+# hash.set("key", "value")
+# print(hash.get("key"))
+
+# env = Environment()
+# env.set("key", "value")
+# print(env.get("key"))
+# print(env.get("key2"))

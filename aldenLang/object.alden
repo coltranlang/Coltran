@@ -1,21 +1,12 @@
-
-task @getMax(num1, num2)
-    if num1 > num2 then 
-        return num1
-    else
-        return num2
-    end
+task @getCources(student, id)
 end
-task @getMin(num1, num2)
-          if num1 < num2 then 
-                return num1
-          else
-                return num2
-          end
-    end
 
-
-object Math
-    max: @getMax
-    min: @getMin
+let student = "John"
+let id = 123
+object Student
+    files: (student, id)
 end
+println(Student)
+
+let (student, id) = Student
+println(student)
