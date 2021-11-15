@@ -1,0 +1,21 @@
+# FizzBuzz
+let num = 16
+
+for i = 0 to num then
+    if i % 3 == 0 and i % 5 == 0 then
+        print("FizzBuzz")
+        elif i % 3 == 0 then
+        print("Fizz")
+        elif i % 5 == 0 then
+        print("Buzz")
+        else
+        print(i)
+    endIf
+endFor
+
+
+# Map and Filter
+let arr = [1,2,4,9]
+
+let arr2 = map(arr, (item) => item * 2)
+print(arr2)

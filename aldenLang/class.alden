@@ -1,0 +1,8 @@
+class Person(age, name)
+    def getName()
+       print("My name is "  + age)
+    end
+    def getAge()
+       print("I am "  + " years old.")
+    end
+end

@@ -1,0 +1,9 @@
+let name = "Kehinde Akinsanya"
+let occupation = "Software Engineer"
+let id = "123456789"
+
+# Built in function format values has to be in the same order as the format string
+let description = fv"Hello World, my name is {name} and I am a {occupation} with id {id}"
+let description2 = format("Hello World, my name is %s and I am a %s with id %s", name, occupation, id)
+let description3 = "Hello World, my name is {name} and I am a {occupation} with id {id}".format()
+print(description, description2, description3)

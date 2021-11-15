@@ -1,2 +1,12 @@
-let name = "value";
-for i = 1 to 10 then let name = "value";
+task @Person(firstName, lastName, age)
+    task @getFullName()
+       return "Your name is " + firstName + " " + lastName
+    endTask
+    task @getAge() 
+       return "Your age is " + age
+    endTask
+    return @getFullName()
+endTask
+
+print(@Person("John", "Doe", 30))
+

@@ -1,5 +1,4 @@
 # This is a comment
-
 get users from "./users"; 
 
 task @greet(name) -> "Hello " + name; 

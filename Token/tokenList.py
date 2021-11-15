@@ -1,4 +1,9 @@
 DIGITS = '0123456789'
+LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+SYMBOLS = '@$_'
+NOT_ALLOWED_SYMBOLS = '!$%^&*()+-=[]{};\':"\\|,.<>/?`~'
+LETTERS_SYMBOLS = LETTERS + SYMBOLS
+LETTERS_DIGITS_SYMBOLS = LETTERS + DIGITS + SYMBOLS
 TT_DATA_TYPE = ['int', 'float', 'char', 'void']
 DATA_TYPE_SYMBOL ='DATA_TYPE_SYMBOL'
 TT_INT = 'INT'
@@ -18,26 +23,62 @@ TT_GT ='GT'
 TT_LT ='LT'
 TT_GTE ='GTE'
 TT_LTE ='LTE'
+TT_PLUS_EQ = 'PLUS_EQ'
 TT_COLON = 'COLON'
 TT_SEMICOLON ='SEMICOLON'
 TT_IDENTIFIER = 'IDENTIFIER'
 TT_COMMA = 'COMMA'
 TT_ARROW = 'ARROW'
+TT_DOT = 'DOT'
 TT_STRING = 'STRING'
 TT_SINGLE_STRING = 'SINGLE_STRING'
+TT_RAW_STRING = 'RAW_STRING'
+TT_BACKTICK = 'BACKTICK'
+TT_STRING_INTERP = 'STRING_INTERP'
 TT_FORMAT = 'FORMAT'
-TT_LBRACES = 'LBRACES'
-TT_RBRACES = 'RBRACES'
+TT_LBRACE = 'LBRACE'
+TT_RBRACE = 'RBRACE'
 TT_LSQBRACKET = 'LSQBRACKET'
 TT_RSQBRACKET = 'RSQBRACKET'
 TT_KEYWORD = 'KEYWORD'
 TT_NEWLINE = 'NEWLINE'
 TT_WHITESPACE = 'WHITESPACE'
+TT_ESCAPE = 'ESCAPE'
+TT_RETURN = 'RETURN'
 TT_EOF = 'EOF'
+TT_WILDCARD = 'WILDCARD'
+TT_START = 'START'
+TT_END = 'END'
+TT_STAR = 'STAR'
+TT_DASH = 'DASH'
+TT_QUESTION = 'QUESTION'
+TT_PIPE = 'PIPE'
 
-LETTERS = '@$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-LETTERS_DIGITS = LETTERS + DIGITS
 
+NOT_ALLOWED_OBJECTS_VALUES = [
+    'let',
+    'final',
+    'and',
+    'or',
+    'not',
+    'if',
+    'endIf',
+    'then',
+    'elif',
+    'else',
+    'for',
+    'endFor',
+    'to',
+    'step',
+    'while',
+    'endWhile',
+    'class',
+    'def',
+    'end',
+    'return',
+    'continue',
+    'break',
+]
 KEYWORDS = [
     'let',
     'final',
@@ -58,15 +99,18 @@ KEYWORDS = [
     'step',
     'while',
     'task',
-    'endTask',
-    'endFor',
+    'object',
+    'class',
+    'def',
+    'end',
     'return',
     'continue',
     'break',
+    'fv'
 ]
 
 
-BUILTINTASKS = [
+BUILTIN = [
     'print',
     'len',
     'append',
@@ -75,8 +119,14 @@ BUILTINTASKS = [
     'len',
     'clear',
     'exit',
-    'intInput',
-    'floatInput',
-    'format',
-    'toString'
+    'input',
+    'inputInt',
+    'inputFloat',
+    'str',
+    'int',
+    'float',
+    'bool',
+    'list',
+    'object',
+    'format'
 ]

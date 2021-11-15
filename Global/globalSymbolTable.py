@@ -57,6 +57,70 @@ class Program:
 
 
 
+class HashTable:
+    def __init__(self, size):
+        self.size = size
+        self.slots = [None] * self.size
+        self.data = [None] * self.size
+
+    def hashFunction(self, key):
+        return key % self.size
+
+    def rehash(self, oldHash):
+        return (oldHash + 1) % self.size
+
+    def get(self, key):
+        start = self.hashFunction(key)
+
+        pos = start
+        while self.slots[pos] != None and self.slots[pos] != key:
+            pos = self.rehash(pos)
+            if pos == start:
+                return None
+
+        return self.data[pos]
+
+    def set(self, key, data):
+        start = self.hashFunction(key)
+
+        pos = start
+        while self.slots[pos] != None and self.slots[pos] != key:
+            pos = self.rehash(pos)
+            if pos == start:
+                return None
+
+        self.slots[pos] = key
+        self.data[pos] = data
+        
+    def getSlots(self):
+        return self.slots
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __setitem__(self, key, data):
+        self.set(key, data)
+
+class Stack:
+    def __init__(self):
+        self.stack = []
+
+    def push(self, item):
+        self.stack.append(item)
+
+    def pop(self):
+        return self.stack.pop()
+
+    def top(self):
+        return self.stack[-1]
+
+    def isEmpty(self):
+        return len(self.stack) == 0
+
+    def __str__(self):
+        return str(self.stack)
+
+
 class Global:
     def __init__(self, parent=None):
         self.symbols = {}
@@ -67,9 +131,36 @@ class Global:
         if value == None and self.parent:
             return self.parent.get(name)
         return value
+    
+    def get_by_value(self, value):
+        for key, val in self.symbols.items():
+                return key
+        return None
+    
+    def get_by_interp_value(self, value):
+        for key, val in self.symbols.items():
+            if str(val) == value:
+                return key
+        return None
 
     def set(self, name, value):
         self.symbols[name] = value
+        if not value:
+            value = "none"
+        #print(f"{name} is set to {value}")
+
+    def set_object(self, obj_name, object):
+        if obj_name in self.symbols:
+            self.set(obj_name, object)
+        else:
+            self.set(obj_name, object)
+        
+    def get_object(self, owner, obj_name, key, type):
+        print(f"{owner} {obj_name} {key} {type}")
+        if owner.name.value in self.symbols:
+            return self.symbols[owner.name.value].get_property(owner,obj_name, key, type)
+        else:
+            return "none"
 
     def set_final(self, name, value):
         if name in self.symbols:
@@ -85,5 +176,14 @@ class Global:
 
     def remove(self, name):
         del self.symbols[name]
+        
+    def __repr__(self):
+        result = {
+            'symbols': self.symbols,
+            'parent': self.parent
+        }
+        return str(result)
+
+
 
 

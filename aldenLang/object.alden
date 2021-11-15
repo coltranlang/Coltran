@@ -1,0 +1,21 @@
+
+task @getMax(num1, num2)
+    if num1 > num2 then 
+        return num1
+    else
+        return num2
+    end
+end
+task @getMin(num1, num2)
+          if num1 < num2 then 
+                return num1
+          else
+                return num2
+          end
+    end
+
+
+object Math
+    max: @getMax
+    min: @getMin
+end
