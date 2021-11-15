@@ -182,7 +182,8 @@ class Program:
             'IllegalCharacter': IllegalCharacter,
             'Syntax': Syntax,
             'Runtime': Runtime,
-            'Type': Type
+            'Type': Type,
+            'KeyError': KeyError
         }
         return methods
 
@@ -1022,12 +1023,10 @@ class List(Value):
         return copy
 
     def __str__(self):
-        # returnlist with brackets
-        if len(self.elements) > 0:
-            return f"[{', '.join([str(x) for x in self.elements])}]"
-        else:
+        try:
+            return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties])}}}"
+        except:
             return "[]"
-
 
 class Object(Value):
     def __init__(self, name, properties):
@@ -1040,62 +1039,72 @@ class Object(Value):
     def set_property(self, key, value):
         self.properties[key] = value
         return self
-    def get_property(self, property_name, get_type):
+    def get_property(self, owner, obj_name, key, get_type):
+        
+        context = self.context
         res = RuntimeResult()
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Property '{property_name}' does not exist on object '{self.name}'" if property_name is not None else f"Property 'none' does not exist on object '{self.name}'",
+            'message': f"Property '{key}' does not exist on object '{obj_name}'" if key is not None else f"Property 'none' does not exist on object '{obj_name}'",
             'context': self.context,
             'exit': False
         }
-        result = []
-        #print(property_name, get_type)
-        if get_type == "CallNode": 
-             args = []
-             for key, value in self.properties:
-                if key == property_name.node_to_call.name.value:
-                    result.append(value)
-                    if len(result) == 0:
-                        return None, self.key_error(error, property_name.node_to_call.name.value)
-                    context = Context(value.name, self.context, self.pos_start)
+        result = {}
+        if get_type == "VarAccessNode":
+            object_properties = context.symbolTable.get(owner.name.value)
+            for k, v in object_properties.properties.items():
+                if k == key:
+                    return v
+            return None, self.key_error(error, key)
+        else:
+             return None, self.key_error(error, key)
+        # if get_type == "CallNode": 
+        #      args = []
+        #      for key, value in self.properties:
+        #         if key == property_name.node_to_call.name.value:
+        #             result.append(value)
+        #             if len(result) == 0:
+        #                 return None, self.key_error(error, property_name.node_to_call.name.value)
+        #             context = Context(value.name, self.context, self.pos_start)
                    
                     
-                    for arg in property_name.args_nodes:
+        #             for arg in property_name.args_nodes:
                         
-                        if type(arg).__name__ == "NumberNode":
-                            args.append(Number(arg.tok.value))
+        #                 if type(arg).__name__ == "NumberNode":
+        #                     args.append(Number(arg.tok.value))
                         
-                        if res.should_return():
-                            return res
+        #                 if res.should_return():
+        #                     return res
                     
-                    return_value = res.register(value.execute(args))
-                    #print(return_value)
-                    if res.should_return():
-                        return res
-                    return_value = return_value.copy().setPosition(value.pos_start, value.pos_end)
-                    if isinstance(return_value, NoneType):
-                        return res.noreturn(), None
-                    return return_value, None
-                else:
-                    error['message'] = f"Property '{property_name}' does not exist on object '{self.name}'"
-                    return "none", Program().error['Type'](error)
-        elif get_type == "VarAccessNode":
-            print(property_name.name.value)
-            for key, value in self.properties:
-                if key == property_name.name.value:
-                    result.append(value)
-                    return value, None
-                else:
-                    error['message'] = f"Property '{property_name.name.value}' does not exist on object '{self.name}'"
-                    return None, self.key_error(error, property_name.name.value)
-        else:
-            for key, value in self.properties:
-                if key == property_name:
-                    result.append(value)
-                    if len(result) == 0:
-                        return None, self.key_error(error, property_name)
-                    return value
+        #             return_value = res.register(value.execute(args))
+        #             #print(return_value)
+        #             if res.should_return():
+        #                 return res
+        #             return_value = return_value.copy().setPosition(value.pos_start, value.pos_end)
+        #             if isinstance(return_value, NoneType):
+        #                 return res.noreturn(), None
+        #             return return_value, None
+        #         else:
+        #             error['message'] = f"Property '{property_name}' does not exist on object '{self.name}'"
+        #             return "none", Program().error['Type'](error)
+        # elif get_type == "VarAccessNode":
+        #     print(property_name, "pe")
+        #     for key, value in self.properties:
+        #         if key == property_name:
+        #             result.append(value)
+        #             return value
+        #         else:
+        #            # print(property_name.name.value, "don't")
+        #             error['message'] = f"Property '{property_name}' does not exist on object '{owner.name}'"
+        #             return None, self.key_error(error, property_name)
+        # else:
+        #     for key, value in self.properties:
+        #         if key == property_name:
+        #             result.append(value)
+        #             if len(result) == 0:
+        #                 return None, self.key_error(error, property_name)
+        #             return value, None
                
     
     def copy(self):
@@ -1105,10 +1114,10 @@ class Object(Value):
         return copy
     
     def __str__(self):
-        if self.properties:
-            return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties])}}}"
-        else:
-            return '{}'
+        try:
+            return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
+        except:
+            return "{}"
     
 
 class BaseTask(Value):
@@ -1825,24 +1834,25 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
-            # Program.error()['Error']({
-            #     'name': 'IdentifierError',
-            #     'pos_start': node.pos_start,
-            #     'pos_end': node.pos_end,
-            #     'message': f'{var_name} is not defined',
-            #     'context': context,
-            #     'exit': False
-            # })
+            Program.error()['Error']({
+                'name': 'IdentifierError',
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f'{var_name} is not defined',
+                'context': context,
+                'exit': False
+            })
             return res.noreturn()
         value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(value)
 
     def visit_DotAccessNode(self, node, context):
         res = RuntimeResult()
+        owner = node.owner
         left = node.left.name.value
         right = node.right.name.value
-        value = context.symbolTable.get_object(left, right)
-       # print(type(value), node.right)
+        istype = node.type
+        value = context.symbolTable.get_object(owner, left, right, istype)
         if value is None or value == NoneType.none:
             return res.failure(Program.error()['KeyError']({
                 'pos_start': node.pos_start,
@@ -1852,26 +1862,7 @@ class Interpreter:
                 'exit': False
             }))
         value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
-        # if(isinstance(value, Task)):
-        #     v
         return res.success(value)
-        # var_name = node.name.value
-        # value = res.register(self.visit(node.expr, context))
-        # if res.should_return():
-        #     return res
-        # value = value.value
-        # if var_name in value.symbolTable.symbols:
-        #     value = value.symbolTable.get(var_name)
-        # else:
-        #     return res.failure(Program.error()['Runtime']({
-        #         'pos_start': node.pos_start,
-        #         'pos_end': node.pos_end,
-        #         'message': f"{var_name} is not defined",
-        #         'context': context,
-        #         'exit': False
-        #     }))
-        # value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
-        # return res.success(value)
     
     def visit_VarAssignNode(self, node, context):
         res = RuntimeResult()
@@ -1912,6 +1903,15 @@ class Interpreter:
                 result, error = left.get_index(right)
             elif node.op_tok.type == tokenList.TT_DOT:
                 get_type = type(node.right_node).__name__
+                if len(left.properties) == 0:
+                    if (get_type == 'VarAccessNode'):
+                        return res.failure(Program.error()['KeyError']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"{left.name} has no property {node.right_node.name.value}",
+                            'context': context,
+                            'exit': False
+                        }))
                 result, error = left.get_property(node.right_node, get_type)
             elif node.op_tok.type == tokenList.TT_EQEQ:
                 result, error = left.get_comparison_eq(right)
@@ -2082,22 +2082,26 @@ class Interpreter:
         res = RuntimeResult()
         object_name = node.object_name.value
         object_value = ""
-        properties = []
-        for prop in node.properties:
-            prop_name = prop['name'].value
-            prop_value = res.register(self.visit(prop['value'], context))
-           
-            #print(prop_value, "prop_value")
+        properties = {}
+        prop_name = node.properties['name'].value
+        prop_value = res.register(self.visit(
+            node.properties['value'], context))
+        #print(prop_value, "prop_value")
+        if isinstance(prop_value, NoneType):
+            object_value = Object(object_name, []).setContext(context).setPosition(node.pos_start, node.pos_end)
+            context.symbolTable.set(object_name, object_value)
+            #return res.success(object_value)
+        else:
             if res.should_return():
                 return res
-            properties.append((prop_name, prop_value))
+            properties = {prop_name: prop_value}
             #print(properties, "prop") 
             if hasattr(prop_value, 'value'):
                 prop_value = prop_value.value
             object_value = Object(object_name, properties).setContext(context).setPosition(node.pos_start, node.pos_end)
-            object_value = Object(object_name,properties).setContext(context).setPosition(node.pos_start, node.pos_end)
             #context.symbolTable.set(object_name, object_value)
             context.symbolTable.set_object(object_name, object_value)
+        #print(object_value, "object_value")
         return res.success(object_value)
 
     def visit_ClassNode(self, node, context):

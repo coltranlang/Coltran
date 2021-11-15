@@ -1,4 +1,4 @@
-from os import name
+from os import name, path
 from re import split
 from Interpreter.interpreter import Task
 from Parser.stringsWithArrows import *
@@ -182,12 +182,16 @@ class VarAccessNode:
 
 
 class DotAccessNode:
-    def __init__(self, left, right):
+    def __init__(self, owner, left, right, type):
+        self.owner = owner
         self.left = left
         self.right = right
+        self.type = type
         self.pos_start = self.left.pos_start
         self.pos_end = self.right.pos_end
     
+    def __repr__(self):
+        return f'{self.owner}.{self.right}'
     
 
 class VarAssignNode:
@@ -303,16 +307,15 @@ class TaskDefNode:
 
 class ObjectDefNode:
     def __init__(self, object_name, properties):
+       
         self.object_name = object_name
-        self.properties = properties
+        self.properties = dict(properties)
         self.pos_start = self.object_name.pos_start
-        for prop in self.properties:
-            self.pos_end = prop['pos_end']
+        self.pos_end = properties['pos_end']
         self.object = {
             'name': self.object_name.value,
             'properties': self.properties
         }
-        
 
 class ClassNode:
     def __init__(self, constructor_args ,class_name, inherits_class_name, inherits_class, methods):
@@ -446,6 +449,7 @@ class Parser:
 
     def parse(self):
         res = self.statements()
+        
         try:
             error = {
                 'pos_start': self.current_token.pos_start,
@@ -459,7 +463,7 @@ class Parser:
                 error['message'] = "Invalid syntax or unknown token"
                 if (value == "endTask"):
                     error['message'] = "Cannot end task here, without starting it, perhaps you forgot to add 'task' before 'endTask'?"
-                return res.failure(Program.error()['Syntax'](error))
+                    return res.failure(Program.error()['Syntax'](error))
             return res
         except AttributeError:
             return ParseResult()
@@ -961,7 +965,46 @@ class Parser:
    
     def make_object(self):
         res = ParseResult()
-        objects = []
+        object_properties = []
+        res.register_advancement()
+        self.advance()
+        
+        if self.current_token.type != tokenList.TT_IDENTIFIER:
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected an identifier",
+                'exit': False
+            }))
+        obj_name = self.current_token
+        if obj_name in tokenList.KEYWORDS:
+            return res.failure(Program.error()['NameError']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Cannot use reserved keyword as object property name",
+                'exit': False
+            }))
+        res.register_advancement()
+        self.advance()
+        
+        if self.current_token.type != tokenList.TT_COLON:
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected ':'",
+                'exit': False
+            }))
+        res.register_advancement()
+        self.advance()
+        obj_value = self.current_token
+        object_properties.append({
+            'name': obj_name,
+            'value': res.register(self.statements()),
+            'pos_start': obj_name.pos_start,
+            'pos_end': obj_value.pos_end
+        })
+        res.register_advancement()
+        self.advance()
         
         if self.current_token.type != tokenList.TT_NEWLINE:
             return res.failure(Program.error()['Syntax']({
@@ -972,33 +1015,18 @@ class Parser:
             }))
         res.register_advancement()
         self.advance()
-        if self.current_token.type != tokenList.TT_IDENTIFIER:
-            return res.failure(Program.error()['Syntax']({
-                'pos_start': self.current_token.pos_start,
-                'pos_end': self.current_token.pos_end,
-                'message': "Expected an identifier",
-                'exit': False
-            }))
-        objects.append(self.current_token)
-        res.register_advancement()
-        self.advance()
-        if self.current_token.type != tokenList.TT_COLON:
-            return res.failure(Program.error()['Syntax']({
-                'pos_start': self.current_token.pos_start,
-                'pos_end': self.current_token.pos_end,
-                'message': "Expected ':'",
-                'exit': False
-            }))
-        res.register_advancement()
-        self.advance()
-
-        expr = res.register(self.expr())
-        objects.append(expr)
-
+        print(self.current_token, "erdt")
+        # if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+        #     return res.failure(Program.error()['Syntax']({
+        #         'pos_start': self.current_token.pos_start,
+        #         'pos_end': self.current_token.pos_end,
+        #         'message': "Expected 'end'",
+        #         'exit': False
+        #     }))
    
     def object_def(self):
         res = ParseResult()
-        object_properties = []
+        object_properties = {}
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'object'):
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -1019,6 +1047,7 @@ class Parser:
             }))
         
         object_name = self.current_token
+        
         if object_name in tokenList.KEYWORDS:
             return res.failure(Program.error()['NameError']({
                 'pos_start': self.current_token.pos_start,
@@ -1040,6 +1069,7 @@ class Parser:
                 'message': "Object name must start with a capital letter",
                 'exit': False
             }))
+        
         res.register_advancement()
         self.advance()
         if self.current_token.type != tokenList.TT_NEWLINE:
@@ -1048,117 +1078,79 @@ class Parser:
                 'pos_end': self.current_token.pos_end,
                 'message': "Expected a newline",
                 'exit': False
-            })) 
-            
-        res.register_advancement()
-        self.advance()
-        
-        if self.current_token.type != tokenList.TT_IDENTIFIER:
-            return res.failure(Program.error()['Syntax']({
-                'pos_start': self.current_token.pos_start,
-                'pos_end': self.current_token.pos_end,
-                'message': "Expected an identifier",
-                'exit': False
             }))
-        object_properties = []
-        obj_name = self.current_token
-        if obj_name in tokenList.KEYWORDS:
-            return res.failure(Program.error()['NameError']({
-                'pos_start': self.current_token.pos_start,
-                'pos_end': self.current_token.pos_end,
-                'message': "Cannot use reserved keyword as object property name",
-                'exit': False
-            }))
-        res.register_advancement()
-        self.advance()
-        
-        if self.current_token.type != tokenList.TT_COLON:
-            return res.failure(Program.error()['Syntax']({
-                'pos_start': self.current_token.pos_start,
-                'pos_end': self.current_token.pos_end,
-                'message': "Expected ':'",
-                'exit': False
-            }))
-        res.register_advancement()
-        self.advance()  
-        obj_value = self.current_token
-        
-        object_properties.append({
-            'name': obj_name,
-            'value': res.register(self.expr()),
-            'pos_start': obj_name.pos_start,
-            'pos_end': obj_value.pos_end
-        })
-        
-        while self.current_token.type == tokenList.TT_COMMA:
+        while self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
-
-            if self.current_token.type != tokenList.TT_NEWLINE:
-                return res.failure(Program.error()['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "Expected a newline",
-                    'exit': False
-                }))
-            
-            res.register_advancement()
-            self.advance()
-            
-            if self.current_token.type != tokenList.TT_IDENTIFIER:
-                return res.failure(Program.error()['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "Expected an identifier",
-                    'exit': False
-                }))
-            obj_name = self.current_token
-            res.register_advancement()
-            self.advance()
-            
-            if self.current_token.type != tokenList.TT_COLON:
-                return res.failure(Program.error()['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "Expected ':'",
-                    'exit': False
-                }))
-            res.register_advancement()
-            self.advance()
-        
-            obj_value = self.current_token
-            object_properties.append({
-                'name': obj_name,
-                'value': res.register(self.expr()),
-                'pos_start': obj_name.pos_start,
-                'pos_end': obj_value.pos_end
-            })
-            #body = res.register(self.object_def())
-            #print(obj_value, obj_value.type)
-        else:
-            while self.current_token.type == tokenList.TT_NEWLINE:
-                res.register_advancement()
-                self.advance()
-                if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
-                    res.register_advancement()
-                    self.advance()
-                    return res.success(ObjectDefNode(object_name, object_properties))
-            
-            if self.current_token.type != tokenList.TT_NEWLINE or self.current_token.type != tokenList.TT_EOF:
-                return res.failure(Program.error()['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "Expected 'end'",
-                    'exit': False
-                }))
-            res.register_advancement()
-            self.advance()
-            
+           
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
+                object_properties = {
+                    'name': object_name,
+                    'value': [],
+                    'pos_start': object_name.pos_start,
+                    'pos_end': object_name.pos_end
+                }
+                return res.success(ObjectDefNode(object_name, object_properties))
+
+            while self.current_token.type == tokenList.TT_IDENTIFIER:
+                obj_name = self.current_token
+                res.register_advancement()
+                self.advance()
                 
-        return res.success(ObjectDefNode(object_name, object_properties))
+                if self.current_token.type != tokenList.TT_COLON:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected ':'",
+                        'exit': False
+                    }))
+                res.register_advancement()
+                self.advance()
+                if self.current_token.value in tokenList.NOT_ALLOWED_OBJECTS_VALUES:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Unterminated object definition",
+                        'exit': False
+                    }))
+                obj_value = res.register(self.expr())
+                if res.error: return res
+                if obj_value == '':
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected property value",
+                        'exit': False
+                    }))
+               
+                if self.current_token.type == tokenList.TT_COMMA:
+                    res.register_advancement()
+                    self.advance()
+                while self.current_token.type == tokenList.TT_NEWLINE:
+                    res.register_advancement()
+                    self.advance()
+                    if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                        res.register_advancement()
+                        self.advance()
+                        object_properties = {
+                            'name': '',
+                            'value': [],
+                            'pos_start': object_name.pos_start,
+                            'pos_end': object_name.pos_end
+                        }
+                        return res.success(ObjectDefNode(object_name, object_properties))
+                    if self.current_token.value in tokenList.KEYWORDS or self.current_token.type in ['INT', 'FLOAT', 'STRING']:
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Invalid syntax or unexpected token",
+                            'exit': False
+                        }))
+                        
+                    
+                
 
    
     def set_method(self):
@@ -1609,8 +1601,38 @@ class Parser:
                 while self.current_token.type == tokenList.TT_DOT:
                         res.register_advancement()
                         self.advance()
-                        if res.error:
-                            return res
+                        
+                        args.append(res.register(self.expr()))
+                        left = args[-2]
+                        right = args[-1]
+                        print(args, 'rrg')
+                        while self.current_token.type == tokenList.TT_DOT:
+                            res.register_advancement()
+                            self.advance()
+                            args.append(res.register(self.expr()))
+                            if res.error:
+                                return res
+                        while self.current_token.type == tokenList.TT_IDENTIFIER:
+                            res.register_advancement()
+                            self.advance()
+                            args.append(res.register(self.expr()))
+                            left = args[-2]
+                            right = args[-1]
+                            if self.current_token.type == tokenList.TT_DOT:
+                                res.register_advancement()
+                                self.advance()
+                                left = args[-2]
+                                right = args[-1]
+                            while self.current_token.type == tokenList.TT_COMMA:
+                                res.register_advancement()
+                                self.advance()
+                                
+                                if res.error:
+                                    return res
+                        owner = args[0]
+                        del args[0]
+                        #return res.success(DotAccessNode(owner,left, right, type(right).__name__))
+                        
                 for arg in args:
                     if arg == '':
                         return res.failure(Program.error()['Syntax']({
@@ -1618,7 +1640,7 @@ class Parser:
                             'pos_end': self.current_token.pos_end,
                             'message': "Expected ',' or ')'",
                             'exit': False
-                        }))
+                        }))     
                 if self.current_token.type != tokenList.TT_RPAREN:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -1656,7 +1678,7 @@ class Parser:
         return self.power()
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON, tokenList.TT_DOT))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON))
 
     def arith_expr(self):
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
@@ -1762,9 +1784,13 @@ class Parser:
             op_tok = self.current_token
             res.register_advancement()
             self.advance()
-            
             right = res.register(func_2())
-            
+            if op_tok.type == tokenList.TT_DOT:
+                result = DotAccessNode(left, right, type(right).__name__)
+                
+                if res.error: return res
+                self.advance()
+                return res.success(result)
             if res.error:
                 return res
             left = BinOpNode(left, op_tok, right)

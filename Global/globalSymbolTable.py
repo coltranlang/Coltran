@@ -153,11 +153,12 @@ class Global:
         if obj_name in self.symbols:
             self.set(obj_name, object)
         else:
-            self.symbols[obj_name] = object
+            self.set(obj_name, object)
         
-    def get_object(self, obj_name, key):
-        if obj_name in self.symbols:
-            return self.symbols[obj_name].get_property(key)
+    def get_object(self, owner, obj_name, key, type):
+        print(f"{owner} {obj_name} {key} {type}")
+        if owner.name.value in self.symbols:
+            return self.symbols[owner.name.value].get_property(owner,obj_name, key, type)
         else:
             return "none"
 

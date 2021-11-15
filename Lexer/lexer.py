@@ -203,6 +203,7 @@ class Lexer:
         while self.current_char != None and self.current_char in tokenList.LETTERS_DIGITS_SYMBOLS:
             identifier_str += self.current_char
             self.advance()
+            #check if dot is in the identifier and if it is, create a new token
         token_type = tokenList.TT_KEYWORD if identifier_str in tokenList.KEYWORDS else tokenList.TT_IDENTIFIER
         return Token(token_type, identifier_str, pos_start, self.pos)
 
