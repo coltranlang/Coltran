@@ -180,9 +180,6 @@ class Record:
         #print(f"{name} is set to {value}")
 
     def set_object(self, obj_name, object):
-        if obj_name in self.symbols:
-            return Program.error()['Default']('RuntimeError', f'{obj_name} already exists')
-        else:
             self.set(obj_name, object)
         
     def get_object(self, owner, obj_name, key, type):

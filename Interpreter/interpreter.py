@@ -1111,6 +1111,12 @@ class List(Value):
         return f'[{", ".join([str(x) for x in self.elements])}]'
 
 
+class Pipe(Value):
+    def __init__(self, elements=None):
+        super().__init__()
+        self.elements = elements if elements is not None else []
+        self.value = self.elements
+
         
 class Object(Value):
     def __init__(self, name, properties):
@@ -1123,6 +1129,19 @@ class Object(Value):
     def set_property(self, key, value):
         self.properties[key] = value
         return self
+    
+    def get_key(self, key):
+        if key.value in self.properties:
+            return self.properties[key.value]
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"Key '{key}' not found in {self.name}",
+                'context': self.context,
+                'exit': False
+            }
+        return None, self.key_error(error, key)
     
     def get_index(self, other):
         error = {
@@ -1175,6 +1194,29 @@ class Object(Value):
             return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
         except:
             return "{}"
+
+
+class ObjectGet(Value):
+    def __init__(self, owner, obj, key):
+        super().__init__()
+        self.owner = owner
+        self.obj = obj
+        self.key = key
+        self.get_property = self.get_property
+        self.value = self.get_property
+        self.get_type = "ObjectGetNode"
+        
+    def get_property(self, owner, obj, key):
+        
+        value  = ""
+        if type(key).__name__ == "String":
+            if key.value in obj.properties:
+                value = obj.properties[key.value]
+                return value 
+            else:
+                return NoneType.none
+        return value
+
     
 
 class BaseTask(Value):
@@ -1892,6 +1934,17 @@ class Interpreter:
             elements = elements + (element_value,)
         return res.success(Pair(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
+    def visit_PipeNode(self, node, context):
+        res = RuntimeResult()
+        elements = []
+        for element_node in node.elements:
+            element_value = res.register(self.visit(element_node, context))
+            if res.should_return():
+                return res
+            elements.append(element_value)
+        return res.success(Pipe(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+    
+    
     def visit_VarAccessNode(self, node, context):
         res = RuntimeResult()
         var_name = node.name.value
@@ -2184,7 +2237,7 @@ class Interpreter:
         for property in node.properties:
             prop_name = property['name'].value
             prop_value = res.register(self.visit(property['value'], context))
-            properties = dict(properties, **{prop_name: prop_value})
+            properties = dict(properties, **{str(prop_name): prop_value})
             if res.should_return():
                 return res
             object_value = Object(object_name, properties).setContext(
@@ -2192,14 +2245,28 @@ class Interpreter:
             if isinstance(prop_value, NoneType):
                 object_value = Object(object_name, {'key': {}, 'value': {}}).setContext(
                     context).setPosition(node.pos_start, node.pos_end)
+                already_defined = context.symbolTable.get(object_name)
+                if already_defined:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": node.pos_start,
+                        "pos_end": node.pos_end,
+                        "message": "Object with name '{}' already defined".format(object_name),
+                        "context": context,
+                        "exit": False
+                    }))
                 context.symbolTable.set(object_name, object_value)
             
-        if isEmptyString(object_value):
-            context.symbolTable.set_object(object_name, {'key': {}, 'value': {}})
-        else:
-            context.symbolTable.set_object(object_name, object_value)
+            else:
+                context.symbolTable.set_object(object_name, object_value)
         return res.success(object_value)
 
+    def visit_ObjectGetNode(self, node, context):
+        res = RuntimeResult()
+        object_owner = node.owner.id.value
+        object_name = res.register(self.visit(node.left, context))
+        object_key = res.register(self.visit(node.right, context))
+        return res.success(ObjectGet(object_owner, object_name, object_key).get_property(object_owner, object_name, object_key).setContext(context).setPosition(node.pos_start, node.pos_end))
+    
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
         class_name = node.class_name.value

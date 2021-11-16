@@ -1,10 +1,22 @@
-task @getCources(student, id)
+task @getCourses(student, id)
 end
 
 let student = "John"
-let id = 123
+let id = 456
+
+
+
 object Student
-    files: (student, id)
+   id: 123
+   name: "David"
+   grade: "A"
+   @courses: object Course
+      id: 456
+      name: "Math"
+   end 
 end
-println(Student)
+
+
+#let st = Student|"name"|
+print(Student|"@courses"|)
 

@@ -135,6 +135,7 @@ class StatementsNode:
 class NumberNode:
     def __init__(self, tok):
         self.tok = tok
+        self.id = tok
         self.pos_start = self.tok.pos_start
         self.pos_end = self.tok.pos_end
 
@@ -145,6 +146,7 @@ class NumberNode:
 class StringNode:
     def __init__(self, tok, arg=None):
         self.tok = tok
+        self.id = tok
         self.arg = arg
         self.pos_start = self.tok.pos_start
         self.pos_end = self.tok.pos_end
@@ -175,18 +177,36 @@ class PairNode:
         self.elements = elements
         self.pos_start = pos_start
         self.pos_end = pos_end
-        
+       
+class PipeNode:
+    def __init__(self, elements, pos_start, pos_end):
+        self.elements = elements
+        self.pos_start = pos_start
+        self.pos_end = pos_end 
     
 
 class VarAccessNode:
     def __init__(self, name):
         self.name = name
+        self.id = name
         self.pos_start = self.name.pos_start
         self.pos_end = self.name.pos_end
 
     def __repr__(self):
         return f'{self.name}'
 
+
+class ObjectGetNode:
+    def __init__(self, owner, left , right):
+        self.owner = owner
+        self.id = owner
+        self.left = left
+        self.right = right
+        self.pos_start = self.left.pos_start
+        self.pos_end = self.right.pos_end
+        
+    def __repr__(self):
+        return f'{self.owner}'
 
 class DotAccessNode:
     def __init__(self, owner, left, right, type):
@@ -205,6 +225,7 @@ class VarAssignNode:
     def __init__(self, variable_name_token, value_node, variable_keyword_token):
         self.variable_keyword_token = variable_keyword_token
         self.variable_name_token = variable_name_token
+        self.id = variable_name_token
         self.value_node = value_node
         if type(self.variable_name_token).__name__ == "tuple":
             for t in self.variable_name_token:
@@ -297,6 +318,7 @@ class WhileNode:
 class TaskDefNode:
     def __init__(self, task_name_token, args_name_tokens, body_node, implicit_return, type=None):
         self.task_name_token = task_name_token
+        self.id = task_name_token
         self.args_name_tokens = args_name_tokens
         self.body_node = body_node
         self.implicit_return = implicit_return
@@ -320,6 +342,7 @@ class TaskDefNode:
 class ObjectDefNode:
     def __init__(self, object_name, properties):
         self.object_name = object_name
+        self.id = object_name
         object_properties = []
         for prop in properties:
             object_properties.append(prop)
@@ -340,6 +363,7 @@ class ClassNode:
     def __init__(self, constructor_args ,class_name, inherits_class_name, inherits_class, methods):
         self.constructor_args = constructor_args
         self.class_name = class_name
+        self.id = class_name
         self.inherits_class_name = inherits_class_name
         self.inherits_class = inherits_class
         self.methods = methods
@@ -981,7 +1005,6 @@ class Parser:
                 'exit': False
             }))     
   
-   
     def object_def(self):
         res = ParseResult()
         object_properties = []
@@ -1041,9 +1064,11 @@ class Parser:
         while self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
+            
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
+                
                 object_properties.append({
                     'name': object_name,
                     'value': [],
@@ -1051,6 +1076,7 @@ class Parser:
                     'pos_end': object_name.pos_end
                 })
                 return res.success(ObjectDefNode(object_name, object_properties))
+            
             if self.current_token.type != tokenList.TT_IDENTIFIER:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
@@ -1058,9 +1084,11 @@ class Parser:
                     'message': "Expected an identifier",
                     'exit': False
                 }))
-            while self.current_token.type == tokenList.TT_IDENTIFIER:
+            
+            while self.current_token.type == tokenList.TT_IDENTIFIER or str(self.current_token.value) in tokenList.DIGITS:
                 
                 obj_name = self.current_token
+                if res.error: return res
                 
                 res.register_advancement()
                 self.advance()
@@ -1120,7 +1148,7 @@ class Parser:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "Unterminated object literal",
+                        'message': "Unterminated object literal, Object key '{}' is not allowed".format(self.current_token.value),
                         'exit': False
                     }))
                 while self.current_token.type == tokenList.TT_NEWLINE:
@@ -1142,10 +1170,61 @@ class Parser:
                     }))
                     res.register_advancement()
                     self.advance()
-                    
+            print(str(self.current_token.value) in tokenList.DIGITS, "err")
             return res.success(ObjectDefNode(object_name, object_properties))
-                                    
-                             
+       
+    def object_get(self, left_node, right_node):
+        res = ParseResult()
+        if self.current_token.type != tokenList.TT_PIPE:
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected a key or '|'",
+                'exit': False
+            }))
+        res.register_advancement()
+        self.advance()
+        # if the token is = then its a setter
+        if self.current_token.type == tokenList.TT_EQ:
+            res.register_advancement()
+            self.advance()
+            if self.current_token.value == None:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected a value",
+                    'exit': False
+                }))
+            value = res.register(self.expr())
+            if res.error: return res
+            print(left_node, "is setting", right_node, "to", value)
+        # else we get the value
+        else:
+            if self.current_token.type != tokenList.TT_PIPE and self.current_token.type != tokenList.TT_NEWLINE and self.current_token.type != tokenList.TT_EOF and self.current_token.type != tokenList.TT_COMMA and self.current_token.type != tokenList.TT_RPAREN and self.current_token.type != tokenList.TT_LPAREN:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected '|'",
+                    'exit': False
+                }))
+            else:
+                value = res.register(self.expr())
+                if res.error: return res
+                if self.current_token.type != tokenList.TT_PIPE:
+                    return res.success(ObjectGetNode(left_node, left_node, right_node))
+                while self.current_token.type == tokenList.TT_PIPE:
+                    res.register_advancement()
+                    self.advance()
+                    if self.current_token.type == tokenList.TT_IDENTIFIER or self.current_token.type == tokenList.TT_STRING:
+                        print(self.current_token)
+                    else:
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected an identifier or string",
+                            'exit': False
+                        }))
+             
     def set_method(self):
         res = ParseResult()
         
@@ -1257,8 +1336,7 @@ class Parser:
                 
         self.class_methods = class_methods
         return class_methods
-    
-    
+      
     def class_def(self):
         res = ParseResult()
         inherit_class = None
@@ -1404,8 +1482,7 @@ class Parser:
                 'message': "Expected 'end'",
                 'exit': False
             }))
-        
-                        
+                             
     def list_expr(self):
         res = ParseResult()
         elements = []
@@ -1514,6 +1591,63 @@ class Parser:
             self.advance()
         return res.success(PairNode(elements, pos_start, self.current_token.pos_end.copy()))
 
+    def pipe_expr(self):
+        res = ParseResult()
+        elements = []
+        pos_start = self.current_token.pos_start.copy()
+        print(self.current_token.type)
+        if self.current_token.type != tokenList.TT_PIPE:
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected '|'",
+                'exit': False
+            }))
+
+        res.register_advancement()
+        self.advance()
+        
+        if self.current_token.type == tokenList.TT_PIPE:
+            res.register_advancement()
+            self.advance()
+        else:
+            element = res.register(self.expr())
+            if res.error:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Epected an expression",
+                    'exit': False
+                }))
+            elements.append(element)
+            while self.current_token.type == tokenList.TT_COMMA:
+                res.register_advancement()
+                self.advance()
+
+                element = res.register(self.expr())
+                if res.error:
+                    return res
+                elements.append(element)
+                for el in elements:
+                    if el == "":
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Epected an expression",
+                            'exit': False
+                        }))
+            if self.current_token.type != tokenList.TT_PIPE:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected ',', or '|'",
+                    'exit': False
+                }))
+            res.register_advancement()
+            self.advance()
+        return res.success(PipeNode(elements, pos_start, self.current_token.pos_end.copy()))
+
+    
     def string_interp(self):
         res = ParseResult()
         pos_start = self.current_token.pos_start.copy()
@@ -1605,7 +1739,7 @@ class Parser:
             if res.error:
                 return res
             return res.success(string_interp)
-  
+    
     def call(self):
         res = ParseResult()
         atom = res.register(self.atom())
@@ -1673,7 +1807,7 @@ class Parser:
         return self.power()
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON, tokenList.TT_PIPE))
 
     def arith_expr(self):
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
@@ -1725,7 +1859,7 @@ class Parser:
                     'message': f"Cannot use keyword '{self.current_token.value}' as an identifier",
                     'exit': False
                 }))
-                #to be done
+                
             if self.current_token.type == tokenList.TT_LPAREN:
                 expr = res.register(self.expr())
                 if res.error: return res
@@ -1801,6 +1935,8 @@ class Parser:
             res.register_advancement()
             self.advance()
             right = res.register(func_2())
+            if op_tok.type == tokenList.TT_PIPE:
+                return self.object_get(left, right)
             # if op_tok.type == tokenList.TT_DOT:
             #     result = DotAccessNode(left, right, type(right).__name__)
                 

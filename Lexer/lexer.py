@@ -151,6 +151,8 @@ class Lexer:
             elif self.current_char == '}':
                 tokens.append(Token(tokenList.TT_RBRACE, pos_start=self.pos))
                 self.advance()
+            elif self.current_char == '|':
+                tokens.append(self.make_pipe())
             elif self.current_char == '!':
                 tok, error = self.make_not_equals()
                 if error:
@@ -380,6 +382,15 @@ class Lexer:
         self.advance()
         return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)
     
+    def make_pipe(self):
+        tok_type = tokenList.TT_PIPE
+        pos_start = self.pos.copy()
+        self.advance()
+        if self.current_char == '|':
+            self.advance()
+            tok_type = tokenList.TT_PIPE
+        return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
+
     def make_comment(self):
         self.advance()
         while self.current_char != None and self.current_char != '\n':

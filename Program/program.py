@@ -106,6 +106,7 @@ class Program:
         
         if hasattr(result, 'value') and hasattr(result, 'error'):
             return result.value, result.error
+        
         return result, None
 
     def runFile(fileName):
@@ -114,7 +115,7 @@ class Program:
                 text = file.read()
                 # check if file is ending with .alden
                 if fileName[-6:] != ".alden":
-                    print("File is not alden file")
+                    print("File is not an alden file")
                     return
                 else:
                     return Program.run(fileName, text)

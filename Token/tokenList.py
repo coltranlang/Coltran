@@ -56,7 +56,7 @@ TT_PIPE = 'PIPE'
 
 
 NOT_ALLOWED_OBJECTS_KEYS = [
-    'let',
+     'let',
     'final',
     'true',
     'false',
