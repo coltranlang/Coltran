@@ -1,11 +1,11 @@
-let Student = (001, "Kehinde", "Computer Science", "John Tyler") 
+let student_properties = (001, "Kehinde", "Computer Science", "John Tyler") 
 
-let (id, name, course, school) = Student
+let (id, name, course, school) = student_properties
 
 println(fv"{name} is in {course} at {school} with id {id}")
 
-object File
+object Student
     name: "Testing"
-    student: Student
+    student: student_properties
 end
-print(File)
+print(Student)

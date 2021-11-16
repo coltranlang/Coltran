@@ -181,7 +181,7 @@ class Record:
 
     def set_object(self, obj_name, object):
         if obj_name in self.symbols:
-            self.set(obj_name, object)
+            return Program.error()['Default']('RuntimeError', f'{obj_name} already exists')
         else:
             self.set(obj_name, object)
         
