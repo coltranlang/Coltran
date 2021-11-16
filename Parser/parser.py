@@ -765,11 +765,11 @@ class Parser:
             if res.error:
                 return res
 
-            if not self.current_token.matches(tokenList.TT_KEYWORD, 'endFor'):
+            if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "Expected 'endFor'",
+                    'message': "Expected 'end'",
                     'exit': False
                 }))
 
@@ -1126,7 +1126,13 @@ class Parser:
                 while self.current_token.type == tokenList.TT_NEWLINE:
                     res.register_advancement()
                     self.advance()
-                    print(self.current_token)
+                    while self.current_token.type == tokenList.TT_NEWLINE:
+                        res.register_advancement()
+                        self.advance()
+                        if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                            res.register_advancement()
+                            self.advance()
+                            return res.success(ObjectDefNode(object_name, object_properties))
                     if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                         return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -1795,12 +1801,12 @@ class Parser:
             res.register_advancement()
             self.advance()
             right = res.register(func_2())
-            if op_tok.type == tokenList.TT_DOT:
-                result = DotAccessNode(left, right, type(right).__name__)
+            # if op_tok.type == tokenList.TT_DOT:
+            #     result = DotAccessNode(left, right, type(right).__name__)
                 
-                if res.error: return res
-                self.advance()
-                return res.success(result)
+            #     if res.error: return res
+            #     self.advance()
+            #     return res.success(result)
             if res.error:
                 return res
             left = BinOpNode(left, op_tok, right)

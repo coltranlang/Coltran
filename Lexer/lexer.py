@@ -181,8 +181,11 @@ class Lexer:
         num_str = ''
         dot_count = 0
         pos_start = self.pos.copy()
-
+        
+        
         while self.current_char != None and self.current_char in tokenList.DIGITS + '.':
+            
+                
             if self.current_char == '.':
                 if dot_count == 1:
                     break
@@ -193,6 +196,7 @@ class Lexer:
             self.advance()
 
         if dot_count == 0:
+            
             return Token(tokenList.TT_INT, int(num_str), pos_start, self.pos)
         else:
             return Token(tokenList.TT_FLOAT, float(num_str), pos_start, self.pos)

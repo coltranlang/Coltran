@@ -48,6 +48,8 @@ class TypeOf:
             result = 'none'
         elif self.type == 'str':
             result = 'string'
+        elif self.type == 'tuple':
+            result = 'pair'
         elif isinstance(self.type, Number):
             if re.match(regex, str(self.type)):
                 result = 'float'
@@ -56,6 +58,8 @@ class TypeOf:
         else:
             if isinstance(self.type, str) or isinstance(self.type, String):
                 result = 'string'
+            elif isinstance(self.type, tuple):
+                result = 'pair'
             elif isinstance(self.type, bool) or isinstance(self.type, Boolean):
                 result = 'boolean'
             elif isinstance(self.type, list) or isinstance(self.type, List):
@@ -466,7 +470,7 @@ class Value:
             other = self
         if hasattr(other, 'value'):
             return Program.error()["Syntax"]({
-                'message': f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}' if self.value != None and other.value != None else f'Illegal operation for type {TypeOf(self.value).getType()}',
+                'message': error['message'] if error['message'] else f"Illegal operation '{self.value}' not allowed",
                 'pos_start': error['pos_start'],
                 'pos_end': error['pos_end'],
                 'context': error['context'],
@@ -887,11 +891,11 @@ class String(Value):
     def is_true(self):
         return "true" if len(self.value) > 0 else "false"
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.value
 
     def __repr__(self):
-        return f'"{self.value}"'
+        return f"'{self.value}'"
 
 
 class Boolean:
@@ -997,6 +1001,7 @@ class Pair(Value):
             except:
                 return None, self.none_value()
         else:
+            error['message'] = f"Pair index must be a number not {TypeOf(other).getType()}"
             return None, self.illegal_operation(error, other)
         
     def len(self):
@@ -1010,7 +1015,7 @@ class Pair(Value):
 
     def __str__(self):
         try:
-            return str(self.elements)
+            return f'({", ".join([str(x) for x in self.elements])})'
         except:
             return "()"
 
@@ -1103,10 +1108,7 @@ class List(Value):
     
     
     def __str__(self):
-        try:
-            return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties])}}}"
-        except:
-            return "[]"
+        return f'[{", ".join([str(x) for x in self.elements])}]'
 
 
         
@@ -1121,8 +1123,27 @@ class Object(Value):
     def set_property(self, key, value):
         self.properties[key] = value
         return self
-    def get_property(self, owner, obj_name, key, get_type):
+    
+    def get_index(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Illegal operation on object",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Number):
+            try:
+                list_values = list(self.properties)
+                return self.properties[list_values[other.value]], None
+            except:
+                return None, self.none_value()
+        else:
+            return None, self.illegal_operation(error, other)
         
+        
+    def get_property(self, owner, obj_name, key, get_type):
+        print(f"{owner} {obj_name} {key} {get_type}")
         context = self.context
         res = RuntimeResult()
         error = {
@@ -1141,53 +1162,7 @@ class Object(Value):
             return None, self.key_error(error, key)
         else:
              return None, self.key_error(error, key)
-        # if get_type == "CallNode": 
-        #      args = []
-        #      for key, value in self.properties:
-        #         if key == property_name.node_to_call.name.value:
-        #             result.append(value)
-        #             if len(result) == 0:
-        #                 return None, self.key_error(error, property_name.node_to_call.name.value)
-        #             context = Context(value.name, self.context, self.pos_start)
-                   
-                    
-        #             for arg in property_name.args_nodes:
-                        
-        #                 if type(arg).__name__ == "NumberNode":
-        #                     args.append(Number(arg.tok.value))
-                        
-        #                 if res.should_return():
-        #                     return res
-                    
-        #             return_value = res.register(value.execute(args))
-        #             #print(return_value)
-        #             if res.should_return():
-        #                 return res
-        #             return_value = return_value.copy().setPosition(value.pos_start, value.pos_end)
-        #             if isinstance(return_value, NoneType):
-        #                 return res.noreturn(), None
-        #             return return_value, None
-        #         else:
-        #             error['message'] = f"Property '{property_name}' does not exist on object '{self.name}'"
-        #             return "none", Program().error['Type'](error)
-        # elif get_type == "VarAccessNode":
-        #     print(property_name, "pe")
-        #     for key, value in self.properties:
-        #         if key == property_name:
-        #             result.append(value)
-        #             return value
-        #         else:
-        #            # print(property_name.name.value, "don't")
-        #             error['message'] = f"Property '{property_name}' does not exist on object '{owner.name}'"
-        #             return None, self.key_error(error, property_name)
-        # else:
-        #     for key, value in self.properties:
-        #         if key == property_name:
-        #             result.append(value)
-        #             if len(result) == 0:
-        #                 return None, self.key_error(error, property_name)
-        #             return value, None
-               
+     
     
     def copy(self):
         copy = Object(self.name, self.properties)
@@ -1392,6 +1367,12 @@ class BuiltInTask(BaseTask):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
         if isinstance(value, String):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
+        if isinstance(value, Pair):
+            return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
+        if isinstance(value, Object):
+            return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
+        if isinstance(value, NoneType):
+            return res.success(Number(0).setPosition(self.pos_start, self.pos_end).setContext(self.context))
     execute_len.arg_names = ["value"]
 
     def execute_append(self, exec_context):
@@ -1963,11 +1944,12 @@ class Interpreter:
         if type(node.variable_name_token).__name__ == "tuple":
             var_name = node.variable_name_token
             if type(value).__name__ == "Pair":
+                
                 if len(var_name) != len(value.elements):
                     return res.failure(Program.error()['ValueError']({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
-                        'message': f"Expected {len(var_name)} values, got {len(value.elements)}",
+                        'message': f"Expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
                         'context': context,
                         'exit': False
                     }))
@@ -2271,6 +2253,8 @@ class Interpreter:
                 'float': BuiltInType_Float,
                 'bool': BuiltInType_Bool,
                 'list': BuiltInType_List,
+                # 'pair' : BuiltInType_Pair,
+                # 'object': BuiltInType_Object,
                 'clear': BuiltInTask_Clear,
                 'delay': BuiltInTask_Delay,
                 'exit': BuiltInTask_Exit
