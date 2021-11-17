@@ -183,9 +183,7 @@ class Record:
         #print(f"{name} is set to {value}")
 
     def set_object(self, obj_name, object):
-            hash = HashTable(1000)
-            hash.set(obj_name, object)
-            self.set(obj_name, object)
+        self.symbols[obj_name] = object
         
     def get_object(self, owner, obj_name, key, type):
         if owner.name.value in self.symbols:

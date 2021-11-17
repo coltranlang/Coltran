@@ -208,6 +208,17 @@ class ObjectGetNode:
     def __repr__(self):
         return f'{self.left}'
 
+class OBJECT_REF:
+    def __init__(self, left, op_tok, right):
+        self.id = left
+        self.left = left
+        self.op_tok = op_tok
+        self.right = right
+        self.pos_start = self.left.pos_start
+        self.pos_end = self.right.pos_end
+
+    def __repr__(self):
+        return f'{self.left}'
 
 class GetterNode:
     def __init__(self, left, right):
@@ -949,6 +960,13 @@ class Parser:
                         'exit': False
                     }))
                 arg_name_tokens.append(self.current_token)
+                if len(arg_name_tokens) > 12:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Cannot have more than 12 arguments",
+                        'exit': False
+                    }))
                 res.register_advancement()
                 self.advance()
             if self.current_token.type != tokenList.TT_RPAREN:
@@ -1419,12 +1437,11 @@ class Parser:
             }))
         res.register_advancement()
         self.advance()
-        body = res.register(self.statements())
         class_methods = ''
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            return res.success(ObjectDefNode(class_name, class_methods))
+            res.success(ClassNode(class_constuctor_args,class_name, inherit_class_name, inherit_class, class_methods))
         if self.current_token.matches(tokenList.TT_KEYWORD, "def"):
                 self.set_method()
                 if res.error:
@@ -1441,7 +1458,7 @@ class Parser:
             res.register_advancement()
             self.advance()
             #res.success(ClassNode(class_constuctor_args,class_name, inherit_class_name, inherit_class, class_methods))
-            return res.success(ObjectDefNode(class_name, class_methods))
+            return res.success(ClassNode(class_constuctor_args,class_name, inherit_class_name, inherit_class, class_methods))
         else:
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -1597,6 +1614,10 @@ class Parser:
             res.register_advancement()
             self.advance()
             return res.success(StringNode(tok))
+        elif tok.type == tokenList.TT_OBJECT_REF:
+            res.register_advancement()
+            self.advance()
+            return res.success(StringNode(tok))    
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
@@ -1729,7 +1750,7 @@ class Parser:
         return self.power()
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON, tokenList.TT_GETTER, tokenList.TT_DOT))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON, tokenList.TT_GETTER))
 
     def arith_expr(self):
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
@@ -1815,7 +1836,13 @@ class Parser:
             var_name = self.current_token
             res.register_advancement()
             self.advance()
-            
+            if len(var_name.value) > 255:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Identifier too long",
+                    'exit': False
+                }))
             if self.current_token.type == tokenList.TT_COMMA:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
@@ -1867,9 +1894,8 @@ class Parser:
             res.register_advancement()
             self.advance()
             right = res.register(func_2())
-            if op_tok.type == tokenList.TT_DOT:
-                res.register_advancement()
-                
+            if type(right).__name__ == "CallNode":
+                left = OBJECT_REF(left, op_tok, right)
             if res.error:
                 return res
             left = BinOpNode(left, op_tok, right)

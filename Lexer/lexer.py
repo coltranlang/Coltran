@@ -228,7 +228,14 @@ class Lexer:
     #         self.advance()
     #     token_type = tokenList.TT_KEYWORD if method_name in tokenList.KEYWORDS else tokenList.TT_IDENTIFIER
     #     return Token(token_type, method_name, pos_start, self.pos)
-    
+    def make_dot(self):
+        object_ref = ""
+        pos_start = self.pos.copy()
+        self.advance()
+        while self.current_char != None and self.current_char in tokenList.LETTERS_DIGITS_SYMBOLS:
+            object_ref += self.current_char
+            self.advance() 
+        return Token(tokenList.TT_OBJECT_REF, object_ref, pos_start, self.pos)
     
     def make_minus_or_arrow(self):
         tok_type = tokenList.TT_MINUS
@@ -396,10 +403,7 @@ class Lexer:
             tok_type = tokenList.TT_GETTER
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
     
-    def make_dot(self):
-        pos_start = self.pos.copy()
-        self.advance()
-        return Token(tokenList.TT_DOT, pos_start=pos_start, pos_end=self.pos)
+    
 
     def make_comment(self):
         self.advance()

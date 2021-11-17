@@ -939,6 +939,7 @@ class Boolean(Value):
 class NoneType(Value):
     def __init__(self):
         super().__init__()
+        self.value = 'none'
         self.setPosition(0, 0)
         self.setContext("none")
 
@@ -1134,6 +1135,7 @@ class List(Value):
     
 class Object(Value):
     def __init__(self, name, properties):
+        print(properties)
         super().__init__()
         self.properties = properties if properties is not None else {}
         self.value = self.properties
@@ -1247,6 +1249,7 @@ class ObjectGet(Value):
             return None, self.illegal_operation(error, key)
     
 
+
 class BaseTask(Value):
     def __init__(self, name):
         super().__init__()
@@ -1300,12 +1303,14 @@ class Task(BaseTask):
         self.body_node = body_node
         self.arg_names = arg_names
         self.implicit_return = implicit_return
+        self.args = arg_names
+
 
     def execute(self, args):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
-
+        self.args = args
         res.register(self.check_and_populate_args(
             self.arg_names, args, exec_context))
         if res.should_return():
@@ -1337,20 +1342,29 @@ class Class(BaseTask):
         self.class_name = class_name
         self.inherit_class_name = inherit_class_name
         self.inherit_class = inherit_class
-        self.methods = methods
+        self.methods = methods if methods else {}
         self.get_method = self.get_method
-        
+        self.set_method = self.set_method
+    
     def execute(self, args):
         res = RuntimeResult()
-        # interpreter = Interpreter()
+        interpreter = Interpreter()
         new_context = Context(self.class_name, self.context, self.pos_start)
         new_context.symbolTable = Record(new_context.parent.symbolTable)
-        exec_context = new_context
 
+        value = ""
         res.register(self.check_and_populate_args(
-            self.constructor_args, args, exec_context))
+            self.constructor_args, args, new_context))
         if res.should_return():
             return res
+        
+        # append class args to each method
+        for arg in args:
+            new_context.symbolTable.set(arg, new_context.symbolTable.get(arg))
+        
+        for method_name, method in self.methods.items():
+            new_context.symbolTable.set(method_name, method)
+        return res.success(value)
 
     def set_method(self, key, value):
         self.methods[key] = value
@@ -1382,15 +1396,54 @@ class Class(BaseTask):
         return copy
 
     def __str__(self):
-        if self.methods:
-            # return class name with instance methods
-            return f"{{{', '.join([f'{k}: {v}' for k, v in self.methods])}}}"
-        else:
-            return 'Class{}'
+        try:
+            return f"{{{', '.join([f'{k}: {v}' for k, v in self.methods.items()])}}}"
+        except:
+            return "{}"
 
     def __repr__(self):
-        return f"<{self.class_name}>"
+        return f"<Class {str(self.class_name)}>"
 
+
+class ClassGet(Value):
+    def __init__(self, obj, key):
+        super().__init__()
+        self.obj = obj
+        self.key = key
+        self.get_method = self.get_method
+        self.value = self.get_method
+        print(type(key.value), key)
+    def get_method(self, obj, key):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Method '{key}' does not exist on class '{obj}'",
+            'context': self.context,
+            'exit': False
+        }
+        value  = ""
+        
+        if type(key).__name__ == "String":
+            if hasattr(obj, "methods"):
+                if key.value in obj.methods:
+                    value = obj.methods[key.value]
+                    return value
+                else:
+                    return NoneType.none
+            else:
+                return NoneType.none
+            
+        elif type(key).__name__ == "Number":
+            if hasattr(obj, "methods"):
+                if str(key.value) in obj.methods:
+                    value = obj.methods[str(key.value)]
+                    return value
+                else:
+                    return NoneType.none
+            else:
+                return NoneType.none
+        else:
+            return None, self.illegal_operation(error, key)
 
 class BuiltInTask(BaseTask):
     def __init__(self, name):
@@ -1456,7 +1509,8 @@ class BuiltInTask(BaseTask):
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"First argument to 'append' must be a list.",
-                'context': self.context
+                'context': self.context,
+                'exit': False
             }))
     execute_append.arg_names = ["list", "value"]
 
@@ -2273,17 +2327,36 @@ class Interpreter:
         res = RuntimeResult()
         object_name = res.register(self.visit(node.left_node, context))
         object_key = res.register(self.visit(node.right_node, context))
-        if ObjectGet(object_name, object_key).get_property(
-            object_name, object_key) == None or ObjectGet(object_name, object_key).get_property(
-            object_name, object_key) == NoneType.none:
-            return res.failure(Program.error()["KeyError"]({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                "message": "Key '{}' not found in object '{}'".format(object_key, node.left_node.name.value),
-                "context": context,
-                "exit": False
-            }))
-        return res.success(ObjectGet(object_name, object_key).get_property(object_name, object_key).setContext(context).setPosition(node.pos_start, node.pos_end))
+        if isinstance(object_name, Object):
+            if ObjectGet(object_name, object_key).get_property(
+                object_name, object_key) == None or ObjectGet(object_name, object_key).get_property(
+                object_name, object_key) == NoneType.none:
+                return res.failure(Program.error()["KeyError"]({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    "message": "Key '{}' not found in object '{}'".format(object_key, node.left_node.name.value),
+                    "context": context,
+                    "exit": False
+                }))
+            return res.success(ObjectGet(object_name, object_key).get_property(object_name, object_key).setContext(context).setPosition(node.pos_start, node.pos_end))
+    
+        elif isinstance(object_name, Class):
+            if ClassGet(object_name, object_key).get_method(
+                object_name, object_key) == None or ClassGet(object_name, object_key).get_method(
+                object_name, object_key) == NoneType.none:
+                return res.failure(Program.error()["KeyError"]({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    "message": "Method '{}' not found in class '{}'".format(object_key, node.left_node.name.value),
+                    "context": context,
+                    "exit": False
+                }))
+            object_key = res.register(self.visit(node.right_node.node_to_call, context))
+            return res.success(ClassGet(object_name, object_key).get_method(object_name, object_key).setContext(context).setPosition(node.pos_start, node.pos_end))
+
+    def visit_OBJECT_REF(self, node, context):
+        res = RuntimeResult()
+        print(node.left, node.op_tok, node.right,"object_getter")  
     
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
@@ -2293,16 +2366,17 @@ class Interpreter:
         inherits_class_name = node.inherits_class_name
         inherits_class = node.inherits_class
         class_value = ""
-        methods = []
+        methods = {}
         if node.methods != '':
             for method in node.methods:
                 method_name = method['name'].value
                 method_value = res.register(self.visit(method['value'], context))
                 if res.should_return():
                     return res
-                methods.append((method_name, method_value))
+                methods = dict(methods, **{str(method_name): method_value})
                 class_value = Class(class_constuctor_args,class_name, inherits_class_name, inherits_class, methods).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
+                # get class methods from context and add class args value to methods
         else:
             context.symbolTable.set_object(class_name, class_value)
         return res.success(class_value)
