@@ -60,6 +60,8 @@ class TypeOf:
                 result = 'string'
             elif isinstance(self.type, tuple):
                 result = 'pair'
+            elif isinstance(self.type, dict):
+                result = 'object'
             elif isinstance(self.type, bool) or isinstance(self.type, Boolean):
                 result = 'boolean'
             elif isinstance(self.type, list) or isinstance(self.type, List):
@@ -328,6 +330,11 @@ class Value:
     def setContext(self, context=None):
         self.context = context
         return self
+    
+    def setTrueorFalse(self, value):
+        self.value = "true" if value else "false"
+        return self
+
 
     def added_to(self, other):
         return None, self.illegal_operation_typerror({
@@ -898,13 +905,14 @@ class String(Value):
         return f"'{self.value}'"
 
 
-class Boolean:
+class Boolean(Value):
     def __init__(self, value):
+        super().__init__()
         self.value = 'true' if value else 'false'
         self.setPosition(0, 0)
         self.setContext(None)
 
-    def setPosition(self, pos_start, pos_end):
+    def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
         self.pos_end = pos_end
         return self
@@ -918,6 +926,8 @@ class Boolean:
         copy.setPosition(self.pos_start, self.pos_end)
         copy.setContext(self.context)
         return copy
+    
+    
 
     def __str__(self):
         return self.value
@@ -926,17 +936,18 @@ class Boolean:
         return f'{self.value}'
 
 
-class NoneType:
+class NoneType(Value):
     def __init__(self):
+        super().__init__()
         self.setPosition(0, 0)
         self.setContext("none")
 
-    def setPosition(self, pos_start, pos_end):
+    def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
         self.pos_end = pos_end
         return self
 
-    def setContext(self, context):
+    def setContext(self, context=None):
         self.context = context
         return self
 
@@ -946,11 +957,20 @@ class NoneType:
         copy.setContext(self.context)
         return copy
 
+    def get_comparison_eq(self, other):
+        return self.setTrueorFalse(other.value == "none"), None
+    
+    def get_comparison_ne(self, other):
+        return self.setTrueorFalse(other.value != "none"), None
+    
+    def and_by(self, other):
+        return self.setTrueorFalse(other.value == "none"), None
+    
     def __str__(self):
-        return "none"
+        return self.value
 
     def __repr__(self):
-        return f'none'
+        return f'{self.value}'
 
 
 Boolean.true = Boolean("true")
@@ -1111,13 +1131,7 @@ class List(Value):
         return f'[{", ".join([str(x) for x in self.elements])}]'
 
 
-class Pipe(Value):
-    def __init__(self, elements=None):
-        super().__init__()
-        self.elements = elements if elements is not None else []
-        self.value = self.elements
-
-        
+    
 class Object(Value):
     def __init__(self, name, properties):
         super().__init__()
@@ -1129,6 +1143,17 @@ class Object(Value):
     def set_property(self, key, value):
         self.properties[key] = value
         return self
+    
+    def get_property(self, obj, key):
+        
+        value = ""
+        if type(key).__name__ == "String":
+            if key.value in obj.properties:
+                value = obj.properties[key.value]
+                return value
+            else:
+                return NoneType.none
+        return value
     
     def get_key(self, key):
         if key.value in self.properties:
@@ -1161,26 +1186,11 @@ class Object(Value):
             return None, self.illegal_operation(error, other)
         
         
-    def get_property(self, owner, obj_name, key, get_type):
-        print(f"{owner} {obj_name} {key} {get_type}")
-        context = self.context
-        res = RuntimeResult()
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"Property '{key}' does not exist on object '{obj_name}'" if key is not None else f"Property 'none' does not exist on object '{obj_name}'",
-            'context': self.context,
-            'exit': False
-        }
-        result = {}
-        if get_type == "VarAccessNode":
-            object_properties = context.symbolTable.get(owner.name.value)
-            for k, v in object_properties.properties.items():
-                if k == key:
-                    return v
-            return None, self.key_error(error, key)
+    def get_comparison_eq(self, other):
+        if isinstance(other, Object):
+            return self.properties == other.properties
         else:
-             return None, self.key_error(error, key)
+            return False
      
     
     def copy(self):
@@ -1197,26 +1207,43 @@ class Object(Value):
 
 
 class ObjectGet(Value):
-    def __init__(self, owner, obj, key):
+    def __init__(self, obj, key):
         super().__init__()
-        self.owner = owner
         self.obj = obj
         self.key = key
         self.get_property = self.get_property
         self.value = self.get_property
         self.get_type = "ObjectGetNode"
         
-    def get_property(self, owner, obj, key):
-        
+    def get_property(self, obj, key):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Property '{key}' does not exist on object '{obj}'",
+            'context': self.context,
+            'exit': False
+        }
         value  = ""
         if type(key).__name__ == "String":
-            if key.value in obj.properties:
-                value = obj.properties[key.value]
-                return value 
+            if hasattr(obj, "properties"):
+                if key.value in obj.properties:
+                    value = obj.properties[key.value]
+                    return value
+                else:
+                    return NoneType.none
             else:
                 return NoneType.none
-        return value
-
+        elif type(key).__name__ == "Number":
+            if hasattr(obj, "properties"):
+                if str(key.value) in obj.properties:
+                    value = obj.properties[str(key.value)]
+                    return value
+                else:
+                    return NoneType.none
+            else:
+                return NoneType.none
+        else:
+            return None, self.illegal_operation(error, key)
     
 
 class BaseTask(Value):
@@ -1934,16 +1961,6 @@ class Interpreter:
             elements = elements + (element_value,)
         return res.success(Pair(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
-    def visit_PipeNode(self, node, context):
-        res = RuntimeResult()
-        elements = []
-        for element_node in node.elements:
-            element_value = res.register(self.visit(element_node, context))
-            if res.should_return():
-                return res
-            elements.append(element_value)
-        return res.success(Pipe(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
-    
     
     def visit_VarAccessNode(self, node, context):
         res = RuntimeResult()
@@ -2052,17 +2069,9 @@ class Interpreter:
             elif node.op_tok.type == tokenList.TT_COLON:
                 result, error = left.get_index(right)
             elif node.op_tok.type == tokenList.TT_DOT:
-                get_type = type(node.right_node).__name__
-                if len(left.properties) == 0:
-                    if (get_type == 'VarAccessNode'):
-                        return res.failure(Program.error()['KeyError']({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"{left.name} has no property {node.right_node.name.value}",
-                            'context': context,
-                            'exit': False
-                        }))
-                result, error = left.get_property(node.right_node, get_type)
+                return self.visit_ObjectGetNode(node, context)
+            elif node.op_tok.type == tokenList.TT_GETTER:
+                return self.visit_ObjectGetNode(node, context)
             elif node.op_tok.type == tokenList.TT_EQEQ:
                 result, error = left.get_comparison_eq(right)
             elif node.op_tok.type == tokenList.TT_NEQ:
@@ -2262,10 +2271,10 @@ class Interpreter:
 
     def visit_ObjectGetNode(self, node, context):
         res = RuntimeResult()
-        object_owner = node.owner.id.value
-        object_name = res.register(self.visit(node.left, context))
-        object_key = res.register(self.visit(node.right, context))
-        return res.success(ObjectGet(object_owner, object_name, object_key).get_property(object_owner, object_name, object_key).setContext(context).setPosition(node.pos_start, node.pos_end))
+        object_name = res.register(self.visit(node.left_node, context))
+        object_key = res.register(self.visit(node.right_node, context))
+        
+        return res.success(ObjectGet(object_name, object_key).get_property(object_name, object_key).setContext(context).setPosition(node.pos_start, node.pos_end))
     
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()

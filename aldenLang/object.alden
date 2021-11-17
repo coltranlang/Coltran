@@ -1,22 +1,15 @@
-task @getCourses(student, id)
-end
-
-let student = "John"
-let id = 456
-
 
 
 object Student
    id: 123
    name: "David"
    grade: "A"
-   @courses: object Course
+   getCourse: "d"
+   courses: object Course
       id: 456
       name: "Math"
    end 
 end
 
-
-#let st = Student|"name"|
-print(Student|"@courses"|)
-
+#let st = Student
+println(Student.)

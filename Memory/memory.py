@@ -107,9 +107,13 @@ class HashTable:
 class Stack:
     def __init__(self):
         self.stack = []
+        self.id = 0
 
-    def push(self, item):
-        self.stack.append(item)
+    def push(self, item, id):
+        self.stack.append({
+            'id': id,
+            'item': item
+        })
 
     def pop(self):
         return self.stack.pop()
@@ -123,9 +127,7 @@ class Stack:
     def __repr__(self):
         output = 'Current stack:\n'
         for item in self.stack:
-            output += str(item) + '\n'
-        return output
-
+            output += f'{item}\n'
 
 class Environment:
     def __init__(self, parent=None):
@@ -154,6 +156,7 @@ class Environment:
 class Record:
     def __init__(self, parent=None):
         self.symbols = {}
+        self.id = 0
         self.parent = parent
 
     def get(self, name):
@@ -180,10 +183,11 @@ class Record:
         #print(f"{name} is set to {value}")
 
     def set_object(self, obj_name, object):
+            hash = HashTable(1000)
+            hash.set(obj_name, object)
             self.set(obj_name, object)
         
     def get_object(self, owner, obj_name, key, type):
-        print(f"{owner} {obj_name} {key} {type}")
         if owner.name.value in self.symbols:
             return self.symbols[owner.name.value].get_property(owner,obj_name, key, type)
         else:

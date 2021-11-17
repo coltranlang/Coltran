@@ -131,8 +131,7 @@ class Lexer:
                 tokens.append(Token(tokenList.TT_COLON, pos_start=self.pos))
                 self.advance()
             elif self.current_char == '.':
-                tokens.append(Token(tokenList.TT_DOT, pos_start=self.pos))
-                self.advance()
+                tokens.append(self.make_dot())
             elif self.current_char == '(':
                 tokens.append(Token(tokenList.TT_LPAREN, pos_start=self.pos))
                 self.advance()
@@ -151,8 +150,10 @@ class Lexer:
             elif self.current_char == '}':
                 tokens.append(Token(tokenList.TT_RBRACE, pos_start=self.pos))
                 self.advance()
-            elif self.current_char == '|':
-                tokens.append(self.make_pipe())
+            elif self.current_char == '.':
+                token.append(Token(tokenList.TT_DOT, pos_start=self.pos))
+            elif self.current_char == '@':
+                tokens.append(self.make_getter())
             elif self.current_char == '!':
                 tok, error = self.make_not_equals()
                 if error:
@@ -287,7 +288,6 @@ class Lexer:
         character = True
         pos_start = self.pos.copy()
         escape_character = False
-        
         self.advance()
         escape_characters = {
             '\\': '\\',
@@ -317,6 +317,7 @@ class Lexer:
                     
             else:
                 if character:
+                    
                     string += self.current_char
                     regex = Regex().compile('{(.*?)}')
                     interp_values = regex.match(string)
@@ -338,6 +339,8 @@ class Lexer:
 
     def make_interp(self, string, interp_values):
         pass
+   
+   
     def make_single_string(self):
         string = ''
         character = True
@@ -382,14 +385,21 @@ class Lexer:
         self.advance()
         return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)
     
-    def make_pipe(self):
-        tok_type = tokenList.TT_PIPE
+   
+    
+    def make_getter(self):
+        tok_type = tokenList.TT_GETTER
         pos_start = self.pos.copy()
         self.advance()
-        if self.current_char == '|':
+        if self.current_char == '@':
             self.advance()
-            tok_type = tokenList.TT_PIPE
+            tok_type = tokenList.TT_GETTER
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
+    
+    def make_dot(self):
+        pos_start = self.pos.copy()
+        self.advance()
+        return Token(tokenList.TT_DOT, pos_start=pos_start, pos_end=self.pos)
 
     def make_comment(self):
         self.advance()
