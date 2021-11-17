@@ -152,7 +152,7 @@ class Lexer:
                 self.advance()
             elif self.current_char == '.':
                 token.append(Token(tokenList.TT_DOT, pos_start=self.pos))
-            elif self.current_char == '@':
+            elif self.current_char == '$':
                 tokens.append(self.make_getter())
             elif self.current_char == '!':
                 tok, error = self.make_not_equals()

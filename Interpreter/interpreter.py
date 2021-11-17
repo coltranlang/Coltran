@@ -1233,6 +1233,7 @@ class ObjectGet(Value):
                     return NoneType.none
             else:
                 return NoneType.none
+            
         elif type(key).__name__ == "Number":
             if hasattr(obj, "properties"):
                 if str(key.value) in obj.properties:
@@ -1345,7 +1346,6 @@ class Class(BaseTask):
         new_context = Context(self.class_name, self.context, self.pos_start)
         new_context.symbolTable = Record(new_context.parent.symbolTable)
         exec_context = new_context
-        print(exec_context)
 
         res.register(self.check_and_populate_args(
             self.constructor_args, args, exec_context))
@@ -1508,6 +1508,7 @@ class BuiltInTask(BaseTask):
 
     def __repr__(self):
         return f"<{str(self.name)}()>, [ built-in task ]"
+  
     
 def BuiltInTask_Print(args, node):
     res = RuntimeResult()
@@ -1961,7 +1962,6 @@ class Interpreter:
             elements = elements + (element_value,)
         return res.success(Pair(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
-    
     def visit_VarAccessNode(self, node, context):
         res = RuntimeResult()
         var_name = node.name.value
@@ -1983,7 +1983,7 @@ class Interpreter:
                 'pos_end': node.pos_end,
                 'message': f'{var_name} is not defined',
                 'context': context,
-                'exit': False
+                'exit': True
             })
             return res.noreturn()
         value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
@@ -2207,7 +2207,7 @@ class Interpreter:
 
     def visit_TaskDefNode(self, node, context):
         res = RuntimeResult()
-        task_name = node.task_name_token.value if node.task_name_token else "None"
+        task_name = node.task_name_token.value if node.task_name_token else "none"
         body_node = node.body_node
         # methods = node.methods
         # #task_methods = []
@@ -2273,7 +2273,16 @@ class Interpreter:
         res = RuntimeResult()
         object_name = res.register(self.visit(node.left_node, context))
         object_key = res.register(self.visit(node.right_node, context))
-        
+        if ObjectGet(object_name, object_key).get_property(
+            object_name, object_key) == None or ObjectGet(object_name, object_key).get_property(
+            object_name, object_key) == NoneType.none:
+            return res.failure(Program.error()["KeyError"]({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                "message": "Key '{}' not found in object '{}'".format(object_key, node.left_node.name.value),
+                "context": context,
+                "exit": False
+            }))
         return res.success(ObjectGet(object_name, object_key).get_property(object_name, object_key).setContext(context).setPosition(node.pos_start, node.pos_end))
     
     def visit_ClassNode(self, node, context):

@@ -107,7 +107,7 @@ class Program:
         if hasattr(result, 'value') and hasattr(result, 'error'):
             return result.value, result.error
         
-        return result, None
+        return result, "none"
 
     def runFile(fileName):
         try:

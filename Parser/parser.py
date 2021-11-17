@@ -211,7 +211,6 @@ class ObjectGetNode:
 
 class GetterNode:
     def __init__(self, left, right):
-        print(left, right, "rrt")
         self.id = left
         self.left = left
         self.right = right
@@ -1601,8 +1600,6 @@ class Parser:
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
-            if tok.type == tokenList.TT_DOT:
-                print("DOT")
             return res.success(VarAccessNode(tok))
         elif tok.value == 'true' or tok.value == 'false' or tok.value == 'none':
             res.register_advancement()
@@ -1702,7 +1699,6 @@ class Parser:
                         'message': "Expected ',' or ')'",
                         'exit': False
                     }))
-                
                 res.register_advancement()
                 self.advance()
             
@@ -1854,24 +1850,9 @@ class Parser:
 
     def dot_expr(self):
         res = ParseResult()
-        node = res.register(self.expr())
-        if res.error:
-            return res
-        if self.current_token.type == tokenList.TT_DOT:
-            res.register_advancement()
-            self.advance()
-            if self.current_token.type != tokenList.TT_IDENTIFIER:
-                return res.failure(Program.error()['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "Expected an identifier",
-                    'exit': False
-                }))
-            getter_name_tok = self.current_token
-            res.register_advancement()
-            self.advance()
-            return res.success(GetterNode(node, getter_name_tok))
-        return res.success(node)
+        res.register_advancement()
+        self.advance()
+        print(self.current_token)
       
     def binaryOperation(self, func_1, ops, func_2=None):
         if func_2 == None:

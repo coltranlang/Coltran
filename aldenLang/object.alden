@@ -1,5 +1,3 @@
-
-
 object Student
    id: 123
    name: "David"
@@ -8,8 +6,27 @@ object Student
    courses: object Course
       id: 456
       name: "Math"
-   end 
+   end
 end
 
-#let st = Student
-println(Student.)
+
+task @update(id, name, year, model)
+        object Car
+                id: id
+                name: name
+                year: year
+                model: model
+        end
+    return Car
+end
+
+object Car
+   id: 123
+   name: "Ford"
+   year: "2000"
+   model: "Fiesta"
+   update: @update
+end
+
+let update = Car$"update"
+println(update(123, "Chevy", "2010", "Camaro"))
