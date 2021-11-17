@@ -6,3 +6,19 @@ class Person(age, name)
        print("I am "  + " years old.")
     end
 end
+
+
+class Stack(stack, id, size)
+    def push(item,id)
+        object NewItem
+            id: id
+            item: item          
+        end
+        return append(stack, newItem)
+    end
+end
+
+
+let stack = Stack()
+let newStack = stack$"push"(123, "David")
+print(newStack)

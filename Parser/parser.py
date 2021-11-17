@@ -1424,7 +1424,7 @@ class Parser:
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            return res.success(ClassNode(class_constuctor_args,class_name, inherit_class_name, inherit_class, class_methods))
+            return res.success(ObjectDefNode(class_name, class_methods))
         if self.current_token.matches(tokenList.TT_KEYWORD, "def"):
                 self.set_method()
                 if res.error:
@@ -1440,8 +1440,8 @@ class Parser:
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            
-            return res.success(ClassNode(class_constuctor_args,class_name, inherit_class_name, inherit_class, class_methods))
+            #res.success(ClassNode(class_constuctor_args,class_name, inherit_class_name, inherit_class, class_methods))
+            return res.success(ObjectDefNode(class_name, class_methods))
         else:
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
