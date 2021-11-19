@@ -332,15 +332,15 @@ class Value:
         return self
     
     def setTrueorFalse(self, value):
-        self.value = "true" if value else "false"
-        return self
+        return "true" if value else "false"
+        #return self
 
 
     def added_to(self, other):
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'+' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"Illegal operation '+' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -348,7 +348,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'-' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"Illegal operation '-' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -356,7 +356,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'*' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '*' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -364,7 +364,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'/' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '/' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -372,7 +372,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'^' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '^' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -380,7 +380,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'%' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '%' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -388,7 +388,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'==' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '==' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -396,7 +396,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'!=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '!=' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -404,7 +404,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'<' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '<' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -412,7 +412,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'>' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '>' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -420,7 +420,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'<=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '<=' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -428,7 +428,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'>=' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '>=' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context,
         })
 
@@ -436,7 +436,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'&&' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '&&' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -444,7 +444,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'||' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '||' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
 
@@ -452,7 +452,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'!' operator is not allowed for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}" if hasattr(self, "value") and hasattr(other, "value") else f"'Illegal operation '!' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context,
             'exit': False
         })
@@ -461,7 +461,7 @@ class Value:
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation '{self.value}' not allowed",
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(args).getType()}",
             'context': self.context
         }
         return RuntimeResult().failure(self.illegal_operation_typerror(error))
@@ -477,7 +477,7 @@ class Value:
             other = self
         if hasattr(other, 'value'):
             return Program.error()["Syntax"]({
-                'message': error['message'] if error['message'] else f"Illegal operation '{self.value}' not allowed",
+                'message': error['message'] if error['message'] else f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
                 'pos_start': error['pos_start'],
                 'pos_end': error['pos_end'],
                 'context': error['context'],
@@ -816,7 +816,7 @@ class String(Value):
         if isinstance(other, String):
             return String(setNumber(str(self.value)) + setNumber(str(other.value))).setContext(self.context), None
         else:
-            return "None", self.illegal_operation(error, other)
+            return "none", self.illegal_operation(error, other)
 
     def multiplied_by(self, other):
         error = {
@@ -842,53 +842,14 @@ class String(Value):
             return None, self.illegal_operation(self, error, other)
 
     def and_by(self, other):
-        if other.value == "true":
-            return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)), None
-        elif other.value == "false":
-            return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)), None
-        elif other.value == "none" or self.value == "none":
-            error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't perform and on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-                'context': self.context,
-                'exit': False
-            }
-            return None, self.illegal_operation_typerror(error)
-        if isinstance(other, String):
-            return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, Number):
-            return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation(other)
+        return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
 
     def get_comparison_eq(self, other):
-        if other.value == "true":
-            return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-        elif other.value == "false":
-            return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-        elif other.value == "none":
-            return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, String):
-            return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, Number):
-            return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation(self, other)
-
+        return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
+    
+    
     def get_comparison_ne(self, other):
-        if other.value == "true":
-            return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
-        elif other.value == "false":
-            return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
-        elif other.value == "none":
-            return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, String):
-            return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, Number):
-            return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation(self, other)
+        return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
 
     def copy(self):
         copy = String(self.value)
@@ -906,12 +867,13 @@ class String(Value):
         return f"'{self.value}'"
 
 
-
-
 class Boolean(Value):
     def __init__(self, value):
         super().__init__()
-        self.value = 'true' if value else 'false'
+        if value == True or value == "true":
+            self.value = "true"
+        elif value == False or value == "false":
+            self.value = "false"
         self.setPosition(0, 0)
         self.setContext(None)
 
@@ -1152,7 +1114,6 @@ class Object(Value):
         return self
     
     def get_property(self, obj, key):
-        
         value = ""
         if type(key).__name__ == "String":
             if key.value in obj.properties:
@@ -1191,14 +1152,26 @@ class Object(Value):
                 return None, self.none_value()
         else:
             return None, self.illegal_operation(error, other)
-        
-        
+            
     def get_comparison_eq(self, other):
-        if isinstance(other, Object):
-            return self.properties == other.properties
-        else:
-            return False
-     
+        return Boolean(self.setTrueorFalse(self.value == other.value)), None
+    
+    def get_comparison_ne(self, other):
+        return Boolean(self.setTrueorFalse(self.value != other.value)), None
+        
+    def get_comparison_lt(self, other):
+        return Boolean(self.setTrueorFalse(self.value < other.value)), None
+        
+    def get_comparison_gt(self, other):
+        return Boolean(self.setTrueorFalse(self.value > other.value)), None
+    
+    def get_comparison_lte(self, other):
+        return Boolean(self.setTrueorFalse(self.value <= other.value)), None
+    
+    def get_comparison_gte(self, other):
+        return Boolean(self.setTrueorFalse(self.value >= other.value)), None
+        
+    
     
     def copy(self):
         copy = Object(self.name, self.properties)
@@ -1466,7 +1439,7 @@ class Class(BaseTask):
                     if len(result) == 0:
                         return None, self.key_error(error, method_name)
                     return value, None
-            return "None", self.key_error(error, method_name)
+            return "none", self.key_error(error, method_name)
 
     def copy(self):
         copy = Class(self.constructor_args, self.class_name,
@@ -2184,6 +2157,32 @@ class Interpreter:
                 else:
                     for i in range(len(var_name)):
                         context.symbolTable.set(var_name[i].name.value, value.elements[i])
+                        
+            elif type(value).__name__ == "List":
+                if len(var_name) != len(value.elements):
+                    return res.failure(Program.error()['ValueError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"Expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
+                        'context': context,
+                        'exit': False
+                    }))
+                else:
+                    for i in range(len(var_name)):
+                        context.symbolTable.set(var_name[i].name.value, value.elements[i])
+                        
+            elif type(value).__name__ == "Object":
+                if len(var_name) != len(value.properties):
+                    return res.failure(Program.error()['ValueError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"Expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
+                        'context': context,
+                        'exit': False
+                    }))
+                else:
+                    for i in range(len(var_name)):
+                        context.symbolTable.set(var_name[i].name.value, value.properties.get(var_name[i].name.value))
             else:
                 return res.failure(Program.error()['Runtime']({
                     'pos_start': node.pos_start,

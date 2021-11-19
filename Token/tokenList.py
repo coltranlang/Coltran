@@ -111,6 +111,7 @@ NOT_ALLOWED_OBJECTS_VALUES = [
     'return',
     'continue',
     'break',
+    'raise'
 ]
 
 
@@ -143,7 +144,8 @@ KEYWORDS = [
     'return',
     'continue',
     'break',
-    'fv'
+    'fv',
+    'raise'
 ]
 
 

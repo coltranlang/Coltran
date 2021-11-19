@@ -1,5 +1,3 @@
-get Math from '../lib/math'
-from '../lib/math' get Math
 
 object Car
    id: 123
@@ -18,22 +16,24 @@ object Http
                last: "Doe"
             end
          end
-   post: task @Post(url, data)
-         println(Http$.get_$.name$.first)
-         println(fv"The url is {url} and the data is {data}")
+   post: task (url, data)
+         let (first, last, email, password) =  Data
+         println("***HTTP POST**")
+         println("url: " + url)
+         println("User: " + first + " " + last)
+         println("Email: " + email)
+         println("Password: " + password)    
    end
 end
-
 
 object Data
-   name: "John"
-   age: "30"
-   lastName: self$.name + " Doe"
-   address: object Address
-      street: "123 Main St"
-      city: "Anytown"
-      state: "CA"
-      zip: "12345"
-   end
+   first: "John"
+   last: "Doe"
+   email: "demo123@gmail.com"
+   password: "demo123"
 end
 
+
+println("" == "")
+
+println(Http$.post("http://www.google.com", Data))

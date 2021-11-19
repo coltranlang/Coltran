@@ -1852,7 +1852,6 @@ class Parser:
                     'message': f"Cannot use keyword '{self.current_token.value}' as an identifier",
                     'exit': False
                 }))
-                
             if self.current_token.type == tokenList.TT_LPAREN:
                 expr = res.register(self.expr())
                 if res.error: return res
@@ -1867,11 +1866,10 @@ class Parser:
                     }))
                 res.register_advancement()
                 self.advance()
-                #expr = res.register(self.expr())
+                expr = res.register(self.expr())
                 if res.error: return res
                 for value in values:
                     var_values += (value,)
-               
                 return res.success(VarAssignNode(var_values, expr, variable_keyword_token))
             if self.current_token.type != tokenList.TT_IDENTIFIER:
                 return res.failure(Program.error()['Syntax']({
