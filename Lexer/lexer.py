@@ -214,20 +214,7 @@ class Lexer:
         token_type = tokenList.TT_KEYWORD if identifier_str in tokenList.KEYWORDS else tokenList.TT_IDENTIFIER
         return Token(token_type, identifier_str, pos_start, self.pos)
 
-    # def make_concat(self):
-    #     pos_start = self.pos.copy()
-    #     self.advance()
-    #     return Token(tokenList.TT_COLON, pos_start=pos_start, pos_end=self.pos)
-    # def make_method_call(self):
-    #     method_name = ''
-    #     pos_start = self.pos.copy()
-    #     self.advance()
-    #     #get the method name
-    #     while self.current_char != None and self.current_char in tokenList.LETTERS_DIGITS + '_':
-    #         method_name += self.current_char
-    #         self.advance()
-    #     token_type = tokenList.TT_KEYWORD if method_name in tokenList.KEYWORDS else tokenList.TT_IDENTIFIER
-    #     return Token(token_type, method_name, pos_start, self.pos)
+    
     def make_dot(self):
         object_ref = ""
         pos_start = self.pos.copy()

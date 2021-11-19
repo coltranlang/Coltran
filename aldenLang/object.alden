@@ -1,34 +1,22 @@
-object Student
-   id: 123
-   name: "David"
-   grade: "A"
-   getCourse: "d"
-   courses: object Course
-      id: 456
-      name: "Math"
-   end
-end
-
-
-task @update(id, name, year, model)
-        object Car
-                id: id
-                name: name
-                year: year
-                model: model
-        end
-    return Car
-end
-
 object Car
    id: 123
    name: "Ford"
    year: "2000"
    model: "Fiesta"
-   update: @update
+   update: task @update(id, name, year, model)
+               if id == "" then
+                  return "id is required"
+               end
+              object Car
+                  id: id
+                  name: name
+                  year: year
+                  model: model
+              end
+              return Car
+         end
 end
 
-let update = Car$"update"
-println(update(123, "Chevy", "2010", "Camaro"))
-
-
+let update = Car$.update
+let car = update(456, "Chevy", "2010", "Camaro")
+println(car$.name)

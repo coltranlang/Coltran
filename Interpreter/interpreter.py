@@ -784,6 +784,7 @@ class String(Value):
     def __init__(self, value, arg=None):
         super().__init__()
         self.value = value
+        self.id = value
         if arg:
             self.value = value + str(arg)
     def setPosition(self, pos_start=None, pos_end=None):
@@ -905,6 +906,8 @@ class String(Value):
         return f"'{self.value}'"
 
 
+
+
 class Boolean(Value):
     def __init__(self, value):
         super().__init__()
@@ -977,6 +980,8 @@ class NoneType(Value):
 Boolean.true = Boolean("true")
 Boolean.false = Boolean("false")
 NoneType.none = NoneType()
+
+
 
 
 class Pair(Value):
@@ -1135,10 +1140,10 @@ class List(Value):
     
 class Object(Value):
     def __init__(self, name, properties):
-        print(properties)
         super().__init__()
         self.properties = properties if properties is not None else {}
         self.value = self.properties
+        self.id = name
         self.name = name
         self.get_property = self.get_property
        
@@ -1247,7 +1252,46 @@ class ObjectGet(Value):
                 return NoneType.none
         else:
             return None, self.illegal_operation(error, key)
+ 
+   
+class ObjectRefNode(Value):
+    def __init__(self, value, arg=None):
+        super().__init__()
+        self.id = value
+        self.value = value
+        if arg:
+            self.value = value + str(arg)
+
+    def setPosition(self, pos_start=None, pos_end=None):
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        return self
+
+    def setContext(self, context=None):
+        self.context = context
+        return self
+
+    def setTrueorFalse(self, value):
+        self.value = "true" if value else "false"
+        return self
     
+    def copy(self):
+        copy = ObjectRefNode(self.value)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+    
+    def execute(self, name, node, args):
+        res = RuntimeResult()
+        return res.success(Task(name, node, args, False, "reference"))
+    
+    def __str__(self):
+        return self.value
+
+    def __repr__(self):
+        return f"'{self.value}'"
+
+
 
 
 class BaseTask(Value):
@@ -1298,14 +1342,19 @@ class BaseTask(Value):
 
 
 class Task(BaseTask):
-    def __init__(self, name, body_node, arg_names, implicit_return):
+    def __init__(self, name, body_node, arg_names, implicit_return, ref=None):
         super().__init__(name)
+        self.id = name
+        self.name = name
         self.body_node = body_node
         self.arg_names = arg_names
         self.implicit_return = implicit_return
         self.args = arg_names
-
-
+        self.ref = ref
+        if ref == "reference":
+            self.execute(arg_names)
+    
+        
     def execute(self, args):
         res = RuntimeResult()
         interpreter = Interpreter()
@@ -1319,11 +1368,14 @@ class Task(BaseTask):
         value = res.register(interpreter.visit(self.body_node, exec_context))
         if res.should_return() and res.func_return_value == None:
             return res
-
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
         return res.success(return_value)
 
+
+    
+        
+        
     def copy(self):
         copy = Task(self.name, self.body_node,
                     self.arg_names, self.implicit_return)
@@ -1339,6 +1391,7 @@ class Class(BaseTask):
     def __init__(self, constructor_args,class_name, inherit_class_name, inherit_class, methods):
         super().__init__(class_name)
         self.constructor_args = constructor_args
+        self.id = class_name
         self.class_name = class_name
         self.inherit_class_name = inherit_class_name
         self.inherit_class = inherit_class
@@ -1347,6 +1400,7 @@ class Class(BaseTask):
         self.set_method = self.set_method
     
     def execute(self, args):
+        print(f"Class {self.class_name}")
         res = RuntimeResult()
         interpreter = Interpreter()
         new_context = Context(self.class_name, self.context, self.pos_start)
@@ -1410,9 +1464,9 @@ class ClassGet(Value):
         super().__init__()
         self.obj = obj
         self.key = key
-        self.get_method = self.get_method
-        self.value = self.get_method
-        print(type(key.value), key)
+        print(type(key).__name__, key.value, "type")
+        
+        
     def get_method(self, obj, key):
         error = {
             'pos_start': self.pos_start,
@@ -1422,8 +1476,7 @@ class ClassGet(Value):
             'exit': False
         }
         value  = ""
-        
-        if type(key).__name__ == "String":
+        if  type(key).__name__ == "ObjectRef":
             if hasattr(obj, "methods"):
                 if key.value in obj.methods:
                     value = obj.methods[key.value]
@@ -1432,6 +1485,16 @@ class ClassGet(Value):
                     return NoneType.none
             else:
                 return NoneType.none
+        
+            
+        if type(key).__name__ == "String":
+            if hasattr(obj, "methods"):
+                if key.value in obj.methods:
+                    value = obj.methods[key.value]
+                    return value
+                else:
+                    return NoneType.none
+            return NoneType.none
             
         elif type(key).__name__ == "Number":
             if hasattr(obj, "methods"):
@@ -1444,6 +1507,17 @@ class ClassGet(Value):
                 return NoneType.none
         else:
             return None, self.illegal_operation(error, key)
+        
+    def copy(self):
+        copy = ClassGet(self.obj, self.key)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+        
+    def __repr__(self):
+        return f"<ClassGet {str(self.obj)} {str(self.key)}>"
+
+    
 
 class BuiltInTask(BaseTask):
     def __init__(self, name):
@@ -1957,6 +2031,11 @@ class Interpreter:
                 context).setPosition(node.pos_start, node.pos_end)
         )
 
+    def visit_ObjectRefNode(self, node, context):
+        return RuntimeResult().success(
+            ObjectRefNode(node.tok.value).setContext(
+                context).setPosition(node.pos_start, node.pos_end)
+        )
 
     
     def visit_StringInterpNode(self, node, context):
@@ -2042,25 +2121,7 @@ class Interpreter:
             return res.noreturn()
         value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(value)
-
-    def visit_DotAccessNode(self, node, context):
-        res = RuntimeResult()
-        owner = node.owner
-        left = node.left.name.value
-        right = node.right.name.value
-        istype = node.type
-        value = context.symbolTable.get_object(owner, left, right, istype)
-        if value is None or value == NoneType.none:
-            return res.failure(Program.error()['KeyError']({
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'message': f"{left} has no property {right}",
-                'context': context,
-                'exit': False
-            }))
-        value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
-        return res.success(value)
-    
+ 
     def visit_VarAssignNode(self, node, context):
         res = RuntimeResult()
         var_name = node.variable_name_token.value if type(node.variable_name_token).__name__ != 'tuple' else ''
@@ -2122,8 +2183,6 @@ class Interpreter:
                 result, error = left.modulo(right)
             elif node.op_tok.type == tokenList.TT_COLON:
                 result, error = left.get_index(right)
-            elif node.op_tok.type == tokenList.TT_DOT:
-                return self.visit_ObjectGetNode(node, context)
             elif node.op_tok.type == tokenList.TT_GETTER:
                 return self.visit_ObjectGetNode(node, context)
             elif node.op_tok.type == tokenList.TT_EQEQ:
@@ -2327,36 +2386,140 @@ class Interpreter:
         res = RuntimeResult()
         object_name = res.register(self.visit(node.left_node, context))
         object_key = res.register(self.visit(node.right_node, context))
+        #print(object_name, type(object_key).__name__)
         if isinstance(object_name, Object):
-            if ObjectGet(object_name, object_key).get_property(
-                object_name, object_key) == None or ObjectGet(object_name, object_key).get_property(
-                object_name, object_key) == NoneType.none:
-                return res.failure(Program.error()["KeyError"]({
+            value = ""
+            error = {
                     "pos_start": node.pos_start,
                     "pos_end": node.pos_end,
-                    "message": "Key '{}' not found in object '{}'".format(object_key, node.left_node.name.value),
+                    "message": "'{}' has no property '{}'".format(object_name.name, object_key),
                     "context": context,
                     "exit": False
-                }))
-            return res.success(ObjectGet(object_name, object_key).get_property(object_name, object_key).setContext(context).setPosition(node.pos_start, node.pos_end))
-    
+                }
+            if isinstance(object_key, String):
+                if hasattr(object_name, "properties"):
+                    if object_key.value in object_name.properties:
+                        value = object_name.properties[object_key.value]
+                        return value
+                    else:
+                        return res.failure(Program.error()["KeyError"](error))
+                else:
+                    error['message'] = "{} has no property '{}'".format(object_name.name, object_key)
+                    return res.failure(Program.error()["KeyError"](error))
+            
+            elif isinstance(object_key, Number):
+                if hasattr(object_name, "properties"):
+                    if object_key.value in object_name.properties:
+                        value = object_name.properties[str(object_key.value)]
+                        return value
+                    else:
+                        return res.failure(Program.error()["KeyError"](error))
+                else:
+                    error['message'] = "{} has no property '{}'".format(object_name.name, object_key)
+                    return res.failure(Program.error()["KeyError"](error))
+            
+            elif isinstance(object_key, ObjectRefNode):
+                if hasattr(object_name, "properties"):
+                    if object_key.value in object_name.properties:
+                        value = object_name.properties[object_key.value]
+                        return value
+                    else:
+                        return res.failure(Program.error()["KeyError"](error))
+                else:
+                    error['message'] = "{} has no property '{}'".format(
+                        object_name.name, object_key.value)
+                    return res.failure(Program.error()["KeyError"](error))
+            return res.success(value)
+ 
+        
         elif isinstance(object_name, Class):
-            if ClassGet(object_name, object_key).get_method(
-                object_name, object_key) == None or ClassGet(object_name, object_key).get_method(
-                object_name, object_key) == NoneType.none:
-                return res.failure(Program.error()["KeyError"]({
+            
+            value = ""
+            error = {
+                            "pos_start": node.pos_start,
+                            "pos_end": node.pos_end,
+                            "message": "'{}' has no method '{}'".format(object_name.name, object_key.value),
+                            "context": context,
+                            "exit": False
+                        }
+            if isinstance(object_key, String):
+                if hasattr(object_name, "methods"):
+                    if object_key.value in object_name.methods:
+                        value = object_name.methods[object_key.value]
+                        return value
+                    else:
+                        return res.failure(Program.error()["KeyError"](error))
+                else:
+                    error['message'] = "{} has no method '{}'".format(object_name.name, object_key.value)
+                    return res.failure(Program.error()["KeyError"](error))
+            elif isinstance(object_key, Number):
+                if hasattr(object_name, "methods"):
+                    if object_key.value in object_name.methods:
+                        value = object_name.methods[str(object_key.value)]
+                        return value
+                    else:
+                        return res.failure(Program.error()["KeyError"](error))
+                else:
+                    error['message'] = "{} has no method '{}'".format(object_name.name, object_key.value)
+                    return res.failure(Program.error()["KeyError"](error))
+            elif isinstance(object_key, ObjectRefNode):
+                if hasattr(object_name, "methods"):
+                    if object_key.value in object_name.methods:
+                        value = object_name.methods[object_key.value]
+                        return value
+                    else:
+                        return res.failure(Program.error()["KeyError"](error))
+                else:
+                    error['message'] = "{} has no method '{}'".format(object_name.name, object_key.value)
+                    return res.failure(Program.error()["KeyError"](error))
+                
+            elif isinstance(object_key, NoneType):
+                return res.success(NoneType.none)
+            return res.success(value)
+
+
+        elif isinstance(object_name, Task):
+            value = ""
+            error = {
                     "pos_start": node.pos_start,
                     "pos_end": node.pos_end,
-                    "message": "Method '{}' not found in class '{}'".format(object_key, node.left_node.name.value),
+                    "message": "'{}' has no method '{}'".format(object_name.id, object_key.id),
                     "context": context,
                     "exit": False
-                }))
-            object_key = res.register(self.visit(node.right_node.node_to_call, context))
-            return res.success(ClassGet(object_name, object_key).get_method(object_name, object_key).setContext(context).setPosition(node.pos_start, node.pos_end))
-
-    def visit_OBJECT_REF(self, node, context):
-        res = RuntimeResult()
-        print(node.left, node.op_tok, node.right,"object_getter")  
+                }
+            return res.failure(Program.error()["KeyError"](error))
+        
+    
+        
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                "message": "{} has no property '{}'".format(object_name.id, object_key.id),
+                "context": context,
+                "exit": False
+            }))
+           
+      
+    # def visit_ObjectCall(self, node, context):
+    #     res = RuntimeResult()
+    #     object_name = res.register(self.visit(node.left, context))
+    #     object_key = node.right
+    #     args = node.args
+        
+    #     if isinstance(object_name, Class):
+    #         value = ""
+    #         if type(object_key).__name__ == "CallNode":
+    #             if type(object_key.node_to_call).__name__ == "ObjectRefNode":
+    #                 name = object_key.node_to_call.id.value
+    #                 args = object_key.args_nodes
+    #                 if name in object_name.methods:
+    #                     method = object_name.methods[name]
+    #                     value_to_call = res.register(self.visit(
+    #                         object_key.node_to_call, context)) if object_key.node_to_call else None
+    #                     if res.should_return(): return res
+    #                     return res.success(self.visit_TaskDefNode(method,context))
+                        
     
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
@@ -2374,9 +2537,11 @@ class Interpreter:
                 if res.should_return():
                     return res
                 methods = dict(methods, **{str(method_name): method_value})
+                class_ = Task(class_name, method_value, class_constuctor_args, False).setContext(
+                    context).setPosition(node.pos_start, node.pos_end)
+                class_value = class_
                 class_value = Class(class_constuctor_args,class_name, inherits_class_name, inherits_class, methods).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
-                # get class methods from context and add class args value to methods
         else:
             context.symbolTable.set_object(class_name, class_value)
         return res.success(class_value)
@@ -2390,7 +2555,6 @@ class Interpreter:
             if res.should_return():
                 return res
             value_to_call = value_to_call.copy().setPosition(node.pos_start, node.pos_end)
-
             for arg_node in node.args_nodes:
                 args.append(res.register(self.visit(arg_node, context)))
                 if res.should_return():

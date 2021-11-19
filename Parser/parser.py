@@ -155,6 +155,15 @@ class StringNode:
     def __repr__(self):
         return f'{self.tok}'
 
+class ObjectRefNode:
+    def __init__(self, tok):
+        self.tok = tok
+        self.id = tok
+        self.pos_start = self.tok.pos_start
+        self.pos_end = self.tok.pos_end
+
+    def __repr__(self):
+        return f'{self.tok}'
 
 class StringInterpNode:
     def __init__(self, expr, values_to_replace, string_to_interp, pos_start, pos_end):
@@ -208,12 +217,14 @@ class ObjectGetNode:
     def __repr__(self):
         return f'{self.left}'
 
-class OBJECT_REF:
-    def __init__(self, left, op_tok, right):
+
+class ObjectCall:
+    def __init__(self, left, op_tok, right, args):
         self.id = left
         self.left = left
         self.op_tok = op_tok
         self.right = right
+        self.args = args
         self.pos_start = self.left.pos_start
         self.pos_end = self.right.pos_end
 
@@ -232,18 +243,6 @@ class GetterNode:
         return f'{self.left}'
 
 
-class DotAccessNode:
-    def __init__(self, owner, left, right, type):
-        self.owner = owner
-        self.left = left
-        self.right = right
-        self.type = type
-        self.pos_start = self.left.pos_start
-        self.pos_end = self.right.pos_end
-    
-    def __repr__(self):
-        return f'{self.owner}.{self.right}'
-    
 
 class VarAssignNode:
     def __init__(self, variable_name_token, value_node, variable_keyword_token):
@@ -411,10 +410,11 @@ class MethodCallNode:
             self.pos_end = self.method_name_token.pos_end
 
 class CallNode:
-    def __init__(self, node_to_call, args_nodes):
+    def __init__(self, node_to_call, args_nodes, type=None):
         self.node_to_call = node_to_call
         self.args_nodes = args_nodes
-        
+        self.type = type
+        self.id = node_to_call
         self.pos_start = self.node_to_call.pos_start
         if len(self.args_nodes) > 0:
             self.pos_end = self.args_nodes[len(self.args_nodes) - 1].pos_end# if self.args_nodes[len(self.args_nodes) - 1] else 0
@@ -1207,7 +1207,6 @@ class Parser:
                     }))
                     res.register_advancement()
                     self.advance()
-            print(str(self.current_token.value) in tokenList.DIGITS, "err")
             return res.success(ObjectDefNode(object_name, object_properties))   
           
     def set_method(self):
@@ -1617,7 +1616,7 @@ class Parser:
         elif tok.type == tokenList.TT_OBJECT_REF:
             res.register_advancement()
             self.advance()
-            return res.success(StringNode(tok))    
+            return res.success(ObjectRefNode(tok))    
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
@@ -1700,19 +1699,13 @@ class Parser:
                     if res.error:
                         return res
                 
-                while self.current_token.type == tokenList.TT_IDENTIFIER:
-                    res.register_advancement()
-                    self.advance()
-                    while self.current_token.type == tokenList.TT_DOT:
-                        res.register_advancement()
-                        self.advance()
-                        if self.current_token.type != tokenList.TT_IDENTIFIER:
-                            return res.failure(Program.error()['Syntax']({
-                                'pos_start': self.current_token.pos_start,
-                                'pos_end': self.current_token.pos_end,
-                                'message': "Expected an identifier",
-                                'exit': False
-                            }))
+                if self.current_token.type == tokenList.TT_OBJECT_REF:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected '$'",
+                        'exit': False
+                    }))
                 if self.current_token.type != tokenList.TT_RPAREN:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -1722,8 +1715,9 @@ class Parser:
                     }))
                 res.register_advancement()
                 self.advance()
-            
-            return res.success(CallNode(atom, args))
+                # if type(atom) == "ObjectRefNode":
+                #     return res.sucess(CallNode(atom.id, args, 'ref'))
+            return res.success(CallNode(atom, args, 'ref'))
         return res.success(atom)
 
     def power(self):
@@ -1783,7 +1777,15 @@ class Parser:
 
     def expr(self):
         res = ParseResult()
-        
+        # if self.current_token.type == tokenList.TT_IDENTIFIER:
+        #     value = VarAccessNode(self.current_token)
+        #     if value.name:
+        #         res.register_advancement()
+        #         self.advance()
+        #         if self.current_token.type == tokenList.TT_EQ:
+        #             res.register_advancement()
+        #             self.advance()
+        #             return res.success(VarAssignNode(value, res.register(self.expr()), "let"))
         if self.current_token.matches(tokenList.TT_KEYWORD, 'let') or self.current_token.matches(tokenList.TT_KEYWORD, 'final'):
             res.register_advancement()
             variable_keyword_token = "let" if self.current_token.matches(
@@ -1819,9 +1821,8 @@ class Parser:
                     }))
                 res.register_advancement()
                 self.advance()
-                expr = res.register(self.expr())
-                if res.error:
-                    return res
+                #expr = res.register(self.expr())
+                if res.error: return res
                 for value in values:
                     var_values += (value,)
                
@@ -1879,7 +1880,6 @@ class Parser:
         res = ParseResult()
         res.register_advancement()
         self.advance()
-        print(self.current_token)
       
     def binaryOperation(self, func_1, ops, func_2=None):
         if func_2 == None:
@@ -1894,8 +1894,6 @@ class Parser:
             res.register_advancement()
             self.advance()
             right = res.register(func_2())
-            if type(right).__name__ == "CallNode":
-                left = OBJECT_REF(left, op_tok, right)
             if res.error:
                 return res
             left = BinOpNode(left, op_tok, right)

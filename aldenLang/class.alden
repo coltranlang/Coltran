@@ -1,13 +1,9 @@
 class Person(age, name)
-    def getName()
-       print("My name is "  + age)
+    def getName(age)
+       let h = "value"
+       println("My name is "  + age)
     end
     def getAge()
-       print("I am "  + " years old.")
+       println("I am "  + " years old.")
     end
 end
-
-
-let g = Person$.getName
-
-print(Person$.getName(1))
