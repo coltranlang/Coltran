@@ -7,3 +7,6 @@ class Person(age, name)
        println("I am "  + " years old.")
     end
 end
+
+
+print(Person$.getName(10))

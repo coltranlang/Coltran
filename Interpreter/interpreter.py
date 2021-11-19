@@ -1351,8 +1351,8 @@ class Task(BaseTask):
         self.implicit_return = implicit_return
         self.args = arg_names
         self.ref = ref
-        if ref == "reference":
-            self.execute(arg_names)
+    
+    
     
         
     def execute(self, args):
@@ -1373,7 +1373,11 @@ class Task(BaseTask):
         return res.success(return_value)
 
 
-    
+    def run(self, name, value, args, context):
+        res = RuntimeResult()
+        interpreter = Interpreter()
+        exec_context = self.generate_new_context()
+        print(self.arg_names)
         
         
     def copy(self):
@@ -2185,6 +2189,8 @@ class Interpreter:
                 result, error = left.get_index(right)
             elif node.op_tok.type == tokenList.TT_GETTER:
                 return self.visit_ObjectGetNode(node, context)
+            elif node.op_tok.type == tokenList.TT_OBJECT_REF:
+                return self.visit_ObjectGetNode(node, context)
             elif node.op_tok.type == tokenList.TT_EQEQ:
                 result, error = left.get_comparison_eq(right)
             elif node.op_tok.type == tokenList.TT_NEQ:
@@ -2386,7 +2392,15 @@ class Interpreter:
         res = RuntimeResult()
         object_name = res.register(self.visit(node.left_node, context))
         object_key = res.register(self.visit(node.right_node, context))
-        #print(object_name, type(object_key).__name__)
+        if object_key == None:
+            key = node.right_node
+            if isinstance(object_name, Class):
+                value = ""
+                if key.node_to_call.id.value in object_name.methods:
+                    value = object_name.methods[key.node_to_call.id.value]
+                    args = key.args_nodes
+                    return res.success(value.run(key.node_to_call.id.value, value, args, context))
+            
         if isinstance(object_name, Object):
             value = ""
             error = {

@@ -1675,7 +1675,6 @@ class Parser:
         atom = res.register(self.atom())
         if res.error:
             return res
-
         if self.current_token.type == tokenList.TT_LPAREN:
             res.register_advancement()
             self.advance()
@@ -1692,6 +1691,7 @@ class Parser:
                         'message': "Invalid syntax or unknown token",
                         'exit': False
                     }))
+                
                 while self.current_token.type == tokenList.TT_COMMA:
                     res.register_advancement()
                     self.advance()
@@ -1706,6 +1706,9 @@ class Parser:
                         'message': "Expected '$'",
                         'exit': False
                     }))
+                if type(atom).__name__ == "ObjectRefNode":
+                    method = atom.id.value
+                    print(res.register(self.expr()))
                 if self.current_token.type != tokenList.TT_RPAREN:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -1713,11 +1716,12 @@ class Parser:
                         'message': "Expected ',' or ')'",
                         'exit': False
                     }))
+                
                 res.register_advancement()
                 self.advance()
-                # if type(atom) == "ObjectRefNode":
-                #     return res.sucess(CallNode(atom.id, args, 'ref'))
-            return res.success(CallNode(atom, args, 'ref'))
+                
+                
+            return res.success(CallNode(atom, args))
         return res.success(atom)
 
     def power(self):
@@ -1744,7 +1748,7 @@ class Parser:
         return self.power()
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON, tokenList.TT_GETTER))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON, tokenList.TT_GETTER, tokenList.TT_OBJECT_REF))
 
     def arith_expr(self):
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
@@ -1876,10 +1880,7 @@ class Parser:
             }))
         return res.success(node)
 
-    def dot_expr(self):
-        res = ParseResult()
-        res.register_advancement()
-        self.advance()
+    
       
     def binaryOperation(self, func_1, ops, func_2=None):
         if func_2 == None:
