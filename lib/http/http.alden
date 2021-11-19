@@ -9,10 +9,5 @@ end
 let http = Http
 let createServer = http$.createServer
 
-task @handler(req, res)
-    println(fv"Request: {req}")
-    println(fv"Response: {res}")
-end
 
-let handler = @handler("foo", "bar")
-createServer(8080, handler)
+

@@ -1370,6 +1370,7 @@ class Task(BaseTask):
             return res
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
+        print()
         return res.success(return_value)
 
 
@@ -1377,8 +1378,22 @@ class Task(BaseTask):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
-        print(self.arg_names)
-        
+        res.register(self.check_args(self.arg_names, args))
+        if res.should_return():
+            return res
+        for i in range(len(args)):
+            arg_name = self.arg_names[i]
+            arg_value = args[i]
+
+            #arg_value.setContext(exec_context)
+            exec_context.symbolTable.set(arg_name, arg_value)
+        value = res.register(interpreter.visit(self.body_node, exec_context))
+        if res.should_return() and res.func_return_value == None:
+            return res
+        return_value = (
+            value if self.implicit_return else None) or res.func_return_value or NoneType.none
+        return res.success(return_value)
+        print("good", exec_context.symbolTable.set(arg_name, arg_value))
         
     def copy(self):
         copy = Task(self.name, self.body_node,
@@ -2399,7 +2414,9 @@ class Interpreter:
                 if key.node_to_call.id.value in object_name.methods:
                     value = object_name.methods[key.node_to_call.id.value]
                     args = key.args_nodes
-                    return res.success(value.run(key.node_to_call.id.value, value, args, context))
+                    return_value = res.register(key.node_to_call.id.value.execute(args))
+                    #return_value = return_value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
+                    return res.success(return_value)
             
         if isinstance(object_name, Object):
             value = ""
@@ -2506,13 +2523,7 @@ class Interpreter:
     
         
         else:
-            return res.failure(Program.error()["Runtime"]({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                "message": "{} has no property '{}'".format(object_name.id, object_key.id),
-                "context": context,
-                "exit": False
-            }))
+            return res.success(NoneType.none)
            
       
     # def visit_ObjectCall(self, node, context):

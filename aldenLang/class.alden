@@ -1,12 +1,11 @@
-class Person(age, name)
-    def getName(age)
-       let h = "value"
-       println("My name is "  + age)
+class Person (age, name)
+    def getName(name)
+       println("My name is "  + name)
     end
-    def getAge()
-       println("I am "  + " years old.")
+    def getAge(age)
+       println("I am " + age + " years old")
     end
 end
 
 
-print(Person$.getName(10))
+print(Person@getAge("22"),Person@getName("John"))

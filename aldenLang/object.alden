@@ -3,20 +3,20 @@ object Car
    name: "Ford"
    year: "2000"
    model: "Fiesta"
-   update: task @update(id, name, year, model)
-               if id == "" then
-                  return "id is required"
-               end
-              object Car
-                  id: id
-                  name: name
-                  year: year
-                  model: model
-              end
-              return Car
+   update: object Test
+      file: "g"
+   end
+end
+
+object Http
+   get_: object Request
+            name: object Name
+               first: "John"
+               last: "Doe"
+            end
          end
 end
 
-let update = Car$.update
-let car = update(456, "Chevy", "2010", "Camaro")
-println(car$.name)
+#let update = Car$.update
+#let car = update(456, "Chevy", "2010", "Camaro")
+println(Http$.get_$.name$.first$.gh)

@@ -196,9 +196,12 @@ class PipeNode:
     
 
 class VarAccessNode:
-    def __init__(self, name):
+    def __init__(self, name, left=None, right=None, type=None):
         self.name = name
         self.id = name
+        self.left = left
+        self.right = right,
+        self.type = type
         self.pos_start = self.name.pos_start
         self.pos_end = self.name.pos_end
 
@@ -339,12 +342,13 @@ class WhileNode:
 
 
 class TaskDefNode:
-    def __init__(self, task_name_token, args_name_tokens, body_node, implicit_return, type=None):
+    def __init__(self, task_name_token, args_name_tokens, body_node, implicit_return, class_name=None, type=None):
         self.task_name_token = task_name_token
         self.id = task_name_token
         self.args_name_tokens = args_name_tokens
         self.body_node = body_node
         self.implicit_return = implicit_return
+        self.class_name = class_name
         self.type = type
         properties = {
             'name': self.task_name_token.value,
@@ -1198,18 +1202,19 @@ class Parser:
                             res.register_advancement()
                             self.advance()
                             return res.success(ObjectDefNode(object_name, object_properties))
+                        print(self.current_token, "gett")
                     if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                         return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "Expected 'end'",
+                        'message': "Expected 'end' or you have forgottem to close a newline",
                         'exit': False
                     }))
                     res.register_advancement()
                     self.advance()
             return res.success(ObjectDefNode(object_name, object_properties))   
           
-    def set_method(self):
+    def set_method(self, class_name):
         res = ParseResult()
         
         class_methods = []
@@ -1304,7 +1309,7 @@ class Parser:
                 self.advance()
                 class_methods.append({
                     'name': method_name,
-                    'value': TaskDefNode(method_name, args_list, body, False, "method"),
+                    'value': TaskDefNode(method_name, args_list, body, False, class_name, "method"),
                     'pos_start': method_name.pos_start,
                     'pos_end': body.pos_end
                 })
@@ -1442,7 +1447,7 @@ class Parser:
             self.advance()
             res.success(ClassNode(class_constuctor_args,class_name, inherit_class_name, inherit_class, class_methods))
         if self.current_token.matches(tokenList.TT_KEYWORD, "def"):
-                self.set_method()
+                self.set_method(class_name)
                 if res.error:
                     return res
                 class_methods = self.class_methods
@@ -1703,7 +1708,7 @@ class Parser:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "Expected '$'",
+                        'message': "Expected '$' or '.'",
                         'exit': False
                     }))
                 if type(atom).__name__ == "ObjectRefNode":
@@ -1748,7 +1753,7 @@ class Parser:
         return self.power()
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON, tokenList.TT_GETTER, tokenList.TT_OBJECT_REF))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON, tokenList.TT_GETTER, tokenList.TT_DOT))
 
     def arith_expr(self):
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
