@@ -42,6 +42,8 @@ def init(cmd: str = typer.Argument(""), file: str = typer.Argument("")):
         run(cmd)
     elif cmd == "repl":
         repl()
+    elif cmd == "-r":
+        run(file)
     else:
         repl()
 

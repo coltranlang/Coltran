@@ -1211,6 +1211,10 @@ class Object(Value):
             return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
         except:
             return "{}"
+    
+    def __repr__(self):
+        return "<Object {}>".format(self.name)
+        
 
 
 class ObjectGet(Value):
@@ -1281,9 +1285,6 @@ class ObjectRefNode(Value):
         copy.setContext(self.context)
         return copy
     
-    def execute(self, name, node, args):
-        res = RuntimeResult()
-        return res.success(Task(name, node, args, False, "reference"))
     
     def __str__(self):
         return self.value
@@ -1352,8 +1353,7 @@ class Task(BaseTask):
         self.args = arg_names
         self.ref = ref
     
-    
-    
+       
         
     def execute(self, args):
         res = RuntimeResult()
@@ -1364,37 +1364,45 @@ class Task(BaseTask):
             self.arg_names, args, exec_context))
         if res.should_return():
             return res
-
         value = res.register(interpreter.visit(self.body_node, exec_context))
         if res.should_return() and res.func_return_value == None:
             return res
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
-        print()
         return res.success(return_value)
 
 
-    def run(self, name, value, args, context):
+    def run(self, args):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
-        res.register(self.check_args(self.arg_names, args))
+        self.args = args
+        res.register(self.run_check_and_populate_args(
+            self.arg_names, args, exec_context))
         if res.should_return():
             return res
-        for i in range(len(args)):
-            arg_name = self.arg_names[i]
-            arg_value = args[i]
-
-            #arg_value.setContext(exec_context)
-            exec_context.symbolTable.set(arg_name, arg_value)
         value = res.register(interpreter.visit(self.body_node, exec_context))
         if res.should_return() and res.func_return_value == None:
             return res
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
         return res.success(return_value)
-        print("good", exec_context.symbolTable.set(arg_name, arg_value))
-        
+    
+    def run_check_and_populate_args(self, arg_names, args, exec_ctx):
+        res = RuntimeResult()
+        res.register(self.check_args(arg_names, args))
+        if res.should_return():
+            return res
+        self.run_populate_args(arg_names, args, exec_ctx)
+        return res.success(None)
+    
+    def run_populate_args(self, arg_names, args, exec_context):
+        for i in range(len(args)):
+            arg_name = arg_names[i]
+            arg_value = args[i]
+            arg_value.setContext(exec_context)
+            exec_context.symbolTable.set(arg_name, arg_value)
+
     def copy(self):
         copy = Task(self.name, self.body_node,
                     self.arg_names, self.implicit_return)
@@ -1403,7 +1411,7 @@ class Task(BaseTask):
         return copy
 
     def __repr__(self):
-        return f"<Task {str(self.name)}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
+        return f"<Task {str(self.name) if self.name != 'none' else 'annonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
 
 class Class(BaseTask):
@@ -1419,7 +1427,6 @@ class Class(BaseTask):
         self.set_method = self.set_method
     
     def execute(self, args):
-        print(f"Class {self.class_name}")
         res = RuntimeResult()
         interpreter = Interpreter()
         new_context = Context(self.class_name, self.context, self.pos_start)
@@ -1431,7 +1438,7 @@ class Class(BaseTask):
         if res.should_return():
             return res
         
-        # append class args to each method
+        
         for arg in args:
             new_context.symbolTable.set(arg, new_context.symbolTable.get(arg))
         
@@ -2072,13 +2079,19 @@ class Interpreter:
                         value = String(string_to_interp).setContext(
                             context).setPosition(node.pos_start, node.pos_end)
                     else:
-                        return res.failure(Program.error()['Runtime']({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"format-variable is only allowed for variables or '{value_to_replace}' is not defined",
-                            'context': context,
-                            'exit': False
-                        }))
+                        value_expr = str(NoneType.none)
+                        value_replaced = str(NoneType.none)
+                        string_to_interp = string_to_interp.replace('{' + value_to_replace + '}', value_replaced)
+                        value = String(string_to_interp).setContext(
+                            context).setPosition(node.pos_start, node.pos_end)
+                        # return res.failure(Program.error()['Runtime']({
+                        #     'pos_start': node.pos_start,
+                        #     'pos_end': node.pos_end,
+                        #     'message': f"format-variable is only allowed for variables or '{value_to_replace}' is not defined",
+                        #     'context': context,
+                        #     'exit': False
+                        # }))
+                        
         else:
             string = values_to_replace
             value = String(string).setContext(context).setPosition(node.pos_start, node.pos_end)
@@ -2139,6 +2152,17 @@ class Interpreter:
             })
             return res.noreturn()
         value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
+        return res.success(value)
+ 
+    def visit_PropertyNode(self, node, context):
+        res = RuntimeResult()
+        object_ = res.register(self.visit(node.name.value, context))
+        if res.should_return():
+            return res
+        property_name = node.property.value
+        value = res.register(object_.get_property(property_name))
+        if res.should_return():
+            return res
         return res.success(value)
  
     def visit_VarAssignNode(self, node, context):
@@ -2398,7 +2422,6 @@ class Interpreter:
                         "exit": False
                     }))
                 context.symbolTable.set(object_name, object_value)
-            
             else:
                 context.symbolTable.set_object(object_name, object_value)
         return res.success(object_value)
@@ -2407,6 +2430,47 @@ class Interpreter:
         res = RuntimeResult()
         object_name = res.register(self.visit(node.left_node, context))
         object_key = res.register(self.visit(node.right_node, context))
+        if res.should_return(): return res
+        if not isinstance(object_name, Object):
+            res.success(NoneType.none)
+        if object_key == None:
+            object_key = node.right_node
+            if isinstance(object_name, Object):
+                value = ""
+                if type(object_key).__name__ == 'CallNode':
+                    key = object_key.node_to_call.id.value
+                    if key in object_name.properties:
+                        value = object_name.properties[key]
+                        if not isinstance(value, Task):
+                            # if value is an object then the key is not callable
+                            return res.failure(Program.error()["Runtime"]({
+                                "pos_start": node.pos_start,
+                                "pos_end": node.pos_end,
+                                "message": "'{}' is not callable".format(key),
+                                "context": context,
+                                "exit": False
+                            }))
+                        else:
+                            args_node = object_key.args_nodes
+                            args = []
+                            for arg in args_node:
+                                args.append(res.register(self.visit(arg, context)))
+                                if res.should_return():
+                                    return res
+                            return_value = res.register(value.run(args))
+                            if res.should_return(): return res
+                            if return_value == None or return_value == NoneType.none:
+                                return res.success(None)
+                            else:
+                                return res.success(return_value)
+                    else:
+                        return res.failure(Program.error()["Runtime"]({
+                            "pos_start": node.pos_start,
+                            "pos_end": node.pos_end,
+                            "message": "'{}' has no property '{}'".format(object_name.name, key),
+                            "context": context,
+                            "exit": False
+                        }))
         if object_key == None:
             key = node.right_node
             if isinstance(object_name, Class):

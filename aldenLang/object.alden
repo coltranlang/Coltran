@@ -1,3 +1,6 @@
+get Math from '../lib/math'
+from '../lib/math' get Math
+
 object Car
    id: 123
    name: "Ford"
@@ -15,8 +18,22 @@ object Http
                last: "Doe"
             end
          end
+   post: task @Post(url, data)
+         println(Http$.get_$.name$.first)
+         println(fv"The url is {url} and the data is {data}")
+   end
 end
 
-#let update = Car$.update
-#let car = update(456, "Chevy", "2010", "Camaro")
-println(Http$.get_$.name$.first$.gh)
+
+object Data
+   name: "John"
+   age: "30"
+   lastName: self$.name + " Doe"
+   address: object Address
+      street: "123 Main St"
+      city: "Anytown"
+      state: "CA"
+      zip: "12345"
+   end
+end
+
