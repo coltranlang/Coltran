@@ -1412,12 +1412,25 @@ class Class(BaseTask):
             return res
         
         
-        for arg in args:
-            new_context.symbolTable.set(arg, new_context.symbolTable.get(arg))
-        
-        for method_name, method in self.methods.items():
-            new_context.symbolTable.set(method_name, method)
-        return res.success(value)
+        # for arg in args:
+        #     new_context.symbolTable.set(arg, new_context.symbolTable.get(arg))
+        val1 = ""
+        val2 = ""
+        method_args = []
+        # for method_name, method in self.methods.items():
+        #     #add class args to method args no duplicates
+        #     for arg in self.constructor_args:
+        #         if arg not in method.arg_names:
+        #             method.arg_names = method.arg_names + [arg]
+        #         else:
+        #             method.arg_names = method.arg_names
+                
+        #    # print(method.arg_names)
+        #     val1 = method_name
+        #     val2 = method
+            
+        # new_context.symbolTable.set(val1, val2)
+        # return res.success(None)
 
     def set_method(self, key, value):
         self.methods[key] = value

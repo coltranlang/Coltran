@@ -95,7 +95,7 @@ class Program:
         if error: return "", error
 
         # Generate AST
-        parser = Parser(tokens)
+        parser = Parser(tokens, fileName)
         ast = parser.parse()
         if ast.error: return "", ast.error
         

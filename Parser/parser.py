@@ -496,8 +496,11 @@ class ParseResult:
 
 
 class Parser:
-    def __init__(self, tokens):
+    def __init__(self, tokens, file_name):
         self.tokens = tokens
+        self.file_name = file_name
+        # get file name without extension
+        self.file_name_no_ext = self.file_name.split('/')[2].split('.')[0]
         self.tok_index = -1
         self.advance()
 
@@ -1283,6 +1286,9 @@ class Parser:
                 args_list.append(self.current_token)
                 res.register_advancement()
                 self.advance()
+                if len(args_list) > 0:
+                    if args_list[0].value == 'self':
+                        args_list[0] = class_name
                 while self.current_token.type == tokenList.TT_COMMA:
                     res.register_advancement()
                     self.advance()
