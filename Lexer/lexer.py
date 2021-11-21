@@ -131,7 +131,8 @@ class Lexer:
                 tokens.append(Token(tokenList.TT_COLON, pos_start=self.pos))
                 self.advance()
             elif self.current_char == '.':
-                tokens.append(self.make_dot())
+                tokens.append(Token(tokenList.TT_DOT, pos_start=self.pos))
+                self.advance()
             elif self.current_char == '(':
                 tokens.append(Token(tokenList.TT_LPAREN, pos_start=self.pos))
                 self.advance()
@@ -150,8 +151,6 @@ class Lexer:
             elif self.current_char == '}':
                 tokens.append(Token(tokenList.TT_RBRACE, pos_start=self.pos))
                 self.advance()
-            elif self.current_char == '.':
-                token.append(Token(tokenList.TT_DOT, pos_start=self.pos))
             elif self.current_char == '$':
                 tokens.append(self.make_getter())
             elif self.current_char == '!':

@@ -2142,15 +2142,51 @@ class Interpreter:
  
     def visit_PropertyNode(self, node, context):
         res = RuntimeResult()
-        object_ = res.register(self.visit(node.name.value, context))
-        if res.should_return():
-            return res
-        property_name = node.property.value
-        value = res.register(object_.get_property(property_name))
-        if res.should_return():
-            return res
-        return res.success(value)
- 
+        object_name = res.register(self.visit(node.name, context))
+        object_key = node.property
+        print(type(object_name).__name__)
+        if isinstance(object_name, Class):
+            value = ""
+            error = {
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                "message": "",
+                "context": context,
+                "exit": False
+            }
+            if type(object_key).__name__ == "VarAccessNode":
+                if hasattr(object_name, "methods"):
+                    if object_key.id.value in object_name.methods:
+                        value = object_name.methods[object_key.id.value]
+                        return res.success(value)
+                    else:
+                        error["message"] = f"{object_name.name} has no method {object_key.id.value}"
+                        return res.failure(Program.error()["KeyError"](error))
+            
+            elif type(object_key).__name__ == "CallNode":
+                if hasattr(object_name, "methods"):
+                    if object_key.node_to_call.id.value in object_name.methods:
+                        value = object_name.methods[object_key.node_to_call.id.value]
+                        args_node = object_key.args_nodes
+                        args = []
+                        for arg in args_node:
+                            args.append(res.register(
+                                self.visit(arg, context)))
+                            if res.should_return():
+                                return res
+                        return_value = res.register(value.run(args))
+                        if res.should_return():
+                                return res
+                        if return_value == None or return_value == NoneType.none:
+                            return res.success(None)
+                        else:
+                            return res.success(return_value)
+                    else:
+                        error["message"] = f"{object_name.name} has no method {object_key.node_to_call.id.value}"
+                        return res.failure(Program.error()["KeyError"](error))
+                    # else:
+                    #     return res.failure(Program.error()["KeyError"](error))
+            
     def visit_VarAssignNode(self, node, context):
         res = RuntimeResult()
         var_name = node.variable_name_token.value if type(node.variable_name_token).__name__ != 'tuple' else ''
@@ -2240,7 +2276,7 @@ class Interpreter:
                 result, error = left.get_index(right)
             elif node.op_tok.type == tokenList.TT_GETTER:
                 return self.visit_ObjectGetNode(node, context)
-            elif node.op_tok.type == tokenList.TT_OBJECT_REF:
+            elif node.op_tok.type == tokenList.TT_DOT:
                 return self.visit_ObjectGetNode(node, context)
             elif node.op_tok.type == tokenList.TT_EQEQ:
                 result, error = left.get_comparison_eq(right)

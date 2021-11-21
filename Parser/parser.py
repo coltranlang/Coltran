@@ -196,11 +196,10 @@ class PipeNode:
     
 
 class VarAccessNode:
-    def __init__(self, name, property=None,type=None):
+    def __init__(self, name, property=None):
         self.name = name
         self.id = name
         self.property = property
-        self.type = type
         self.pos_start = self.name.pos_start
         self.pos_end = self.name.pos_end
 
@@ -215,7 +214,6 @@ class PropertyNode:
         self.property = property
         self.pos_start = self.name.pos_start
         self.pos_end = self.name.pos_end
-        
     def __repr__(self):
         return f'{self.property}'
         
@@ -1723,6 +1721,7 @@ class Parser:
     def call(self):
         res = ParseResult()
         atom = res.register(self.atom())
+        
         if res.error:
             return res
         if self.current_token.type == tokenList.TT_LPAREN:
@@ -1749,7 +1748,6 @@ class Parser:
                     if res.error:
                         return res
                 
-               
                 
                 if self.current_token.type == tokenList.TT_OBJECT_REF:
                     return res.failure(Program.error()['Syntax']({
@@ -1939,6 +1937,9 @@ class Parser:
             res.register_advancement()
             self.advance()
             right = res.register(func_2())
+            if op_tok.type == tokenList.TT_DOT:
+                left = PropertyNode(left, right)
+                return res.success(left)
             if res.error:
                 return res
             left = BinOpNode(left, op_tok, right)

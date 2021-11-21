@@ -1,13 +1,11 @@
 class Person (age, name)
-    def getName(self, tt, name)
-       println("My name is "  + self$.name)
+    def getName(self)
+       println("My name is "  + "ff")
     end
     def getAge(a, a)
-       println("I am " + str(self$.age) + " years old")
+       println("I am " + str(self.age) + " years old")
     end
 end
 
-
-println(Person(str(22), 'David')$.getName)
-println(Person)
-
+let person = Person("John", "Doe")
+println(person.getName())
