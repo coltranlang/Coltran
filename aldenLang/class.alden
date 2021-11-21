@@ -1,11 +1,21 @@
-class Person (age, name)
-    def getName(self)
-       println("My name is "  + "ff")
+class Person
+    def init(self, age, name)
+        let age = age
+        let name = name
     end
-    def getAge(a, a)
+    def getName(self)
+       println("My name is "  + self.name)
+    end
+    def getAge(self,a, a)
        println("I am " + str(self.age) + " years old")
     end
 end
 
-let person = Person("John", "Doe")
-println(person.getName())
+task @name()
+   return "John"
+end
+
+
+let person = Person.init(20, "John")
+let g = Person$"getName"
+println(g())

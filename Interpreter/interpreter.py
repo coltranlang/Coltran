@@ -1280,6 +1280,7 @@ class BaseTask(Value):
 
     def check_args(self, arg_names, args):
         res = RuntimeResult()
+    
         if len(args) > len(arg_names):
             return res.failure(Program.error()['Runtime']({
                 'pos_start': self.pos_start,
@@ -1388,9 +1389,8 @@ class Task(BaseTask):
 
 
 class Class(BaseTask):
-    def __init__(self, constructor_args,class_name, inherit_class_name, inherit_class, methods):
+    def __init__(self, class_name, inherit_class_name, inherit_class, methods):
         super().__init__(class_name)
-        self.constructor_args = constructor_args
         self.id = class_name
         self.class_name = class_name
         self.inherit_class_name = inherit_class_name
@@ -1398,20 +1398,15 @@ class Class(BaseTask):
         self.methods = methods if methods else {}
         self.get_method = self.get_method
         self.set_method = self.set_method
-    
-    def execute(self, args):
+        self.execute()
+        
+    def execute(self):
         res = RuntimeResult()
-        interpreter = Interpreter()
-        new_context = Context(self.class_name, self.context, self.pos_start)
-        new_context.symbolTable = Record(new_context.parent.symbolTable)
-
-        value = ""
-        res.register(self.check_and_populate_args(
-            self.constructor_args, args, new_context))
-        if res.should_return():
-            return res
         
-        
+        for method, value in self.methods.items():
+            if len(value.arg_names) > 0:
+                if value.arg_names[0] == self.class_name:
+                    value.arg_names.pop(0)
         # for arg in args:
         #     new_context.symbolTable.set(arg, new_context.symbolTable.get(arg))
         val1 = ""
@@ -1425,12 +1420,10 @@ class Class(BaseTask):
         #         else:
         #             method.arg_names = method.arg_names
                 
-        #    # print(method.arg_names)
+        #     print(method.arg_names)
         #     val1 = method_name
         #     val2 = method
-            
-        # new_context.symbolTable.set(val1, val2)
-        # return res.success(None)
+        return res.success(None)
 
     def set_method(self, key, value):
         self.methods[key] = value
@@ -1455,7 +1448,7 @@ class Class(BaseTask):
             return "none", self.key_error(error, method_name)
 
     def copy(self):
-        copy = Class(self.constructor_args, self.class_name,
+        copy = Class(self.class_name,
                      self.inherit_class_name, self.inherit_class, self.methods)
         copy.setPosition(self.pos_start, self.pos_end)
         copy.setContext(self.context)
@@ -2172,8 +2165,7 @@ class Interpreter:
                         for arg in args_node:
                             args.append(res.register(
                                 self.visit(arg, context)))
-                            if res.should_return():
-                                return res
+                            if res.should_return(): return res
                         return_value = res.register(value.run(args))
                         if res.should_return():
                                 return res
@@ -2661,8 +2653,8 @@ class Interpreter:
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
         class_name = node.class_name.value
-        class_constuctor_args = [
-            arg.value for arg in node.constructor_args] if node.constructor_args else []
+        # class_constuctor_args = [
+        #     arg.value for arg in node.constructor_args] if node.constructor_args else []
         inherits_class_name = node.inherits_class_name
         inherits_class = node.inherits_class
         class_value = ""
@@ -2674,10 +2666,7 @@ class Interpreter:
                 if res.should_return():
                     return res
                 methods = dict(methods, **{str(method_name): method_value})
-                class_ = Task(class_name, method_value, class_constuctor_args, False).setContext(
-                    context).setPosition(node.pos_start, node.pos_end)
-                class_value = class_
-                class_value = Class(class_constuctor_args,class_name, inherits_class_name, inherits_class, methods).setContext(context).setPosition(node.pos_start, node.pos_end)
+                class_value = Class(class_name, inherits_class_name, inherits_class, methods).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
             context.symbolTable.set_object(class_name, class_value)
