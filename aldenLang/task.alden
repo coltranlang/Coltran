@@ -1,10 +1,23 @@
-task @sum(x, y)
-    return x + y
-endTask
+task @Factorial(n)
+    if n == 0 then
+        return 1
+    else
+        return n * @Factorial(n - 1)
+    end
+end
 
-# task that returns another task
-task @result(x, y)
-    return @sum(x, y)
-endTask
 
-print(@result(1, 2))
+println(@Factorial(5))
+
+
+task @UpdateUser(user)
+ println("Your id is " + str(user.id))
+ println(user.username)
+end
+
+object User
+    id: 1
+    username: "kenny001"
+end
+
+@UpdateUser(User)

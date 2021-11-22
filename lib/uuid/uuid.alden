@@ -1,0 +1,10 @@
+# UUID Generator
+
+task @UUID()
+  
+end
+
+
+task @generate()
+   
+end

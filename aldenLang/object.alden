@@ -1,31 +1,4 @@
 
-object Car
-   id: 123
-   name: "Ford"
-   year: "2000"
-   model: "Fiesta"
-   update: object Test
-      file: "g"
-   end
-end
-
-object Http
-   get_: object Request
-            name: object Name
-               first: "John"
-               last: "Doe"
-            end
-         end
-   post: task (url, data)
-         let (first, last, email, password) =  Data
-         println("***HTTP POST**")
-         println("url: " + url)
-         println("User: " + first + " " + last)
-         println("Email: " + email)
-         println("Password: " + password)    
-   end
-end
-
 object Data
    first: "John"
    last: "Doe"
@@ -33,7 +6,4 @@ object Data
    password: "demo123"
 end
 
-
-println("" == "")
-
-println(Http$.post("http://www.google.com", Data))
+println(Data.first)

@@ -384,7 +384,7 @@ class Lexer:
         tok_type = tokenList.TT_GETTER
         pos_start = self.pos.copy()
         self.advance()
-        if self.current_char == '@':
+        if self.current_char == '$':
             self.advance()
             tok_type = tokenList.TT_GETTER
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)

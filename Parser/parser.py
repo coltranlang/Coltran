@@ -214,8 +214,22 @@ class PropertyNode:
         self.property = property
         self.pos_start = self.name.pos_start
         self.pos_end = self.name.pos_end
+        
     def __repr__(self):
         return f'{self.property}'
+    
+
+class PropertySetNode:
+    def __init__(self, name, property, value):
+        self.name = name
+        self.id = name
+        self.property = property
+        self.value = value
+        self.pos_start = self.name.pos_start
+        self.pos_end = self.value.pos_end
+        
+    def __repr__(self):
+        return f'{self.name}'
         
 
 class ObjectGetNode:
@@ -1248,7 +1262,6 @@ class Parser:
                     }))
                     res.register_advancement()
                     self.advance()
-            print(object_properties)
             return res.success(ObjectDefNode(object_name, object_properties))   
           
     def set_method(self, class_name):
@@ -1666,6 +1679,25 @@ class Parser:
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
+            # if self.current_token.type == tokenList.TT_DOT:
+            #     res.register_advancement()
+            #     self.advance()
+            #     if self.current_token.type == tokenList.TT_IDENTIFIER:
+            #         prop_name = self.current_token
+            #         res.register_advancement()
+            #         self.advance()
+            #         if self.current_token.type == tokenList.TT_EQ:
+            #             res.register_advancement()
+            #             self.advance()
+            #             prop_value = res.register(self.expr())
+            #             return res.failure(Program.error()['Syntax']({
+            #                 'pos_start': prop_name.pos_start,
+            #                 'pos_end': prop_value.pos_end,
+            #                 'message': f"Cannot assign to a property",
+            #                 'exit': False
+            #             }))
+                        #return res.success(PropertySetNode(tok, prop_name, prop_value))
+                        
             return res.success(VarAccessNode(tok))
         elif tok.value == 'true' or tok.value == 'false' or tok.value == 'none':
             res.register_advancement()
@@ -1720,42 +1752,62 @@ class Parser:
     def call(self):
         res = ParseResult()
         atom = res.register(self.atom())
+        if res.error:  return res
         
-        if res.error:
-            return res
+        
+        while True:
+            if self.current_token.type == tokenList.TT_LPAREN:
+                atom = res.register(self.finish_call(atom))
+            elif self.current_token.type == tokenList.TT_DOT:
+                res.register_advancement()
+                self.advance()
+                name = self.current_token
+                atom = res.register(self.access_property(atom, name))
+                if res.error: return res
+            else:
+                if self.current_token.type == tokenList.TT_GETTER:
+                    res.register_advancement()
+                    self.advance()
+                    if self.current_token.type == tokenList.TT_DOT:
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': f"Expected a property name",
+                            'exit': False
+                        }))
+                break
+        
+                
+        return res.success(atom)
+            
+    def finish_call(self, atom):
+        res = ParseResult()
+        arg_nodes = []
+        
+        
         if self.current_token.type == tokenList.TT_LPAREN:
             res.register_advancement()
             self.advance()
-            args = []
             if self.current_token.type == tokenList.TT_RPAREN:
                 res.register_advancement()
                 self.advance()
+                
             else:
-                args.append(res.register(self.expr()))
+                arg_nodes.append(res.register(self.expr()))
                 if res.error:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "Invalid syntax or unknown token",
+                        'message': f"Expected ')'",
                         'exit': False
                     }))
-                
                 while self.current_token.type == tokenList.TT_COMMA:
                     res.register_advancement()
                     self.advance()
-                    args.append(res.register(self.expr()))
-                    if res.error:
-                        return res
-                
-                
-                if self.current_token.type == tokenList.TT_OBJECT_REF:
-                    return res.failure(Program.error()['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "Expected '$' or '.'",
-                        'exit': False
-                    }))
-                
+                    arg_nodes.append(res.register(self.expr()))
+                    if res.error: return res
+                    
+                 
                 if self.current_token.type != tokenList.TT_RPAREN:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -1765,9 +1817,15 @@ class Parser:
                     }))
                 res.register_advancement()
                 self.advance()
-                
-            return res.success(CallNode(atom, args))
-        return res.success(atom)
+        #print("finish_call", arg_nodes)
+        return res.success(CallNode(atom, arg_nodes))
+          
+    def access_property(self,owner, name):
+        res = ParseResult()
+        res.register_advancement()
+        self.advance()
+        
+        return res.success(PropertyNode(owner, name))
 
     def power(self):
         return self.binaryOperation(self.call, (tokenList.TT_POWER, ), self.factor)
@@ -1826,15 +1884,9 @@ class Parser:
 
     def expr(self):
         res = ParseResult()
-        # if self.current_token.type == tokenList.TT_IDENTIFIER:
-        #     value = VarAccessNode(self.current_token)
-        #     if value.name:
-        #         res.register_advancement()
-        #         self.advance()
-        #         if self.current_token.type == tokenList.TT_EQ:
-        #             res.register_advancement()
-        #             self.advance()
-        #             return res.success(VarAssignNode(value, res.register(self.expr()), "let"))
+        
+        
+            
         if self.current_token.matches(tokenList.TT_KEYWORD, 'let') or self.current_token.matches(tokenList.TT_KEYWORD, 'final'):
             res.register_advancement()
             variable_keyword_token = "let" if self.current_token.matches(
@@ -1937,8 +1989,7 @@ class Parser:
             self.advance()
             right = res.register(func_2())
             if op_tok.type == tokenList.TT_DOT:
-                left = PropertyNode(left, right)
-                return res.success(left)
+                return res.success(PropertyNode(left, right))
             if res.error:
                 return res
             left = BinOpNode(left, op_tok, right)
@@ -1946,6 +1997,3 @@ class Parser:
 
     
             
-            
-    
-        

@@ -1098,8 +1098,7 @@ class List(Value):
     def __str__(self):
         return f'[{", ".join([str(x) for x in self.elements])}]'
 
-
-    
+   
 class Object(Value):
     def __init__(self, name, properties):
         super().__init__()
@@ -1188,8 +1187,7 @@ class Object(Value):
     def __repr__(self):
         return "<Object {}>".format(self.name)
         
-
-
+        
 class ObjectGet(Value):
     def __init__(self, obj, key):
         super().__init__()
@@ -1229,8 +1227,8 @@ class ObjectGet(Value):
                 return NoneType.none
         else:
             return None, self.illegal_operation(error, key)
- 
-   
+  
+    
 class ObjectRefNode(Value):
     def __init__(self, value, arg=None):
         super().__init__()
@@ -1266,8 +1264,6 @@ class ObjectRefNode(Value):
         return f"'{self.value}'"
 
 
-
-
 class BaseTask(Value):
     def __init__(self, name):
         super().__init__()
@@ -1294,7 +1290,7 @@ class BaseTask(Value):
             return res.failure(Program.error()['Runtime']({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"{len(args)} few argument(s) given, but {self.name}() expects {len(arg_names)}",
+                'message': f"{len(args)} few argument(s) given, but {self.name if self.name != 'none' else 'annonymous'}() expects {len(arg_names)}",
                 'context': self.context,
                 'exit': False
             }))
@@ -1406,7 +1402,9 @@ class Class(BaseTask):
         for method, value in self.methods.items():
             if len(value.arg_names) > 0:
                 if value.arg_names[0] == self.class_name:
-                    value.arg_names.pop(0)
+                    # dont remove the first arg but retunn args without it
+                    value.arg_names = value.arg_names
+        #print(self.methods)
         # for arg in args:
         #     new_context.symbolTable.set(arg, new_context.symbolTable.get(arg))
         val1 = ""
@@ -1523,7 +1521,6 @@ class ClassGet(Value):
         return f"<ClassGet {str(self.obj)} {str(self.key)}>"
 
     
-
 class BuiltInTask(BaseTask):
     def __init__(self, name):
         super().__init__(name)
@@ -1650,12 +1647,14 @@ def BuiltInTask_Print(args, node):
         print(value, end="")
     return res.success(String(str(NoneType.none)).setPosition(node.pos_start, node.pos_end))
 
+
 def BuiltInTask_PrintLn(args, node):
     res = RuntimeResult()
     for arg in args:
         value = str(arg)
         print(value)
     return res.success(String(str(NoneType.none)).setPosition(node.pos_start, node.pos_end))
+
 
 def BuiltInTask_Input(args, node, context):
     res = RuntimeResult()
@@ -2135,25 +2134,35 @@ class Interpreter:
  
     def visit_PropertyNode(self, node, context):
         res = RuntimeResult()
+        value = ""
         object_name = res.register(self.visit(node.name, context))
         object_key = node.property
-        print(type(object_name).__name__)
+        error = {
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            "message": "",
+            "context": context,
+            "exit": False
+        }
+        #print(type(object_name).__name__)
+        
         if isinstance(object_name, Class):
-            value = ""
-            error = {
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                "message": "",
-                "context": context,
-                "exit": False
-            }
             if type(object_key).__name__ == "VarAccessNode":
                 if hasattr(object_name, "methods"):
                     if object_key.id.value in object_name.methods:
                         value = object_name.methods[object_key.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"{object_name.name} has no method {object_key.id.value}"
+                        error["message"] = f"{object_name.name} has no property {object_key.id.value}"
+                        return res.failure(Program.error()["KeyError"](error))
+            
+            if type(object_key).__name__ == "Token":
+                if hasattr(object_name, "methods"):
+                    if object_key.value in object_name.methods:
+                        value = object_name.methods[object_key.value]
+                        return res.success(value)
+                    else:
+                        error["message"] = f"{object_name.name} has no property {object_key.value}"
                         return res.failure(Program.error()["KeyError"](error))
             
             elif type(object_key).__name__ == "CallNode":
@@ -2178,7 +2187,64 @@ class Interpreter:
                         return res.failure(Program.error()["KeyError"](error))
                     # else:
                     #     return res.failure(Program.error()["KeyError"](error))
+        
+        if isinstance(object_name, Object):
+            if type(object_key).__name__ == "Token":
+                if hasattr(object_name, "properties"):
+                    if object_key.value in object_name.properties:
+                        value = object_name.properties[object_key.value]
+                        return res.success(value)
+                    else:
+                        error["message"] = f"{object_name.name} has no property {object_key.value}"
+                        return res.failure(Program.error()["KeyError"](error))
+        
+        if isinstance(object_name, Task):
+            # task dont have methods or properties
             
+            if type(object_key).__name__ == "Token": 
+                return res.failure(Program.error()['Runtime']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"{object_name.name} does not have any property {object_key.value}",
+                    'context': context,
+                    'exit': False
+                }))
+            else:
+                return res.failure(Program.error()['Runtime']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"{object_name.name} does not have any property {object_key.id.value}",
+                    'context': context,
+                    'exit': False
+                }))
+          
+        if type(object_name).__name__ == "NoneType":
+            if type(node.name).__name__ == "CallNode":
+                return res.failure(Program.error()['Runtime']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"Undefined property {object_key.value}" if hasattr(object_key, "value") else f"Undefined property {object_key.id.value}",
+                    'context': context,
+                    'exit': False
+                }))
+            
+        if type(object_name).__name__ == "PropertyNode":
+            print("PropertyNode", "fg")
+            print(type(object_key))
+        #   return res.failure(Program.error()['Runtime']({
+        #         'pos_start': node.pos_start,
+        #         'pos_end': node.pos_end,
+        #         'message"
+        #return res.success(None)
+      
+    def visit_PropertySetNode(self, node, context):
+        res = RuntimeResult()
+        object_name = res.register(self.visit(node.name, context))
+        object_key = node.property
+        value = res.register(self.visit(node.value, context))
+        #print(object_name, object_key, value)  
+    
+         
     def visit_VarAssignNode(self, node, context):
         res = RuntimeResult()
         var_name = node.variable_name_token.value if type(node.variable_name_token).__name__ != 'tuple' else ''
@@ -2267,8 +2333,6 @@ class Interpreter:
             elif node.op_tok.type == tokenList.TT_COLON:
                 result, error = left.get_index(right)
             elif node.op_tok.type == tokenList.TT_GETTER:
-                return self.visit_ObjectGetNode(node, context)
-            elif node.op_tok.type == tokenList.TT_DOT:
                 return self.visit_ObjectGetNode(node, context)
             elif node.op_tok.type == tokenList.TT_EQEQ:
                 result, error = left.get_comparison_eq(right)
@@ -2629,32 +2693,12 @@ class Interpreter:
         else:
             return res.success(NoneType.none)
            
-      
-    # def visit_ObjectCall(self, node, context):
-    #     res = RuntimeResult()
-    #     object_name = res.register(self.visit(node.left, context))
-    #     object_key = node.right
-    #     args = node.args
-        
-    #     if isinstance(object_name, Class):
-    #         value = ""
-    #         if type(object_key).__name__ == "CallNode":
-    #             if type(object_key.node_to_call).__name__ == "ObjectRefNode":
-    #                 name = object_key.node_to_call.id.value
-    #                 args = object_key.args_nodes
-    #                 if name in object_name.methods:
-    #                     method = object_name.methods[name]
-    #                     value_to_call = res.register(self.visit(
-    #                         object_key.node_to_call, context)) if object_key.node_to_call else None
-    #                     if res.should_return(): return res
-    #                     return res.success(self.visit_TaskDefNode(method,context))
+    
                         
     
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
         class_name = node.class_name.value
-        # class_constuctor_args = [
-        #     arg.value for arg in node.constructor_args] if node.constructor_args else []
         inherits_class_name = node.inherits_class_name
         inherits_class = node.inherits_class
         class_value = ""
@@ -2678,6 +2722,7 @@ class Interpreter:
             args = []
             value_to_call = res.register(self.visit(
                 node.node_to_call, context)) if node.node_to_call else None
+            
             if res.should_return():
                 return res
             value_to_call = value_to_call.copy().setPosition(node.pos_start, node.pos_end)
@@ -2685,9 +2730,12 @@ class Interpreter:
                 args.append(res.register(self.visit(arg_node, context)))
                 if res.should_return():
                     return res
-            for arg in args:
-                if arg is None:
-                    args = []
+                
+            if len(args) > 0:
+                for arg in args:
+                    if arg == None:
+                        # remove None from args
+                        args.remove(arg)
             builtin = value_to_call.name
             
             builtins = {
@@ -2715,6 +2763,7 @@ class Interpreter:
                 return builtins[builtin](args, node, context)
             
             return_value = res.register(value_to_call.execute(args))
+            
             if res.should_return():
                 return res
             return_value = return_value.copy().setPosition(

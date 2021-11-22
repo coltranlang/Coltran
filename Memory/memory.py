@@ -180,7 +180,7 @@ class Record:
         self.symbols[name] = value
         if not value:
             value = "none"
-        print(f"{name} is set to {value}")
+        #print(f"{name} is set to {value}")
 
     def set_object(self, obj_name, object):
         self.symbols[obj_name] = object
