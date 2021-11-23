@@ -1548,7 +1548,8 @@ class BuiltInTask(BaseTask):
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
             'message': f"{self.name} is not a supported built-in task",
-            'context': self.context
+            'context': self.context,
+            'exit': False
         }))
 
     def execute_len(self, exec_context):
@@ -1559,7 +1560,8 @@ class BuiltInTask(BaseTask):
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"type {TypeOf(value).getType()} is not supported",
-                'context': self.context
+                'context': self.context,
+                'exit': False
             }))
         if isinstance(value, List):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
@@ -1572,6 +1574,9 @@ class BuiltInTask(BaseTask):
         if isinstance(value, NoneType):
             return res.success(Number(0).setPosition(self.pos_start, self.pos_end).setContext(self.context))
     execute_len.arg_names = ["value"]
+    
+    
+    
 
     def execute_append(self, exec_context):
         res = RuntimeResult()
@@ -1603,14 +1608,16 @@ class BuiltInTask(BaseTask):
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
                     'message': f"Element at index {index.value} could not be removed from list because index is out of bounds",
-                    'context': self.context
+                    'context': self.context,
+                    'exit': False
                 }))
         else:
             return res.failure(Program.error()['Runtime']({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"First argument to 'pop' must be a list.",
-                'context': self.context
+                'context': self.context,
+                'exit': False
             }))
     execute_pop.arg_names = ["list", "index"]
 
@@ -1817,6 +1824,32 @@ def BuiltInType_Str(args, node, context):
         "context": context,
         'exit': False
     }))
+    
+    
+#print(range(10))
+    
+def BuiltInType_Range(args, node, context):
+    res = RuntimeResult()
+    # built in range takes 1 or 3 arguments eg range(5) or range(1, 5) or range(1, 5, 2)
+    #print(args)
+    if len(args) not in [1, 3]:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but range() takes 1 or 3 arguments",
+            "context": context,
+            'exit': False
+        }))
+    if len(args) == 1:
+        if isinstance(args[0], Number):
+            return res.success(Number(range(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{args[0].value} is not a valid argument for range()",
+            "context": context,
+            'exit': False
+        }))
 
 def BuiltInType_Int(args, node, context):
     res = RuntimeResult()
@@ -1942,6 +1975,9 @@ def BuiltInType_List(args, node, context):
         "context": context,
         'exit': False
     }))
+    
+    
+
 
 def BuiltInTask_Format(args, node):
     string = args[0].value
@@ -2439,7 +2475,29 @@ class Interpreter:
                         'exit': False
                     })
                 )
-
+            if type(end_value.value) == float:
+                return res.failure(
+                    Program.error()['Syntax']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': 'For loop not supported between ints and floats',
+                        'exit': False
+                    })
+                )
+                
+            if type(end_value.value) == range:
+                return res.failure(
+                    Program.error()['Syntax']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': 'For loop not supported between ints and ranges',
+                        'exit': False
+                    })
+                )
+                
+                
             def condition(): return i < end_value.value
         else:
             def condition(): return i > end_value.value
@@ -2762,6 +2820,7 @@ class Interpreter:
                 'inputFloat': BuiltInTask_InputFloat,
                 'format': BuiltInTask_Format,
                 'str': BuiltInType_Str,
+                'range': BuiltInType_Range,
                 'int': BuiltInType_Int,
                 'float': BuiltInType_Float,
                 'bool': BuiltInType_Bool,
