@@ -56,7 +56,7 @@ TT_STAR = 'STAR'
 TT_DASH = 'DASH'
 TT_QUESTION = 'QUESTION'
 TT_PIPE = 'PIPE'
-
+TT_SLASH = 'SLASH'
 
 NOT_ALLOWED_OBJECTS_KEYS = [
      'let',
@@ -116,7 +116,6 @@ NOT_ALLOWED_OBJECTS_VALUES = [
 
 
 
-
 KEYWORDS = [
     'let',
     'final',
@@ -147,6 +146,38 @@ KEYWORDS = [
     'fv',
     'raise'
 ]
+
+LET = 'let'
+FINAL = 'final'
+TRUE = 'true'
+FALSE = 'false'
+NONE = 'none'
+AND = 'and'
+OR = 'or'
+NOT = 'not'
+IF = 'if'
+THEN = 'then'
+ELIF = 'elif'
+ELSE = 'else'
+FOR = 'for'
+TO = 'to'
+GET = 'get'
+FROM = 'from'
+STEP = 'step'
+WHILE = 'while'
+TASK = 'task'
+OBJECT = 'object'
+CLASS = 'class'
+DEF = 'def'
+END = 'end'
+RETURN = 'return'
+CONTINUE = 'continue'
+BREAK = 'break'
+RAISE = 'raise'
+FV = 'fv'
+PRINT = 'print'
+PRINTLN = 'println'
+
 
 
 BUILTIN = [

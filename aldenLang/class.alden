@@ -11,9 +11,7 @@ class Person
     end
 end
 
-task @name()
-   return "John"
-end
+
 
 
 let person = Person.init(20, "John")

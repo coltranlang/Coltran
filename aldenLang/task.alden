@@ -21,3 +21,42 @@ object User
 end
 
 @UpdateUser(User)
+
+
+task @HowmanyCoffeeDrank(coffeeDrank)
+    for i = 0 to coffeeDrank then
+        println("Coffee drank: " + str(i))
+        # if last coffee drank, then print out the message
+        if i == coffeeDrank - 1 then
+            println("You drank all the coffee you need!")
+        end
+    end
+end
+
+@HowmanyCoffeeDrank(5)
+
+# fibonacci series
+task @FibonacciSeries()
+    let prompt = "Fibonacci series: "
+    let nterm = inputInt("Enter a number: ")
+    let count = 0
+    let n1 = 0
+    let n2 = 1
+
+    if nterm == 1 then
+        println(n1)
+    else
+        println(n1)
+        println(n2)
+        while count < nterm - 2 then
+            let n3 = n1 + n2
+            println(n3)
+            let n1 = n2
+            let n2 = n3
+            let count = count + 1
+        end
+    end
+end
+
+
+@FibonacciSeries()

@@ -920,11 +920,11 @@ class Parser:
             body = res.register(self.statements())
             if res.error:
                 return res
-            if not self.current_token.matches(tokenList.TT_KEYWORD, 'endWhile'):
+            if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "Expected 'endWhile'",
+                    'message': "Expected 'end'",
                     'exit': False
                 }))
             res.register_advancement()

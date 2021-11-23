@@ -1667,11 +1667,17 @@ def BuiltInTask_Input(args, node, context):
             'exit': False
         }))
     if len(args) == 0:
-        input_value = input()
-        return res.success(String(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
+        try:
+            input_value = input()
+            return res.success(String(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
+        except KeyboardInterrupt:
+            return res.failure("KeyboardInterrupt")
     if len(args) == 1:
         if isinstance(args[0], String):
-            input_value = input(args[0].value)
+            try:
+                input_value = input(args[0].value)
+            except KeyboardInterrupt:
+                return res.failure("KeyboardInterrupt")
             return res.success(String(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
             return res.failure(Program.error()["Runtime"]({
@@ -1693,7 +1699,10 @@ def BuiltInTask_InputInt(args, node, context):
             'exit': False
         }))
     if len(args) == 0:
-        input_value = int(input())
+        try:
+            input_value = int(input())
+        except KeyboardInterrupt:
+            return res.failure("KeyboardInterrupt")
         return res.success(Number(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
     if len(args) == 1:
         if isinstance(args[0], String):
@@ -1704,6 +1713,8 @@ def BuiltInTask_InputInt(args, node, context):
                     break
                 except ValueError:
                     print("Invalid input, please try again")
+                except KeyboardInterrupt:
+                    return res.failure("KeyboardInterrupt")
             return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
             return res.failure(Program.error()["Runtime"]({
@@ -1725,7 +1736,10 @@ def BuiltInTask_InputFloat(args, node, context):
             'exit': False
         }))
     if len(args) == 0:
-        input_value = float(input())
+        try:
+            input_value = float(input())
+        except KeyboardInterrupt:
+            return res.failure("KeyboardInterrupt")
         return res.success(Number(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
     if len(args) == 1:
         if isinstance(args[0], String):
@@ -1736,6 +1750,8 @@ def BuiltInTask_InputFloat(args, node, context):
                     break
                 except ValueError:
                     print("Invalid input, please try again")
+                except KeyboardInterrupt:
+                    return res.failure("KeyboardInterrupt")
             return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
             return res.failure(Program.error()["Runtime"]({
