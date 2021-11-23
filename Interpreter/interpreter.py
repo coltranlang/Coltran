@@ -1385,43 +1385,35 @@ class Task(BaseTask):
 
 
 class Class(BaseTask):
-    def __init__(self, class_name, inherit_class_name, inherit_class, methods):
+    def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods):
         super().__init__(class_name)
         self.id = class_name
         self.class_name = class_name
+        self.constructor_args = constructor_args
         self.inherit_class_name = inherit_class_name
         self.inherit_class = inherit_class
         self.methods = methods if methods else {}
-        self.get_method = self.get_method
-        self.set_method = self.set_method
-        self.execute()
+        self.body_node = None
         
-    def execute(self):
+        
+    def execute(self, args):
         res = RuntimeResult()
+        interpreter = Interpreter()
+        new_context = self.generate_new_context()
+        self.check_args(self.constructor_args, args)
+        self.populate_args(self.constructor_args, args, self.context)
         
-        for method, value in self.methods.items():
-            if len(value.arg_names) > 0:
-                if value.arg_names[0] == self.class_name:
-                    # dont remove the first arg but retunn args without it
-                    value.arg_names = value.arg_names
-        #print(self.methods)
-        # for arg in args:
-        #     new_context.symbolTable.set(arg, new_context.symbolTable.get(arg))
-        val1 = ""
-        val2 = ""
-        method_args = []
-        # for method_name, method in self.methods.items():
-        #     #add class args to method args no duplicates
-        #     for arg in self.constructor_args:
-        #         if arg not in method.arg_names:
-        #             method.arg_names = method.arg_names + [arg]
-        #         else:
-        #             method.arg_names = method.arg_names
-                
-        #     print(method.arg_names)
-        #     val1 = method_name
-        #     val2 = method
-        return res.success(None)
+        # inject args into each method context
+        for method_name, method in self.methods.items():
+            method.setContext(self.context)
+            # add constructor args names and values to method context
+            for i in range(len(self.constructor_args)):
+                arg_name = self.constructor_args[i]
+                arg_value = args[i]
+                method.context.symbolTable.set(arg_name.value, arg_value)
+        
+        return res.success(self)
+        
 
     def set_method(self, key, value):
         self.methods[key] = value
@@ -1446,10 +1438,10 @@ class Class(BaseTask):
             return "none", self.key_error(error, method_name)
 
     def copy(self):
-        copy = Class(self.class_name,
+        copy = Class(self.class_name, self.constructor_args,
                      self.inherit_class_name, self.inherit_class, self.methods)
-        copy.setPosition(self.pos_start, self.pos_end)
         copy.setContext(self.context)
+        copy.setPosition(self.pos_start, self.pos_end)
         return copy
 
     def __str__(self):
@@ -2187,8 +2179,9 @@ class Interpreter:
     def visit_PropertyNode(self, node, context):
         res = RuntimeResult()
         value = ""
-        object_name = res.register(self.visit(node.name, context))
+        object_name = res.register(self.visit(node.name, context)) 
         object_key = node.property
+        #TODO: check if object_name is not callable
         error = {
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -2240,7 +2233,7 @@ class Interpreter:
                     # else:
                     #     return res.failure(Program.error()["KeyError"](error))
         
-        if isinstance(object_name, Object):
+        elif isinstance(object_name, Object):
             if type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
                     if object_key.value in object_name.properties:
@@ -2250,7 +2243,7 @@ class Interpreter:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
                         return res.failure(Program.error()["KeyError"](error))
         
-        if isinstance(object_name, Task):
+        elif isinstance(object_name, Task):
             # task dont have methods or properties
             
             if type(object_key).__name__ == "Token": 
@@ -2270,7 +2263,8 @@ class Interpreter:
                     'exit': False
                 }))
           
-        if type(object_name).__name__ == "NoneType":
+        elif type(object_name).__name__ == "NoneType":
+            
             if type(node.name).__name__ == "CallNode":
                 return res.failure(Program.error()['Runtime']({
                     'pos_start': node.pos_start,
@@ -2280,7 +2274,7 @@ class Interpreter:
                     'exit': False
                 }))
             
-        if type(object_name).__name__ == "PropertyNode":
+        elif type(object_name).__name__ == "PropertyNode":
             print("PropertyNode", "fg")
             print(type(object_key))
         #   return res.failure(Program.error()['Runtime']({
@@ -2288,6 +2282,8 @@ class Interpreter:
         #         'pos_end': node.pos_end,
         #         'message"
         #return res.success(None)
+        else:
+            print("else", "fg")
       
     def visit_PropertySetNode(self, node, context):
         res = RuntimeResult()
@@ -2487,13 +2483,14 @@ class Interpreter:
                 )
                 
             if type(end_value.value) == range:
+                
                 return res.failure(
                     Program.error()['Syntax']({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'context': context,
                         'message': 'For loop not supported between ints and ranges',
-                        'exit': False
+                        'exit': False,
                     })
                 )
                 
@@ -2773,6 +2770,7 @@ class Interpreter:
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
         class_name = node.class_name.value
+        constructor_args = node.class_constuctor_args
         inherits_class_name = node.inherits_class_name
         inherits_class = node.inherits_class
         class_value = ""
@@ -2784,7 +2782,7 @@ class Interpreter:
                 if res.should_return():
                     return res
                 methods = dict(methods, **{str(method_name): method_value})
-                class_value = Class(class_name, inherits_class_name, inherits_class, methods).setContext(context).setPosition(node.pos_start, node.pos_end)
+                class_value = Class(class_name,constructor_args, inherits_class_name, inherits_class, methods).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
             context.symbolTable.set_object(class_name, class_value)
