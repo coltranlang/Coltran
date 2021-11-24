@@ -2,7 +2,8 @@ import os
 from Parser.stringsWithArrows import *
 from Token.token import Token
 import Token.tokenList as tokenList
-from Memory.memory import Record
+from Lexer.lexer import Lexer
+from Memory.memory import Record, Parse
 import sys
 import re
 import time
@@ -198,6 +199,20 @@ class Program:
                 Program.printErrorExit(Program.asStringTraceBack(isDetail))
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
+                
+        def ModuleError(detail):
+            isDetail = {
+                'name': 'ModuleError',
+                'type': 'invalid syntax',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
 
         methods = {
             'Default': Default,
@@ -207,7 +222,8 @@ class Program:
             'Runtime': Runtime,
             'Type': Type,
             'KeyError': KeyError,
-            'ValueError': ValueError
+            'ValueError': ValueError,
+            'ModuleError': ModuleError
         }
         return methods
 
@@ -257,6 +273,19 @@ class Program:
             pos = context.parent_entry_pos
             context = context.parent
         return '\nStack trace (most recent call last):\n' + result
+    
+    def runFile(fileName):
+        try:
+            with open(fileName, 'r') as file:
+                code = file.read()
+                # check if file is ending with .alden
+                if fileName[-6:] != ".alden":
+                    print("File is not an alden file")
+                    return
+                else:
+                    return code
+        except FileNotFoundError:
+            print(f'File {fileName} not found')
 
 
 class RuntimeResult:
@@ -1687,6 +1716,7 @@ def BuiltInTask_Input(args, node, context):
                 'exit': False
             }))
 
+
 def BuiltInTask_InputInt(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
@@ -1723,6 +1753,7 @@ def BuiltInTask_InputInt(args, node, context):
                 "context": context,
                 'exit': False
             }))
+
 
 def BuiltInTask_InputFloat(args, node, context):
     res = RuntimeResult()
@@ -1761,6 +1792,7 @@ def BuiltInTask_InputFloat(args, node, context):
                 'exit': False
             }))
 
+
 def BuiltInTask_InputBool(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
@@ -1792,6 +1824,7 @@ def BuiltInTask_InputBool(args, node, context):
                 "context": context,
                 'exit': False
             }))
+
 
 def BuiltInType_Str(args, node, context):
     res = RuntimeResult()
@@ -2224,7 +2257,7 @@ class Interpreter:
                         if res.should_return():
                                 return res
                         if return_value == None or return_value == NoneType.none:
-                            return res.success(None)
+                            return res.success(NoneType.none)
                         else:
                             return res.success(return_value)
                     else:
@@ -2635,7 +2668,7 @@ class Interpreter:
                             return_value = res.register(value.run(args))
                             if res.should_return(): return res
                             if return_value == None or return_value == NoneType.none:
-                                return res.success(None)
+                                return res.success(NoneType.none)
                             else:
                                 return res.success(return_value)
                     else:
@@ -2763,10 +2796,7 @@ class Interpreter:
         
         else:
             return res.success(NoneType.none)
-           
-    
-                        
-    
+                                  
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
         class_name = node.class_name.value
@@ -2807,7 +2837,8 @@ class Interpreter:
                 for arg in args:
                     if arg == None:
                         # remove None from args
-                        args.remove(arg)
+                        args = [x for x in args if x != None]
+                    
             builtin = value_to_call.name
             
             builtins = {
@@ -2846,6 +2877,75 @@ class Interpreter:
             return res.success(return_value)
         except AttributeError or TypeError or ValueError:
             return RuntimeResult()
+
+    def visit_GetNode(self, node, context):
+        res = RuntimeResult()
+        error = {
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                "message": "",
+                "context": context,
+                "exit": False
+            }
+        module_name = node.module_name.value
+        module_path = node.module_path.value + ".alden" if node.module_path.value.split('.')[-1] != "alden" else node.module_path.value
+        # get module from module path in directory
+        module = Program.runFile(module_path)
+        module_value = {}
+        if module == None:
+            error['message'] = "Module '{}' not found".format(module_path)
+            return res.failure(Program.error()["ModuleError"](error))
+        
+        if  context.symbolTable.modules.is_module_in_members(module_name):
+            error['message'] = "Module '{}' already imported".format(module_name)
+            return res.failure(Program.error()["ModuleError"](error))
+        else:
+            context.symbolTable.modules.set(module_name, module)
+            lexer = Lexer(module_name, module)
+            tokens, error = lexer.make_tokens()
+            if error: return "", error
+
+            # Generate AST
+            parser = Parse(tokens, module_name)
+            ast = parser.parse()
+            if ast.error: return "", ast.error
+            interpreter = Interpreter()
+            context = Context('<module>')
+            context.symbolTable = Record()
+            result = interpreter.visit(ast.node, context)
+            
+            if hasattr(result, 'value') and hasattr(result, 'error'):
+                # covert result.value list to dict
+                if isinstance(result.value, List):
+                    for item in result.value.elements:
+                        module_value = dict(module_value, **{module_name: item})
+                context.symbolTable.set_object(module_name, module_value)
+                #print(context.symbolTable.set(module_name, result.value))
+                return result.value, result.error
+            
+            #context.symbolTable.set_object(module_name, result.value)
+            return result, "none"
+        #print(context.symbolTable.modules.is_module_in_members(module_name))
+        
+        # if os.path.exists(module):
+        #     with open(module, 'r') as f:
+        #         source = f.read()
+        #     ast = self.parser.parse(source)
+        #     context = Context(None, ContextType.module, module_name)
+        #     res = self.visit(ast, context)
+        #     if res.error:
+        #         return res
+        #     return res.success(res.value)
+        # else:
+        #     error = {
+        #         "pos_start": node.pos_start,
+        #         "pos_end": node.pos_end,
+        #         "message": "Module '{}' not found".format(module_name),
+        #         "context": context,
+        #         "exit": False
+        #     }
+        #     return res.failure(Program.error()["ImportError"](error))
+        
 
     def visit_ReturnNode(self, node, context):
         res = RuntimeResult()

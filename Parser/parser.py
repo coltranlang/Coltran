@@ -1,7 +1,6 @@
 from os import error, name, path
 from re import split
-from Interpreter.interpreter import ObjectGet
-from Memory.memory import Record
+
 from Parser.stringsWithArrows import *
 from Token.token import Token
 from Token import tokenList
@@ -424,23 +423,14 @@ class ClassNode:
     def __repr__(self):
         return f'{self.class_name}'
 
-class MethodCallNode:
-    def __init__(self, method_name_token, args_node):
-        self.method_name_token = method_name_token
-        self.args_node = args_node
 
-        self.pos_start = self.method_name_token.pos_start
-        if len(self.args_node) > 0:
-            self.pos_end = self.args_node[len(self.args_node) - 1].pos_end
-        else:
-            self.pos_end = self.method_name_token.pos_end
 
 class CallNode:
     def __init__(self, node_to_call, args_nodes, owner=None, type=None):
+        self.id = node_to_call
         self.node_to_call = node_to_call
         self.args_nodes = args_nodes
         self.type = type
-        self.id = node_to_call
         self.owner = owner
         self.pos_start = self.node_to_call.pos_start
         if len(self.args_nodes) > 0:
@@ -449,6 +439,30 @@ class CallNode:
             self.pos_end = self.node_to_call.pos_end
     def __repr__(self):
         return f'{self.node_to_call}({self.args_nodes})'
+
+
+class GetNode:
+    def __init__(self, module_name, module_path):
+        self.id = module_name
+        self.module_name = module_name
+        self.module_path = module_path
+        self.pos_start = self.module_name.pos_start
+        self.pos_end = self.module_name.pos_end
+        
+    def __repr__(self):
+        return f'{self.module_name}'
+    
+    
+class GetModuleNode:
+    def __init__(self, module_name, module_path):
+        self.id = module_name
+        self.module_name = module_name
+        self.module_path = module_path
+        self.pos_start = self.module_name.pos_start
+        self.pos_end = self.module_name.pos_end
+        
+    def __repr__(self):
+        return f'{self.module_name}'
 
 
 class ReturnNode:
@@ -516,7 +530,7 @@ class Parser:
         self.tokens = tokens
         self.file_name = file_name
         # get file name without extension
-        self.file_name_no_ext = self.file_name.split('/')[2].split('.')[0]
+        #self.file_name_no_ext = self.file_name.split('/')[2].split('.')[0]
         self.tok_index = -1
         self.advance()
 
@@ -1674,6 +1688,95 @@ class Parser:
                 }))
         return res.success(StringNode(self.current_token))
     
+    def get_expr(self):
+        res = ParseResult()
+        pos_start = self.current_token.pos_start.copy()
+        if self.current_token.matches(tokenList.TT_KEYWORD, 'get'):
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type != tokenList.TT_IDENTIFIER:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': f"Expected an identifier",
+                    'exit': False
+                }))
+                
+            module_name = self.current_token
+            res.register_advancement()
+            self.advance()
+            
+            
+            if not self.current_token.matches(tokenList.TT_KEYWORD, 'from'):
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': f"Expected 'from'",
+                    'exit': False
+                }))
+                
+            res.register_advancement()
+            self.advance()
+            
+            if self.current_token.type != tokenList.TT_STRING and self.current_token.type != tokenList.TT_SINGLE_STRING:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': f"Expected a string",
+                    'exit': False
+                }))
+                
+            module_path = self.current_token
+
+            res.register_advancement()
+            self.advance()
+
+            return res.success(GetNode(module_name, module_path))
+    
+    def get_module_expr(self):
+        res = ParseResult()
+        pos_start = self.current_token.pos_start.copy()
+        if self.current_token.matches(tokenList.TT_KEYWORD, 'module'):
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type != tokenList.TT_IDENTIFIER:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': f"Expected an identifier",
+                    'exit': False
+                }))
+                
+            module_name = self.current_token
+            res.register_advancement()
+            self.advance()
+            
+            if not self.current_token.matches(tokenList.TT_KEYWORD, 'require'):
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': f"Expected 'require'",
+                    'exit': False
+                }))
+                
+            res.register_advancement()
+            self.advance()
+            
+            if self.current_token.type != tokenList.TT_STRING and self.current_token.type != tokenList.TT_SINGLE_STRING:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': f"Expected a string",
+                    'exit': False
+                }))
+                
+            module_path = self.current_token
+
+            res.register_advancement()
+            self.advance()
+
+            return res.success(GetModuleNode(module_name, module_path))
+    
     def atom(self):
         res = ParseResult()
         tok = self.current_token
@@ -1742,6 +1845,20 @@ class Parser:
             if res.error:
                 return res
             return res.success(string_interp)
+        
+        elif tok.matches(tokenList.TT_KEYWORD, 'get'):
+            get_node = res.register(self.get_expr())
+            if res.error:
+                return res
+            return res.success(get_node)
+        
+        elif tok.matches(tokenList.TT_KEYWORD, 'module'):
+            get_module_node = res.register(self.get_module_expr())
+            if res.error:
+                return res
+            return res.success(get_module_node)
+        
+        
     
     def call(self):
         res = ParseResult()
@@ -1878,8 +1995,6 @@ class Parser:
 
     def expr(self):
         res = ParseResult()
-        
-        
             
         if self.current_token.matches(tokenList.TT_KEYWORD, 'let') or self.current_token.matches(tokenList.TT_KEYWORD, 'final'):
             res.register_advancement()

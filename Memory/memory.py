@@ -1,5 +1,7 @@
 import sys
 from Parser.stringsWithArrows import *
+from Parser.parser import Parser
+
 
 class Program:
     def error():
@@ -103,6 +105,10 @@ class HashTable:
         self.set(key, data)
 
 
+    def __repr__(self):
+        return str(self.slots) + '\n' + str(self.data)
+
+
 
 class Stack:
     def __init__(self):
@@ -152,12 +158,42 @@ class Environment:
                 output += str(item) + '\n'
         return output
 
+class Module:
+    def __init__(self, name, parent=None):
+        self.name = name
+        self.parent = parent
+        self.members = HashTable(1000)
+        self.id = 0
 
+    def get(self, name):
+        value = self.members.get(name)
+        if value == None and self.parent:
+            return self.parent.get(name)
+        return value
+    
+    def set(self, name, value):
+        self.members.set(name, value)
+        return value
+    
+    def is_module_in_members(self, name):
+        return self.members.get(name) != None
+        
+    def __repr__(self):
+        result = {
+            'name': self.name,
+            'members': self.members,
+            'parent': self.parent
+        }
+        return str(result)
+    
+    
 class Record:
     def __init__(self, parent=None):
         self.symbols = {}
+        self.modules = Module('root')
         self.id = 0
         self.parent = parent
+
 
     def get(self, name):
         value = self.symbols.get(name, None)
@@ -214,7 +250,7 @@ class Record:
         return str(result)
 
 
-
+Parse = Parser
 
 # hash = HashTable(1000)
 # hash.set("key", "value")

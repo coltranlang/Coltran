@@ -1,2 +1,4 @@
-get Http from "http"
-print(Http)
+get User from "./aldenLang/import_user" # still need to get this working
+println(User)
+module http require "http" # still a work in progress
+print(http)

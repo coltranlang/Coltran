@@ -4,11 +4,11 @@ class Person(_age, _name)
        println("Your name is " + _name)
     end
     def getAge()
-       println("I am " + str(_age) + " years old")
+       println("Your are " + str(_age) + " years old")
     end
 end
 
 
 
 let person = Person(20, "John")
-print(person.getName())
+print(person.getName(), person.getAge())

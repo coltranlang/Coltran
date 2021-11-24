@@ -29,7 +29,7 @@ BuiltInTask.remove = BuiltInTask("remove")
 BuiltInTask.clearList = BuiltInTask("clearList")
 BuiltInTask.delay = BuiltInTask("delay")
 BuiltInTask.format = BuiltInTask("format")
-
+BuiltInTask.http = BuiltInTask("http")
 Record = Record()
 Record.set('print', BuiltInTask.print)   
 Record.set('println', BuiltInTask.println)
@@ -56,6 +56,7 @@ Record.set('remove', BuiltInTask.remove)
 Record.set('clearList', BuiltInTask.clearList)
 Record.set('delay', BuiltInTask.delay)
 Record.set('format', BuiltInTask.format)
+Record.set('http', BuiltInTask.http)
 Record.setRecord()
 
 class Program:

@@ -1,0 +1,27 @@
+# testing the http module
+
+class Http(_url, _headers, _body)
+    def post()
+        println("POST", _url, _headers, _body)
+    end
+    def get_()
+        println("GET", _url, _headers, _body)
+    end
+    def put()
+        println("PUT", _url, _headers, _body)
+    end
+    def delete()
+        println("DELETE", _url, _headers, _body)
+    end
+end
+
+
+object Header
+    Content_Type: "application/json"
+end
+
+let http = Http("http://www.alden.org", Header.Content_Type, "")
+http.post()
+http.get_()
+http.put()
+http.delete()

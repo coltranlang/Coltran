@@ -16,4 +16,4 @@ object User
    end
 end
 
-println(User.role.greeting())
+print(User)
