@@ -1,4 +1,4 @@
 get User from "./aldenLang/import_user" # still need to get this working
-println(User)
-module http require "http" # still a work in progress
-print(http)
+print(User.role.greeting())
+#module http require "http" # still a work in progress
+#print(http)

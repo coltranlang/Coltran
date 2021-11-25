@@ -2206,7 +2206,7 @@ class Interpreter:
                 'exit': True
             })
             return res.noreturn()
-        value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
+        value = value #value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(value)
  
     def visit_PropertyNode(self, node, context):
@@ -2316,7 +2316,7 @@ class Interpreter:
         #         'message"
         #return res.success(None)
         else:
-            print("else", "fg")
+            print("object_name")
       
     def visit_PropertySetNode(self, node, context):
         res = RuntimeResult()
@@ -2880,6 +2880,7 @@ class Interpreter:
 
     def visit_GetNode(self, node, context):
         res = RuntimeResult()
+        value = ""
         error = {
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
@@ -2900,7 +2901,7 @@ class Interpreter:
             error['message'] = "Module '{}' already imported".format(module_name)
             return res.failure(Program.error()["ModuleError"](error))
         else:
-            context.symbolTable.modules.set(module_name, module)
+            #context.symbolTable.set(module_name, module)
             lexer = Lexer(module_name, module)
             tokens, error = lexer.make_tokens()
             if error: return "", error
@@ -2910,22 +2911,25 @@ class Interpreter:
             ast = parser.parse()
             if ast.error: return "", ast.error
             interpreter = Interpreter()
-            context = Context('<module>')
-            context.symbolTable = Record()
-            result = interpreter.visit(ast.node, context)
+            new_context = Context('<module>')
+            new_context.symbolTable = Record()
+            result = interpreter.visit(ast.node, new_context)
             
             if hasattr(result, 'value') and hasattr(result, 'error'):
                 # covert result.value list to dict
                 if isinstance(result.value, List):
                     for item in result.value.elements:
                         module_value = dict(module_value, **{module_name: item})
-                context.symbolTable.set_object(module_name, module_value)
+                context.symbolTable.set(module_name, item)
+                value = module_value
                 #print(context.symbolTable.set(module_name, result.value))
-                return result.value, result.error
+           # context.symbolTable.set(module_name, value)
+            return res.success(value)
             
             #context.symbolTable.set_object(module_name, result.value)
-            return result, "none"
-        #print(context.symbolTable.modules.is_module_in_members(module_name))
+            
+        
+        
         
         # if os.path.exists(module):
         #     with open(module, 'r') as f:

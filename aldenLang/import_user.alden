@@ -16,4 +16,3 @@ object User
    end
 end
 
-print(User)
