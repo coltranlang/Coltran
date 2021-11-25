@@ -1829,14 +1829,11 @@ class Parser:
                                 'exit': False
                             }))
                         modules.append(element)
-                elif isinstance(expr, ObjectDefNode):
-                        for property in expr.properties:
-                            modules.append(property)
                 else:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': f"Expected an array or an object",
+                        'message': f"Expected an identifier or list of identifiers",
                         'exit': False
                     }))
         return res.success(ExportModuleNode(modules))

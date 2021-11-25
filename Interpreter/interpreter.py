@@ -2347,11 +2347,7 @@ class Interpreter:
         modules = node.modules
         value = ""
         for module in modules:
-            if type(module).__name__ == "dict":
-               name = module["name"].value
-               value = res.register(self.visit(module["value"], context))
-               print(name, value)
-            elif type(module).__name__ == "Token":
+            if type(module).__name__ == "Token":
                 name = module.value
                 value = context.symbolTable.get(name)
                 if value == None:
@@ -2364,6 +2360,7 @@ class Interpreter:
                         'exit': True
                     })
                 else:
+                    print(name, value)
                     context.symbolTable.set_module(name, value)
             elif type(module).__name__ == "VarAccessNode":
                 name = module.id.value
