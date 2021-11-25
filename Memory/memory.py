@@ -58,7 +58,6 @@ class Program:
         return '\nStack trace (most recent call last):\n' + result
 
 
-
 class HashTable:
     def __init__(self, size):
         self.size = size
@@ -109,7 +108,6 @@ class HashTable:
         return str(self.slots) + '\n' + str(self.data)
 
 
-
 class Stack:
     def __init__(self):
         self.stack = []
@@ -135,6 +133,8 @@ class Stack:
         for item in self.stack:
             output += f'{item}\n'
 
+
+
 class Environment:
     def __init__(self, parent=None):
         self.members = HashTable(1000)
@@ -158,39 +158,33 @@ class Environment:
                 output += str(item) + '\n'
         return output
 
-class Module:
-    def __init__(self, name, parent=None):
-        self.name = name
-        self.parent = parent
-        self.members = HashTable(1000)
-        self.id = 0
 
-    def get(self, name):
-        value = self.members.get(name)
+class Module:
+    def __init__(self, parent=None):
+        self.modules = {}
+        self.parent = parent
+
+    def get(self, key):
+        value = self.modules.get(key, None)
         if value == None and self.parent:
-            return self.parent.get(name)
+            value = self.parent.get(key)
+        if value == None:
+            return "none"
         return value
     
-    def set(self, name, value):
-        self.members.set(name, value)
-        return value
-    
-    def is_module_in_members(self, name):
-        return self.members.get(name) != None
+    def set(self, key, value):
+        self.modules[key] = value
         
     def __repr__(self):
-        result = {
-            'name': self.name,
-            'members': self.members,
-            'parent': self.parent
-        }
-        return str(result)
+        output = 'Current modules:\n'
+        for item in self.modules:
+            output += str(item) + '\n'
+        return output
     
-    
-class Record:
+class SymbolTable:
     def __init__(self, parent=None):
         self.symbols = {}
-        self.modules = Module('root')
+        self.modules = Module()
         self.id = 0
         self.parent = parent
 
@@ -233,6 +227,9 @@ class Record:
                 "SyntaxError", "Identifier '{name}' cannot be redecalred".format(name=name))
         else:
             self.symbols[name] = value
+            
+    def set_module(self, name, module):
+        self.modules.set(name, module)
 
     def setRecord(self):
         self.set("none", "none")

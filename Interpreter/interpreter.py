@@ -3,7 +3,7 @@ from Parser.stringsWithArrows import *
 from Token.token import Token
 import Token.tokenList as tokenList
 from Lexer.lexer import Lexer
-from Memory.memory import Record, Parse
+from Memory.memory import SymbolTable, Parse
 import sys
 import re
 import time
@@ -308,6 +308,7 @@ class RuntimeResult:
             return res.value
         else:
             return res
+   
     def success(self, value):
         self.reset()
         self.value = value
@@ -1300,7 +1301,7 @@ class BaseTask(Value):
 
     def generate_new_context(self):
         new_context = Context(self.name, self.context, self.pos_start)
-        new_context.symbolTable = Record(new_context.parent.symbolTable)
+        new_context.symbolTable = SymbolTable(new_context.parent.symbolTable)
         return new_context
 
     def check_args(self, arg_names, args):
@@ -1851,8 +1852,6 @@ def BuiltInType_Str(args, node, context):
     }))
     
     
-#print(range(10))
-    
 def BuiltInType_Range(args, node, context):
     res = RuntimeResult()
     # built in range takes 1 or 3 arguments eg range(5) or range(1, 5) or range(1, 5, 2)
@@ -1875,6 +1874,7 @@ def BuiltInType_Range(args, node, context):
             "context": context,
             'exit': False
         }))
+
 
 def BuiltInType_Int(args, node, context):
     res = RuntimeResult()
@@ -1909,6 +1909,7 @@ def BuiltInType_Int(args, node, context):
         'exit': False
     }))
 
+
 def BuiltInType_Float(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
@@ -1941,6 +1942,7 @@ def BuiltInType_Float(args, node, context):
         "context": context,
         'exit': False
     }))
+
 
 def BuiltInType_Bool(args, node, context):
     res = RuntimeResult()
@@ -1975,6 +1977,7 @@ def BuiltInType_Bool(args, node, context):
         'exit': False
     }))
 
+
 def BuiltInType_List(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
@@ -2002,13 +2005,12 @@ def BuiltInType_List(args, node, context):
     }))
     
     
-
-
 def BuiltInTask_Format(args, node):
     string = args[0].value
     values_list = args[1].value
     regex = Regex().compile('{(.*?)}')
     matches = regex.match(string)
+  
     
 def BuiltInTask_Clear(args, node, context):
     res = RuntimeResult()
@@ -2023,6 +2025,7 @@ def BuiltInTask_Clear(args, node, context):
     if len(args) == 0:
         os.system('cls' if os.name == 'nt' else 'clear')
         return res.success(None)
+   
     
 def BuiltInTask_Delay(args, node, context):
     res = RuntimeResult()
@@ -2046,6 +2049,7 @@ def BuiltInTask_Delay(args, node, context):
             "context": context,
             'exit': False
         }))
+ 
     
 def BuiltInTask_Exit(args, node, context):
     res = RuntimeResult()
@@ -2080,6 +2084,7 @@ def BuiltInTask_Exit(args, node, context):
             "context": context,
             'exit': False
         }))
+
     
 class Interpreter:
     def visit(self, node, context):
@@ -2087,8 +2092,10 @@ class Interpreter:
         method = getattr(self, method_name, self.no_visiit)
         return method(node, context)
 
+
     def no_visiit(self, node, context):
         return RuntimeResult().success(NoneType.none)
+
 
     def visit_StatementsNode(self, node, context):
         res = RuntimeResult()
@@ -2100,17 +2107,20 @@ class Interpreter:
             elements.append(element_value)
         return res.success(Statement(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
+
     def visit_NumberNode(self, node, context):
         return RuntimeResult().success(
             Number(node.tok.value).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
 
+
     def visit_StringNode(self, node, context):
         return RuntimeResult().success(
             String(node.tok.value, node.arg).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
+
 
     def visit_ObjectRefNode(self, node, context):
         return RuntimeResult().success(
@@ -2156,6 +2166,7 @@ class Interpreter:
         else:
             res.noreturn()
     
+    
     def visit_ListNode(self, node, context):
         res = RuntimeResult()
         elements = []
@@ -2166,11 +2177,13 @@ class Interpreter:
             elements.append(element_value)
         return res.success(List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
+
     def visit_BooleanNode(self, node, context):
         return RuntimeResult().success(
             Number(node.tok.value).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
+    
         
     def visit_PairNode(self, node, context):
         res = RuntimeResult()
@@ -2181,6 +2194,7 @@ class Interpreter:
                 return res
             elements = elements + (element_value,)
         return res.success(Pair(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+
 
     def visit_VarAccessNode(self, node, context):
         res = RuntimeResult()
@@ -2208,6 +2222,7 @@ class Interpreter:
             return res.noreturn()
         value = value #value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(value)
+ 
  
     def visit_PropertyNode(self, node, context):
         res = RuntimeResult()
@@ -2316,20 +2331,59 @@ class Interpreter:
         #         'message"
         #return res.success(None)
         else:
-            print("object_name")
+            print(object_name, object_key)
       
+    
     def visit_PropertySetNode(self, node, context):
         res = RuntimeResult()
         object_name = res.register(self.visit(node.name, context))
         object_key = node.property
         value = res.register(self.visit(node.value, context))
         #print(object_name, object_key, value)  
+     
     
-         
+    def visit_ExportModuleNode(self, node, context):
+        res = RuntimeResult()
+        modules = node.modules
+        value = ""
+        for module in modules:
+            if type(module).__name__ == "dict":
+               name = module["name"].value
+               value = res.register(self.visit(module["value"], context))
+               print(name, value)
+            elif type(module).__name__ == "Token":
+                name = module.value
+                value = context.symbolTable.get(name)
+                if value == None:
+                    Program.error()['Error']({
+                        'name': 'IdentifierError',
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f'{name} is not defined',
+                        'context': context,
+                        'exit': True
+                    })
+                else:
+                    context.symbolTable.set_module(name, value)
+            elif type(module).__name__ == "VarAccessNode":
+                name = module.id.value
+                value = res.register(self.visit(module, context))
+                context.symbolTable.setRecord(name, value)
+        
     def visit_VarAssignNode(self, node, context):
         res = RuntimeResult()
         var_name = node.variable_name_token.value if type(node.variable_name_token).__name__ != 'tuple' else ''
         value = res.register(self.visit(node.value_node, context))
+        #print(type(value).__name__, value)
+        # if isinstance(value, Object):
+        #     # objects cannot be reassigned
+        #     return res.failure(Program.error()['Runtime']({
+        #         'pos_start': node.pos_start,
+        #         'pos_end': node.pos_end,
+        #         'message': f"{var_name} cannot be reassigned, because {var_name} is of type  {type(value).__name__}",
+        #         'context': context,
+        #         'exit': False
+        #     }))
         if type(node.variable_name_token).__name__ == "tuple":
             var_name = node.variable_name_token
             if type(value).__name__ == "Pair":
@@ -2888,45 +2942,40 @@ class Interpreter:
                 "context": context,
                 "exit": False
             }
-        module_name = node.module_name.value
-        module_path = node.module_path.value + ".alden" if node.module_path.value.split('.')[-1] != "alden" else node.module_path.value
-        # get module from module path in directory
-        module = Program.runFile(module_path)
-        module_value = {}
-        if module == None:
-            error['message'] = "Module '{}' not found".format(module_path)
-            return res.failure(Program.error()["ModuleError"](error))
+        # module_name = node.module_name.value
+        # module_path = node.module_path.value + ".alden" if node.module_path.value.split('.')[-1] != "alden" else node.module_path.value
+        # # get module from module path in directory
+        # module = Program.runFile(module_path)
+        # module_value = {}
+        # if module == None:
+        #     error['message'] = "Module '{}' not found".format(module_path)
+        #     return res.failure(Program.error()["ModuleError"](error))
         
-        if  context.symbolTable.modules.is_module_in_members(module_name):
-            error['message'] = "Module '{}' already imported".format(module_name)
-            return res.failure(Program.error()["ModuleError"](error))
-        else:
-            #context.symbolTable.set(module_name, module)
-            lexer = Lexer(module_name, module)
-            tokens, error = lexer.make_tokens()
-            if error: return "", error
+        # if  context.symbolTable.modules.is_module_in_members(module_name):
+        #     error['message'] = "Module '{}' already imported".format(module_name)
+        #     return res.failure(Program.error()["ModuleError"](error))
+        # else:
+            
+        #     lexer = Lexer(module_name, module)
+        #     tokens, error = lexer.make_tokens()
+        #     if error: return "", error
 
-            # Generate AST
-            parser = Parse(tokens, module_name)
-            ast = parser.parse()
-            if ast.error: return "", ast.error
-            interpreter = Interpreter()
-            new_context = Context('<module>')
-            new_context.symbolTable = Record()
-            result = interpreter.visit(ast.node, new_context)
+           
+        #     parser = Parse(tokens, module_name)
+        #     ast = parser.parse()
+        #     if ast.error: return "", ast.error
+        #     interpreter = Interpreter()
+        #     new_context = Context('<module>')
+        #     new_context.symbolTable = SymbolTable()
+        #     result = interpreter.visit(ast.node, new_context)
             
-            if hasattr(result, 'value') and hasattr(result, 'error'):
-                # covert result.value list to dict
-                if isinstance(result.value, List):
-                    for item in result.value.elements:
-                        module_value = dict(module_value, **{module_name: item})
-                context.symbolTable.set(module_name, item)
-                value = module_value
-                #print(context.symbolTable.set(module_name, result.value))
-           # context.symbolTable.set(module_name, value)
-            return res.success(value)
-            
-            #context.symbolTable.set_object(module_name, result.value)
+        #     if hasattr(result, 'value') and hasattr(result, 'error'):
+        #         if isinstance(result.value, List):
+        #             for item in result.value.elements:
+        #                 module_value = dict(module_value, **{module_name: item})
+        #         context.symbolTable.set(module_name, item)
+        #         value = module_value
+        #     return res.success(value)
             
         
         
@@ -2949,7 +2998,8 @@ class Interpreter:
         #         "exit": False
         #     }
         #     return res.failure(Program.error()["ImportError"](error))
-        
+     
+       
 
     def visit_ReturnNode(self, node, context):
         res = RuntimeResult()

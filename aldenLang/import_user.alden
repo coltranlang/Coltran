@@ -1,3 +1,4 @@
+#get pair from "aldenLang/pair"
 object User
    first: "John"
    last: "Doe"
@@ -15,4 +16,24 @@ object User
        updated_at: "2021-01-01T00:00:00.000Z"
    end
 end
+
+let role = User.role
+let greet = task () -> "Hello World"
+let add = 2 + 2
+
+# Different ways to export a module
+
+# export module as an object literal (recommended) for named exports
+export object NamedExport
+    Role: User.role
+    Greet: greet
+    User: User
+    Add: add
+end
+
+# export as identifier separated by a comma
+#export role, greet, User, add
+
+# export as a list of identifiers
+#export [role, greet, User, add]
 

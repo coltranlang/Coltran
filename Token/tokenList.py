@@ -75,6 +75,7 @@ NOT_ALLOWED_OBJECTS_KEYS = [
     'to',
     'get',
     'from',
+    'export',
     'module',
     'require',
     'step',
@@ -135,6 +136,7 @@ KEYWORDS = [
     'to',
     'get',
     'from',
+    'export',
     'module',
     'require',
     'step',
@@ -167,6 +169,9 @@ FOR = 'for'
 TO = 'to'
 GET = 'get'
 FROM = 'from'
+EXPORT = 'export'   
+MODULE = 'module'
+REQUIRE = 'require'
 STEP = 'step'
 WHILE = 'while'
 TASK = 'task'

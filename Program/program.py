@@ -2,7 +2,7 @@ import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
 from Interpreter.interpreter import Context, Interpreter, BuiltInTask
-from Memory.memory import Record
+from Memory.memory import SymbolTable
 
 BuiltInTask.print = BuiltInTask("print")
 BuiltInTask.println = BuiltInTask("println")
@@ -30,34 +30,37 @@ BuiltInTask.clearList = BuiltInTask("clearList")
 BuiltInTask.delay = BuiltInTask("delay")
 BuiltInTask.format = BuiltInTask("format")
 BuiltInTask.http = BuiltInTask("http")
-Record = Record()
-Record.set('print', BuiltInTask.print)   
-Record.set('println', BuiltInTask.println)
-Record.set('exit', BuiltInTask.exit)
-Record.set('input', BuiltInTask.input)
-Record.set('inputInt', BuiltInTask.inputInt)
-Record.set('inputFloat', BuiltInTask.inputFloat)
-Record.set('inputBool', BuiltInTask.inputBool)
-Record.set('clear', BuiltInTask.clear)
-Record.set('len', BuiltInTask.len)
-#Record.set('range', BuiltInTask.range)
-Record.set('str', BuiltInTask.str)
-Record.set('int', BuiltInTask.int)
-Record.set('float', BuiltInTask.float)
-Record.set('bool', BuiltInTask.bool)
-Record.set('list', BuiltInTask.list)
-Record.set('pair', BuiltInTask.pair)
-Record.set('object', BuiltInTask.object)
-Record.set('typeOf', BuiltInTask.typeOf)
-Record.set('append', BuiltInTask.append)
-Record.set('pop', BuiltInTask.pop)
-Record.set('extend', BuiltInTask.extend)
-Record.set('remove', BuiltInTask.remove)
-Record.set('clearList', BuiltInTask.clearList)
-Record.set('delay', BuiltInTask.delay)
-Record.set('format', BuiltInTask.format)
-Record.set('http', BuiltInTask.http)
-Record.setRecord()
+
+
+
+symbolTable_ = SymbolTable()
+symbolTable_.set('print', BuiltInTask.print)   
+symbolTable_.set('println', BuiltInTask.println)
+symbolTable_.set('exit', BuiltInTask.exit)
+symbolTable_.set('input', BuiltInTask.input)
+symbolTable_.set('inputInt', BuiltInTask.inputInt)
+symbolTable_.set('inputFloat', BuiltInTask.inputFloat)
+symbolTable_.set('inputBool', BuiltInTask.inputBool)
+symbolTable_.set('clear', BuiltInTask.clear)
+symbolTable_.set('len', BuiltInTask.len)
+#symbolTable_.set('range', BuiltInTask.range)
+symbolTable_.set('str', BuiltInTask.str)
+symbolTable_.set('int', BuiltInTask.int)
+symbolTable_.set('float', BuiltInTask.float)
+symbolTable_.set('bool', BuiltInTask.bool)
+symbolTable_.set('list', BuiltInTask.list)
+symbolTable_.set('pair', BuiltInTask.pair)
+symbolTable_.set('object', BuiltInTask.object)
+symbolTable_.set('typeOf', BuiltInTask.typeOf)
+symbolTable_.set('append', BuiltInTask.append)
+symbolTable_.set('pop', BuiltInTask.pop)
+symbolTable_.set('extend', BuiltInTask.extend)
+symbolTable_.set('remove', BuiltInTask.remove)
+symbolTable_.set('clearList', BuiltInTask.clearList)
+symbolTable_.set('delay', BuiltInTask.delay)
+symbolTable_.set('format', BuiltInTask.format)
+symbolTable_.set('http', BuiltInTask.http)
+symbolTable_.setRecord()
 
 class Program:
     def error():
@@ -104,7 +107,7 @@ class Program:
         
         interpreter = Interpreter()
         context = Context('<module>')
-        context.symbolTable = Record
+        context.symbolTable = symbolTable_
         result = interpreter.visit(ast.node, context)
         
         if hasattr(result, 'value') and hasattr(result, 'error'):

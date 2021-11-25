@@ -231,6 +231,20 @@ class PropertySetNode:
         return f'{self.name}'
         
 
+class ExportModuleNode:
+    def __init__(self, modules):
+        self.modules = modules
+        if isinstance(self.modules[0], dict):
+            self.pos_start = self.modules[0]['pos_start']
+            self.pos_end = self.modules[-1]['pos_end']
+        else:
+            self.pos_start = self.modules[0].pos_start
+            self.pos_end = self.modules[-1].pos_end
+        
+    def __repr__(self):
+        return f'{self.modules}'
+
+
 class ObjectGetNode:
     def __init__(self, left , right):
         self.id = left
@@ -1216,13 +1230,12 @@ class Parser:
                         'pos_start': obj_name.pos_start,
                         'pos_end': self.current_token.pos_end
                     })
-                #check if object value matches self keyword
+                
                 
                 
                 #return res.success(ObjectDefNode(object_name, object_properties))
                 
                 if res.error: return res
-               # print(Record().get(obj_value.name.value), "is valid")
                 if obj_value == '':
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -1777,6 +1790,58 @@ class Parser:
 
             return res.success(GetModuleNode(module_name, module_path))
     
+    def export_expr(self):
+        res = ParseResult()
+        pos_start = self.current_token.pos_start.copy()
+        if self.current_token.matches(tokenList.TT_KEYWORD, 'export'):
+            res.register_advancement()
+            self.advance()
+            modules = []
+            if self.current_token.type == tokenList.TT_IDENTIFIER:
+                module = self.current_token
+                res.register_advancement()
+                self.advance()
+                modules.append(module)
+                if self.current_token.type == tokenList.TT_COMMA:
+                    while self.current_token.type == tokenList.TT_COMMA:
+                        res.register_advancement()
+                        self.advance()
+                        current_token = self.current_token
+                        if current_token.type != tokenList.TT_IDENTIFIER:
+                            return res.failure(Program.error()['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': f"Expected an identifier",
+                                'exit': False
+                            }))
+                        res.register_advancement()
+                        self.advance()
+                        modules.append(current_token)
+            else:
+                expr = res.register(self.expr())
+                if isinstance(expr, ListNode):
+                    for element in expr.elements:
+                        if isinstance(element, VarAccessNode) != True:
+                            return res.failure(Program.error()['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': f"Expected an identifier, or perhaps you forgot to close the list?",
+                                'exit': False
+                            }))
+                        modules.append(element)
+                elif isinstance(expr, ObjectDefNode):
+                        for property in expr.properties:
+                            modules.append(property)
+                else:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': f"Expected an array or an object",
+                        'exit': False
+                    }))
+        return res.success(ExportModuleNode(modules))
+    
+    
     def atom(self):
         res = ParseResult()
         tok = self.current_token
@@ -1858,7 +1923,11 @@ class Parser:
                 return res
             return res.success(get_module_node)
         
-        
+        elif tok.matches(tokenList.TT_KEYWORD, 'export'):
+            export_module = res.register(self.export_expr())
+            if res.error:
+                return res
+            return res.success(export_module)   
     
     def call(self):
         res = ParseResult()
