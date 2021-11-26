@@ -24,15 +24,21 @@ let add = 2 + 2
 # Different ways to export a module
 
 # export module as an object  (recommended) for named export
-object TestExport
+object ExportModule
+    Role: User.role
+    Greet: greet
+    User: User
+    Add: add
+end
+object LiExport
     Role: User.role
     Greet: greet
     User: User
     Add: add
 end
 
-export TestExport
-
+export ExportModule
+export LiExport
 
 # export as identifier separated by a comma
 #export role, greet, User, add

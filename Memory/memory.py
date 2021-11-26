@@ -57,6 +57,7 @@ class Program:
             context = context.parent
         return '\nStack trace (most recent call last):\n' + result
 
+
 class HashTable:
     def __init__(self, size):
         self.size = size
@@ -170,6 +171,9 @@ class Module:
             return "none"
         return value
     
+    def is_module_in_members(self, key):
+        return key in self.modules
+
     def set(self, key, value):
         self.modules[key] = value
         
@@ -178,8 +182,7 @@ class Module:
         for item in self.modules:
             output += str(item) + '\n'
         return output
-  
-  
+    
     
 class SymbolTable:
    

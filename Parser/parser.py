@@ -194,10 +194,10 @@ class PipeNode:
     
 
 class VarAccessNode:
-    def __init__(self, name, property=None):
+    def __init__(self, name, type=None):
         self.name = name
         self.id = name
-        self.property = property
+        self.type = type
         self.pos_start = self.name.pos_start
         self.pos_end = self.name.pos_end
 
@@ -317,6 +317,7 @@ class BooleanNode:
 class NoneNode:
     def __init__(self, tok):
         self.tok = tok
+        self.id = tok
         self.value = self.tok.value
         self.pos_start = self.tok.pos_start
         self.pos_end = self.tok.pos_end
@@ -1867,7 +1868,7 @@ class Parser:
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
-            return res.success(VarAccessNode(tok))
+            return res.success(VarAccessNode(tok, "get"))
         elif tok.value == 'true' or tok.value == 'false':
             res.register_advancement()
             self.advance()

@@ -1,5 +1,5 @@
-get User from "./aldenLang/import_user" # still need to get this working
-println(User)
+get [Role] from "./aldenLang/import_user" # still need to get this working
+println(Role)
 #module http require "http" # still a work in progress
 #print(http)
 

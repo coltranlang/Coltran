@@ -85,7 +85,7 @@ let car = Car("BMW", "Black")
 line(9)
 car.getName()
 car.getColor()
-println(none or car.getName())
+
 
 # test for array index
 object CarInventory
