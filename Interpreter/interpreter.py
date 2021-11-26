@@ -2,7 +2,6 @@ import os
 from Parser.stringsWithArrows import *
 from Token.token import Token
 import Token.tokenList as tokenList
-from Lexer.lexer import Lexer
 from Memory.memory import SymbolTable, Parse
 import sys
 import re
@@ -601,14 +600,10 @@ class Number(Value):
             'context': self.context,
             'exit': False
         }
-        if isinstance(self, Number) and isinstance(other, Number):
-            return Number(self.value + other.value), None
         if isinstance(other, Number):
-            if self.value == "none" or other.value == "none":
-                return None, self.illegal_operation_typerror(error)
             return Number(setNumber(self.value) + setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, String):
-                return None, self.illegal_operation_typerror(error)
+        if isinstance(other, Boolean):
+            return Number(setNumber(self.value) + setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
 
@@ -621,14 +616,8 @@ class Number(Value):
             'exit': False
         }
         if isinstance(other, Number):
-            if other.value == "none" or self.value == "none":
-                error = {
-                    'pos_start': self.pos_start,
-                    'pos_end': self.pos_end,
-                    'message': f"can't subtract {TypeOf(self.value).getType()} from {TypeOf(other.value).getType()}",
-                    'context': self.context
-                }
-                return None, self.illegal_operation_typerror(error)
+            return Number(setNumber(self.value) - setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
             return Number(setNumber(self.value) - setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
@@ -641,24 +630,10 @@ class Number(Value):
             'context': self.context,
             'exit': False
         }
-        if self.value == "none" or other.value == "none":
-            return None, self.illegal_operation_typerror(error)
-        if hasattr(other, 'value'):
-            if other.value == "true" or self.value == "true":
-                return String(setNumber(self.value) * setNumber(other.value)).setContext(self.context), None
-            elif other.value == "false" or self.value == "false":
-                return String(setNumber(self.value) * setNumber(other.value)).setContext(self.context), None
 
         if isinstance(other, Number):
-            if other.value == "none":
-                error = {
-                    'pos_start': self.pos_start,
-                    'pos_end': self.pos_end,
-                    'message': f"can't multiply '{type(self.value).__name__}' of type 'none'",
-                    'context': self.context,
-                    'exit': False
-                }
-                return None, self.illegal_operation_typerror(error)
+            return Number(setNumber(self.value) * setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
             return Number(setNumber(self.value) * setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
@@ -672,16 +647,8 @@ class Number(Value):
             'exit': False
         }
         if isinstance(other, Number):
-            if other.value == "none" or self.value == "none":
-                return None, self.illegal_operation_typerror(error)
-            if other.value == 0:
-                return None, Program.error()['Runtime']({
-                    'pos_start': other.pos_start,
-                    'pos_end': other.pos_end,
-                    'message': 'division by zero',
-                    'context': self.context,
-                    'exit': False
-                })
+            return Number(setNumber(self.value) / setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
             return Number(setNumber(self.value) / setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
@@ -695,8 +662,8 @@ class Number(Value):
                     'exit': False
                 }
         if isinstance(other, Number):
-            if other.value == "none" or self.value == "none":
-                return None, self.illegal_operation_typerror(error)
+            return Number(setNumber(self.value) ** setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
             return Number(setNumber(self.value) ** setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
@@ -710,92 +677,126 @@ class Number(Value):
                     'exit': False
                 }
         if isinstance(other, Number):
-            if other.value == "none" or self.value == "none":
-                return None, self.illegal_operation_typerror(error)
+            return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
             return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
 
     def get_comparison_eq(self, other):
-        if other.value == "true":
-            return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-        elif other.value == "false":
-            return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-        elif other.value == "none":
-            return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, String):
-            return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, Number):
-            return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation(other)
+        return Boolean(setNumber(self.value) == setNumber(other.value)), None
 
     def get_comparison_ne(self, other):
-        if other.value == "true":
-            return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
-        elif other.value == "false":
-            return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
-        elif other.value == "none":
-            return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, String):
-            return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, Number):
-            return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation(other)
+        return Boolean(setNumber(self.value) != setNumber(other.value)), None
 
     def get_comparison_lt(self, other):
         if isinstance(other, Number):
+            return self.setTrueorFalse(setNumber(self.value) < setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, String):
+            return self.setTrueorFalse(setNumber(self.value) < setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
             return self.setTrueorFalse(setNumber(self.value) < setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(other)
 
     def get_comparison_gt(self, other):
+        error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"'>' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'context': self.context,
+                    'exit': False
+                }
         if isinstance(other, Number):
             return self.setTrueorFalse(setNumber(self.value) > setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            return self.setTrueorFalse(setNumber(self.value) > setNumber(other.value)).setContext(self.context), None
         else:
-            return None, self.illegal_operation(other)
+            return None, self.illegal_operation_typerror(error, other)
 
     def get_comparison_lte(self, other):
+        error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"'<=' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'context': self.context,
+                    'exit': False
+                }
         if isinstance(other, Number):
             return self.setTrueorFalse(setNumber(self.value) <= setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            return self.setTrueorFalse(setNumber(self.value) <= setNumber(other.value)).setContext(self.context), None
         else:
-            return None, self.illegal_operation(other)
+            return None, self.illegal_operation_typerror(error, other)
 
     def get_comparison_gte(self, other):
+        error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"'>=' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'context': self.context,
+                    'exit': False
+                }
         if isinstance(other, Number):
             return self.setTrueorFalse(setNumber(self.value) >= setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            return self.setTrueorFalse(setNumber(self.value) >= setNumber(other.value)).setContext(self.context), None
         else:
-            return None, self.illegal_operation(other)
+            return None, self.illegal_operation_typerror(error, other)
 
-    def and_by(self, other):
-        if other.value == "true":
-            return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)), None
-        elif other.value == "false":
-            return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)), None
-        elif other.value == "none" or self.value == "none":
-            error = {
+    def and_by(self, other): 
+        error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"can't perform and on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
                 'context': self.context
-            }
-            return None, self.illegal_operation_typerror(error)
+        }
         if isinstance(other, String):
             return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        if isinstance(other, Number):
+        elif isinstance(other, Number):
+            return Number(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, NoneType):
             return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
         else:
-            return None, self.illegal_operation(other)
+            return None, self.illegal_operation_typerror(error, other)
 
     def or_by(self, other):
-        if isinstance(other, Number):
-            return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+        error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't perform or on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                'context': self.context
+        }
+        if isinstance(other, String):
+            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, NoneType):
+            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
         else:
-            return None, self.illegal_operation(other)
+            return None, self.illegal_operation_typerror(error, other)
 
     def notted(self):
-        return self.setTrueorFalse(self.value).setContext(self.context), None
+        error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't perform not on {TypeOf(self.value).getType()}",
+                'context': self.context
+        }
+        if isinstance(self.value, bool):
+            return Boolean(not setNumber(self.value)).setContext(self.context), None
+        elif isinstance(self.value, str):
+            return String(not setNumber(self.value)).setContext(self.context), None
+        elif isinstance(self.value, int):
+            return Number(not setNumber(self.value)).setContext(self.context), None
+        elif isinstance(self.value, float):
+            return Number(not setNumber(self.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation_typerror(error, self)
 
     def copy(self):
         copy = Number(self.value)
@@ -907,6 +908,7 @@ class Boolean(Value):
         self.setPosition(0, 0)
         self.setContext(None)
 
+
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
         self.pos_end = pos_end
@@ -923,6 +925,191 @@ class Boolean(Value):
         return copy
     
     
+    def added_to(self, other):
+        print(self.value)
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't add {TypeOf(self.value).getType()} to {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Number(setNumber(self.value) + setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Number(setNumber(self.value) + setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
+        
+        
+    def multiplied_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't perform multiplication on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Number(setNumber(self.value) * setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Number(setNumber(self.value) * setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
+        
+    def subtracted_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't subtract {TypeOf(self.value).getType()} from {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Number(setNumber(self.value) - setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Number(setNumber(self.value) - setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
+    
+    
+    def divided_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't divide {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Number(setNumber(self.value) / setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Number(setNumber(self.value) / setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
+        
+      
+    def modulo_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't perform modulo on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
+        
+    def powred_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't perform powred on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Number(setNumber(self.value) ** setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Number(setNumber(self.value) ** setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
+        
+    def get_comparison_eq(self, other):
+        return Boolean(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
+    
+    def get_comparison_ne(self, other):
+        return Boolean(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
+    
+    def get_comparison_lt(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'<' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Boolean(setNumber(self.value) < setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Boolean(setNumber(self.value) < setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
+    
+    
+    def get_comparison_gt(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'>' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Boolean(setNumber(self.value) > setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Boolean(setNumber(self.value) > setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
+        
+        
+    def get_comparison_lte(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'<=' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Boolean(setNumber(self.value) <= setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Boolean(setNumber(self.value) <= setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
+        
+    def and_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't perform and on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            if self.value == "false":
+                return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
+            return Number(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, String):
+            return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
+        
+        
+    def or_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't perform or on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Boolean):
+            return Boolean(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            if self.value == "true":
+                return Boolean(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, String):
+            return String(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation(error, other)
 
     def __str__(self):
         return self.value
@@ -936,7 +1123,7 @@ class NoneType(Value):
         super().__init__()
         self.value = 'none'
         self.setPosition(0, 0)
-        self.setContext("none")
+        self.setContext(None)
 
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
@@ -961,6 +1148,25 @@ class NoneType(Value):
     
     def and_by(self, other):
         return self.setTrueorFalse(other.value == "none"), None
+    
+    def or_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't perform or on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if other.value == "none":
+            return None, None
+        if isinstance(other, Boolean):
+            return Boolean(setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Number):
+            return Number(setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, String):
+            return String(setNumber(other.value)).setContext(self.context), None
+        else:
+            return String(other.value).setContext(self.context), None
     
     def __str__(self):
         return self.value
@@ -1709,7 +1915,7 @@ def BuiltInTask_Input(args, node, context):
                 return res.failure("KeyboardInterrupt")
             return res.success(String(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["Runtime"]({
+            return res.failure(Program.error()["Type"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0]} is not a valid argument for input()",
@@ -1747,7 +1953,7 @@ def BuiltInTask_InputInt(args, node, context):
                     return res.failure("KeyboardInterrupt")
             return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["Runtime"]({
+            return res.failure(Program.error()["Type"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for inputInt()",
@@ -1785,7 +1991,7 @@ def BuiltInTask_InputFloat(args, node, context):
                     return res.failure("KeyboardInterrupt")
             return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["Runtime"]({
+            return res.failure(Program.error()["Type"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for inputFloat()",
@@ -1816,9 +2022,11 @@ def BuiltInTask_InputBool(args, node, context):
                     break
                 except ValueError:
                     print("Invalid input, please try again")
+                except KeyboardInterrupt:
+                    return res.failure("KeyboardInterrupt")
             return res.success(Boolean(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["Runtime"]({
+            return res.failure(Program.error()["Type"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for inputBool()",
@@ -1843,7 +2051,7 @@ def BuiltInType_Str(args, node, context):
         return res.success(String(str(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     if isinstance(args[0], Boolean):
         return res.success(String(str(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    return res.failure(Program.error()["Runtime"]({
+    return res.failure(Program.error()["Type"]({
         "pos_start": node.pos_start,
         "pos_end": node.pos_end,
         'message': f"{args[0].value} is not a valid argument for str()",
@@ -1867,7 +2075,7 @@ def BuiltInType_Range(args, node, context):
     if len(args) == 1:
         if isinstance(args[0], Number):
             return res.success(Number(range(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        return res.failure(Program.error()["Runtime"]({
+        return res.failure(Program.error()["Type"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{args[0].value} is not a valid argument for range()",
@@ -1892,7 +2100,7 @@ def BuiltInType_Int(args, node, context):
         try:
             return res.success(Number(int(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         except ValueError:
-            return res.failure(Program.error()["Runtime"]({
+            return res.failure(Program.error()["Type"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for int()",
@@ -1926,7 +2134,7 @@ def BuiltInType_Float(args, node, context):
         try:
             return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         except ValueError:
-            return res.failure(Program.error()["Runtime"]({
+            return res.failure(Program.error()["Type"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for float()",
@@ -1935,7 +2143,7 @@ def BuiltInType_Float(args, node, context):
             }))
     if isinstance(args[0], Boolean):
         return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    return res.failure(Program.error()["Runtime"]({
+    return res.failure(Program.error()["Type"]({
         "pos_start": node.pos_start,
         "pos_end": node.pos_end,
         'message': f"{args[0].value} is not a valid argument for float()",
@@ -1945,6 +2153,7 @@ def BuiltInType_Float(args, node, context):
 
 
 def BuiltInType_Bool(args, node, context):
+    print(type(args[0]).__name__, "fg", args[0].value)
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -1955,6 +2164,7 @@ def BuiltInType_Bool(args, node, context):
             'exit': False
         }))
     if isinstance(args[0], Boolean):
+        print(args[0])
         return res.success(args[0])
     if isinstance(args[0], Number):
         return res.success(Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
@@ -1962,7 +2172,7 @@ def BuiltInType_Bool(args, node, context):
         try:
             return res.success(Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         except ValueError:
-            return res.failure(Program.error()["Runtime"]({
+            return res.failure(Program.error()["Type"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for bool()",
@@ -1990,20 +2200,87 @@ def BuiltInType_List(args, node, context):
         }))
     if isinstance(args[0], List):
         return res.success(args[0])
-    if isinstance(args[0], Number):
-        return res.success(List([args[0]]).setPosition(node.pos_start, node.pos_end).setContext(context))
-    if isinstance(args[0], String):
+    elif isinstance(args[0], String):
         return res.success(List([String(f"'{char}'") for char in args[0].value]).setPosition(node.pos_start, node.pos_end).setContext(context))
-    if isinstance(args[0], Boolean):
-        return res.success(List([args[0]]).setPosition(node.pos_start, node.pos_end).setContext(context))
-    return res.failure(Program.error()["Runtime"]({
-        "pos_start": node.pos_start,
-        "pos_end": node.pos_end,
-        'message': f"{args[0].value} is not a valid argument for list()",
-        "context": context,
-        'exit': False
-    }))
+    elif isinstance(args[0], Boolean):
+        return res.failure(Program.error()["Type"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            "context": context,
+            'exit': False
+        }))
+    elif isinstance(args[0], Object):
+        keys = [key for key in args[0].value]
+        values = [args[0].value[key] for key in keys]
+        return res.success(List([String(f"'{value}'") for value in values]).setPosition(node.pos_start, node.pos_end).setContext(context))
+    else: 
+        return res.failure(Program.error()["Type"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            "context": context,
+            'exit': False
+        }))
+   
+
+def BuiltInType_Pair(args, node, context):
+    res = RuntimeResult()
+    if len(args) > 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but pair() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+       
+    if isinstance(args[0], Pair):
+        return res.success(args[0])
     
+    elif isinstance(args[0], String):
+        return res.success(Pair([String(f"'{char}'") for char in args[0].value]).setPosition(node.pos_start, node.pos_end).setContext(context))
+    
+    elif isinstance(args[0], List):
+        return res.success(Pair([i for i in args[0].value]).setPosition(node.pos_start, node.pos_end).setContext(context))
+    
+    elif isinstance(args[0], Object):
+        keys = [key for key in args[0].value]
+        values = [args[0].value[key] for key in keys]
+        return res.success(Pair(values).setPosition(node.pos_start, node.pos_end).setContext(context))
+    
+    else:
+        return res.failure(Program.error()["Type"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            "context": context,
+            'exit': False
+        }))
+
+
+def BuiltInType_Object(args, node, context):
+    res = RuntimeResult()
+    if len(args) > 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but object() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+    
+    if isinstance(args[0], Object):
+        return res.success(args[0])
+    
+    if isinstance(args[0], Number):
+        return res.failure(Program.error()["Type"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            "context": context,
+            'exit': False
+        }))
     
 def BuiltInTask_Format(args, node):
     string = args[0].value
@@ -2011,6 +2288,41 @@ def BuiltInTask_Format(args, node):
     regex = Regex().compile('{(.*?)}')
     matches = regex.match(string)
   
+
+def BuiltInTask_Line(args, node, context):
+    res = RuntimeResult()
+    if len(args) == 0:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"line() takes at least 1 argument",
+            "context": context,
+            'exit': False
+        }))
+    if len(args) > 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but line() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+        
+    if isinstance(args[0], Number):
+        print(f"{args[0].value}:-> ")
+        
+    elif isinstance(args[0], String):
+        print(f"{args[0].value}:-> ")
+    
+    else:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{args[0].value} is not a valid argument for line()",
+            "context": context,
+            'exit': False
+        }))
+
     
 def BuiltInTask_Clear(args, node, context):
     res = RuntimeResult()
@@ -2085,7 +2397,7 @@ def BuiltInTask_Exit(args, node, context):
             'exit': False
         }))
 
-    
+ 
 class Interpreter:
     def visit(self, node, context):
         method_name = f'visit_{type(node).__name__}'
@@ -2180,11 +2492,18 @@ class Interpreter:
 
     def visit_BooleanNode(self, node, context):
         return RuntimeResult().success(
-            Number(node.tok.value).setContext(
+            Boolean(node.tok.value).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
     
+   
+    def visit_NoneNode(self, node, context):
+        return RuntimeResult().success(
+            NoneType().setContext(
+                context).setPosition(node.pos_start, node.pos_end)
+        )
         
+   
     def visit_PairNode(self, node, context):
         res = RuntimeResult()
         elements = ()
@@ -2220,7 +2539,7 @@ class Interpreter:
                 'exit': True
             })
             return res.noreturn()
-        value = value #value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
+        value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(value)
  
  
@@ -2365,7 +2684,7 @@ class Interpreter:
             elif type(module).__name__ == "VarAccessNode":
                 name = module.id.value
                 value = res.register(self.visit(module, context))
-                context.symbolTable.setRecord(name, value)
+                context.symbolTable.setSymbol(name, value)
         
     def visit_VarAssignNode(self, node, context):
         res = RuntimeResult()
@@ -2905,8 +3224,9 @@ class Interpreter:
                 'float': BuiltInType_Float,
                 'bool': BuiltInType_Bool,
                 'list': BuiltInType_List,
-                # 'pair' : BuiltInType_Pair,
-                # 'object': BuiltInType_Object,
+                'pair' : BuiltInType_Pair,
+                #'object': BuiltInType_Object,
+                'line': BuiltInTask_Line,
                 'clear': BuiltInTask_Clear,
                 'delay': BuiltInTask_Delay,
                 'exit': BuiltInTask_Exit
@@ -2995,9 +3315,7 @@ class Interpreter:
         #         "exit": False
         #     }
         #     return res.failure(Program.error()["ImportError"](error))
-     
-       
-
+          
     def visit_ReturnNode(self, node, context):
         res = RuntimeResult()
         if node.node_to_return:

@@ -2,13 +2,13 @@ println("\nLet us play a game\n")
 task @getName()
     let result = input("What is your name? ")
     return result
-endTask
+end
 
 
 task @getAge()
     let result = input("\nHow old are you? ")
-    return result
-endTask
+    return str(result)
+end
 
 
 task @getNumber()
@@ -16,8 +16,9 @@ task @getNumber()
     if result < 1 or result > 10 then
         print("\nThat is not a valid number")
         return @getNumber()
-    return result
-endTask
+    end
+    return str(result)
+end
 
 task @result()
     let name = @getName()
@@ -26,8 +27,8 @@ task @result()
     let result = "\nYour name is " + name + ", you are " + age + " years old, and you guessed " + number + "."
     print("\n" + "Calculating..." + "\n")
     delay(2)
-    println("\n" + result)
-endTask
+    println("\n" + result + "\n")
+end
 
 
 @result()

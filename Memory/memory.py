@@ -57,7 +57,6 @@ class Program:
             context = context.parent
         return '\nStack trace (most recent call last):\n' + result
 
-
 class HashTable:
     def __init__(self, size):
         self.size = size
@@ -134,7 +133,6 @@ class Stack:
             output += f'{item}\n'
 
 
-
 class Environment:
     def __init__(self, parent=None):
         self.members = HashTable(1000)
@@ -180,8 +178,11 @@ class Module:
         for item in self.modules:
             output += str(item) + '\n'
         return output
+  
+  
     
 class SymbolTable:
+   
     def __init__(self, parent=None):
         self.symbols = {}
         self.modules = Module()
@@ -195,10 +196,12 @@ class SymbolTable:
             return self.parent.get(name)
         return value
     
+    
     def get_by_value(self, value):
         for key, val in self.symbols.items():
                 return key
         return None
+    
     
     def get_by_interp_value(self, value):
         for key, val in self.symbols.items():
@@ -206,21 +209,25 @@ class SymbolTable:
                 return key
         return None
 
+   
     def set(self, name, value):
         self.symbols[name] = value
         if not value:
             value = "none"
         #print(f"{name} is set to {value}")
 
+    
     def set_object(self, obj_name, object):
         self.symbols[obj_name] = object
         
+    
     def get_object(self, owner, obj_name, key, type):
         if owner.name.value in self.symbols:
             return self.symbols[owner.name.value].get_property(owner,obj_name, key, type)
         else:
             return "none"
 
+    
     def set_final(self, name, value):
         if name in self.symbols:
             Program.error()["Default"](
@@ -228,17 +235,21 @@ class SymbolTable:
         else:
             self.symbols[name] = value
             
+   
     def set_module(self, name, module):
         self.modules.set(name, module)
 
-    def setRecord(self):
+   
+    def setSymbol(self):
         self.set("none", "none")
         self.set("Boolean",  "true")
         self.set("Boolean", "false")
 
+    
     def remove(self, name):
         del self.symbols[name]
         
+    
     def __repr__(self):
         result = {
             'symbols': self.symbols,

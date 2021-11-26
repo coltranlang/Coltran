@@ -1,28 +1,88 @@
-# test for str type
+# test for builtin_task str type
 let name = "John"
 let num = 10
+line(1)
 println(name + str(num))
 
-# test for int type
+# test for builtin_task int type
 let num1 = "10"
 let num2 = 20
+line(2)
 println(int(num1) + num2)
 
-# test for float type
+# test for builtin_task float type
 let num3 = "10.5"
 let num4 = 20.5
+line(3)
 println(float(num3) + num4)
 
-# test for bool type
+# test for builtin_task bool type
 let bool1 = "1 > 2"
 let bool2 = false
-println(bool(bool1))
+line(4)
+println(bool(bool1), bool(bool2))
 
-# test for list type
+# test for builtin_task list type
 let list1 = "12345"
 let list2 = "1,2,3,4,5"
 let list3 = [1,2,3,4,5]
 let list4 = 'abcde'
 let list5 = 'a,b,c,d,e'
 let list6 = ['a','b','c','d','e']
-println(list(list1), list(list2), list(list3), list(list4), list(list5), list(list6))
+task @greet() 
+   return "Hello World"
+end
+object Test
+    name: "Test"
+    is_test: true
+end
+line(5)
+println(list(list1), list(list2), list(list3), list(list4), list(list5), list(list6), list(@greet()), list(Test))
+
+# test for builtin_task pair type
+let pair1 = (1,2,3,4,5)
+let pair2 = "a,b,c,d,e"
+let pair3 = ['a','b','c','d','e']
+let pair4 = "abcde"
+task @greet() 
+   return "Hello World"
+end
+object Test
+    name: "Test"
+    is_test: true
+end
+line(6)
+println(pair(pair1), pair(pair2), pair(pair3), pair(pair4), pair(@greet()), pair(Test))
+
+
+
+# test for object type
+object Student
+    name: "John"
+    age: 21
+end
+line(7)
+println(Student.name, Student.age)
+
+# test for function type
+task @add(a, b)
+    return a + b
+end
+line(8)
+println(@add(1, 2))
+
+
+# test for class type
+class Car(_name, _color)
+    def getName()
+        println("Car name is " + _name)
+    end
+    def getColor()
+        println("Car color is " + _color)
+    end
+end
+let car = Car("BMW", "Black")
+line(9)
+car.getName()
+car.getColor()
+println(none or car.getName())

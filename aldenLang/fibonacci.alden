@@ -3,8 +3,8 @@ task @fibonacci(num)
         return num
     else
         return @fibonacci(num - 1) + @fibonacci(num - 2)
-    endIf
-endTask
+    end
+end
 
 final num = @fibonacci(10)
-print(num)
+println(num)

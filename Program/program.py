@@ -21,6 +21,7 @@ BuiltInTask.bool = BuiltInTask("bool")
 BuiltInTask.list = BuiltInTask("list")
 BuiltInTask.pair = BuiltInTask("pair")
 BuiltInTask.object = BuiltInTask("object")
+BuiltInTask.line = BuiltInTask("line")
 BuiltInTask.typeOf = BuiltInTask("typeOf")
 BuiltInTask.append = BuiltInTask("append")
 BuiltInTask.pop = BuiltInTask("pop") 
@@ -51,6 +52,7 @@ symbolTable_.set('bool', BuiltInTask.bool)
 symbolTable_.set('list', BuiltInTask.list)
 symbolTable_.set('pair', BuiltInTask.pair)
 symbolTable_.set('object', BuiltInTask.object)
+symbolTable_.set('line', BuiltInTask.line)
 symbolTable_.set('typeOf', BuiltInTask.typeOf)
 symbolTable_.set('append', BuiltInTask.append)
 symbolTable_.set('pop', BuiltInTask.pop)
@@ -60,7 +62,7 @@ symbolTable_.set('clearList', BuiltInTask.clearList)
 symbolTable_.set('delay', BuiltInTask.delay)
 symbolTable_.set('format', BuiltInTask.format)
 symbolTable_.set('http', BuiltInTask.http)
-symbolTable_.setRecord()
+symbolTable_.setSymbol()
 
 class Program:
     def error():
@@ -89,6 +91,7 @@ class Program:
     def printWithType(args):
         for arg in args:
             print(str(type(arg)) + " <===> " + str(arg))
+  
     def printError(args):
         for arg in args:
             print(arg)
@@ -142,6 +145,7 @@ class Program:
                         result
                     else:
                         print(result)
+   
     def runRepl():
         try:
             Program.repl()

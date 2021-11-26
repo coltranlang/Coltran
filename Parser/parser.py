@@ -1,4 +1,3 @@
-from os import error, name, path
 from re import split
 
 from Parser.stringsWithArrows import *
@@ -313,6 +312,18 @@ class BooleanNode:
 
     def __repr__(self):
         return f'{self.tok}'
+    
+    
+class NoneNode:
+    def __init__(self, tok):
+        self.tok = tok
+        self.value = self.tok.value
+        self.pos_start = self.tok.pos_start
+        self.pos_end = self.tok.pos_end
+
+    def __repr__(self):
+        return f'{self.tok}'   
+
 
 class BinOpNode:
     def __init__(self, left_node, op_tok, right_node):
@@ -1101,7 +1112,7 @@ class Parser:
         #     self.advance()
             
             
-          
+        
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
@@ -1837,8 +1848,7 @@ class Parser:
                         'exit': False
                     }))
         return res.success(ExportModuleNode(modules))
-    
-    
+     
     def atom(self):
         res = ParseResult()
         tok = self.current_token
@@ -1858,10 +1868,14 @@ class Parser:
             res.register_advancement()
             self.advance()
             return res.success(VarAccessNode(tok))
-        elif tok.value == 'true' or tok.value == 'false' or tok.value == 'none':
+        elif tok.value == 'true' or tok.value == 'false':
             res.register_advancement()
             self.advance()
             return res.success(BooleanNode(tok))
+        elif tok.value == 'none':
+            res.register_advancement()
+            self.advance()
+            return res.success(NoneNode(tok))
         elif tok.type == tokenList.TT_LPAREN:
              pair_expr = res.register(self.pair_expr())
              if res.error: return res

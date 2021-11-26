@@ -60,3 +60,19 @@ end
 
 
 @FibonacciSeries()
+
+
+# first class function
+task @FirstClassFunction()
+    let prompt = "Enter a number: "
+    let n = inputInt(prompt)
+    let result = @Factorial(n)
+    println("Factorial of " + str(n) + " is " + str(result))
+end
+
+@FirstClassFunction()
+
+final sayHello = task () -> task () -> println("Hello!")
+
+# We can call the sayHello function using the following syntax:
+sayHello()() # double parentheses or assign to a variable : let hello = sayHello() # call the function hello()
