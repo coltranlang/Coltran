@@ -86,3 +86,25 @@ line(9)
 car.getName()
 car.getColor()
 println(none or car.getName())
+
+# test for array index
+object CarInventory
+    cars: []
+    addCar: task (name, color)
+        object NewCar
+            name: name
+            color: color
+        end
+        append(CarInventory.cars, NewCar)
+    end
+    lookupCar: task (index) ->  CarInventory.cars:index
+    size: task () ->  len(CarInventory.cars)
+end
+
+let carInventory = CarInventory
+carInventory.addCar("Ford", "Red")
+carInventory.addCar("Audi", "Blue")
+println(carInventory.cars)
+let car = carInventory.cars:0 # colon ':" operator is used to access the array index, I defined the index because index as to be an identifier not a number
+println(carInventory.lookupCar(1))
+println(carInventory.size())

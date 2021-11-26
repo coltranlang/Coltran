@@ -1312,7 +1312,7 @@ class List(Value):
             except:
                 return None, self.none_value()
         else:
-            return None, self.illegal_operation(error, other)
+            return None, None
 
     def get_element_at(self, index):
         return self.elements[index]
@@ -2153,7 +2153,6 @@ def BuiltInType_Float(args, node, context):
 
 
 def BuiltInType_Bool(args, node, context):
-    print(type(args[0]).__name__, "fg", args[0].value)
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2650,7 +2649,7 @@ class Interpreter:
         #         'message"
         #return res.success(None)
         else:
-            print(object_name, object_key)
+            print(object_name, object_key, 'ff')
       
     
     def visit_PropertySetNode(self, node, context):

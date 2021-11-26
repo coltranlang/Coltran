@@ -1998,7 +1998,7 @@ class Parser:
                     arg_nodes.append(res.register(self.expr()))
                     if res.error: return res
                     
-                 
+                
                 if self.current_token.type != tokenList.TT_RPAREN:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
