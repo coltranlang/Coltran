@@ -285,7 +285,33 @@ class Program:
                 else:
                     return code
         except FileNotFoundError:
-            print(f'File {fileName} not found')
+            return None
+
+    def createModule(module_name, module, module_value, context):
+        res = RuntimeResult()
+        lexer = Lexer(module_name, module)
+        tokens, error = lexer.make_tokens()
+        if error: return "", error
+
+        
+        parser = Parse(tokens, module_name)
+        ast = parser.parse()
+        if ast.error: return "", ast.error
+        interpreter = Interpreter()
+        new_context = Context('<module>')
+        new_context.symbolTable = SymbolTable()
+        result = interpreter.visit(ast.node, new_context)
+        if hasattr(result, 'value') and hasattr(result, 'error'):
+            if isinstance(result.value, List):
+                for item in result.value.elements:
+                    # check if item has export defined
+                    if hasattr(item, 'name'):
+                        if item.name ==  "ExportModule":
+                            item_ = item
+                            context.symbolTable.set(module_name, item_)
+                            print(item_)
+                            value = item_
+        return value
 
 
 class RuntimeResult:
@@ -1345,10 +1371,10 @@ class List(Value):
 class Object(Value):
     def __init__(self, name, properties):
         super().__init__()
-        self.properties = properties if properties is not None else {}
-        self.value = self.properties
         self.id = name
         self.name = name
+        self.properties = properties if properties is not None else {}
+        self.value = self.properties
         self.get_property = self.get_property
        
     def set_property(self, key, value):
@@ -1565,8 +1591,6 @@ class Task(BaseTask):
         self.implicit_return = implicit_return
         self.args = arg_names
         self.ref = ref
-    
-       
         
     def execute(self, args):
         res = RuntimeResult()
@@ -1695,6 +1719,38 @@ class Class(BaseTask):
 
     def __repr__(self):
         return f"<Class {str(self.class_name)}>"
+
+
+class Module(Value):
+    def __init__(self, name, path, context):
+        super().__init__()
+        self.id = name
+        self.name = name
+        self.path = path
+        self.context = context
+        self.setModule()
+        
+    def setModule(self):
+        res = RuntimeResult()
+        path = self.path+"\lib\http\main.alden"
+        module = Program.runFile(path)
+        context = self.context
+        Program.createModule(self.name, module, self.path, context)
+        self.value = context.symbolTable.get(self.name)
+        
+    def copy(self):
+        copy = Module(self.name, self.path, self.context)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+
+    
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return f"<Module {str(self.name)}>"
+
 
 
 class ClassGet(Value):
@@ -1881,7 +1937,8 @@ class BuiltInTask(BaseTask):
     def __repr__(self):
         return f"<{str(self.name)}()>, [ built-in task ]"
   
-    
+# Built-in task
+ 
 def BuiltInTask_Print(args, node):
     res = RuntimeResult()
     for arg in args:
@@ -2287,6 +2344,7 @@ def BuiltInType_Object(args, node, context):
             "context": context,
             'exit': False
         }))
+ 
     
 def BuiltInTask_Format(args, node):
     string = args[0].value
@@ -2403,6 +2461,16 @@ def BuiltInTask_Exit(args, node, context):
             'exit': False
         }))
 
+
+def BuiltInTask_Http_Get():
+    print(f"I got")
+ 
+# Built-in modules
+ 
+def BuiltInModule_Http(context):
+    # get root folder without the current folder
+    module_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return Module("http", module_path, context)
  
 class Interpreter:
     def visit(self, node, context):
@@ -2656,11 +2724,16 @@ class Interpreter:
         elif type(object_name).__name__ == "PropertyNode":
             print("PropertyNode", "fg")
             print(type(object_key))
-        #   return res.failure(Program.error()['Runtime']({
-        #         'pos_start': node.pos_start,
-        #         'pos_end': node.pos_end,
-        #         'message"
-        #return res.success(None)
+
+        elif isinstance(object_name, Module):
+            if type(object_key).__name__ == "Token":
+                print(hasattr(object_name, "properties"))
+                if hasattr(object_name, "properties"):
+                    if object_key.value in object_name.properties:
+                        value = object_name.properties[object_key.value]
+                        print(value)
+                        return res.success(value)
+       
         else:
             if isinstance(object_name, List):
                 list_properties = {
@@ -2722,45 +2795,24 @@ class Interpreter:
         module = Program.runFile(module_path)
         module_value = {}
         if module == None:
-            error['message'] = "Module '{}' not found".format(module_path)
-            return res.failure(Program.error()["ModuleError"](error))
+            builtin_modules = {
+                "Math": "",
+                "Http": BuiltInModule_Http,
+            }
+            if module_name in builtin_modules:
+                module_value = builtin_modules[module_name](context)
+                context.symbolTable.set(module_name, module_value)
+                return res.success(module_value)
+            else:
+                error['message'] = "Module '{}' not found, if it is a builtin module, you must import it with capital letters".format(
+                    module_name)
+                return res.failure(Program.error()["ModuleError"](error))
         
         if  context.symbolTable.modules.is_module_in_members(module_name):
             error['message'] = "Module '{}' already imported".format(module_name)
             return res.failure(Program.error()["ModuleError"](error))
         else:
-            
-            lexer = Lexer(module_name, module)
-            tokens, error = lexer.make_tokens()
-            if error: return "", error
-
-           
-            parser = Parse(tokens, module_name)
-            ast = parser.parse()
-            if ast.error: return "", ast.error
-            interpreter = Interpreter()
-            new_context = Context('<module>')
-            new_context.symbolTable = SymbolTable()
-            result = interpreter.visit(ast.node, new_context)
-            
-            if hasattr(result, 'value') and hasattr(result, 'error'):
-                if isinstance(result.value, List):
-                    for item in result.value.elements:
-                    # check if item has export defined
-                        if hasattr(item, 'name'):
-                            if item.name ==  "ExportModule":
-                                item_ = item
-                                context.symbolTable.set(module_name, item_)
-                                value = module_value
-                        #if item.name.split('Export')
-                        # get the value of the item that matches the module name
-                        # if item.name != None:
-                        #     if item.name == module_name:
-                        #         item_ = item
-                        #         module_value = dict(module_value, **{module_name: item_})
-                        #         context.symbolTable.set(module_name, item)
-                        #         value = module_value
-            return res.success(value)
+            Program.createModule(module_name, module, module_value, context)
             
         
         

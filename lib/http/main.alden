@@ -16,13 +16,7 @@ class Http(_url, _headers, _body)
 end
 
 
-object Header
-    Content_Type: "application/json"
+
+object ExportModule
+    http: Http
 end
-
-let http = Http("http://www.alden.org", Header.Content_Type, "")
-http.post()
-http.get_()
-http.put()
-http.delete()
-

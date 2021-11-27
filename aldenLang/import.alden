@@ -1,5 +1,15 @@
-get {Role} from "./aldenLang/import_user" # still need to get this working
-println(Role)
+get User from "./aldenLang/import_user" # You don't need to specify the file extension, it will be added automatically.
+println(User.Greet())
+
+get Http from "http"
+
+object Header
+    Content_Type: "application/json"
+end
+
+let http = Http.http
+println(http.http)
+
 #module http require "http" # still a work in progress
 #print(http)
 
