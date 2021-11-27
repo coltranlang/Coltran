@@ -1,3 +1,2 @@
-*.alden linguist-detectable=true
-*.py linguist-language=Python
-*.alden linguist-language=alden 
+*.alden linguist-detectable
+*.alden linguist-language=Alden
