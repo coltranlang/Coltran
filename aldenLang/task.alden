@@ -63,16 +63,30 @@ end
 
 
 # first class function
-task @FirstClassFunction()
-    let prompt = "Enter a number: "
-    let n = inputInt(prompt)
-    let result = @Factorial(n)
-    println("Factorial of " + str(n) + " is " + str(result))
+task @Animal(getAnimal)
+    let animal = getAnimal()
+    println("The animal is " + animal)
 end
 
-@FirstClassFunction()
+task @getAnimal()
+    return "Lion"
+end
 
-final sayHello = task () -> task () -> println("Hello!")
+@Animal(@getAnimal)
+
+final sayHello = task () -> task (name) -> println(fv"Hello {name}!")
 
 # We can call the sayHello function using the following syntax:
-sayHello()() # double parentheses or assign to a variable : let hello = sayHello() # call the function hello()
+sayHello()("David") # double parentheses or assign to a variable : let hello = sayHello() # call the function hello()
+
+
+# sum all the numbers in a list
+task @SumAll(list)
+    let sum = 0
+    for i = 0 to len(list) then
+        let sum = sum + list:i
+    end
+    println("The sum is " + str(sum))
+end
+
+@SumAll([1, 2, 3, 4, 5])

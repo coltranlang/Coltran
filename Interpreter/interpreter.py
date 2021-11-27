@@ -2617,21 +2617,27 @@ class Interpreter:
                         return res.failure(Program.error()["KeyError"](error))
         
         elif isinstance(object_name, Task):
-            # task dont have methods or properties
             
-            if type(object_key).__name__ == "Token": 
-                return res.failure(Program.error()['Runtime']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"{object_name.name} does not have any property {object_key.value}",
-                    'context': context,
-                    'exit': False
-                }))
+            task_properties = {
+                    'name': String(object_name.name)
+                }
+            if type(object_key).__name__ == "Token":
+                if object_key.value in task_properties:
+                    value = task_properties[object_key.value]
+                    return res.success(value)
+                else:
+                    return res.failure(Program.error()['Runtime']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"{object_name.name} has no property {object_key.value}",
+                        'context': context,
+                        'exit': False
+                    }))
             else:
                 return res.failure(Program.error()['Runtime']({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"{object_name.name} does not have any property {object_key.id.value}",
+                    'message': f"{object_name.name} has no property {object_key.id.value}",
                     'context': context,
                     'exit': False
                 }))
@@ -2656,7 +2662,14 @@ class Interpreter:
         #         'message"
         #return res.success(None)
         else:
-            print(object_name, object_key, 'ff')
+            if isinstance(object_name, List):
+                list_properties = {
+                    'length': Number(len(object_name.elements)),
+                }
+                if object_key.value in list_properties:
+                    value = list_properties[object_key.value]
+                    return res.success(value)
+            #print(isinstance(object_name, List), object_key, 'ff')
          
   
     def visit_PropertySetNode(self, node, context):
