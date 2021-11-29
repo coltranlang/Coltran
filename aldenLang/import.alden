@@ -8,7 +8,7 @@ object Header
 end
 
 let http = Http.http
-println(http.http)
+println(http)
 
 #module http require "http" # still a work in progress
 #print(http)

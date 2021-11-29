@@ -586,7 +586,8 @@ class Parser:
 
     def parse(self):
         res = self.statements()
-        
+        #errors_generated = [res.error]
+        #print(len(errors_generated), 'errors generated')
         try:
             error = {
                 'pos_start': self.current_token.pos_start,

@@ -1,0 +1,97 @@
+`This is an introduction to Alden Programmer's Guide`
+
+
+# ## 2. Comments
+#   - Comments are used to explain code.
+#   - Comments are ignored by the interpreter.
+# This is a comment.
+
+
+# ## 1. Variables
+#   - A variable is a named location in memory that holds a value.
+#   - Variables are declared with the `let` and `final` keywords. 
+let var_a = 10 # declare a variable named `a` and set it to `10` . Variables decalred with `let` are mutable.
+final var_ b = 20 # declare a variable named `b` and set it to `20` . Variables decalred with `final` are immutable.
+
+
+# ## 3. Strings
+#   - Strings are sequences of characters.
+#   - Strings are declared with the `"`  or `'` characters.
+let string_a = "This is a string" # declare a variable named `string` and set it to the string "This is a string" .
+let string_b = 'This is also a string' # declare a variable named `string2` and set it to the string "This is also a string" .
+
+# ## 4. Numbers
+# integers
+let num_a = 10 # declare a variable named `a` and set it to `10` .
+# floats
+let num_b = 10.5 # declare a variable named `b` and set it to `10.5` .
+# negative numbers
+let num_c = -10 # declare a variable named `c` and set it to `-10` .
+# hexadecimal numbers
+let num_d = 0xFF # declare a variable named `d` and set it to `0xFF` .
+# binary numbers
+let num_e = 0b1010 # declare a variable named `e` and set it to `0b1010` .
+# octal numbers
+let num_f = 0o777 # declare a variable named `f` and set it to `0o777` .
+ 
+# ## 5. Booleans
+#   - Booleans are either `true` or `false`.
+#   - Booleans are declared with the `true` or `false` keywords.
+let bool_a = true # declare a variable named `a` and set it to `true` .
+let bool_b = false # declare a variable named `b` and set it to `false` .
+
+
+# ## 6. Arrays
+#   - Arrays are collections of values.
+#   - Arrays are declared with the `[` and `]` characters.
+let array_a = [1, 2, 3] # declare a variable named `array` and set it to the array `[1, 2, 3]` .
+let array_b = [1, 2, 3, 4, 5] # declare a variable named `array2` and set it to the array `[1, 2, 3, 4, 5]` .
+
+
+# ## 7. Pairs
+#   - Pairs are collections of values.
+#   - Pairs are declared with the `(` and `)` characters.
+let pair_a = (1, 2) # declare a variable named `pair` and set it to the pair `(1, 2)` .
+let (pair_b, pair_c) = pair_a # declare two variables named `pair_b` and `pair_c` and set them to the values of the pair `pair_a` .
+
+
+# ## 8. Objects
+#   - Objects are collections of key-value pairs.
+#   - Objects are declared with the `Object` keyword.
+#   - Objects names starting with a capital letter.
+#   - Objects don;t use comma's after the last key-value pair.
+#  - The 'end' keyword is used to end an object.
+object Object_a
+    name: "Alden"
+    type: "Programming Language"
+end
+
+# ## 9. Task
+#   - Tasks are blocks of code that perform a specific task.
+#   - Tasks are declared with the `task` keyword.
+#   - Tasks names starting with a @ symbol.
+
+task @task_a()
+    println("Hello World")
+end
+
+task @task_b(user) # declare a task named `task_b` with a parameter named `user` .
+    println(fv"Hello {user}")
+end
+
+
+# ## 11. Built-in Task
+#   - Built-in tasks are tasks that are automatically available to the user.
+
+#  Built-in tasks for printing to the console:
+print(@task_a()) # prints "Hello World" to the console.
+println(@task_a()) # prints "Hello World" to the console and adds a new line.
+
+# Built-in tasks for input:
+input() # print a prompt to the console and wait for the user to enter a string.
+inputInt() # print a prompt to the console and wait for the user to enter an integer.
+inputFloat() # print a prompt to the console and wait for the user to enter a float.
+inputBool() # print a prompt to the console and wait for the user to enter a boolean.
+
+# Built-in tasks for list:
+len(array_a) # returns the length of the array `array_a` .
