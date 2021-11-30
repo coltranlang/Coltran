@@ -38,6 +38,29 @@ object Test
 end
 line(5)
 println(list(list1), list(list2), list(list3), list(list4), list(list5), list(list6), list(@greet()), list(Test))
+let li = [1,2,3,4,5]
+let li2 = [1,4,2,3,5]
+let li3 = [1,2,3,4,5]
+let li4 = [1,2,3,4,8]
+# Need to work on comapring list
+task @compareList(arr1, arr2)
+    let res = ""
+    sorted(arr1)
+    sorted(arr2)
+    print(arr1, arr2)
+    if arr1 == arr2 then
+        res = "The two lists are equal"
+    else
+        res = "The two lists are not equal"
+    end
+    return res
+end
+
+line(6)
+println(@compareList(li, li2))
+line(7)
+println(@compareList(li3, li4))
+
 
 # test for builtin_task pair type
 let pair1 = (1,2,3,4,5)
@@ -51,7 +74,7 @@ object Test
     name: "Test"
     is_test: true
 end
-line(6)
+line(8)
 println(pair(pair1), pair(pair2), pair(pair3), pair(pair4), pair(@greet()), pair(Test))
 
 
@@ -61,14 +84,21 @@ object Student
     name: "John"
     age: 21
 end
-line(7)
+line(9)
 println(Student.name, Student.age)
+
+
+# test for builtin_task object type
+let obj1 = "John"
+let obj2 = 21
+line(10)
+println(Object(obj1), Object(obj2))
 
 # test for function type
 task @add(a, b)
     return a + b
 end
-line(8)
+line(11)
 println(@add(1, 2))
 
 
@@ -82,11 +112,20 @@ class Car(_name, _color)
     end
 end
 let car = Car("BMW", "Black")
-line(9)
+line(12)
 car.getName()
 car.getColor()
 
 
+task @filterByname(arr, name)
+    for i = 0 to len(arr) then
+        let car = arr|i
+        if car.name == name then
+            return car  
+        end
+    end
+    return fv"Car {name} not found"
+end
 # test for array index
 object CarInventory
     cars: []
@@ -97,14 +136,24 @@ object CarInventory
         end
         append(CarInventory.cars, NewCar)
     end
-    lookupCar: task (index) ->  CarInventory.cars:index
+    lookupCar: task (index) ->  CarInventory.cars|index
+    lookupCarByName: task (name) -> @filterByname(CarInventory.cars, name)
     size: task () ->  len(CarInventory.cars)
 end
 
 let carInventory = CarInventory
-carInventory.addCar("Ford", "Red")
 carInventory.addCar("Audi", "Blue")
+carInventory.addCar("Ford", "Red")
+
+line(13)
 println(carInventory.cars)
-let car = carInventory.cars:0 # colon ':" operator is used to access the array index, I defined the index because index as to be an identifier not a number
+let car = carInventory.cars|0 # colon ':" operator is used to access the array index, I defined the index because index as to be an identifier not a number
+line(14)
 println(carInventory.lookupCar(1))
+line(15)
+println(carInventory.lookupCarByName("test"))
+line(16)
 println(carInventory.size())
+
+
+

@@ -388,8 +388,10 @@ class Value:
         return self
     
     def setTrueorFalse(self, value):
-        return "true" if value else "false"
-        #return self
+        if value:
+            return Boolean(True)
+        else:
+            return Boolean(False)
 
 
     def added_to(self, other):
@@ -634,8 +636,10 @@ class Number(Value):
         return self
 
     def setTrueorFalse(self, value):
-        self.value = "true" if value else "false"
-        return self
+        if value:
+            return Boolean(True)
+        else:
+            return Boolean(False)
 
     def added_to(self, other):
         error = {
@@ -857,24 +861,19 @@ class Number(Value):
         else:
             return None, self.illegal_operation_typerror(error, other)
 
-    def notted(self, other):
+    def notted(self):
         error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"can't perform not on {TypeOf(self.value).getType()}",
                 'context': self.context
         }
-        if isinstance(other, String):
-            return Number(not setNumber(self.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            return Number(not setNumber(self.value)).setContext(self.context), None
-        elif isinstance(other, Boolean):
-            return Number(not setNumber(self.value)).setContext(self.context), None
-        elif isinstance(other, NoneType):
-            return Number(not setNumber(self.value)).setContext(self.context), None
+        if isinstance(self, Number):
+            return Number(self.setTrueorFalse(not setNumber(self.value))).setContext(self.context), None
+        elif isinstance(self, Boolean):
+            return Boolean(self.setTrueorFalse(not setNumber(self.value))).setContext(self.context), None
         else:
-            return None, self.illegal_operation_typerror(error, other)
-
+            return None, self.illegal_operation_typerror(error)
     def copy(self):
         copy = Number(self.value)
         copy.setPosition(self.pos_start, self.pos_end)
@@ -905,8 +904,10 @@ class String(Value):
         return self
 
     def setTrueorFalse(self, value):
-        self.value = "true" if value else "false"
-        return self
+        if value:
+            return Boolean(True)
+        else:
+            return Boolean(False)
 
     def added_to(self, other):
         error = {
@@ -958,6 +959,9 @@ class String(Value):
     
     def get_comparison_ne(self, other):
         return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
+    
+    def notted(self):
+        return self.setTrueorFalse(not setNumber(self.value)).setContext(self.context), None
 
     def copy(self):
         copy = String(self.value)
@@ -1189,6 +1193,12 @@ class Boolean(Value):
             return String(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(error, other)
+        
+        
+    def notted(self):
+        if self.value == "true":
+            return Boolean("false").setContext(self.context), None
+        return Boolean("true").setContext(self.context), None
 
     def __str__(self):
         return self.value
@@ -1246,6 +1256,9 @@ class NoneType(Value):
             return String(setNumber(other.value)).setContext(self.context), None
         else:
             return String(other.value).setContext(self.context), None
+        
+    def notted(self):
+        return Boolean("true").setContext(self.context), None
     
     def __str__(self):
         return self.value
@@ -1336,6 +1349,8 @@ class List(Value):
         new_list.elements.append(other)
         return new_list, None
 
+    
+
     def subtracted_by(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1378,6 +1393,29 @@ class List(Value):
             return new_list, None
         else:
             return None, self.illegal_operation(error, other)
+
+
+    def get_comparison_eq(self, other):
+        # Need to work on comparing lists
+        return self.setTrueorFalse(other.value == self.value), None
+    
+    def get_comparison_ne(self, other):
+        return self.setTrueorFalse(self.elements != other.elements), None
+    
+    def get_comparison_lt(self, other):
+        return self.setTrueorFalse(self.elements < other.elements), None
+    
+    def get_comparison_gt(self, other):
+        return self.setTrueorFalse(self.elements > other.elements), None
+
+    def get_comparison_lte(self, other):
+        return self.setTrueorFalse(self.elements <= other.elements), None
+    
+    def get_comparison_gte(self, other):
+        return self.setTrueorFalse(self.elements >= other.elements), None
+    
+    def notted(self):
+        return List(self.elements[::-1]), None
 
     def get_index(self, other):
         error = {
@@ -1564,8 +1602,10 @@ class ObjectRefNode(Value):
         return self
 
     def setTrueorFalse(self, value):
-        self.value = "true" if value else "false"
-        return self
+        if value:
+            return Boolean(True)
+        else:
+            return Boolean(False)
     
     def copy(self):
         copy = ObjectRefNode(self.value)
@@ -2439,6 +2479,36 @@ def BuiltInTask_Min(args, node, context):
             'exit': False
         }))  
 
+
+def BuiltInTask_Sorted(args, node, context):
+    res = RuntimeResult()
+    if len(args) > 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but sort() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+        
+    if isinstance(args[0], List):
+        new_elements = []
+        elements = args[0].elements
+        for element in elements:
+            if hasattr(element, 'value'):
+                new_elements.append(element.value)
+            else:
+                new_elements.append(element)
+        is_sorted = sorted(new_elements)
+        return res.success(List(is_sorted).setPosition(node.pos_start, node.pos_end).setContext(context))
+    else:
+        return res.failure(Program.error()["Type"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            "context": context,
+            'exit': False
+        }))
     
 def BuiltInTask_Format(args, node):
     string = args[0].value
@@ -2748,8 +2818,6 @@ class Interpreter:
             "context": context,
             "exit": False
         }
-        #print(type(object_name).__name__)
-        
         if isinstance(object_name, Class):
             if type(object_key).__name__ == "VarAccessNode":
                 if hasattr(object_name, "methods"):
@@ -2793,14 +2861,36 @@ class Interpreter:
                     #     return res.failure(Program.error()["KeyError"](error))
         
         elif isinstance(object_name, Object):
+            builtin_properties = {
+                'get': 'get',
+            }
             if type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
                     if object_key.value in object_name.properties:
+                        #print(object_name.properties[object_key.value], "is the property")
                         value = object_name.properties[object_key.value]
+                        #print(object_name.properties, "is the property")
                         return res.success(value)
                     else:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
                         return res.failure(Program.error()["KeyError"](error))
+        
+        elif isinstance(object_name, List):
+            builtin_properties = {
+                'length': len(object_name.elements),
+            }
+            if type(object_key).__name__ == "Token":
+                if object_key.value in builtin_properties:
+                    value = builtin_properties[object_key.value]
+                    if object_key.value == "length":
+                        return res.success(Number(value))
+                    return res.success(value)
+                else:
+                    error["message"] = f"{node.name.id.value} has no property {object_key.value}"
+                    return res.failure(Program.error()["KeyError"](error))
+        
+        elif isinstance(object_name, Number):
+            print(object_name, object_key)
         
         elif isinstance(object_name, Task):
             
@@ -3094,7 +3184,9 @@ class Interpreter:
             number, error = number.multiplied_by(Number(-1))
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
             if isinstance(number, Pair):
-                print("Pair", number)
+                for i in range(len(number.elements)):
+                    number = Number(not number.elements[i].value)
+                print(number)
             number, error = number.notted()
         if error:
             return res.failure(error)
@@ -3108,7 +3200,6 @@ class Interpreter:
             condition_value = res.register(self.visit(condition, context))
             if res.should_return():
                 return res
-            print(condition_value.value == "true")
             if hasattr(condition_value, "value") and condition_value.value == "true":
                 expr_value = res.register(self.visit(expr, context))
                 if res.should_return():
@@ -3201,23 +3292,26 @@ class Interpreter:
     def visit_WhileNode(self, node, context):
         res = RuntimeResult()
         elements = []
-        while True:
-            condition = res.register(self.visit(node.condition_node, context))
-            if res.should_return():
-                return res
-            if not condition.is_true():
-                break
-            value = res.register(self.visit(node.body_node, context))
-            if res.should_return() and res.loop_continue == False and res.loop_break == False:
-                return res
+        try:
+            while True:
+                condition = res.register(self.visit(node.condition_node, context))
+                if res.should_return():
+                    return res
+                if not condition.is_true():
+                    break
+                value = res.register(self.visit(node.body_node, context))
+                if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                    return res
 
-            if res.loop_continue:
-                continue
+                if res.loop_continue:
+                    continue
 
-            if res.loop_break:
-                break
+                if res.loop_break:
+                    break
 
-            elements.append(value)
+                elements.append(value)
+        except KeyboardInterrupt:
+            print('Exiting...')
 
         return res.success(NoneType.none if node.implicit_return else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
@@ -3510,15 +3604,25 @@ class Interpreter:
                 'bool': BuiltInType_Bool,
                 'list': BuiltInType_List,
                 'pair' : BuiltInType_Pair,
-                #'object': BuiltInType_Object,
+                'object': BuiltInType_Object,
                 'max': BuiltInTask_Max,
                 'min': BuiltInTask_Min,
+                'sorted': BuiltInTask_Sorted,
+                #'Binary': BuiltInTask_Binary,
                 'line': BuiltInTask_Line,
                 'clear': BuiltInTask_Clear,
                 'delay': BuiltInTask_Delay,
                 'exit': BuiltInTask_Exit
             }
             
+            cars = [ {
+                'name': 'Ford',
+                'color': 'sss',
+            }, 
+                {
+                'name': 'Audi',
+                'color': 'sss',
+                }]
             
             if builtin in builtins:
                 if builtin == 'print' or builtin == 'println':

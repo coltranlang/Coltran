@@ -378,6 +378,8 @@ class IfNode:
         self.pos_end = (
             self.else_case or self.cases[len(self.cases) - 1])[0].pos_end
 
+    def __repr__(self):
+        return f'IfNode'
 
 class ForNode:
     def __init__(self, var_name_token, start_value_node, end_value_node, step_value_node, body_node, return_null):
@@ -810,12 +812,12 @@ class Parser:
         if self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
-
+            
             statements = res.register(self.statements())
             if res.error:
                 return res
             cases.append((condition, statements, True))
-
+            
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
@@ -825,6 +827,15 @@ class Parser:
                 if res.error:
                     return res
                 new_cases, else_case = all_cases
+                if self.current_token.type != tokenList.TT_NEWLINE:
+                    return res.failure(Program.error()['Syntax'](
+                        {
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': 'Expected a newline',
+                            'exit': False
+                        }
+                    ))
                 cases.extend(new_cases)
         else:
             expr = res.register(self.statement())
@@ -1093,7 +1104,13 @@ class Parser:
         if self.current_token.type == tokenList.TT_ARROW:
             res.register_advancement()
             self.advance()
-
+            if self.current_token.type == tokenList.TT_NEWLINE:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected an expression",
+                    'exit': False
+                }))
             body = res.register(self.expr())
             if res.error:
                 return res

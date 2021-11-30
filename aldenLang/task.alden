@@ -51,9 +51,9 @@ task @FibonacciSeries()
         while count < nterm - 2 then
             let n3 = n1 + n2
             println(n3)
-            n1 = n2
-            n2 = n3
-            count = count + 1
+            let n1 = n2
+            let n2 = n3
+            let count = count + 1
         end
     end
 end
@@ -84,7 +84,7 @@ sayHello()("David") # double parentheses or assign to a variable : let hello = s
 task @SumAll(list)
     let sum = 0
     for i = 0 to len(list) then
-      let sum = sum + list:i
+        let sum = sum + list|i
     end
     println("The sum is " + str(sum))
 end
@@ -92,6 +92,32 @@ end
 @SumAll([1, 2, 3, 4, 5])
 
 
-let a = 5
-let a = a + 1
-println(a)
+task @countZeros(N)
+    let n = 32
+    let y = N >> 16
+    if y != 0 then
+       let  n = n - 16
+       let N = y
+    end
+    let y = N >> 8
+    if y != 0 then
+        let n = n - 8
+        let N = y
+    end
+    let y = N >> 4
+    if y != 0 then
+        let n = n - 4
+        let N = y
+    end
+    let y = N >> 2
+    if y != 0 then
+        let n = n - 2
+        let N = y
+    end
+    let y = N >> 1
+    if y != 0 then
+        return n - 2
+    end
+    return n - N
+end
+print(@countZeros(16))
