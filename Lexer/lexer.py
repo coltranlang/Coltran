@@ -153,6 +153,8 @@ class Lexer:
                 self.advance()
             elif self.current_char == '$':
                 tokens.append(self.make_getter())
+            elif self.current_char == '&':
+                tokens.append(self.make_and())
             elif self.current_char == '!':
                 tok, error = self.make_not_equals()
                 if error:
@@ -264,15 +266,28 @@ class Lexer:
         if self.current_char == '=':
             self.advance()
             tok_type = tokenList.TT_LTE
+        elif self.current_char == '<':
+            self.advance()
+            tok_type = tokenList.TT_LSHIFT
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
 
     def make_greater_than(self):
         tok_type = tokenList.TT_GT
         pos_start = self.pos.copy()
         self.advance()
+        
         if self.current_char == '=':
             self.advance()
             tok_type = tokenList.TT_GTE
+        elif self.current_char == '>':
+            self.advance()
+            tok_type = tokenList.TT_RSHIFT
+        return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
+
+    def make_and(self):
+        tok_type = tokenList.TT_AND
+        pos_start = self.pos.copy()
+        self.advance()
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
 
     def make_string(self):
@@ -378,8 +393,7 @@ class Lexer:
         self.advance()
         return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)
     
-   
-    
+      
     def make_getter(self):
         tok_type = tokenList.TT_GETTER
         pos_start = self.pos.copy()

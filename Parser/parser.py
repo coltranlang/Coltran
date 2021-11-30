@@ -205,6 +205,19 @@ class VarAccessNode:
         return f'{self.name}'
 
 
+class VarTypeNode:
+    def __init__(self, name, value=None, type=None):
+        self.name = name
+        self.id = name
+        self.type = type
+        self.value = value
+        self.pos_start = self.name.pos_start
+        self.pos_end = self.name.pos_end
+
+    def __repr__(self):
+        return f'{self.name}'
+
+
 class PropertyNode:
     def __init__(self, name, property):
         self.name = name
@@ -1869,7 +1882,14 @@ class Parser:
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
-            return res.success(VarAccessNode(tok, "get"))
+            if self.current_token.type == tokenList.TT_EQ:
+                res.register_advancement()
+                self.advance()
+                expr = res.register(self.expr())
+                if res.error: return res
+                return res.success(VarTypeNode(tok, expr, "setter"))
+            else:
+                return res.success(VarAccessNode(tok))
         elif tok.value == 'true' or tok.value == 'false':
             res.register_advancement()
             self.advance()
@@ -2063,7 +2083,7 @@ class Parser:
             return res.success(UnaryOpNode(op_tok, node))
 
         node = res.register(self.binaryOperation(
-            self.arith_expr, (tokenList.TT_EQEQ, tokenList.TT_NEQ, tokenList.TT_LT, tokenList.TT_GT, tokenList.TT_LTE, tokenList.TT_GTE)))
+            self.arith_expr, (tokenList.TT_EQEQ, tokenList.TT_NEQ, tokenList.TT_LT, tokenList.TT_GT, tokenList.TT_RSHIFT, tokenList.TT_LSHIFT, tokenList.TT_LTE, tokenList.TT_GTE, tokenList.TT_AND, )))
 
         if res.error:
             return res.failure(Program.error()['Syntax']({
@@ -2077,7 +2097,6 @@ class Parser:
 
     def expr(self):
         res = ParseResult()
-            
         if self.current_token.matches(tokenList.TT_KEYWORD, 'let') or self.current_token.matches(tokenList.TT_KEYWORD, 'final'):
             res.register_advancement()
             variable_keyword_token = "let" if self.current_token.matches(
@@ -2103,6 +2122,7 @@ class Parser:
                 if res.error: return res
                 values = expr.elements
                 var_values = ()
+                
                 if self.current_token.type != tokenList.TT_EQ:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -2141,6 +2161,10 @@ class Parser:
                     'message': "Assignments on multiple variables are not supported",
                     'exit': False
                 }))
+            if self.current_token.type == tokenList.TT_RSHIFT:
+                res.register_advancement()
+                self.advance()
+                
             if self.current_token.type != tokenList.TT_EQ:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,

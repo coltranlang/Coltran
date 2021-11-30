@@ -471,6 +471,22 @@ class Value:
             'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
             'context': self.context
         })
+        
+    def get_comparison_rshift(self, other):
+        return None, self.illegal_operation_typerror({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'context': self.context
+        })
+
+    def get_comparison_lshift(self, other):
+        return None, self.illegal_operation_typerror({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'context': self.context
+        })
 
     def get_comparison_lte(self, other):
         return None, self.illegal_operation_typerror({
@@ -743,6 +759,38 @@ class Number(Value):
         else:
             return None, self.illegal_operation_typerror(error, other)
 
+    def get_comparison_rshift(self, other):
+        error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"'>>' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'context': self.context,
+                    'exit': False
+                }
+        # get bitwise right shift
+        if isinstance(other, Number):
+            return Number(setNumber(self.value) >> setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            return Number(setNumber(self.value) >> setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation_typerror(error, other)
+
+    def get_comparison_lshift(self, other):
+        error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"'<<' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'context': self.context,
+                    'exit': False
+                }
+        # get bitwise left shift
+        if isinstance(other, Number):
+            return Number(setNumber(self.value) << setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            return Number(setNumber(self.value) << setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation_typerror(error, other)
+
     def get_comparison_lte(self, other):
         error = {
                     'pos_start': self.pos_start,
@@ -809,23 +857,23 @@ class Number(Value):
         else:
             return None, self.illegal_operation_typerror(error, other)
 
-    def notted(self):
+    def notted(self, other):
         error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"can't perform not on {TypeOf(self.value).getType()}",
                 'context': self.context
         }
-        if isinstance(self.value, bool):
-            return Boolean(not setNumber(self.value)).setContext(self.context), None
-        elif isinstance(self.value, str):
-            return String(not setNumber(self.value)).setContext(self.context), None
-        elif isinstance(self.value, int):
+        if isinstance(other, String):
             return Number(not setNumber(self.value)).setContext(self.context), None
-        elif isinstance(self.value, float):
+        elif isinstance(other, Number):
+            return Number(not setNumber(self.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            return Number(not setNumber(self.value)).setContext(self.context), None
+        elif isinstance(other, NoneType):
             return Number(not setNumber(self.value)).setContext(self.context), None
         else:
-            return None, self.illegal_operation_typerror(error, self)
+            return None, self.illegal_operation_typerror(error, other)
 
     def copy(self):
         copy = Number(self.value)
@@ -2345,6 +2393,52 @@ def BuiltInType_Object(args, node, context):
             'exit': False
         }))
  
+ 
+def BuiltInTask_Max(args, node, context):
+    res = RuntimeResult()
+    if len(args) > 2:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but max() takes 2 arguments",
+            "context": context,
+            'exit': False
+        }))
+        
+    if isinstance(args[0], Number) and isinstance(args[1], Number):
+        return res.success(Number(max(args[0].value, args[1].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    else:
+        return res.failure(Program.error()["Type"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            "context": context,
+            'exit': False
+        }))
+  
+
+def BuiltInTask_Min(args, node, context):
+    res = RuntimeResult()
+    if len(args) > 2:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but min() takes 2 arguments",
+            "context": context,
+            'exit': False
+        }))
+        
+    if isinstance(args[0], Number) and isinstance(args[1], Number):
+        return res.success(Number(min(args[0].value, args[1].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    else:
+        return res.failure(Program.error()["Type"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            "context": context,
+            'exit': False
+        }))  
+
     
 def BuiltInTask_Format(args, node):
     string = args[0].value
@@ -2613,9 +2707,30 @@ class Interpreter:
                 'exit': True
             })
             return res.noreturn()
+        if type(value) is dict:
+            value = value['value']
         value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(value)
  
+    
+    def visit_VarTypeNode(self, node, context):
+        res = RuntimeResult()
+        var_name = node.name.value
+        v = context.symbolTable.get(var_name)
+        value = res.register(self.visit(node.value, context))
+        if type(v) is dict:
+            var_type = v['type']
+            if var_type == "final":
+                return res.failure(Program.error()['Runtime']({ 
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"Identifier '{var_name}' cannot be reassigned",
+                    'context': context,
+                    'exit': False
+                }))
+            else:
+                context.symbolTable.set(var_name, value)
+        return res.success(value)
  
     def visit_PropertyNode(self, node, context):
         res = RuntimeResult()
@@ -2841,7 +2956,6 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.variable_name_token.value if type(node.variable_name_token).__name__ != 'tuple' else ''
         value = res.register(self.visit(node.value_node, context))
-        #print(type(value).__name__, value)
         # if isinstance(value, Object):
         #     # objects cannot be reassigned
         #     return res.failure(Program.error()['Runtime']({
@@ -2906,11 +3020,11 @@ class Interpreter:
             if node.variable_keyword_token == "let":
                 if value is None:
                     value = NoneType.none
-                context.symbolTable.set(var_name, value)
+                context.symbolTable.set(var_name, value, "let")
             elif node.variable_keyword_token == "final":
                 if value is None:
                     value = NoneType.none
-                context.symbolTable.set_final(var_name, value)
+                context.symbolTable.set_final(var_name, value, "final")
         return res.success(value)
 
     
@@ -2945,6 +3059,10 @@ class Interpreter:
                 result, error = left.get_comparison_lt(right)
             elif node.op_tok.type == tokenList.TT_GT:
                 result, error = left.get_comparison_gt(right)
+            elif node.op_tok.type == tokenList.TT_RSHIFT:
+                result, error = left.get_comparison_rshift(right)
+            elif node.op_tok.type == tokenList.TT_LSHIFT:
+                result, error = left.get_comparison_lshift(right)
             elif node.op_tok.type == tokenList.TT_LTE:
                 result, error = left.get_comparison_lte(right)
             elif node.op_tok.type == tokenList.TT_GTE:
@@ -2953,6 +3071,7 @@ class Interpreter:
                 result, error = left.and_by(right)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
                 result, error = left.or_by(right)
+            
             if error:
                 return res.failure(error)
             else:
@@ -2971,6 +3090,8 @@ class Interpreter:
         if node.op_tok.type == tokenList.TT_MINUS:
             number, error = number.multiplied_by(Number(-1))
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
+            if isinstance(number, Pair):
+                print("Pair", number)
             number, error = number.notted()
         if error:
             return res.failure(error)
@@ -3387,11 +3508,14 @@ class Interpreter:
                 'list': BuiltInType_List,
                 'pair' : BuiltInType_Pair,
                 #'object': BuiltInType_Object,
+                'max': BuiltInTask_Max,
+                'min': BuiltInTask_Min,
                 'line': BuiltInTask_Line,
                 'clear': BuiltInTask_Clear,
                 'delay': BuiltInTask_Delay,
                 'exit': BuiltInTask_Exit
             }
+            
             
             if builtin in builtins:
                 if builtin == 'print' or builtin == 'println':

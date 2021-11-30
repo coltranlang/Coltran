@@ -30,7 +30,8 @@ BuiltInTask.remove = BuiltInTask("remove")
 BuiltInTask.clearList = BuiltInTask("clearList")
 BuiltInTask.delay = BuiltInTask("delay")
 BuiltInTask.format = BuiltInTask("format")
-
+BuiltInTask.max = BuiltInTask("max")
+BuiltInTask.min = BuiltInTask("min")
 
 symbolTable_ = SymbolTable()
 symbolTable_.set('print', BuiltInTask.print)   
@@ -59,6 +60,8 @@ symbolTable_.set('remove', BuiltInTask.remove)
 symbolTable_.set('clearList', BuiltInTask.clearList)
 symbolTable_.set('delay', BuiltInTask.delay)
 symbolTable_.set('format', BuiltInTask.format)
+symbolTable_.set('max', BuiltInTask.max)
+symbolTable_.set('min', BuiltInTask.min)
 symbolTable_.setSymbol()
 
 class Program:

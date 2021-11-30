@@ -213,10 +213,16 @@ class SymbolTable:
         return None
 
    
-    def set(self, name, value):
-        self.symbols[name] = value
+    def set(self, name, value, type=None):
         if not value:
             value = "none"
+        if type:
+            self.symbols[name] = {
+                'value': value,
+                'type': type
+            }
+        else:
+            self.symbols[name] = value
         #print(f"{name} is set to {value}")
 
     
@@ -231,12 +237,18 @@ class SymbolTable:
             return "none"
 
     
-    def set_final(self, name, value):
+    def set_final(self, name, value, type=None):
         if name in self.symbols:
             Program.error()["Default"](
                 "SyntaxError", "Identifier '{name}' cannot be redecalred".format(name=name))
         else:
-            self.symbols[name] = value
+            if type:
+              self.symbols[name] = {
+                    'value': value, 
+                    'type': type
+              }
+            else:
+                self.symbols[name] = value
             
    
     def set_module(self, name, module):
