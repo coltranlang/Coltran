@@ -130,6 +130,9 @@ class Lexer:
             elif self.current_char == ':':
                 tokens.append(Token(tokenList.TT_COLON, pos_start=self.pos))
                 self.advance()
+            elif self.current_char == '|':
+                tokens.append(Token(tokenList.TT_PIPE, pos_start=self.pos))
+                self.advance()
             elif self.current_char == '.':
                 tokens.append(Token(tokenList.TT_DOT, pos_start=self.pos))
                 self.advance()

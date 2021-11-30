@@ -1887,9 +1887,9 @@ class Parser:
                 self.advance()
                 expr = res.register(self.expr())
                 if res.error: return res
-                return res.success(VarTypeNode(tok, expr, "setter"))
-            else:
-                return res.success(VarAccessNode(tok))
+                return res.success(VarTypeNode(tok, expr))
+            
+            return res.success(VarAccessNode(tok))
         elif tok.value == 'true' or tok.value == 'false':
             res.register_advancement()
             self.advance()
@@ -2064,7 +2064,7 @@ class Parser:
         return self.power()
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_COLON, tokenList.TT_GETTER, tokenList.TT_DOT))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_PIPE, tokenList.TT_GETTER, tokenList.TT_DOT))
 
     def arith_expr(self):
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
@@ -2097,6 +2097,11 @@ class Parser:
 
     def expr(self):
         res = ParseResult()
+        # if self.current_token.type == tokenList.TT_IDENTIFIER:
+        #     node_name = self.current_token
+        #     res.register_advancement()
+        #     self.advance()
+            
         if self.current_token.matches(tokenList.TT_KEYWORD, 'let') or self.current_token.matches(tokenList.TT_KEYWORD, 'final'):
             res.register_advancement()
             variable_keyword_token = "let" if self.current_token.matches(

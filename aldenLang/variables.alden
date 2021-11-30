@@ -1,0 +1,15 @@
+let sum = 20
+sum = sum + 5
+println(sum)
+let list = [1,2,3,4,5]
+let v = 0
+v = v + 37
+println(v)
+task @sum(message)
+    if message == "hello" then
+        let greeting = "Hello"
+        println(greeting)
+    end
+    println(greeting) # error
+end
+@sum("test")

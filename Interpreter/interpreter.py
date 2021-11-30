@@ -2617,6 +2617,8 @@ class Interpreter:
         if isinstance(values_to_replace, list):
             for value_to_replace in values_to_replace:
                     replace_value = context.symbolTable.get(value_to_replace)
+                    if type(replace_value) == dict:
+                        replace_value = replace_value["value"]
                     if replace_value:
                         value_expr = res.register(self.visit(node.expr, context))
                         value_replaced = str(replace_value)
@@ -2687,6 +2689,8 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
+        if type(value) is dict:
+            value = value['value']
         if var_name in context.symbolTable.symbols and value is None:
             value = context.symbolTable.get(NoneType.none)
         elif value is None:
@@ -2707,8 +2711,6 @@ class Interpreter:
                 'exit': True
             })
             return res.noreturn()
-        if type(value) is dict:
-            value = value['value']
         value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(value)
  
@@ -2731,6 +2733,7 @@ class Interpreter:
             else:
                 context.symbolTable.set(var_name, value)
         return res.success(value)
+ 
  
     def visit_PropertyNode(self, node, context):
         res = RuntimeResult()
@@ -2968,7 +2971,6 @@ class Interpreter:
         if type(node.variable_name_token).__name__ == "tuple":
             var_name = node.variable_name_token
             if type(value).__name__ == "Pair":
-                
                 if len(var_name) != len(value.elements):
                     return res.failure(Program.error()['ValueError']({
                         'pos_start': node.pos_start,
@@ -3017,14 +3019,15 @@ class Interpreter:
         else:
             if res.should_return():
                 return res
-            if node.variable_keyword_token == "let":
-                if value is None:
-                    value = NoneType.none
-                context.symbolTable.set(var_name, value, "let")
-            elif node.variable_keyword_token == "final":
-                if value is None:
-                    value = NoneType.none
-                context.symbolTable.set_final(var_name, value, "final")
+            # if node.variable_keyword_token == "let":
+            #     if value is None:
+            #         value = NoneType.none
+            #     context.symbolTable.set(var_name, value, "let")
+            # elif node.variable_keyword_token == "final":
+            #     if value is None:
+            #         value = NoneType.none
+            #     context.symbolTable.set_final(var_name, value, "final")
+            context.symbolTable.set(var_name, value, "let")
         return res.success(value)
 
     
@@ -3047,7 +3050,7 @@ class Interpreter:
                 result, error = left.powred_by(right)
             elif node.op_tok.type == tokenList.TT_MOD:
                 result, error = left.modulo(right)
-            elif node.op_tok.type == tokenList.TT_COLON:
+            elif node.op_tok.type == tokenList.TT_PIPE:
                 result, error = left.get_index(right)
             elif node.op_tok.type == tokenList.TT_GETTER:
                 return self.visit_ObjectGetNode(node, context)
@@ -3105,8 +3108,8 @@ class Interpreter:
             condition_value = res.register(self.visit(condition, context))
             if res.should_return():
                 return res
-
-            if condition_value.is_true():
+            print(condition_value.value == "true")
+            if hasattr(condition_value, "value") and condition_value.value == "true":
                 expr_value = res.register(self.visit(expr, context))
                 if res.should_return():
                     return res
