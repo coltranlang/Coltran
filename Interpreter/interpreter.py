@@ -292,15 +292,11 @@ class Program:
         lexer = Lexer(module_name, module)
         tokens, error = lexer.make_tokens()
         if error: return "", error
-
-        
         parser = Parse(tokens, module_name)
         ast = parser.parse()
         if ast.error: return "", ast.error
         interpreter = Interpreter()
-        new_context = Context('<module>')
-        new_context.symbolTable = SymbolTable()
-        result = interpreter.visit(ast.node, new_context)
+        result = interpreter.visit(ast.node, context)
         if hasattr(result, 'value') and hasattr(result, 'error'):
             if isinstance(result.value, List):
                 for item in result.value.elements:
@@ -1490,6 +1486,21 @@ class Object(Value):
             }
         return None, self.key_error(error, key)
     
+    def get_keys(self):
+        keys = []
+        for key in self.properties:
+            keys.append(String(key))
+        return keys
+    
+    def get_values(self):
+        values = []
+        for value in self.properties.values():
+            values.append(value)
+        return values
+    
+    def get_length(self):
+        return len(self.properties)
+    
     def get_index(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -2509,6 +2520,7 @@ def BuiltInTask_Sorted(args, node, context):
             "context": context,
             'exit': False
         }))
+   
     
 def BuiltInTask_Format(args, node):
     string = args[0].value
@@ -3279,6 +3291,55 @@ class Interpreter:
             elements.append(value)
         return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
+
+    def visit_InNode(self, node, context):
+        res = RuntimeResult()
+        iterable_node = context.symbolTable.get(node.iterable_node.value)
+        iterators = node.iterators
+        value = ""
+        elements = []
+        # in loop acts as a for in loop
+        if res.should_return(): return res
+        if not isinstance(iterable_node, Object):
+            return res.failure(
+                Program.error()['Syntax']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'message': 'In loop not supported for non-objects',
+                    'exit': False
+                })
+            )
+        
+        
+        # for i in range(len(iterators)):
+        #     if
+        end_value = iterable_node.get_length()
+        values = []
+        for i in range(end_value):
+            if len(iterators) == 1:
+                if type(iterators[0]).__name__ == "VarAccessNode":
+                    # create a new pair
+                    pair = (iterable_node.get_keys(), iterable_node.get_values())
+                    new_pair = ""
+                    key, value = pair[0][i], pair[1][i]
+                    new_pair = tuple([key, value])
+                    context.symbolTable.set(iterators[0].id.value, Pair(new_pair))
+                    value = res.register(self.visit(node.body_node, context))
+                    elements.append(value)
+                    
+                else:
+                    return res.failure(
+                        Program.error()['Syntax']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': 'cannot assign to non-identifier',
+                            'exit': False
+                        })
+                    )
+       
+        return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
     
     def visit_WhileNode(self, node, context):
         res = RuntimeResult()
@@ -3305,6 +3366,7 @@ class Interpreter:
             print('Exiting...')
 
         return res.success(NoneType.none if node.implicit_return else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+
 
     
     def visit_TaskDefNode(self, node, context):

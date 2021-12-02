@@ -92,11 +92,39 @@ class Program:
                 Program.printErrorExit(Program.asString(isDetail))
             else:
                 Program.printError(Program.asString(isDetail))
+            
+        def KeyError(detail):
+            isDetail = {
+                'name': 'KeyError',
+                'type': 'key error',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asString(isDetail))
+            else:
+                Program.printError(Program.asString(isDetail))
+                
+        def ValueError(detail):
+            isDetail = {
+                'name': 'ValueError',
+                'type': 'value error',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asString(isDetail))
+            else:
+                Program.printError(Program.asString(isDetail))
         methods = {
             'Default': Default,
             'Syntax': Syntax,
             'Runtime': Runtime,
-            'NameError': NameError
+            'NameError': NameError,
+            'KeyError': KeyError,
+            'ValueError': ValueError,
         }
         return methods
 
@@ -384,6 +412,7 @@ class IfNode:
     def __repr__(self):
         return f'IfNode'
 
+
 class ForNode:
     def __init__(self, var_name_token, start_value_node, end_value_node, step_value_node, body_node, return_null):
         self.var_name_token = var_name_token
@@ -395,6 +424,19 @@ class ForNode:
 
         self.pos_start = self.var_name_token.pos_start
         self.pos_end = self.body_node.pos_end
+
+
+class InNode:
+    def __init__(self, iterable_node, iterators, body_node, return_null):
+        self.iterable_node = iterable_node
+        self.iterators = iterators
+        self.body_node = body_node
+        self.return_null = return_null
+
+        self.pos_start = self.iterable_node.pos_start
+        self.pos_end = self.body_node.pos_end    
+        
+    
 
 
 class WhileNode:
@@ -820,25 +862,14 @@ class Parser:
             if res.error:
                 return res
             cases.append((condition, statements, True))
-            
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-
             else:
                 all_cases = res.register(self.if_expr_b_or_c())
                 if res.error:
                     return res
                 new_cases, else_case = all_cases
-                if self.current_token.type != tokenList.TT_NEWLINE:
-                    return res.failure(Program.error()['Syntax'](
-                        {
-                            'pos_start': self.current_token.pos_start,
-                            'pos_end': self.current_token.pos_end,
-                            'message': 'Expected a newline',
-                            'exit': False
-                        }
-                    ))
                 cases.extend(new_cases)
         else:
             expr = res.register(self.statement())
@@ -957,6 +988,143 @@ class Parser:
 
         return res.success(ForNode(var_name_token, start_value, end_value, step_value, body, False))
 
+    def in_expr(self):
+        res = ParseResult()
+    
+        if not self.current_token.matches(tokenList.TT_KEYWORD, 'in'):
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected 'in'"
+            }))
+            
+        res.register_advancement()
+        self.advance()
+        
+        if self.current_token.type != tokenList.TT_IDENTIFIER:
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected an identifier",
+                'exit': False
+            }))
+        
+        iterable_name_token = self.current_token
+        res.register_advancement()
+        self.advance()
+        
+        if not self.current_token.matches(tokenList.TT_KEYWORD, 'as'):
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected 'as'",
+                'exit': False
+            }))
+            
+        res.register_advancement()
+        self.advance()
+        
+        iterator_keys = []
+        if self.current_token.type == tokenList.TT_IDENTIFIER:
+            iterator_keys.append(self.current_token)
+            res.register_advancement()
+            self.advance()
+            while self.current_token.type == tokenList.TT_COMMA:
+                res.register_advancement()
+                self.advance()
+                if self.current_token.type != tokenList.TT_IDENTIFIER:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected an identifier",
+                        'exit': False
+                    }))
+                iterator_keys.append(self.current_token)
+                res.register_advancement()
+                self.advance()
+            if len(iterator_keys) == 0:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected an identifier",
+                    'exit': False
+                }))
+            elif len(iterator_keys) > 2:
+                return res.failure(Program.error()['ValueError']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Too many values, expected 2 or 1 but got {}".format(len(iterator_keys)),
+                    'exit': False
+                }))
+
+        else:
+            expr = res.register(self.expr())
+            if not isinstance(expr, PairNode):
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected a pair of values",
+                    'exit': False
+                }))
+                
+            for el in expr.elements:
+                iterator_keys.append(el)
+                
+            if len(iterator_keys) == 0:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected a value",
+                    'exit': False
+                }))
+                
+            elif len(iterator_keys) > 2:
+                return res.failure(Program.error()['ValueError']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Too many values, expected 2 or 1 but got {}".format(len(iterator_keys)),
+                    'exit': False
+                }))
+                
+            if not self.current_token.matches(tokenList.TT_KEYWORD, 'then'):
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected 'then'",
+                    'exit': False
+                }))
+                
+            res.register_advancement()
+            self.advance()
+            
+            if self.current_token.type == tokenList.TT_NEWLINE:
+                res.register_advancement()
+                self.advance()
+                
+                body = res.register(self.statements())
+                if res.error:
+                    return res
+                
+                if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected 'end'",
+                        'exit': False
+                    }))
+
+                res.register_advancement()
+                self.advance()
+                
+                return res.success(InNode(iterable_name_token, iterator_keys, body, False))
+                
+                
+                
+        print(iterator_keys)
+        body = res.register(self.statement())
+        return res.success(InNode(iterable_name_token, iterator_keys, body, False))
+    
+    
     def while_expr(self):
         res = ParseResult()
 
@@ -1958,6 +2126,11 @@ class Parser:
             if res.error:
                 return res
             return res.success(for_node)
+        elif tok.matches(tokenList.TT_KEYWORD, 'in'):
+            in_node = res.register(self.in_expr())
+            if res.error:
+                return res
+            return res.success(in_node)
         elif tok.matches(tokenList.TT_KEYWORD, 'while'):
             while_node = res.register(self.while_expr())
             if res.error:
@@ -2258,3 +2431,11 @@ class Parser:
 
     
             
+
+
+cars ={
+    "name": "Ford",
+    "model": "Fiesta",
+}
+# for key in cars.items():
+#     print(key, key[0])

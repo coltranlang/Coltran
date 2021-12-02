@@ -4,4 +4,4 @@ let (id, name, course, school) = student
 
 
 
-print(fv"{name} attends {school} and is studying {course}")
+print(fv`%{name} attends %{school} and is studying %{course}`)

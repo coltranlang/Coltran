@@ -1,57 +1,57 @@
 
 
 
-# ## 2. Comments
+# ## 1. Comments
 #   - Comments are used to explain code.
 #   - Comments are ignored by the interpreter.
 # This is a comment.
 
 
-# ## 1. Variables
+# ## 2. Variables
 #   - A variable is a named location in memory that holds a value.
 #   - Variables are declared with the `let` and `final` keywords. 
-let var_a = 10 # declare a variable named `a` and set it to `10` . Variables decalred with `let` are mutable.
-final var_ b = 20 # declare a variable named `b` and set it to `20` . Variables decalred with `final` are immutable.
+let var_a = 10 # declare a variable named `a` and assign it a value of `10` . Variables decalred with `let` are mutable.
+final var_ b = 20 # declare a variable named `b` and assign it a value of `20` . Variables decalred with `final` are immutable.
 
 
 # ## 3. Strings
 #   - Strings are sequences of characters.
 #   - Strings are declared with the `"`  or `'` characters.
-let string_a = "This is a string" # declare a variable named `string` and set it to the string "This is a string" .
-let string_b = 'This is also a string' # declare a variable named `string2` and set it to the string "This is also a string" .
+let string_a = "This is a string" # declare a variable named `string` and assign it a value of the string "This is a string" .
+let string_b = 'This is also a string' # declare a variable named `string2` and assign it a value of the string "This is also a string" .
 
 # ## 4. Numbers
 # integers
-let num_a = 10 # declare a variable named `a` and set it to `10` .
+let num_a = 10 # declare a variable named `a` and assign it a value of `10` .
 # floats
-let num_b = 10.5 # declare a variable named `b` and set it to `10.5` .
+let num_b = 10.5 # declare a variable named `b` and assign it a value of `10.5` .
 # negative numbers
-let num_c = -10 # declare a variable named `c` and set it to `-10` .
+let num_c = -10 # declare a variable named `c` and assign it a value of `-10` .
 # hexadecimal numbers
-let num_d = 0xFF # declare a variable named `d` and set it to `0xFF` .
+let num_d = 0xFF # declare a variable named `d` and assign it a value of `0xFF` .
 # binary numbers
-let num_e = 0b1010 # declare a variable named `e` and set it to `0b1010` .
+let num_e = 0b1010 # declare a variable named `e` and assign it a value of `0b1010` .
 # octal numbers
-let num_f = 0o777 # declare a variable named `f` and set it to `0o777` .
+let num_f = 0o777 # declare a variable named `f` and assign it a value of `0o777` .
  
 # ## 5. Booleans
 #   - Booleans are either `true` or `false`.
 #   - Booleans are declared with the `true` or `false` keywords.
-let bool_a = true # declare a variable named `a` and set it to `true` .
-let bool_b = false # declare a variable named `b` and set it to `false` .
+let bool_a = true # declare a variable named `a` and assign it a value of `true` .
+let bool_b = false # declare a variable named `b` and assign it a value of `false` .
 
 
 # ## 6. Arrays
 #   - Arrays are collections of values.
 #   - Arrays are declared with the `[` and `]` characters.
-let array_a = [1, 2, 3] # declare a variable named `array` and set it to the array `[1, 2, 3]` .
-let array_b = [1, 2, 3, 4, 5] # declare a variable named `array2` and set it to the array `[1, 2, 3, 4, 5]` .
+let array_a = [1, 2, 3] # declare a variable named `array` and assign it a value of the array `[1, 2, 3]` .
+let array_b = [1, 2, 3, 4, 5] # declare a variable named `array2` and assign it a value of the array `[1, 2, 3, 4, 5]` .
 
 
 # ## 7. Pairs
 #   - Pairs are collections of values.
 #   - Pairs are declared with the `(` and `)` characters.
-let pair_a = (1, 2) # declare a variable named `pair` and set it to the pair `(1, 2)` .
+let pair_a = (1, 2) # declare a variable named `pair` and assign it a value of the pair `(1, 2)` .
 let (pair_b, pair_c) = pair_a # declare two variables named `pair_b` and `pair_c` and set them to the values of the pair `pair_a` .
 
 
