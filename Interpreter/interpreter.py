@@ -3301,16 +3301,18 @@ class Interpreter:
         # in loop acts as a for in loop
         if res.should_return(): return res
         if not isinstance(iterable_node, Object):
-            return res.failure(
-                Program.error()['Syntax']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'context': context,
-                    'message': 'In loop not supported for non-objects',
-                    'exit': False
-                })
-            )
-        
+            if isinstance(iterable_node, dict):
+                iterable_node = iterable_node['value']
+            else:
+                return res.failure(
+                    Program.error()['Syntax']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': 'In loop not supported for non-objects',
+                        'exit': False
+                    })
+                )
         
         # for i in range(len(iterators)):
         #     if
