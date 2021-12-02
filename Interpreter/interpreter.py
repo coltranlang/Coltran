@@ -2683,32 +2683,23 @@ class Interpreter:
         res = RuntimeResult()
         values_to_replace = node.values_to_replace
         string_to_interp = res.register(self.visit(node.expr, context)).value
+        inter_pv = node.inter_pv
         value = ""
         if isinstance(values_to_replace, list):
-            for value_to_replace in values_to_replace:
-                    replace_value = context.symbolTable.get(value_to_replace)
-                    if type(replace_value) == dict:
-                        replace_value = replace_value["value"]
-                    if replace_value:
-                        value_expr = res.register(self.visit(node.expr, context))
-                        value_replaced = str(replace_value)
-                        string_to_interp = string_to_interp.replace('{' + value_to_replace + '}', value_replaced)
-                        value = String(string_to_interp).setContext(
-                            context).setPosition(node.pos_start, node.pos_end)
-                    else:
-                        value_expr = str(NoneType.none)
-                        value_replaced = str(NoneType.none)
-                        string_to_interp = string_to_interp.replace('{' + value_to_replace + '}', value_replaced)
-                        value = String(string_to_interp).setContext(
-                            context).setPosition(node.pos_start, node.pos_end)
-                        # return res.failure(Program.error()['Runtime']({
-                        #     'pos_start': node.pos_start,
-                        #     'pos_end': node.pos_end,
-                        #     'message': f"format-variable is only allowed for variables or '{value_to_replace}' is not defined",
-                        #     'context': context,
-                        #     'exit': False
-                        # }))
-                        
+            for pv in range(len(inter_pv)):
+                replace_value = res.register(self.visit(values_to_replace[pv], context))
+                value_replaced = str(replace_value)
+                # replace placeholder with value
+                string_to_interp = string_to_interp.replace(
+                    '%{' + str(inter_pv[pv]) + '}', value_replaced)
+                if '%%{{' in string_to_interp and '}}' in string_to_interp:
+                    string_to_interp = string_to_interp.replace(
+                        '%%{{' + str(inter_pv[pv]) + '}}', '%{' + str(value_replaced) + '}')
+                elif '{{' in string_to_interp and '}}' in string_to_interp:
+                    string_to_interp = string_to_interp.replace(
+                        '%{{' + str(inter_pv[pv]) + '}}', '{' + str(value_replaced) + '}')
+                value = String(string_to_interp).setContext(
+                    context).setPosition(node.pos_start, node.pos_end)
         else:
             string = values_to_replace
             value = String(string).setContext(context).setPosition(node.pos_start, node.pos_end)

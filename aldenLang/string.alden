@@ -3,9 +3,14 @@ let occupation = "Software Engineer"
 let id = "123456789"
 
 # String interpolation
-let fullName = "\(name) is a \(occupation) with ID \(id)"
-let description = fv"Hello World, my name is {name} and I am a {occupation} with id {id}"
-let description2 = format("Hello World, my name is %s and I am a %s with id %s", name, occupation, id)
-let description3 = "Hello World, my name is {0} and I am a {1} with id {2}".format(name, occupation, id) 
+# To interpolate a string, use the fv backtick string literal  and placeholders inside the string using %{} e.g. fv"Hello, %{name}!"
+let description = fv`Hello World, my name is %{name} and I am a %{occupation} with id %{id}` # to escape the placeholder, use double % to escape the % and double {} to escape the {}
+#let description2 = format("Hello World, my name is %s and I am a %s with id %s", name, occupation, id)
+#let description3 = "Hello World, my name is {0} and I am a {1} with id {2}".format(name, occupation, id) 
 
-print(description, description2, description3)
+println(description)
+task @greet(name)
+    return fv`Hello %{name}!`
+end
+
+println(@greet(name))

@@ -124,7 +124,7 @@ task @filterByname(arr, name)
             return car  
         end
     end
-    return fv"Car {name} not found"
+    return fv`Car %{name} not found`
 end
 # test for array index
 object CarInventory
@@ -138,7 +138,7 @@ object CarInventory
     end
     lookupCar: task (index) ->  CarInventory.cars|index
     lookupCarByName: task (name) -> @filterByname(CarInventory.cars, name)
-    size: task () ->  len(CarInventory.cars)
+    size: task () ->  len(CarInventory.cars) # just assigning the value the size of the cars as len(CarInventory.cars) returns 0 but assigning the value as a task returns the size of the cars
 end
 
 let carInventory = CarInventory
@@ -154,6 +154,4 @@ line(15)
 println(carInventory.lookupCarByName("test"))
 line(16)
 println(carInventory.size())
-
-
 

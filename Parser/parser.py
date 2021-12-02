@@ -3,6 +3,7 @@ from re import split
 from Parser.stringsWithArrows import *
 from Token.token import Token
 from Token import tokenList
+from Lexer.lexer import Lexer
 import sys
 import re
 sys.path.append('./Parser/')
@@ -41,7 +42,8 @@ class Regex:
             return self
         def match(self, text):
             return self.pattern.findall(text)
-        
+        def sub(self, pattern, text):
+            return self.pattern.sub(pattern, text)
 
 def lower(text):
     return text.islower()
@@ -75,7 +77,7 @@ class Program:
                 Program.printError(Program.asString(isDetail))
 
         def Runtime(options):
-            error = f'Runtime error {options["originator"]} at line {options["line"]}'
+            error = f'Runtime error {options["originator"]}, line {options["line"]}'
             Program.printErrorExit(error)
             
         def NameError(detail):
@@ -116,7 +118,7 @@ class Program:
         sys.exit(1)
 
     def asString(detail):
-        result = f'\nFile {detail["pos_start"].fileName}, line {detail["pos_start"].line + 1}, column {detail["pos_start"].column + 1}'
+        result = f'\nFile {detail["pos_start"].fileName}, line {detail["pos_start"].line + 1}'
         result += '\n\n' +  \
             stringsWithArrows(
                 detail["pos_start"].fileText, detail["pos_start"], detail["pos_end"])
@@ -164,10 +166,11 @@ class ObjectRefNode:
         return f'{self.tok}'
 
 class StringInterpNode:
-    def __init__(self, expr, values_to_replace, string_to_interp, pos_start, pos_end):
+    def __init__(self, expr, values_to_replace, string_to_interp, pos_start, pos_end, inter_pv=None):
         self.expr = expr
         self.values_to_replace = values_to_replace
         self.string_to_interp = string_to_interp
+        self.inter_pv = inter_pv
         self.pos_start = pos_start
         self.pos_end = pos_end
         
@@ -422,7 +425,6 @@ class TaskDefNode:
         self.pos_end = self.body_node.pos_end
 
 
-
 class ObjectDefNode:
     def __init__(self, object_name, properties):
         self.object_name = object_name
@@ -567,9 +569,10 @@ class ParseResult:
 
 
 class Parser:
-    def __init__(self, tokens, file_name):
+    def __init__(self, tokens, file_name, position=None):
         self.tokens = tokens
         self.file_name = file_name
+        self.position = position
         # get file name without extension
         #self.file_name_no_ext = self.file_name.split('/')[2].split('.')[0]
         self.tok_index = -1
@@ -614,9 +617,9 @@ class Parser:
             if not res.error and self.current_token.type != tokenList.TT_EOF:
                 value = self.current_token.value
                 error['message'] = "Invalid syntax or unknown token"
-                if (value == "endTask"):
-                    error['message'] = "Cannot end task here, without starting it, perhaps you forgot to add 'task' before 'endTask'?"
-                    return res.failure(Program.error()['Syntax'](error))
+                # if (value == "end"):
+                #     error['message'] = "Cannot end task here, without starting it, perhaps you forgot to add 'task' before 'endTask'?"
+                #     return res.failure(Program.error()['Syntax'](error))
             return res
         except AttributeError:
             return ParseResult()
@@ -1723,15 +1726,24 @@ class Parser:
             res.register_advancement()
             self.advance()
             string_to_interp = self.current_token.value
-            while self.current_token.type == tokenList.TT_STRING or self.current_token.type == tokenList.TT_SINGLE_STRING:
+            while self.current_token.type == tokenList.TT_BACKTICK_STRING:
                 value = self.current_token.value
-                regex = Regex().compile('{(.*?)}')
+                regex = Regex().compile('%{(.*?)}')
+                # we need to allow escaping of the %{}
+                # check if the string has a double % and double { and double }
+                regex2 = Regex().compile('%%{{(.*?)}}')
+                if regex2.match(value):
+                    value = regex2.sub('%{\\1}', value)
+                if value.find('{{') != -1:
+                    value = value.replace('{{', '{')
+                    value = value.replace('}}', '}')
                 interp_values = regex.match(value)
                 if interp_values:
                     inter_pv = interp_values
-                    #print(inter_pv, "interp_values")
                     expr = res.register(self.expr())
-                    return res.success(StringInterpNode(expr, inter_pv, string_to_interp, pos_start, self.current_token.pos_end.copy()))
+                    interpolated_string = self.make_expr(
+                        inter_pv, self.current_token.pos_start)
+                    return res.success(StringInterpNode(expr,  interpolated_string, string_to_interp, pos_start, self.current_token.pos_end.copy(),inter_pv))
                 else:
                     expr = res.register(self.expr())
                     return res.success(StringInterpNode(expr, value, string_to_interp, pos_start, self.current_token.pos_end.copy()))
@@ -1739,10 +1751,22 @@ class Parser:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': f"Expected a string",
+                    'message': f"Expected a backtick string",
                     'exit': False
                 }))
         return res.success(StringNode(self.current_token))
+    
+    def make_expr(self, inter_pv, position):
+        interpolated = []
+        for el in inter_pv:
+            lexer = Lexer(self.file_name, el, position)
+            token, error = lexer.make_tokens()
+            parser = Parser(token, self.file_name, position)
+            ast = parser.parse()
+            for element in ast.node.elements:
+                interpolated.append(element)
+                self.string_expr = interpolated
+        return self.string_expr
     
     def get_expr(self):
         res = ParseResult()
@@ -1888,7 +1912,7 @@ class Parser:
             res.register_advancement()
             self.advance()
             return res.success(NumberNode(tok))
-        elif tok.type == tokenList.TT_STRING or tok.type == tokenList.TT_SINGLE_STRING:
+        elif tok.type == tokenList.TT_STRING or tok.type == tokenList.TT_SINGLE_STRING or tok.type == tokenList.TT_BACKTICK_STRING:
             res.register_advancement()
             self.advance()
             return res.success(StringNode(tok))
@@ -2070,7 +2094,7 @@ class Parser:
             factor = res.register(self.factor())
             if res.error:
                 return res
-            if tok and not factor: # if tok and factor is None then it is a syntax error because the factor is missing and the current token is the + or -
+            if tok and not factor: # if tok and factor is None
                 Program.error()['Syntax']({
                     'message': 'Invalid syntax',
                     'pos_start': self.current_token.pos_start,

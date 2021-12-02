@@ -81,10 +81,12 @@ class Program:
 
 
 class Lexer:
-    def __init__(self, fileName, fileText):
+    def __init__(self, fileName, fileText, position=None):
         self.fileName = fileName
         self.fileText = fileText
-        self.pos = Position(-1, 0, -1, fileName, fileText)
+        self.position = position
+        self.pos = Position(
+            -1, 0, -1, fileName, fileText, "inter_p", self.position)
         self.current_char = None
         self.advance()
 
@@ -110,6 +112,8 @@ class Lexer:
                 tokens.append(self.make_string())
             elif self.current_char == "'":
                 tokens.append(self.make_single_string())
+            elif self.current_char == "`":
+                tokens.append(self.make_backtick_string())
             elif self.current_char == '+':
                 tokens.append(Token(tokenList.TT_PLUS, pos_start=self.pos))
                 self.advance()
@@ -303,36 +307,33 @@ class Lexer:
         escape_characters = {
             '\\': '\\',
             'n': '\n',
-            't': '\t'
+            't': '\t',
+            '\es': "\\"
             # '{': '{',
             # '}': '}',
         }
         
         while self.current_char != None and (self.current_char != '"' or escape_character):
-            # if self.current_char == '{':
-            #     if self.current_char != None and self.current_char != '}':
-            #         self.advance()
-            #         string += '{'
             if self.current_char == '\\':
                 self.advance()
                 if self.current_char in escape_characters:
+                    print(escape_characters[self.current_char], self.current_char)
                     string += escape_characters[self.current_char]
                 else:
-                    character = False
-                    Program.error()['Syntax']({
-                        'pos_start': pos_start,
-                        'pos_end': self.pos,
-                        'message': 'Invalid escape character',
-                        'exit': False
-                    })
+                    if self.current_char == '"':
+                        string += '"'
+                    else:
+                        string += self.current_char
+                        # Program.error()['Syntax']({
+                        #     'pos_start': pos_start,
+                        #     'pos_end': self.pos,
+                        #     'message': 'Invalid escape character',
+                        #     'exit': False
+                        # })
                     
             else:
                 if character:
-                    
                     string += self.current_char
-                    regex = Regex().compile('{(.*?)}')
-                    interp_values = regex.match(string)
-                    concat_string = ''
                 else:
                     string = ''
                     return Token(tokenList.TT_STRING, string, pos_start, self.pos)
@@ -347,10 +348,6 @@ class Lexer:
             })
         self.advance()
         return Token(tokenList.TT_STRING, string, pos_start, self.pos)
-
-    def make_interp(self, string, interp_values):
-        pass
-   
    
     def make_single_string(self):
         string = ''
@@ -395,7 +392,50 @@ class Lexer:
             })
         self.advance()
         return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)
-    
+
+    def make_backtick_string(self):
+        string = ''
+        character = True
+        pos_start = self.pos.copy()
+        escape_character = False
+        self.advance()
+        escape_characters = {
+            'n': '\n',
+            't': '\t'
+        }
+
+        while self.current_char != None and (self.current_char != '`' or escape_character):
+            if self.current_char == '\\':
+                self.advance()
+                if self.current_char in escape_characters:
+                    string += escape_characters[self.current_char]
+                else:
+                    character = False
+                    Program.error()['Syntax']({
+                        'pos_start': pos_start,
+                        'pos_end': self.pos,
+                        'message': 'Invalid escape character',
+                        'exit': False
+                    })
+
+            else:
+                if character:
+                    string += self.current_char
+                else:
+                    string = ''
+                    return Token(tokenList.TT_BACKTICK_STRING, string, pos_start, self.pos)
+            self.advance()
+            escape_character = False 
+            
+        if self.current_char == None:
+            return None, Program.error()['Syntax']({
+                'pos_start': pos_start,
+                'pos_end': self.pos,
+                'message': 'Expected " ` " at (line: {}, column: {})'.format(self.pos.line + 1, self.pos.column),
+                'exit': False
+            })
+        self.advance()
+        return Token(tokenList.TT_BACKTICK_STRING, string, pos_start, self.pos)    
       
     def make_getter(self):
         tok_type = tokenList.TT_GETTER
@@ -416,13 +456,17 @@ class Lexer:
 
 
 class Position:
-    def __init__(self, index, line, column, fileName, fileText):
+    def __init__(self, index, line, column, fileName, fileText, type=None, position=None):
         self.index = index
         self.line = line
         self.column = column
         self.fileName = fileName
         self.fileText = fileText
-
+        self.type = type
+        self.position = position
+        if self.type == "inter_p" and self.position != None:
+            self.line = self.position.line
+            self.column = self.position.column - [ '\n' for i in range(self.position.column - self.index) ].count('\n') if self.position.column - [ '\n' for i in range(self.position.column - self.index) ].count('\n') == -1 else self.position.column
     def __repr__(self):
         return str({
             'index': self.index,
