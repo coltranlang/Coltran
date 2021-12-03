@@ -156,15 +156,18 @@ line(16)
 println(carInventory.size())
 
 # test for in operator
-object People
+object User
     name: "John"
     age: 21
     email: "john123@email.com"
+    phone: "1234567890"
+    username: "john123"
+    password: "john123"
 end
 
 
 
-in People as (key) then
-    println(fv`Key: %{key|0}, Value: %{key|1}`) # getting key and value from People object by just using the key
-    #println(fv`Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
+in User as (key,value)  then
+    #println(fv`Key: %{key|0}, Value: %{key|1}`) # getting key and value from People object by just using the key
+    println(fv`Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
 end

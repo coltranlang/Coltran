@@ -1,9 +1,14 @@
 import os
+from Parser.parser import ModuleExport
 from Parser.stringsWithArrows import *
 from Token.token import Token
 import Token.tokenList as tokenList
 from Lexer.lexer import Lexer
 from Memory.memory import SymbolTable, Parse
+
+
+
+
 import sys
 import re
 import time
@@ -296,18 +301,84 @@ class Program:
         ast = parser.parse()
         if ast.error: return "", ast.error
         interpreter = Interpreter()
-        result = interpreter.visit(ast.node, context)
+        new_context = Context('<module>')
+        new_context.symbolTable = SymbolTable()
+        
+        
+        BuiltInTask.print = BuiltInTask("print")
+        BuiltInTask.println = BuiltInTask("println")
+        BuiltInTask.exit = BuiltInTask("exit")
+        BuiltInTask.input = BuiltInTask("input")
+        BuiltInTask.inputInt = BuiltInTask("inputInt")
+        BuiltInTask.inputFloat = BuiltInTask("inputFloat")
+        BuiltInTask.inputBool = BuiltInTask("inputBool")
+        BuiltInTask.clear = BuiltInTask("clear")
+        BuiltInTask.len = BuiltInTask("len")
+        #BuiltInTask.range = BuiltInTask("range")
+        BuiltInTask.str = BuiltInTask("str")
+        BuiltInTask.int = BuiltInTask("int")
+        BuiltInTask.float = BuiltInTask("float")
+        BuiltInTask.bool = BuiltInTask("bool")
+        BuiltInTask.list = BuiltInTask("list")
+        BuiltInTask.pair = BuiltInTask("pair")
+        BuiltInTask.Object = BuiltInTask("Object")
+        BuiltInTask.line = BuiltInTask("line")
+        BuiltInTask.typeOf = BuiltInTask("typeOf")
+        BuiltInTask.append = BuiltInTask("append")
+        BuiltInTask.pop = BuiltInTask("pop")
+        BuiltInTask.extend = BuiltInTask("extend")
+        BuiltInTask.remove = BuiltInTask("remove")
+        BuiltInTask.sorted = BuiltInTask("sorted")
+        BuiltInTask.clearList = BuiltInTask("clearList")
+        BuiltInTask.delay = BuiltInTask("delay")
+        BuiltInTask.format = BuiltInTask("format")
+        BuiltInTask.max = BuiltInTask("max")
+        BuiltInTask.min = BuiltInTask("min")
+
+        
+        
+        new_context.symbolTable.set('print', BuiltInTask.print)
+        new_context.symbolTable.set('println', BuiltInTask.println)
+        new_context.symbolTable.set('exit', BuiltInTask.exit)
+        new_context.symbolTable.set('input', BuiltInTask.input)
+        new_context.symbolTable.set('inputInt', BuiltInTask.inputInt)
+        new_context.symbolTable.set('inputFloat', BuiltInTask.inputFloat)
+        new_context.symbolTable.set('inputBool', BuiltInTask.inputBool)
+        new_context.symbolTable.set('clear', BuiltInTask.clear)
+        new_context.symbolTable.set('len', BuiltInTask.len)
+        #new_context.symbolTable.set('range', BuiltInTask.range)
+        new_context.symbolTable.set('str', BuiltInTask.str)
+        new_context.symbolTable.set('int', BuiltInTask.int)
+        new_context.symbolTable.set('float', BuiltInTask.float)
+        new_context.symbolTable.set('bool', BuiltInTask.bool)
+        new_context.symbolTable.set('list', BuiltInTask.list)
+        new_context.symbolTable.set('pair', BuiltInTask.pair)
+        new_context.symbolTable.set('Object', BuiltInTask.Object)
+        new_context.symbolTable.set('line', BuiltInTask.line)
+        new_context.symbolTable.set('typeOf', BuiltInTask.typeOf)
+        new_context.symbolTable.set('append', BuiltInTask.append)
+        new_context.symbolTable.set('pop', BuiltInTask.pop)
+        new_context.symbolTable.set('extend', BuiltInTask.extend)
+        new_context.symbolTable.set('remove', BuiltInTask.remove)
+        new_context.symbolTable.set('sorted', BuiltInTask.sorted)
+        new_context.symbolTable.set('clearList', BuiltInTask.clearList)
+        new_context.symbolTable.set('delay', BuiltInTask.delay)
+        new_context.symbolTable.set('format', BuiltInTask.format)
+        new_context.symbolTable.set('max', BuiltInTask.max)
+        new_context.symbolTable.set('min', BuiltInTask.min)
+        new_context.symbolTable.setSymbol()
+        result = interpreter.visit(ast.node, new_context)
+        value = ""
         if hasattr(result, 'value') and hasattr(result, 'error'):
             if isinstance(result.value, List):
-                for item in result.value.elements:
+                for tok in result.value.elements:
                     # check if item has export defined
-                    if hasattr(item, 'name'):
-                        if item.name ==  "ExportModule":
-                            item_ = item
-                            context.symbolTable.set(module_name, item_)
-                            print(item_)
-                            value = item_
-        return value
+                    if hasattr(tok, 'name'):
+                        if tok.name ==  "Export":
+                            value = tok
+                            context.symbolTable.set(module_name, value)
+                            return value
+        return res.success(value)
 
 
 class RuntimeResult:
@@ -1005,7 +1076,6 @@ class Boolean(Value):
     
     
     def added_to(self, other):
-        print(self.value)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1451,12 +1521,13 @@ class List(Value):
 
    
 class Object(Value):
-    def __init__(self, name, properties):
+    def __init__(self, name, properties, type=None):
         super().__init__()
         self.id = name
         self.name = name
         self.properties = properties if properties is not None else {}
         self.value = self.properties
+        self.type = type
         self.get_property = self.get_property
        
     def set_property(self, key, value):
@@ -1535,8 +1606,7 @@ class Object(Value):
     
     def get_comparison_gte(self, other):
         return Boolean(self.setTrueorFalse(self.value >= other.value)), None
-        
-    
+         
     
     def copy(self):
         copy = Object(self.name, self.properties)
@@ -1546,6 +1616,8 @@ class Object(Value):
     
     def __str__(self):
         try:
+            if self.type == "module":
+                return str(self.properties)
             return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
         except:
             return "{}"
@@ -1751,7 +1823,7 @@ class Task(BaseTask):
 
 
 class Class(BaseTask):
-    def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods):
+    def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods, context):
         super().__init__(class_name)
         self.id = class_name
         self.class_name = class_name
@@ -1759,24 +1831,25 @@ class Class(BaseTask):
         self.inherit_class_name = inherit_class_name
         self.inherit_class = inherit_class
         self.methods = methods if methods else {}
+        self.context = context
         self.body_node = None
         
         
     def execute(self, args):
         res = RuntimeResult()
         interpreter = Interpreter()
-        new_context = self.generate_new_context()
+        new_context = Context(self.class_name)
+        new_context.symbolTable = SymbolTable(new_context.parent)
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
         
         # inject args into each method context
         for method_name, method in self.methods.items():
-            method.setContext(self.context)
             # add constructor args names and values to method context
             for i in range(len(self.constructor_args)):
                 arg_name = self.constructor_args[i]
                 arg_value = args[i]
-                method.context.symbolTable.set(arg_name.value, arg_value)
+                new_context.symbolTable.set(arg_name.value, arg_value)
         
         return res.success(self)
         
@@ -1805,7 +1878,7 @@ class Class(BaseTask):
 
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
-                     self.inherit_class_name, self.inherit_class, self.methods)
+                     self.inherit_class_name, self.inherit_class, self.methods, self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -1836,6 +1909,13 @@ class Module(Value):
         context = self.context
         Program.createModule(self.name, module, self.path, context)
         self.value = context.symbolTable.get(self.name)
+        if isinstance(self.value, Object):
+            self.properties = self.value.properties
+            if isinstance(self.value.properties, Class):
+                self.properties = self.value.properties.methods
+        else:
+            self.properties = {}
+        return self.value
         
     def copy(self):
         copy = Module(self.name, self.path, self.context)
@@ -1850,6 +1930,23 @@ class Module(Value):
     def __repr__(self):
         return f"<Module {str(self.name)}>"
 
+
+class ModuleExportValue(Value):
+    def __init__(self, value):
+        super().__init__()
+        self.value = value
+        
+    def copy(self):
+        copy = ModuleExportValue(self.value)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+    
+    def __str__(self):
+        return str(self.value)
+    
+    def __repr__(self):
+        return f"<ModuleExportValue {str(self.name)}>"
 
 
 class ClassGet(Value):
@@ -2035,6 +2132,8 @@ class BuiltInTask(BaseTask):
 
     def __repr__(self):
         return f"<{str(self.name)}()>, [ built-in task ]"
+  
+  
   
 # Built-in task
  
@@ -2644,7 +2743,6 @@ def BuiltInTask_Http_Get():
 # Built-in modules
  
 def BuiltInModule_Http(context):
-    # get root folder without the current folder
     module_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return Module("http", module_path, context)
  
@@ -2938,11 +3036,9 @@ class Interpreter:
 
         elif isinstance(object_name, Module):
             if type(object_key).__name__ == "Token":
-                print(hasattr(object_name, "properties"))
                 if hasattr(object_name, "properties"):
                     if object_key.value in object_name.properties:
                         value = object_name.properties[object_key.value]
-                        print(value)
                         return res.success(value)
        
         else:
@@ -2990,6 +3086,22 @@ class Interpreter:
                 context.symbolTable.setSymbol(name, value)
     
     
+    def visit_ModuleExport(self, node, context):
+        res = RuntimeResult()
+        var_name = node.name.value
+        value = context.symbolTable.get(node.value.value)
+        if value == None:
+            Program.error()['Error']({
+                'name': 'IdentifierError',
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f'{node.value.value} is not defined',
+                'context': context,
+                'exit': True
+            })
+        return res.success(Object(var_name,value, "module"))
+    
+    
     def visit_GetNode(self, node, context):
         res = RuntimeResult()
         value = ""
@@ -3007,15 +3119,15 @@ class Interpreter:
         module_value = {}
         if module == None:
             builtin_modules = {
-                "Math": "",
-                "Http": BuiltInModule_Http,
+                "math": "",
+                "http": Program.runFile("./lib/http/main.alden"),
             }
-            if module_name in builtin_modules:
-                module_value = builtin_modules[module_name](context)
-                context.symbolTable.set(module_name, module_value)
-                return res.success(module_value)
+            module_path = node.module_path.value
+            if module_path in builtin_modules:
+                module = builtin_modules[module_path]
+                Program.createModule(module_name, module, module_value, context) 
             else:
-                error['message'] = "Module '{}' not found, if it is a builtin module, you must import it with capital letters".format(
+                error['message'] = "Module '{}' not found".format(
                     module_name)
                 return res.failure(Program.error()["ModuleError"](error))
         
@@ -3024,34 +3136,23 @@ class Interpreter:
             return res.failure(Program.error()["ModuleError"](error))
         else:
             Program.createModule(module_name, module, module_value, context)
-            
-        
-        
-        
-        # if os.path.exists(module):
-        #     with open(module, 'r') as f:
-        #         source = f.read()
-        #     ast = self.parser.parse(source)
-        #     context = Context(None, ContextType.module, module_name)
-        #     res = self.visit(ast, context)
-        #     if res.error:
-        #         return res
-        #     return res.success(res.value)
-        # else:
-        #     error = {
-        #         "pos_start": node.pos_start,
-        #         "pos_end": node.pos_end,
-        #         "message": "Module '{}' not found".format(module_name),
-        #         "context": context,
-        #         "exit": False
-        #     }
-        #     return res.failure(Program.error()["ImportError"](error))
-        
+                
     
     def visit_VarAssignNode(self, node, context):
         res = RuntimeResult()
         var_name = node.variable_name_token.value if type(node.variable_name_token).__name__ != 'tuple' else ''
         value = res.register(self.visit(node.value_node, context))
+        if node.variable_keyword_token == "module":
+            value = context.symbolTable.get(node.value_node.value)
+            if value == None:
+                Program.error()['Error']({
+                    'name': 'IdentifierError',
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f'{node.value_node.value} is not defined',
+                    'context': context,
+                    'exit': True
+                })
         # if isinstance(value, Object):
         #     # objects cannot be reassigned
         #     return res.failure(Program.error()['Runtime']({
@@ -3112,15 +3213,18 @@ class Interpreter:
         else:
             if res.should_return():
                 return res
-            # if node.variable_keyword_token == "let":
-            #     if value is None:
-            #         value = NoneType.none
-            #     context.symbolTable.set(var_name, value, "let")
-            # elif node.variable_keyword_token == "final":
-            #     if value is None:
-            #         value = NoneType.none
-            #     context.symbolTable.set_final(var_name, value, "final")
-            context.symbolTable.set(var_name, value, "let")
+            if node.variable_keyword_token == "let":
+                if value is None:
+                    value = NoneType.none
+                context.symbolTable.set(var_name, value, "let")
+            elif node.variable_keyword_token == "final":
+                if value is None:
+                    value = NoneType.none
+                context.symbolTable.set_final(var_name, value, "final")
+            elif node.variable_keyword_token == "module":
+                if value is None:
+                    value = NoneType.none
+                context.symbolTable.set(var_name, value, "module")
         return res.success(value)
 
     
@@ -3298,11 +3402,31 @@ class Interpreter:
         iterators = node.iterators
         value = ""
         elements = []
+        if type(iterable_node).__name__ == "NoneType":
+            return res.failure(
+                Program.error()['Error']({
+                'name': 'IdentifierError',
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f'{node.iterable_node.value} is not defined',
+                'context': context,
+                'exit': True
+            }))
         # in loop acts as a for in loop
         if res.should_return(): return res
         if not isinstance(iterable_node, Object):
             if isinstance(iterable_node, dict):
                 iterable_node = iterable_node['value']
+                if not isinstance(iterable_node, Object):
+                    return res.failure(
+                        Program.error()['Syntax']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': 'For loop not supported on non-objects',
+                            'exit': False
+                        })
+                    )
             else:
                 return res.failure(
                     Program.error()['Syntax']({
@@ -3314,14 +3438,12 @@ class Interpreter:
                     })
                 )
         
-        # for i in range(len(iterators)):
-        #     if
+       
         end_value = iterable_node.get_length()
         values = []
         for i in range(end_value):
             if len(iterators) == 1:
                 if type(iterators[0]).__name__ == "VarAccessNode":
-                    # create a new pair
                     pair = (iterable_node.get_keys(), iterable_node.get_values())
                     new_pair = ""
                     key, value = pair[0][i], pair[1][i]
@@ -3340,8 +3462,29 @@ class Interpreter:
                             'exit': False
                         })
                     )
+            elif len(iterators) == 2:
+                if type(iterators[0]).__name__ == "VarAccessNode" and type(iterators[1]).__name__ == "VarAccessNode":
+                    # create a new pair
+                    pair = (iterable_node.get_keys(), iterable_node.get_values())
+                    new_pair = ""
+                    key, value = pair[0][i], pair[1][i]
+                    context.symbolTable.set(iterators[0].id.value, key)
+                    context.symbolTable.set(iterators[1].id.value, value)
+                    value = res.register(self.visit(node.body_node, context))
+                    elements.append(value)
+                else:
+                    return res.failure(
+                        Program.error()['Syntax']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': 'cannot assign to non-identifier',
+                            'exit': False
+                        })
+                    )
        
         return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+    
     
     def visit_WhileNode(self, node, context):
         res = RuntimeResult()
@@ -3368,7 +3511,6 @@ class Interpreter:
             print('Exiting...')
 
         return res.success(NoneType.none if node.implicit_return else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
-
 
     
     def visit_TaskDefNode(self, node, context):
@@ -3615,7 +3757,7 @@ class Interpreter:
                 if res.should_return():
                     return res
                 methods = dict(methods, **{str(method_name): method_value})
-                class_value = Class(class_name,constructor_args, inherits_class_name, inherits_class, methods).setContext(context).setPosition(node.pos_start, node.pos_end)
+                class_value = Class(class_name,constructor_args, inherits_class_name, inherits_class, methods, context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
             context.symbolTable.set_object(class_name, class_value)
@@ -3717,3 +3859,66 @@ class Interpreter:
     
     def visit_BreakNode(self, node, context):
         return RuntimeResult().success_break()
+
+
+BuiltInTask.print = BuiltInTask("print")
+BuiltInTask.println = BuiltInTask("println")
+BuiltInTask.exit = BuiltInTask("exit")
+BuiltInTask.input = BuiltInTask("input")
+BuiltInTask.inputInt = BuiltInTask("inputInt")
+BuiltInTask.inputFloat = BuiltInTask("inputFloat")
+BuiltInTask.inputBool = BuiltInTask("inputBool")
+BuiltInTask.clear = BuiltInTask("clear")
+BuiltInTask.len = BuiltInTask("len")
+#BuiltInTask.range = BuiltInTask("range")
+BuiltInTask.str = BuiltInTask("str")
+BuiltInTask.int = BuiltInTask("int")
+BuiltInTask.float = BuiltInTask("float")
+BuiltInTask.bool = BuiltInTask("bool")
+BuiltInTask.list = BuiltInTask("list")
+BuiltInTask.pair = BuiltInTask("pair")
+BuiltInTask.Object = BuiltInTask("Object")
+BuiltInTask.line = BuiltInTask("line")
+BuiltInTask.typeOf = BuiltInTask("typeOf")
+BuiltInTask.append = BuiltInTask("append")
+BuiltInTask.pop = BuiltInTask("pop")
+BuiltInTask.extend = BuiltInTask("extend")
+BuiltInTask.remove = BuiltInTask("remove")
+BuiltInTask.sorted = BuiltInTask("sorted")
+BuiltInTask.clearList = BuiltInTask("clearList")
+BuiltInTask.delay = BuiltInTask("delay")
+BuiltInTask.format = BuiltInTask("format")
+BuiltInTask.max = BuiltInTask("max")
+BuiltInTask.min = BuiltInTask("min")
+
+symbolTable_ = SymbolTable()
+symbolTable_.set('print', BuiltInTask.print)
+symbolTable_.set('println', BuiltInTask.println)
+symbolTable_.set('exit', BuiltInTask.exit)
+symbolTable_.set('input', BuiltInTask.input)
+symbolTable_.set('inputInt', BuiltInTask.inputInt)
+symbolTable_.set('inputFloat', BuiltInTask.inputFloat)
+symbolTable_.set('inputBool', BuiltInTask.inputBool)
+symbolTable_.set('clear', BuiltInTask.clear)
+symbolTable_.set('len', BuiltInTask.len)
+#symbolTable_.set('range', BuiltInTask.range)
+symbolTable_.set('str', BuiltInTask.str)
+symbolTable_.set('int', BuiltInTask.int)
+symbolTable_.set('float', BuiltInTask.float)
+symbolTable_.set('bool', BuiltInTask.bool)
+symbolTable_.set('list', BuiltInTask.list)
+symbolTable_.set('pair', BuiltInTask.pair)
+symbolTable_.set('Object', BuiltInTask.Object)
+symbolTable_.set('line', BuiltInTask.line)
+symbolTable_.set('typeOf', BuiltInTask.typeOf)
+symbolTable_.set('append', BuiltInTask.append)
+symbolTable_.set('pop', BuiltInTask.pop)
+symbolTable_.set('extend', BuiltInTask.extend)
+symbolTable_.set('remove', BuiltInTask.remove)
+symbolTable_.set('sorted', BuiltInTask.sorted)
+symbolTable_.set('clearList', BuiltInTask.clearList)
+symbolTable_.set('delay', BuiltInTask.delay)
+symbolTable_.set('format', BuiltInTask.format)
+symbolTable_.set('max', BuiltInTask.max)
+symbolTable_.set('min', BuiltInTask.min)
+symbolTable_.setSymbol()

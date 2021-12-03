@@ -1,4 +1,4 @@
-get User from "./aldenLang/import_user" # You don't need to specify the file extension, it will be added automatically.
+get User from "./aldenLang/module" # You don't need to specify the file extension, it will be added automatically.
 println(User.Greet())
 
 get Http from "http"
@@ -7,10 +7,6 @@ object Header
     Content_Type: "application/json"
 end
 
-let http = Http.http
-println(http)
-
-#module http require "http" # still a work in progress
-#print(http)
-
-#println(User)
+let http = Http.create("https://www.aldenlang.org", Header, "This is a body")
+println(http.post())
+println(url)

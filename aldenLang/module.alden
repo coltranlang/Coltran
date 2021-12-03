@@ -24,13 +24,15 @@ let add = 2 + 2
 # Different ways to export a module
 
 # export module as an object  (recommended) for named export
-object ExportModule
+
+
+module Export
     Role: User.role
     Greet: User.role.greeting
     Users: User
 end
 
-export ExportModule
+
 
 # export as identifier separated by a comma
 #export role, greet, User, add
@@ -38,3 +40,5 @@ export ExportModule
 # export as a list of identifiers
 #export [role, greet, User, add]
 
+let x = 20
+println(x, "rt")

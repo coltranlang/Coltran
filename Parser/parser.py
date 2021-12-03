@@ -288,6 +288,15 @@ class ExportModuleNode:
         return f'{self.modules}'
 
 
+class ModuleExport:
+    def __init__(self, name, value):
+        self.name = name
+        self.id = name
+        self.value = value
+        self.pos_start = self.name.pos_start
+        self.pos_end = self.value.pos_end
+    
+
 class ObjectGetNode:
     def __init__(self, left , right):
         self.id = left
@@ -1026,37 +1035,113 @@ class Parser:
         
         iterator_keys = []
         if self.current_token.type == tokenList.TT_IDENTIFIER:
-            iterator_keys.append(self.current_token)
-            res.register_advancement()
-            self.advance()
-            while self.current_token.type == tokenList.TT_COMMA:
-                res.register_advancement()
-                self.advance()
-                if self.current_token.type != tokenList.TT_IDENTIFIER:
-                    return res.failure(Program.error()['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "Expected an identifier",
-                        'exit': False
-                    }))
-                iterator_keys.append(self.current_token)
-                res.register_advancement()
-                self.advance()
-            if len(iterator_keys) == 0:
+            expr = res.register(self.expr())
+            iterator_keys.append(expr)
+            if self.current_token.type == tokenList.TT_COMMA:
+                while self.current_token.type == tokenList.TT_COMMA:
+                    res.register_advancement()
+                    self.advance()
+                    
+                    if self.current_token.type != tokenList.TT_IDENTIFIER:
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected an identifier",
+                            'exit': False
+                        }))
+                    expr = res.register(self.expr())
+                    iterator_keys.append(expr)
+                    if res.error: return res
+                    if len(iterator_keys) == 0:
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected an identifier",
+                            'exit': False
+                        }))
+                    elif len(iterator_keys) > 2:
+                        return res.failure(Program.error()['ValueError']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Too many values, expected 2 or 1 but got {}".format(len(iterator_keys)),
+                            'exit': False
+                        }))
+                    if not self.current_token.matches(tokenList.TT_KEYWORD, 'then'):
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected 'then'",
+                            'exit': False
+                        }))
+                    res.register_advancement()
+                    self.advance()
+                    
+                    if self.current_token.type == tokenList.TT_NEWLINE:
+                        res.register_advancement()
+                        self.advance()
+
+                        body = res.register(self.statements())
+                        if res.error:
+                            return res
+
+                        if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                            return res.failure(Program.error()['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "Expected 'end'",
+                                'exit': False
+                            }))
+
+                        res.register_advancement()
+                        self.advance()
+
+                        return res.success(InNode(iterable_name_token, iterator_keys, body, False))
+                    
+                    else:
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected a newline",
+                            'exit': False
+                        }))
+            
+            
+            if not self.current_token.matches(tokenList.TT_KEYWORD, 'then'):
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "Expected an identifier",
+                    'message': "Expected 'then'",
                     'exit': False
                 }))
-            elif len(iterator_keys) > 2:
-                return res.failure(Program.error()['ValueError']({
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type == tokenList.TT_NEWLINE:
+                res.register_advancement()
+                self.advance()
+
+                body = res.register(self.statements())
+                if res.error:
+                    return res
+
+                if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected 'end'",
+                        'exit': False
+                    }))
+
+                res.register_advancement()
+                self.advance()
+
+                return res.success(InNode(iterable_name_token, iterator_keys, body, False))
+            else:
+                return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "Too many values, expected 2 or 1 but got {}".format(len(iterator_keys)),
+                    'message': "Expected a newline",
                     'exit': False
                 }))
-
         else:
             expr = res.register(self.expr())
             if not isinstance(expr, PairNode):
@@ -1122,8 +1207,7 @@ class Parser:
                 
         print(iterator_keys)
         body = res.register(self.statement())
-        return res.success(InNode(iterable_name_token, iterator_keys, body, False))
-    
+        return res.success(InNode(iterable_name_token, iterator_keys, body, False)) 
     
     def while_expr(self):
         res = ParseResult()
@@ -1689,13 +1773,13 @@ class Parser:
         class_constuctor_args = []
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             # all constructor args must start with _ or $
-            if self.current_token.value[0] != '_' and self.current_token.value[0] != '$':
-                return res.failure(Program.error()['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "Constructor argument must start with '_' or '$'",
-                    'exit': False
-                }))
+            # if self.current_token.value[0] != '_' and self.current_token.value[0] != '$':
+            #     return res.failure(Program.error()['Syntax']({
+            #         'pos_start': self.current_token.pos_start,
+            #         'pos_end': self.current_token.pos_end,
+            #         'message': "Constructor argument must start with '_' or '$'",
+            #         'exit': False
+            #     }))
             class_constuctor_args.append(self.current_token)
             res.register_advancement()
             self.advance()
@@ -1981,49 +2065,205 @@ class Parser:
 
             return res.success(GetNode(module_name, module_path))
     
-    def get_module_expr(self):
+    def module_expr(self):
         res = ParseResult()
-        pos_start = self.current_token.pos_start.copy()
-        if self.current_token.matches(tokenList.TT_KEYWORD, 'module'):
-            res.register_advancement()
-            self.advance()
-            if self.current_token.type != tokenList.TT_IDENTIFIER:
-                return res.failure(Program.error()['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': f"Expected an identifier",
-                    'exit': False
-                }))
-                
-            module_name = self.current_token
-            res.register_advancement()
-            self.advance()
-            
-            if not self.current_token.matches(tokenList.TT_KEYWORD, 'require'):
-                return res.failure(Program.error()['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': f"Expected 'require'",
-                    'exit': False
-                }))
-                
-            res.register_advancement()
-            self.advance()
-            
-            if self.current_token.type != tokenList.TT_STRING and self.current_token.type != tokenList.TT_SINGLE_STRING:
-                return res.failure(Program.error()['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': f"Expected a string",
-                    'exit': False
-                }))
-                
-            module_path = self.current_token
+        module_properties = []
+        if not self.current_token.matches(tokenList.TT_KEYWORD, 'module'):
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected 'module'",
+                'exit': False
+            }))
 
+        res.register_advancement()
+        self.advance()
+
+        if self.current_token.type != tokenList.TT_IDENTIFIER:
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected an identifier",
+                'exit': False
+            }))
+
+        module_name = self.current_token
+        if module_name.value != 'Export':
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected 'Export'",
+                'exit': False
+            }))
+        if module_name in tokenList.KEYWORDS:
+            return res.failure(Program.error()['NameError']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Cannot use reserved keyword as object name",
+                'exit': False
+            }))
+        if isOnlyLetters(module_name.value) == False:
+            return res.failure(Program.error()['NameError']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Cannot use non-letter characters as object name",
+                'exit': False
+            }))
+        if isFirstLetterUpper(module_name.value) == False:
+            return res.failure(Program.error()['NameError']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Object name must start with a capital letter",
+                'exit': False
+            }))
+
+        res.register_advancement()
+        self.advance()
+        # if self.current_token.type == tokenList.TT_EQ:
+        #     res.register_advancement()
+        #     self.advance()
+        #     module_value = self.current_token
+        #     if module_value.type != tokenList.TT_IDENTIFIER:
+        #         return res.failure(Program.error()['Syntax']({
+        #             'pos_start': self.current_token.pos_start,
+        #             'pos_end': self.current_token.pos_end,
+        #             'message': "Expected an identifier",
+        #             'exit': False
+        #         }))
+        #     return res.success(ModuleExport(module_name, module_value))
+        if self.current_token.type != tokenList.TT_NEWLINE:
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected a newline",
+                'exit': False
+            }))
+
+        while self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
 
-            return res.success(GetModuleNode(module_name, module_path))
+            if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                res.register_advancement()
+                self.advance()
+
+                module_properties.append({
+                    'name': module_name,
+                    'value': [],
+                    'pos_start': module_name.pos_start,
+                    'pos_end': module_name.pos_end
+                })
+                return res.success(ObjectDefNode(module_name, module_properties))
+            if self.current_token.type != tokenList.TT_IDENTIFIER and str(self.current_token.value) not in tokenList.DIGITS:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected an identifier",
+                    'exit': False
+                }))
+
+            while self.current_token.type == tokenList.TT_IDENTIFIER or str(self.current_token.value) in tokenList.DIGITS:
+
+                mod_name = self.current_token
+                if res.error:
+                    return res
+                # obj_name cannot start with a @ or a symbol
+                if mod_name.value[0] == '@' or mod_name.value[0] in tokenList.SYMBOLS:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Object name cannot start with a symbol",
+                        'exit': False
+                    }))
+                res.register_advancement()
+                self.advance()
+
+                if self.current_token.type != tokenList.TT_COLON:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected ':'",
+                        'exit': False
+                    }))
+
+                res.register_advancement()
+                self.advance()
+                if self.current_token.type == tokenList.TT_IDENTIFIER:
+
+                    if self.current_token.value == 'self':
+                        self.current_token.value = module_name.value
+                mod_value = res.register(self.expr())
+
+                module_properties.append({
+                    'name': mod_name,
+                    'value': mod_value,
+                    'pos_start': mod_name.pos_start,
+                    'pos_end': self.current_token.pos_end
+                })
+
+                #return res.success(ObjectDefNode(module_name, module_properties))
+
+                if res.error:
+                    return res
+                if mod_value == '':
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected property value",
+                        'exit': False
+                    }))
+                if self.current_token.type == tokenList.TT_COMMA:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Unexpected token, expected a newline",
+                        'exit': False
+                    }))
+                if self.current_token.type != tokenList.TT_NEWLINE:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected a newline",
+                        'exit': False
+                    }))
+
+                res.register_advancement()
+                self.advance()
+
+                if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                    res.register_advancement()
+                    self.advance()
+
+                    return res.success(ObjectDefNode(module_name, module_properties))
+                if self.current_token.value in tokenList.NOT_ALLOWED_OBJECTS_KEYS:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Unterminated object literal, Object key '{}' is not allowed".format(self.current_token.value),
+                        'exit': False
+                    }))
+                while self.current_token.type == tokenList.TT_NEWLINE:
+                    res.register_advancement()
+                    self.advance()
+                    while self.current_token.type == tokenList.TT_NEWLINE:
+                        res.register_advancement()
+                        self.advance()
+                        if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                            res.register_advancement()
+                            self.advance()
+                            return res.success(ObjectDefNode(module_name, module_properties))
+                    if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected 'end' or you have forgottem to close a newline",
+                            'exit': False
+                        }))
+                    else:
+                        res.register_advancement()
+                        self.advance()
+                        return res.success(ObjectDefNode(module_name, module_properties))
+            return res.success(ObjectDefNode(module_name, module_properties))
     
     def export_expr(self):
         res = ParseResult()
@@ -2037,40 +2277,51 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 modules.append(module)
-                if self.current_token.type == tokenList.TT_COMMA:
-                    while self.current_token.type == tokenList.TT_COMMA:
-                        res.register_advancement()
-                        self.advance()
-                        current_token = self.current_token
-                        if current_token.type != tokenList.TT_IDENTIFIER:
-                            return res.failure(Program.error()['Syntax']({
-                                'pos_start': self.current_token.pos_start,
-                                'pos_end': self.current_token.pos_end,
-                                'message': f"Expected an identifier",
-                                'exit': False
-                            }))
-                        res.register_advancement()
-                        self.advance()
-                        modules.append(current_token)
-            else:
-                expr = res.register(self.expr())
-                if isinstance(expr, ListNode):
-                    for element in expr.elements:
-                        if isinstance(element, VarAccessNode) != True:
-                            return res.failure(Program.error()['Syntax']({
-                                'pos_start': self.current_token.pos_start,
-                                'pos_end': self.current_token.pos_end,
-                                'message': f"Expected an identifier, or perhaps you forgot to close the list?",
-                                'exit': False
-                            }))
-                        modules.append(element)
+                if self.current_token.type == tokenList.TT_NEWLINE:
+                    return res.success(ExportModuleNode(modules))
+                elif self.current_token.type == tokenList.TT_EOF:
+                    return res.success(ExportModuleNode(modules))
                 else:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': f"Expected an identifier or list of identifiers",
+                        'message': f"Expected a newline",
                         'exit': False
                     }))
+                # if self.current_token.type == tokenList.TT_COMMA:
+                #     while self.current_token.type == tokenList.TT_COMMA:
+                #         res.register_advancement()
+                #         self.advance()
+                #         current_token = self.current_token
+                #         if current_token.type != tokenList.TT_IDENTIFIER:
+                #             return res.failure(Program.error()['Syntax']({
+                #                 'pos_start': self.current_token.pos_start,
+                #                 'pos_end': self.current_token.pos_end,
+                #                 'message': f"Expected an identifier",
+                #                 'exit': False
+                #             }))
+                #         res.register_advancement()
+                #         self.advance()
+                #         modules.append(current_token)
+            # else:
+            #     expr = res.register(self.expr())
+            #     if isinstance(expr, ListNode):
+            #         for element in expr.elements:
+            #             if isinstance(element, VarAccessNode) != True:
+            #                 return res.failure(Program.error()['Syntax']({
+            #                     'pos_start': self.current_token.pos_start,
+            #                     'pos_end': self.current_token.pos_end,
+            #                     'message': f"Expected an identifier, or perhaps you forgot to close the list?",
+            #                     'exit': False
+            #                 }))
+            #             modules.append(element)
+            #     else:
+            #         return res.failure(Program.error()['Syntax']({
+            #             'pos_start': self.current_token.pos_start,
+            #             'pos_end': self.current_token.pos_end,
+            #             'message': f"Expected an identifier or list of identifiers",
+            #             'exit': False
+            #         }))
         return res.success(ExportModuleNode(modules))
      
     def atom(self):
@@ -2165,7 +2416,7 @@ class Parser:
             return res.success(get_node)
         
         elif tok.matches(tokenList.TT_KEYWORD, 'module'):
-            get_module_node = res.register(self.get_module_expr())
+            get_module_node = res.register(self.module_expr())
             if res.error:
                 return res
             return res.success(get_module_node)
@@ -2433,9 +2684,3 @@ class Parser:
             
 
 
-cars ={
-    "name": "Ford",
-    "model": "Fiesta",
-}
-# for key in cars.items():
-#     print(key, key[0])

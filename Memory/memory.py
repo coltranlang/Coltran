@@ -2,7 +2,6 @@ import sys
 from Parser.stringsWithArrows import *
 from Parser.parser import Parser
 
-
 class Program:
     def error():
         def Default(name, message):
@@ -283,3 +282,4 @@ Parse = Parser
 # env.set("key", "value")
 # print(env.get("key"))
 # print(env.get("key2"))
+

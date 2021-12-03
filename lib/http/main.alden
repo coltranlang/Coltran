@@ -1,22 +1,28 @@
 # testing the http module
 
-class Http(_url, _headers, _body)
+class Http(url, headers, body)
     def post()
-        println("POST", _url, _headers, _body)
+        println("POST", url, headers, body)
     end
     def get_()
-        println("GET", _url, _headers, _body)
+        println("GET", url, headers, body)
     end
     def put()
-        println("PUT", _url, _headers, _body)
+        println("PUT", url, headers, body)
     end
     def delete()
-        println("DELETE", _url, _headers, _body)
+        println("DELETE", url, headers, body)
     end
 end
 
-
-
-object ExportModule
-    http: Http
+object File
+    name: "file.txt"
+    content: "Hello, world!"
 end
+
+module Export
+    create: Http
+end
+#print(x)
+let _url = "http://localhost:8080/api/v1/users"
+println("URL:", _url)
