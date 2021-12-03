@@ -1,2 +1,3 @@
 *.alden linguist-detectable
-*.alden diff=Alden
+*.alden diff=python
+
