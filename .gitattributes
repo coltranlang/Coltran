@@ -1,2 +1,2 @@
 *.alden linguist-detectable
-*.alden linguist-language=Alden
+*.alden diff=Alden
