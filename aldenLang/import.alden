@@ -1,6 +1,8 @@
-get User from "./aldenLang/module" # You don't need to specify the file extension, it will be added automatically.
+# User module test
+get User from "./aldenLang/module" # You don't need to specify the file extension, it will be added automatically.\
 println(User.Greet())
 
+# Http module test
 get Http from "http"
 
 object Header
@@ -8,4 +10,8 @@ object Header
 end
 
 let http = Http.create("https://www.aldenlang.org", Header, "This is a body")
-println(http.dd)
+#println(http.post(), http.get())
+
+# Math module test
+get Math from "math"
+println(Math.add(1, 2))

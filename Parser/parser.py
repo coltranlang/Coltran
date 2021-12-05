@@ -472,9 +472,13 @@ class TaskDefNode:
 
 
 class ObjectDefNode:
-    def __init__(self, object_name, properties):
+    def __init__(self, object_name, properties, other=None):
         self.object_name = object_name
         self.id = object_name
+        self.other = other
+        if self.other != None and self.other['name'] == "module":
+            self.type = "module"
+            self.as_name = self.other['as_name']
         object_properties = []
         for prop in properties:
             object_properties.append(prop)
@@ -615,6 +619,7 @@ class ParseResult:
 
 
 class Parser:
+    
     def __init__(self, tokens, file_name, position=None):
         self.tokens = tokens
         self.file_name = file_name
@@ -1596,11 +1601,11 @@ class Parser:
         while self.current_token.matches(tokenList.TT_KEYWORD, "def"):
             res.register_advancement()
             self.advance()
-            if self.current_token.type != tokenList.TT_IDENTIFIER:
+            if self.current_token.type != tokenList.TT_IDENTIFIER and self.current_token.type != tokenList.TT_KEYWORD:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "Expected an identifier, '{}' is a reserved keyword".format(self.current_token.value) if self.current_token.value in tokenList.KEYWORDS else "Expected an identifier",
+                    'message': "Expected an identifier",
                     'exit': False
                 }))
             method_name = self.current_token
@@ -1988,7 +1993,7 @@ class Parser:
                 if interp_values:
                     inter_pv = interp_values
                     expr = res.register(self.expr())
-                    interpolated_string = self.make_expr(
+                    interpolated_string = self.make_string_expr(
                         inter_pv, self.current_token.pos_start)
                     return res.success(StringInterpNode(expr,  interpolated_string, string_to_interp, pos_start, self.current_token.pos_end.copy(),inter_pv))
                 else:
@@ -2003,7 +2008,7 @@ class Parser:
                 }))
         return res.success(StringNode(self.current_token))
     
-    def make_expr(self, inter_pv, position):
+    def make_string_expr(self, inter_pv, position):
         interpolated = []
         for el in inter_pv:
             lexer = Lexer(self.file_name, el, position)
@@ -2126,6 +2131,20 @@ class Parser:
         #             'exit': False
         #         }))
         #     return res.success(ModuleExport(module_name, module_value))
+        as_name = None
+        if self.current_token.matches(tokenList.TT_KEYWORD, 'as'):
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type != tokenList.TT_IDENTIFIER and self.current_token.type != tokenList.TT_KEYWORD:
+                return res.failure(Program.error()['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected an identifier",
+                    'exit': False
+                }))
+            as_name = self.current_token
+            res.register_advancement()
+            self.advance()
         if self.current_token.type != tokenList.TT_NEWLINE:
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -2162,7 +2181,7 @@ class Parser:
                 mod_name = self.current_token
                 if res.error:
                     return res
-                # obj_name cannot start with a @ or a symbol
+                # mod_name cannot start with a @ or a symbol
                 if mod_name.value[0] == '@' or mod_name.value[0] in tokenList.SYMBOLS:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -2228,8 +2247,11 @@ class Parser:
                 if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                     res.register_advancement()
                     self.advance()
-
-                    return res.success(ObjectDefNode(module_name, module_properties))
+                    object_type = {
+                            "name": "module",
+                            "as_name": as_name,
+                        }
+                    return res.success(ObjectDefNode(module_name, module_properties, object_type))
                 if self.current_token.value in tokenList.NOT_ALLOWED_OBJECTS_KEYS:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -2246,7 +2268,11 @@ class Parser:
                         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                             res.register_advancement()
                             self.advance()
-                            return res.success(ObjectDefNode(module_name, module_properties))
+                            object_type = {
+                                "name": "module",
+                                "as_name": as_name,
+                            }
+                            return res.success(ObjectDefNode(module_name, module_properties, object_type))
                     if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                         return res.failure(Program.error()['Syntax']({
                             'pos_start': self.current_token.pos_start,
@@ -2257,8 +2283,18 @@ class Parser:
                     else:
                         res.register_advancement()
                         self.advance()
-                        return res.success(ObjectDefNode(module_name, module_properties))
-            return res.success(ObjectDefNode(module_name, module_properties))
+                        
+                        object_type = {
+                            "name": "module",
+                            "as_name": as_name,
+                        }
+                        return res.success(ObjectDefNode(module_name, module_properties, object_type))
+            
+            object_type = {
+                "name": "module",
+                "as_name": as_name,
+            }
+            return res.success(ObjectDefNode(module_name, module_properties, object_type))
     
     def export_expr(self):
         res = ParseResult()
@@ -2441,14 +2477,15 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 name = self.current_token
-                if name.type != tokenList.TT_IDENTIFIER:
+                atom = res.register(self.access_property(atom, name))
+                if res.error: return res
+                if name.type != tokenList.TT_IDENTIFIER and name.type != tokenList.TT_KEYWORD:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': name.pos_start,
                         'pos_end': name.pos_end,
-                        'message': "Expected an identifier, '{}' is a reserved keyword".format(name.value) if name.value in tokenList.KEYWORDS else "Expected an identifier",
+                        'message': "Expected an identifier",
                         'exit': False
                     }))
-                atom = res.register(self.access_property(atom))
             else:
                 if self.current_token.type == tokenList.TT_GETTER:
                     res.register_advancement()
@@ -2500,13 +2537,20 @@ class Parser:
                     }))
                 res.register_advancement()
                 self.advance()
-        
+                # if self.current_token.type == tokenList.TT_RPAREN:
+                #     return res.failure(Program.error()['Syntax']({
+                #         'pos_start': self.current_token.pos_start,
+                #         'pos_end': self.current_token.pos_end,
+                #         'message': "Unmatched ')'",
+                #         'exit': False
+                #     }))
         
         return res.success(CallNode(atom, arg_nodes))
           
-    def access_property(self,owner):
+    def access_property(self,owner, name):
         res = ParseResult()
-        name = res.register(self.expr())
+        res.register_advancement()
+        self.advance() 
         return res.success(PropertyNode(owner, name))
 
     def power(self):
@@ -2595,7 +2639,6 @@ class Parser:
                 if res.error: return res
                 values = expr.elements
                 var_values = ()
-                
                 if self.current_token.type != tokenList.TT_EQ:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -2606,7 +2649,6 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 expr = res.register(self.expr())
-                if res.error: return res
                 for value in values:
                     var_values += (value,)
                 return res.success(VarAssignNode(var_values, expr, variable_keyword_token))

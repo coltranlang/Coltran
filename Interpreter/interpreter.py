@@ -267,17 +267,17 @@ class Program:
         pos = detail['pos_start']
         context = detail['context']
         while context:
-            result += f'\nFile {detail["pos_start"].fileName}, line {str(pos.line + 1)}, in {context.display_name}\n' + result
+            result += f'\nFile {detail["pos_start"].fileName}, line {str(pos.line + 1)}, in {context.display_name}\n' + result if hasattr(pos, 'line') else ''
             pos = context.parent_entry_pos
             context = context.parent
         return '\nStack trace (most recent call last):\n' + result
     
-    def runFile(fileName):
+    def runFile(file):
         try:
-            with open(fileName, 'r') as file:
-                code = file.read()
+            with open(file, 'r') as file_handle:
+                code = file_handle.read()
                 # check if file is ending with .alden
-                if fileName[-6:] != ".alden":
+                if file[-6:] != ".alden":
                     print("File is not an alden file")
                     return
                 else:
@@ -285,7 +285,7 @@ class Program:
         except FileNotFoundError:
             return None
 
-    def createModule(module_name, module, module_value, context):
+    def createModule(module_name, module, context):
         res = RuntimeResult()
         lexer = Lexer(module_name, module)
         tokens, error = lexer.make_tokens()
@@ -294,74 +294,12 @@ class Program:
         ast = parser.parse()
         if ast.error: return "", ast.error
         interpreter = Interpreter()
-        new_context = Context('<module>')
-        new_context.symbolTable = SymbolTable()
+        new_context = Context('<module>', context)
+        new_context.symbolTable = SymbolTable(context.symbolTable)
         
-        
-        BuiltInTask.print = BuiltInTask("print")
-        BuiltInTask.println = BuiltInTask("println")
-        BuiltInTask.exit = BuiltInTask("exit")
-        BuiltInTask.input = BuiltInTask("input")
-        BuiltInTask.inputInt = BuiltInTask("inputInt")
-        BuiltInTask.inputFloat = BuiltInTask("inputFloat")
-        BuiltInTask.inputBool = BuiltInTask("inputBool")
-        BuiltInTask.clear = BuiltInTask("clear")
-        BuiltInTask.len = BuiltInTask("len")
-        #BuiltInTask.range = BuiltInTask("range")
-        BuiltInTask.str = BuiltInTask("str")
-        BuiltInTask.int = BuiltInTask("int")
-        BuiltInTask.float = BuiltInTask("float")
-        BuiltInTask.bool = BuiltInTask("bool")
-        BuiltInTask.list = BuiltInTask("list")
-        BuiltInTask.pair = BuiltInTask("pair")
-        BuiltInTask.Object = BuiltInTask("Object")
-        BuiltInTask.line = BuiltInTask("line")
-        BuiltInTask.typeOf = BuiltInTask("typeOf")
-        BuiltInTask.append = BuiltInTask("append")
-        BuiltInTask.pop = BuiltInTask("pop")
-        BuiltInTask.extend = BuiltInTask("extend")
-        BuiltInTask.remove = BuiltInTask("remove")
-        BuiltInTask.sorted = BuiltInTask("sorted")
-        BuiltInTask.clearList = BuiltInTask("clearList")
-        BuiltInTask.delay = BuiltInTask("delay")
-        BuiltInTask.format = BuiltInTask("format")
-        BuiltInTask.max = BuiltInTask("max")
-        BuiltInTask.min = BuiltInTask("min")
-
-        
-        
-        new_context.symbolTable.set('print', BuiltInTask.print)
-        new_context.symbolTable.set('println', BuiltInTask.println)
-        new_context.symbolTable.set('exit', BuiltInTask.exit)
-        new_context.symbolTable.set('input', BuiltInTask.input)
-        new_context.symbolTable.set('inputInt', BuiltInTask.inputInt)
-        new_context.symbolTable.set('inputFloat', BuiltInTask.inputFloat)
-        new_context.symbolTable.set('inputBool', BuiltInTask.inputBool)
-        new_context.symbolTable.set('clear', BuiltInTask.clear)
-        new_context.symbolTable.set('len', BuiltInTask.len)
-        #new_context.symbolTable.set('range', BuiltInTask.range)
-        new_context.symbolTable.set('str', BuiltInTask.str)
-        new_context.symbolTable.set('int', BuiltInTask.int)
-        new_context.symbolTable.set('float', BuiltInTask.float)
-        new_context.symbolTable.set('bool', BuiltInTask.bool)
-        new_context.symbolTable.set('list', BuiltInTask.list)
-        new_context.symbolTable.set('pair', BuiltInTask.pair)
-        new_context.symbolTable.set('Object', BuiltInTask.Object)
-        new_context.symbolTable.set('line', BuiltInTask.line)
-        new_context.symbolTable.set('typeOf', BuiltInTask.typeOf)
-        new_context.symbolTable.set('append', BuiltInTask.append)
-        new_context.symbolTable.set('pop', BuiltInTask.pop)
-        new_context.symbolTable.set('extend', BuiltInTask.extend)
-        new_context.symbolTable.set('remove', BuiltInTask.remove)
-        new_context.symbolTable.set('sorted', BuiltInTask.sorted)
-        new_context.symbolTable.set('clearList', BuiltInTask.clearList)
-        new_context.symbolTable.set('delay', BuiltInTask.delay)
-        new_context.symbolTable.set('format', BuiltInTask.format)
-        new_context.symbolTable.set('max', BuiltInTask.max)
-        new_context.symbolTable.set('min', BuiltInTask.min)
-        new_context.symbolTable.setSymbol()
         result = interpreter.visit(ast.node, new_context)
         value = ""
+        
         if hasattr(result, 'value') and hasattr(result, 'error'):
             if isinstance(result.value, List):
                 for tok in result.value.elements:
@@ -370,7 +308,6 @@ class Program:
                         if tok.name ==  "Export":
                             value = tok
                             context.symbolTable.set(module_name, value)
-                            return value
         return res.success(value)
 
 
@@ -2743,12 +2680,13 @@ def BuiltInModule_Http(context):
     return Module("http", module_path, context)
  
 class Interpreter:
+    
     def visit(self, node, context):
         method_name = f'visit_{type(node).__name__}'
         method = getattr(self, method_name, self.no_visiit)
         return method(node, context)
 
-
+    
     def no_visiit(self, node, context):
         return RuntimeResult().success(NoneType.none)
 
@@ -2878,7 +2816,7 @@ class Interpreter:
                 'exit': True
             })
             return res.noreturn()
-        value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
+        value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context) if value.copy else value
         return res.success(value)
  
     
@@ -2907,7 +2845,7 @@ class Interpreter:
         value = ""
         object_name = res.register(self.visit(node.name, context)) 
         object_key = node.property
-        #print(object_name, type(object_key).__name__, object_key)
+        #print(object_name, object_key)
         #TODO: check if object_name is not callable
         error = {
             "pos_start": node.pos_start,
@@ -2924,7 +2862,10 @@ class Interpreter:
                         value = object_name.methods[object_key.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"{object_name.name} has no method {object_key.id.value}"
+                        if object_name.name == "Export":
+                            error['message'] = f"Export has no member '{object_key.id.value}'"
+                        else:
+                            error["message"] = f"{object_name.name} has no method {object_key.id.value}"
                         return res.failure(Program.error()["KeyError"](error))
             
             if type(object_key).__name__ == "Token":
@@ -2933,7 +2874,10 @@ class Interpreter:
                         value = object_name.methods[object_key.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"{object_name.name} has no method {object_key.value}"
+                        if object_name.name == "Export":
+                            error['message'] = f"Export has no member '{object_key.value}'"
+                        else:
+                            error["message"] = f"{object_name.name} has no method {object_key.value}"
                         return res.failure(Program.error()["KeyError"](error))
             
             elif type(object_key).__name__ == "CallNode":
@@ -2957,11 +2901,13 @@ class Interpreter:
                         else:
                             return res.success(return_value)
                     else:
-                        error["message"] = f"{object_name.name} has no method {object_key.node_to_call.id.value}"
+                        if object_name.name == "Export":
+                            error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
+                        else:
+                            error["message"] = f"{object_name.name} has no method {object_key.node_to_call.id.value}"
                         return res.failure(Program.error()["KeyError"](error))
                     # else:
                     #     return res.failure(Program.error()["KeyError"](error))
-        
         
         elif isinstance(object_name, Object):
             builtin_properties = {
@@ -2975,45 +2921,54 @@ class Interpreter:
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
                         return res.failure(Program.error()["KeyError"](error))
-              
-            # Todo: check if object_key is callable      
-            # elif type(object_key).__name__ == "CallNode":
-            #     if hasattr(object_name, "methods"):
-            #         if object_key.node_to_call.id.value in object_name.methods:
-            #             value = object_name.methods[object_key.node_to_call.id.value]
-            #             args_node = object_key.args_nodes
-            #             args = []
+                    
+            elif type(object_key).__name__ == "CallNode":
+                if hasattr(object_name, "properties"):
+                    #print(object_name.properties)
+                    if object_key.node_to_call.id.value in object_name.properties:
+                        value = object_name.properties[object_key.node_to_call.id.value]
+                        return res.success(value)
+                        # args_node = object_key.args_nodes
+                        # args = []
                         
-            #             for arg in args_node:
-            #                 args.append(res.register(
-            #                     self.visit(arg, context)))
-            #                 if res.should_return(): return res
+                        # for arg in args_node:
+                        #     args.append(res.register(
+                        #         self.visit(arg, context)))
+                        #     if res.should_return(): return res
                         
-            #             return_value = res.register(value.run(args))
-            #             if res.should_return():
-            #                     return res
+                        # return_value = res.register(value.run(args))
+                        # if res.should_return():
+                        #         return res
                             
-            #             if return_value == None or isinstance(return_value, NoneType):
-            #                 return res.success(None)
-            #             else:
-            #                 return res.success(return_value)
-            #         else:
-            #             error["message"] = f"{object_name.name} has no method {object_key.node_to_call.id.value}"
-            #             return res.failure(Program.error()["KeyError"](error))
+                        # if return_value == None or isinstance(return_value, NoneType):
+                        #     return res.success(None)
+                        # else:
+                        #     return res.success(return_value)
+                    else:
+                        if object_name.name == "Export":
+                            error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
+                        else:
+                            error["message"] = f"{object_name.name} has no method {object_key.node_to_call.id.value}"
+                        return res.failure(Program.error()["KeyError"](error))
                     # else:
                     #     return res.failure(Program.error()["KeyError"](error))
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
                     if object_key.value in object_name.properties:
-                        #print(object_name.properties[object_key.value], "is the property")
                         value = object_name.properties[object_key.value]
-                        #print(object_name.properties, "is the property")
                         return res.success(value)
                     else:
-                        error["message"] = f"{object_name.name} has no property {object_key.value}"
+                        if object_name.properties['__name']:
+                            name = object_name.properties['__name']
+                            error["message"] = f"{name} has no property {object_key.value}"
+                        else:
+                            error["message"] = f"{object_name.name} has no property {object_key.value}"
                         return res.failure(Program.error()["KeyError"](error))
-
+            
+            elif type(object_key).__name__ == "PropertyNode":
+                if hasattr(object_name, "properties"):
+                    print(object_name, object_key, "is the property")
    
         elif isinstance(object_name, List):
             builtin_properties = {
@@ -3029,10 +2984,8 @@ class Interpreter:
                     error["message"] = f"{node.name.id.value} has no property {object_key.value}"
                     return res.failure(Program.error()["KeyError"](error))
         
-        
         elif isinstance(object_name, Number):
             print(object_name, object_key)
-        
         
         elif isinstance(object_name, Task):
             
@@ -3155,28 +3108,34 @@ class Interpreter:
             }
         module_name = node.module_name.value
         module_path = node.module_path.value + ".alden" if node.module_path.value.split('.')[-1] != "alden" else node.module_path.value
-        # get module from module path in directory
         module = Program.runFile(module_path)
-        module_value = {}
+        
         if module == None:
             builtin_modules = {
-                "math": "",
+                "math": Program.runFile("./lib/math/main.alden"),
                 "http": Program.runFile("./lib/http/main.alden"),
             }
             module_path = node.module_path.value
             if module_path in builtin_modules:
-                module = builtin_modules[module_path]
-                Program.createModule(module_name, module, module_value, context) 
+                if  context.symbolTable.modules.is_module_in_members(module_name):
+                    error['message'] = "Module '{}' already imported".format(module_name)
+                    return res.failure(Program.error()["ModuleError"](error))
+                else:
+                    module = builtin_modules[module_path]
+                    Program.createModule(module_name, module, context) 
+                    context.symbolTable.set_module(module_name, module)
             else:
                 error['message'] = "Module '{}' not found".format(
                     module_name)
                 return res.failure(Program.error()["ModuleError"](error))
         
-        if  context.symbolTable.modules.is_module_in_members(module_name):
-            error['message'] = "Module '{}' already imported".format(module_name)
-            return res.failure(Program.error()["ModuleError"](error))
         else:
-            Program.createModule(module_name, module, module_value, context)
+            if  context.symbolTable.modules.is_module_in_members(module_name):
+                error['message'] = "Module '{}' already imported".format(module_name)
+                return res.failure(Program.error()["ModuleError"](error))
+            else:
+                Program.createModule(module_name, module, context)
+                context.symbolTable.set_module(module_name, module)
                 
     
     def visit_VarAssignNode(self, node, context):
@@ -3223,7 +3182,7 @@ class Interpreter:
                     return res.failure(Program.error()['ValueError']({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
-                        'message': f"Expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
+                        'message': f"Expected {len(value.elements)} values, unable to pair {len(var_name)} value(s)",
                         'context': context,
                         'exit': False
                     }))
@@ -3236,13 +3195,17 @@ class Interpreter:
                     return res.failure(Program.error()['ValueError']({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
-                        'message': f"Expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
+                        'message': f"Expected {len(value.properties)} values, unable to pair {len(var_name)} value(s)",
                         'context': context,
                         'exit': False
                     }))
                 else:
+                    # for every name in var_name, set the value of the property doesn't have to be the same as the name
+                    properties = []
+                    for prop in value.properties.values():
+                        properties.append(prop)
                     for i in range(len(var_name)):
-                        context.symbolTable.set(var_name[i].name.value, value.properties.get(var_name[i].name.value))
+                        context.symbolTable.set(var_name[i].name.value, properties[i])   
             else:
                 return res.failure(Program.error()['Runtime']({
                     'pos_start': node.pos_start,
@@ -3595,8 +3558,7 @@ class Interpreter:
             properties = dict(properties, **{str(prop_name): prop_value})
             if res.should_return():
                 return res
-            object_value = Object(object_name, properties).setContext(
-                context).setPosition(node.pos_start, node.pos_end)
+            object_value = Object(object_name, properties).setContext(context).setPosition(node.pos_start, node.pos_end)
             if isinstance(prop_value, NoneType):
                 object_value = Object(object_name, {'key': {}, 'value': {}}).setContext(
                     context).setPosition(node.pos_start, node.pos_end)
@@ -3611,6 +3573,11 @@ class Interpreter:
                     }))
                 context.symbolTable.set(object_name, object_value)
             else:
+                if node.other != None:
+                    if node.other['name'] == "module":
+                        as_name = node.other["as_name"]
+                        if as_name != None:
+                            properties["__name"] = String(as_name.value).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(object_name, object_value)
         return res.success(object_value)
 

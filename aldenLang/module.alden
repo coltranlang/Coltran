@@ -21,9 +21,6 @@ let role = User.role
 let greet = task () -> "Hello World"
 let add = 2 + 2
 
-# Different ways to export a module
-
-# export module as an object  (recommended) for named export
 
 
 module Export
@@ -32,13 +29,3 @@ module Export
     Users: User
 end
 
-
-
-# export as identifier separated by a comma
-#export role, greet, User, add
-
-# export as a list of identifiers
-#export [role, greet, User, add]
-
-let x = 20
-println(x, "rt")

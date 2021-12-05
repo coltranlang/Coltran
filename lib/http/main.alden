@@ -4,7 +4,7 @@ class Http(url, headers, body)
     def post()
         println("POST", url, headers, body)
     end
-    def get_()
+    def get()
         println("GET", url, headers, body)
     end
     def put()
@@ -20,6 +20,7 @@ object File
     content: "Hello, world!"
 end
 
-module Export
+module Export as Http
     create: Http
+    test: task () -> "This is a test"
 end
