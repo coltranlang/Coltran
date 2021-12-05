@@ -23,6 +23,3 @@ end
 module Export
     create: Http
 end
-#print(x)
-let _url = "http://localhost:8080/api/v1/users"
-println("URL:", _url)

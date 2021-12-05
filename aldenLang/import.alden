@@ -8,5 +8,4 @@ object Header
 end
 
 let http = Http.create("https://www.aldenlang.org", Header, "This is a body")
-println(http.post())
-println(url)
+println(http.dd)

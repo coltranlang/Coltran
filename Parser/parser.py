@@ -1,3 +1,4 @@
+from os import access, path
 from re import split
 
 from Parser.stringsWithArrows import *
@@ -128,21 +129,15 @@ class Program:
         }
         return methods
 
-    def print(*args):
-        for arg in args:
-            print(arg)
-
     def printWithType(*args):
         for arg in args:
             print(str(type(arg)) + " <===> " + str(arg))
 
-    def printError(*args):
-        for arg in args:
-            print(arg)
+    def printError(arg):
+        print(arg)
 
-    def printErrorExit(*args):
-        for arg in args:
-            print(arg)
+    def printErrorExit(arg):
+        print(arg)
         sys.exit(1)
 
     def asString(detail):
@@ -1605,7 +1600,7 @@ class Parser:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "Expected an identifier",
+                    'message': "Expected an identifier, '{}' is a reserved keyword".format(self.current_token.value) if self.current_token.value in tokenList.KEYWORDS else "Expected an identifier",
                     'exit': False
                 }))
             method_name = self.current_token
@@ -2341,7 +2336,7 @@ class Parser:
             return res.success(ObjectRefNode(tok))    
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
-            self.advance()
+            self.advance() 
             if self.current_token.type == tokenList.TT_EQ:
                 res.register_advancement()
                 self.advance()
@@ -2362,6 +2357,13 @@ class Parser:
              pair_expr = res.register(self.pair_expr())
              if res.error: return res
              return res.success(pair_expr)
+        elif tok.type == tokenList.TT_RPAREN:
+            return res.failure(Program.error()['Syntax']({
+                'pos_start': tok.pos_start,
+                'pos_end': tok.pos_end,
+                'message': f"Invalid syntax or unexpected token",
+                'exit': False
+            }))
         elif tok.type == tokenList.TT_LSQBRACKET:
             list_expr = res.register(self.list_expr())
             if res.error:
@@ -2432,7 +2434,6 @@ class Parser:
         atom = res.register(self.atom())
         if res.error:  return res
         
-        
         while True:
             if self.current_token.type == tokenList.TT_LPAREN:
                 atom = res.register(self.finish_call(atom))
@@ -2440,8 +2441,14 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 name = self.current_token
-                atom = res.register(self.access_property(atom, name))
-                if res.error: return res
+                if name.type != tokenList.TT_IDENTIFIER:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': name.pos_start,
+                        'pos_end': name.pos_end,
+                        'message': "Expected an identifier, '{}' is a reserved keyword".format(name.value) if name.value in tokenList.KEYWORDS else "Expected an identifier",
+                        'exit': False
+                    }))
+                atom = res.register(self.access_property(atom))
             else:
                 if self.current_token.type == tokenList.TT_GETTER:
                     res.register_advancement()
@@ -2461,7 +2468,6 @@ class Parser:
     def finish_call(self, atom):
         res = ParseResult()
         arg_nodes = []
-        
         
         if self.current_token.type == tokenList.TT_LPAREN:
             res.register_advancement()
@@ -2484,8 +2490,7 @@ class Parser:
                     self.advance()
                     arg_nodes.append(res.register(self.expr()))
                     if res.error: return res
-                    
-                
+                      
                 if self.current_token.type != tokenList.TT_RPAREN:
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -2495,21 +2500,19 @@ class Parser:
                     }))
                 res.register_advancement()
                 self.advance()
-        #print("finish_call", arg_nodes)
+        
+        
         return res.success(CallNode(atom, arg_nodes))
           
-    def access_property(self,owner, name):
+    def access_property(self,owner):
         res = ParseResult()
-        res.register_advancement()
-        self.advance()
-        
+        name = res.register(self.expr())
         return res.success(PropertyNode(owner, name))
 
     def power(self):
         return self.binaryOperation(self.call, (tokenList.TT_POWER, ), self.factor)
 
     def factor(self):
-        
         res = ParseResult()
         tok = self.current_token
         if tok.type in (tokenList.TT_PLUS, tokenList.TT_MINUS):
@@ -2529,7 +2532,7 @@ class Parser:
         return self.power()
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_PIPE, tokenList.TT_GETTER, tokenList.TT_DOT))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_PIPE, tokenList.TT_GETTER))
 
     def arith_expr(self):
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
@@ -2673,8 +2676,9 @@ class Parser:
             res.register_advancement()
             self.advance()
             right = res.register(func_2())
-            if op_tok.type == tokenList.TT_DOT:
-                return res.success(PropertyNode(left, right))
+            #print(type(right).__name__,type(left).__name__, )
+            # if op_tok.type == tokenList.TT_DOT:
+            #     return res.success(PropertyNode(left, right))
             if res.error:
                 return res
             left = BinOpNode(left, op_tok, right)

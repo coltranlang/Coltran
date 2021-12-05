@@ -222,7 +222,6 @@ class Lexer:
         token_type = tokenList.TT_KEYWORD if identifier_str in tokenList.KEYWORDS else tokenList.TT_IDENTIFIER
         return Token(token_type, identifier_str, pos_start, self.pos)
 
-    
     def make_dot(self):
         object_ref = ""
         pos_start = self.pos.copy()

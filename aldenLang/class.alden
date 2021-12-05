@@ -11,5 +11,4 @@ end
 
 
 let person = Person(20, "John")
-print(person.getName(), person.getAge())
-println(age)
+println(person.getName(), person.getAge())
