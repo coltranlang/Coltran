@@ -1,9 +1,8 @@
 # Test
 let name = "Test Module"
 
-
 module Export as Test
-    run: task () -> println(fv`Hello, world! from %{name}`)
-    test: "Ttestin"
-    is_true: true
+    run: println(fv`Hello, world! from %{name}`)
+    type: "Testing"
+    is_test: true
 end 

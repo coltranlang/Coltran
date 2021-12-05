@@ -2,7 +2,7 @@
 get Test from "./lib/math/test"
 
 let (run,__name, *rest) = Test
-println(run())
+println(run)
 
 object Math
    add: task (a, b) -> a + b

@@ -1729,6 +1729,9 @@ class Task(BaseTask):
             return res
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
+        if hasattr(return_value, "value"):
+            if return_value.value == "none":
+                return res.success(None)
         return res.success(return_value)
     
     def run_check_and_populate_args(self, arg_names, args, exec_ctx):
@@ -2078,7 +2081,7 @@ def BuiltInTask_Print(args, node):
     for arg in args:
         value = str(arg)
         print(value, end="")
-    return res.success(String(str(NoneType.none)).setPosition(node.pos_start, node.pos_end))
+    return res.success(None)
 
 
 def BuiltInTask_PrintLn(args, node):
@@ -2086,7 +2089,7 @@ def BuiltInTask_PrintLn(args, node):
     for arg in args:
         value = str(arg)
         print(value)
-    return res.success(String(str(NoneType.none)).setPosition(node.pos_start, node.pos_end))
+    return res.success(None)
 
 
 def BuiltInTask_Input(args, node, context):
@@ -2686,11 +2689,11 @@ class Interpreter:
     
     def visit(self, node, context):
         method_name = f'visit_{type(node).__name__}'
-        method = getattr(self, method_name, self.no_visiit)
+        method = getattr(self, method_name, self.no_visit)
         return method(node, context)
 
     
-    def no_visiit(self, node, context):
+    def no_visit(self, node, context):
         return RuntimeResult().success(NoneType.none)
 
 

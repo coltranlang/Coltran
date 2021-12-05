@@ -17,9 +17,6 @@ object User
    end
 end
 
-let role = User.role
-let greet = task () -> "Hello World"
-let add = 2 + 2
 
 
 
