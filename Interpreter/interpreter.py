@@ -1,10 +1,10 @@
 import os
-from Parser.parser import ModuleExport
+from Parser.parser import Parser
 from Parser.stringsWithArrows import *
 from Token.token import Token
 import Token.tokenList as tokenList
 from Lexer.lexer import Lexer
-from Memory.memory import SymbolTable, Parse
+from Memory.memory import SymbolTable
 
 
 
@@ -56,7 +56,7 @@ class TypeOf:
             result = 'string'
         elif self.type == 'tuple':
             result = 'pair'
-        elif isinstance(self.type, Number):
+        elif isinstance(self.type, Number) or type(self.type).__name__ == "NumberNode":
             if re.match(regex, str(self.type)):
                 result = 'float'
             else:
@@ -267,7 +267,7 @@ class Program:
         pos = detail['pos_start']
         context = detail['context']
         while context:
-            result += f'\nFile {detail["pos_start"].fileName}, line {str(pos.line + 1)}, in {context.display_name}\n' + result if hasattr(pos, 'line') else ''
+            result += f'\nFile {detail["pos_start"].fileName}, line {str(pos.line + 1)}, in {context.display_name if context.display_name != "none" else "anonymous"}\n' + result if hasattr(pos, 'line') else ''
             pos = context.parent_entry_pos
             context = context.parent
         return '\nStack trace (most recent call last):\n' + result
@@ -290,7 +290,7 @@ class Program:
         lexer = Lexer(module_name, module)
         tokens, error = lexer.make_tokens()
         if error: return "", error
-        parser = Parse(tokens, module_name)
+        parser = Parser(tokens, module_name)
         ast = parser.parse()
         if ast.error: return "", ast.error
         interpreter = Interpreter()
@@ -308,6 +308,7 @@ class Program:
                         if tok.name ==  "Export":
                             value = tok
                             context.symbolTable.set(module_name, value)
+                            tok.context.symbolTable.set(module_name, value)
         return res.success(value)
 
 
@@ -1204,9 +1205,10 @@ class Boolean(Value):
 
 
 class NoneType(Value):
-    def __init__(self):
+    def __init__(self, value):
         super().__init__()
-        self.value = 'none'
+        self.value = value
+        self.id = value
         self.setPosition(0, 0)
         self.setContext(None)
 
@@ -1220,7 +1222,7 @@ class NoneType(Value):
         return self
 
     def copy(self):
-        copy = NoneType()
+        copy = NoneType(self.value)
         copy.setPosition(self.pos_start, self.pos_end)
         copy.setContext(self.context)
         return copy
@@ -1265,9 +1267,7 @@ class NoneType(Value):
 
 Boolean.true = Boolean("true")
 Boolean.false = Boolean("false")
-NoneType.none = NoneType()
-NoneType.id = NoneType()
-
+NoneType.none = NoneType("none")
 
 
 class Pair(Value):
@@ -1659,7 +1659,7 @@ class BaseTask(Value):
             return res.failure(Program.error()['Runtime']({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"{len(args)} few argument(s) given, but {self.name if self.name != 'none' else 'annonymous'}() expects {len(arg_names)}",
+                'message': f"{len(args)} few argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names)}",
                 'context': self.context,
                 'exit': False
             }))
@@ -1705,6 +1705,9 @@ class Task(BaseTask):
             return res
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
+        if hasattr(return_value, "value"):
+            if return_value.value == "none":
+                return res.success(None)
         return res.success(return_value)
 
 
@@ -1751,7 +1754,7 @@ class Task(BaseTask):
         return copy
 
     def __repr__(self):
-        return f"<Task {str(self.name) if self.name != 'none' else 'annonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
+        return f"<Task {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
 
 class Class(BaseTask):
@@ -2774,7 +2777,7 @@ class Interpreter:
    
     def visit_NoneNode(self, node, context):
         return RuntimeResult().success(
-            NoneType().setContext(
+            NoneType('none').setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
         
@@ -2794,6 +2797,7 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
+        #print(var_name, value)
         if type(value) is dict:
             value = value['value']
         if var_name in context.symbolTable.symbols and value is None:
@@ -2807,6 +2811,7 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
+            #print(var_name, context.symbolTable.symbols)
             Program.error()['Error']({
                 'name': 'IdentifierError',
                 'pos_start': node.pos_start,
@@ -3112,21 +3117,25 @@ class Interpreter:
         
         if module == None:
             builtin_modules = {
-                "math": Program.runFile("./lib/math/main.alden"),
-                "http": Program.runFile("./lib/http/main.alden"),
+                "math": Program.runFile,
+                "http": Program.runFile,
             }
             module_path = node.module_path.value
             if module_path in builtin_modules:
+
                 if  context.symbolTable.modules.is_module_in_members(module_name):
                     error['message'] = "Module '{}' already imported".format(module_name)
                     return res.failure(Program.error()["ModuleError"](error))
                 else:
-                    module = builtin_modules[module_path]
-                    Program.createModule(module_name, module, context) 
-                    context.symbolTable.set_module(module_name, module)
+                    try: 
+                        module = builtin_modules[module_path](f"./lib/{module_path}/main.alden")
+                        Program.createModule(module_name, module, context) 
+                        context.symbolTable.set_module(module_name, module)
+                    except RecursionError:
+                            error['message'] = "Circlular import: module {} is already imported".format(module_name)
+                            return res.failure(Program.error()["ModuleError"](error))
             else:
-                error['message'] = "Module '{}' not found".format(
-                    module_name)
+                error['message'] = "Module '{}' not found".format(module_name)
                 return res.failure(Program.error()["ModuleError"](error))
         
         else:
@@ -3141,6 +3150,11 @@ class Interpreter:
     def visit_VarAssignNode(self, node, context):
         res = RuntimeResult()
         var_name = node.variable_name_token.value if type(node.variable_name_token).__name__ != 'tuple' else ''
+        if type(node.variable_name_token).__name__ == 'tuple':
+            if type(node.variable_name_token[0]).__name__ == 'Token':
+                var_name = node.variable_name_token[0].value
+            elif type(node.variable_name_token[0]).__name__ == 'VarAccessNode':
+                var_name = node.variable_name_token[0].id.value
         value = res.register(self.visit(node.value_node, context))
         if node.variable_keyword_token == "module":
             value = context.symbolTable.get(node.value_node.value)
@@ -3164,7 +3178,8 @@ class Interpreter:
         #     }))
         if type(node.variable_name_token).__name__ == "tuple":
             var_name = node.variable_name_token
-            if type(value).__name__ == "Pair":
+            
+            if type(var_name).__name__ == "Pair":
                 if len(var_name) != len(value.elements):
                     return res.failure(Program.error()['ValueError']({
                         'pos_start': node.pos_start,
@@ -3192,13 +3207,37 @@ class Interpreter:
                         
             elif type(value).__name__ == "Object":
                 if len(var_name) != len(value.properties):
-                    return res.failure(Program.error()['ValueError']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"Expected {len(value.properties)} values, unable to pair {len(var_name)} value(s)",
-                        'context': context,
-                        'exit': False
-                    }))
+                    var = []
+                    for v in var_name:
+                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
+                            return res.failure(Program.error()['ValueError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
+                                'context': context,
+                                'exit': False
+                            }))
+                        var.append(v.name.value)
+                    # get the last element of the list
+                    if '*' + v.name.value.split('*')[-1] in var:
+                        properties = []
+                        for prop in value.properties.values():
+                            properties.append(prop)
+                        for i in range(len(var_name)):
+                            # if len of var_name is less than len of value.properties, assign the remaining properties to rest e.g var_name = [a,b, ..rest] and value.properties = [a,b,c,d]
+                            if i < len(var_name) - 1:
+                                context.symbolTable.set(var_name[i].name.value, properties[i])
+                            else:
+                                context.symbolTable.set(v.name.value.split('*')[-1], List(properties[i:]))
+                            
+                    else:
+                        return res.failure(Program.error()['ValueError']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"Expected {len(value.properties)} values, unable to pair {len(var_name)} value(s)",
+                            'context': context,
+                            'exit': False
+                        }))
                 else:
                     # for every name in var_name, set the value of the property doesn't have to be the same as the name
                     properties = []
@@ -3293,7 +3332,6 @@ class Interpreter:
             if isinstance(number, Pair):
                 for i in range(len(number.elements)):
                     number = Number(not number.elements[i].value)
-                print(number)
             number, error = number.notted()
         if error:
             return res.failure(error)
@@ -3777,6 +3815,15 @@ class Interpreter:
             if res.should_return():
                 return res
             value_to_call = value_to_call.copy().setPosition(node.pos_start, node.pos_end)
+            if not isinstance(value_to_call, Task) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInTask):
+                return res.failure(Program.error()["Runtime"](
+                    {
+                        "pos_start": node.pos_start,
+                        "pos_end": node.pos_end,
+                        "message": "'{}' is not callable".format(node.node_to_call.name.value),
+                        "context": context,
+                        "exit": False
+                    }))
             for arg_node in node.args_nodes:
                 args.append(res.register(self.visit(arg_node, context)))
                 if res.should_return():

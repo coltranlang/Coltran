@@ -1,6 +1,4 @@
 import sys
-from Parser.stringsWithArrows import *
-from Parser.parser import Parser
 
 class Program:
     def error():
@@ -255,7 +253,7 @@ class SymbolTable:
 
    
     def setSymbol(self):
-        self.set("none", "none")
+        self.set("Nonetype", "none")
         self.set("Boolean",  "true")
         self.set("Boolean", "false")
 
@@ -272,7 +270,7 @@ class SymbolTable:
         return str(result)
 
 
-Parse = Parser
+
 
 # hash = HashTable(1000)
 # hash.set("key", "value")

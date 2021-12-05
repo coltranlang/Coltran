@@ -1,6 +1,7 @@
 # Math module
 get Test from "./lib/math/test"
-let (run,__name) = Test
+
+let (run,__name, *rest) = Test
 println(run())
 
 object Math
@@ -29,6 +30,7 @@ object Math
    end
 end
 
+let name = "Task"
 module Export as Math
    add: Math.add
    min: Math.min
@@ -36,4 +38,5 @@ module Export as Math
    pow: Math.pow
    abs: Math.abs
    type: "Math Operations"
+   run: task () -> println(fv`Hello, world! from %{name}`)
 end

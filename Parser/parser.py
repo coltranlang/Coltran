@@ -169,6 +169,7 @@ class NumberNode:
 
 class StringNode:
     def __init__(self, tok, arg=None):
+        self.name = tok
         self.tok = tok
         self.id = tok
         self.arg = arg
@@ -1945,7 +1946,30 @@ class Parser:
             while self.current_token.type == tokenList.TT_COMMA:
                 res.register_advancement()
                 self.advance()
-
+                if self.current_token.type == tokenList.TT_MUL:
+                    res.register_advancement()
+                    self.advance()
+                    current_token = self.current_token
+                    if current_token.type != tokenList.TT_IDENTIFIER:
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected an identifier",
+                            'exit': False
+                        }))
+                    rest = res.register(self.expr())
+                    if res.error: return res
+                    elements.append(StringNode(Token(tokenList.TT_IDENTIFIER, str("*")+ str(rest.name.value), current_token.pos_start, current_token.pos_end)))
+                    if self.current_token.type != tokenList.TT_RPAREN:
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected ')'",
+                            'exit': False
+                        }))
+                    res.register_advancement()
+                    self.advance()
+                    return res.success(PairNode(elements, pos_start, self.current_token.pos_end.copy()))
                 element = res.register(self.expr())
                 if res.error:
                     return res
@@ -2207,7 +2231,6 @@ class Parser:
                     if self.current_token.value == 'self':
                         self.current_token.value = module_name.value
                 mod_value = res.register(self.expr())
-
                 module_properties.append({
                     'name': mod_name,
                     'value': mod_value,
@@ -2728,5 +2751,4 @@ class Parser:
 
     
             
-
 

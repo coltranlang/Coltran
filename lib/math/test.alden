@@ -1,9 +1,9 @@
 # Test
 let name = "Test Module"
-# getting name is not defined. Todo: fix this
-let r = task () -> println(fv`Hello, world! from %{name}`)
+
+
 module Export as Test
-    run: r
+    run: task () -> println(fv`Hello, world! from %{name}`)
+    test: "Ttestin"
+    is_true: true
 end 
-
-
