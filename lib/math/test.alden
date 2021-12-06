@@ -6,3 +6,11 @@ module Export as Test
     type: "Testing"
     is_test: true
 end 
+
+let list = [1, 2, 3, 4, 5]
+let pair = (5,6,7,8,9)
+let names = ["John", "Paul", "George", "Ringo"]
+println(fv`%{list}`)
+in names as (name) then
+    println(fv`%{name}`)
+end

@@ -153,6 +153,8 @@ println(carInventory.lookupCar(1))
 line(15)
 println(carInventory.lookupCarByName("test"))
 line(16)
+println(carInventory.lookupCarByName("Ford").name + " is " + carInventory.lookupCarByName("Ford").color)
+line(17)
 println(carInventory.size())
 
 # test for in operator
@@ -166,8 +168,52 @@ object User
 end
 
 
-
+line(18)
 in User as (key,value)  then
-    #println(fv`Key: %{key|0}, Value: %{key|1}`) # getting key and value from People object by just using the key
+    #println(fv`Key: %{key|0}, Value: %{key|1}`) # getting key and value from People object by just using the key 
     println(fv`Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
 end
+
+
+let numlist = [1, 2, 3, 4, 5]
+let numpairs = (5,6,7,8,9)
+let names = ["John", "Paul", "George", "Ringo"]
+line(19)
+in names as (name) then
+    
+    if name == "John" then
+        println(fv`Hi %{name}`)
+    end
+    println(fv`%{name}`)
+end
+
+# string methods test
+let empty_string = ""
+let empty_string_space = " "
+let str = "HelloxWorldHello"
+let l_ist = ['Alden', 'is', 'an', 'awesome', 'programming', 'language']
+let p_air = ('Alden', 'is', 'an', 'awesome', 'programming', 'language')
+object StringObject
+    name: "John"
+    age: 21
+    email: "john123@email.com"
+end
+line(20)
+println(str.upperCase())
+line(21)
+println(str.lowerCase())
+line(22)
+println(str.trim())
+line(23)
+println(str.split("x"))
+line(24)
+println(str.split("x", 2))
+line(25)
+println(empty_string_space.join(l_ist))
+line(26)
+println(empty_string_space.join(p_air))
+line(27)
+println(" is ".join(StringObject))
+line(28)
+let st = "Hi {name}!, You have {count} messages."
+println(st.replace("{name}", "John").replace)

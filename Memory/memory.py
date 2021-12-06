@@ -1,5 +1,7 @@
 import sys
 
+from Parser.stringsWithArrows import stringsWithArrows
+
 class Program:
     def error():
         def Default(name, message):

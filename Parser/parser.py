@@ -2500,7 +2500,7 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 name = self.current_token
-                atom = res.register(self.access_property(atom, name))
+                atom = res.register(self.access_property(atom))
                 if res.error: return res
                 if name.type != tokenList.TT_IDENTIFIER and name.type != tokenList.TT_KEYWORD:
                     return res.failure(Program.error()['Syntax']({
@@ -2528,7 +2528,6 @@ class Parser:
     def finish_call(self, atom):
         res = ParseResult()
         arg_nodes = []
-        
         if self.current_token.type == tokenList.TT_LPAREN:
             res.register_advancement()
             self.advance()
@@ -2567,13 +2566,11 @@ class Parser:
                 #         'message': "Unmatched ')'",
                 #         'exit': False
                 #     }))
-        
         return res.success(CallNode(atom, arg_nodes))
           
-    def access_property(self,owner, name):
+    def access_property(self,owner):
         res = ParseResult()
-        res.register_advancement()
-        self.advance() 
+        name = res.register(self.expr())
         return res.success(PropertyNode(owner, name))
 
     def power(self):
@@ -2751,4 +2748,6 @@ class Parser:
 
     
             
+
+
 
