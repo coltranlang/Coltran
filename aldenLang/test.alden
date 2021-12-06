@@ -92,6 +92,7 @@ println(Student.name, Student.age)
 let obj1 = "John"
 let obj2 = 21
 line(10)
+println("still need to work on builtin-task object type")
 println(Object(obj1), Object(obj2))
 
 # test for function type
@@ -216,5 +217,4 @@ line(27)
 println(" is ".join(StringObject))
 line(28)
 let st = "Hi {name}!, You have {count} messages."
-println(st.replace("{name}", "John"))
-println(CarInventory.cars|0)
+println(st.replace("{name}", "John").replace("{count}", "5"))

@@ -2849,6 +2849,8 @@ class BuiltInMethod_String(Value):
     
     def BuiltInMethod_replace(self):
         res = RuntimeResult()
+        if isinstance(self.name, BuiltInMethod_String):
+            print(self.name.value, "replace")
         if len(self.args) == 2:
             if isinstance(self.args[0], String) and isinstance(self.args[1], String):
                 return String(self.name.value.replace(self.args[0].value, self.args[1].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
@@ -3131,30 +3133,31 @@ class Interpreter:
             
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "methods"):
-                    if object_key.node_to_call.id.value in object_name.methods:
-                        value = object_name.methods[object_key.node_to_call.id.value]
-                        args_node = object_key.args_nodes
-                        args = []
-                        
-                        for arg in args_node:
-                            args.append(res.register(
-                                self.visit(arg, context)))
-                            if res.should_return(): return res
-                        
-                        return_value = res.register(value.run(args))
-                        if res.should_return():
-                                return res
+                    if type(object_key.node_to_call).__name__ == "Token":
+                        if object_key.node_to_call.value in object_name.methods:
+                            value = object_name.methods[object_key.node_to_call.value]
+                            args_node = object_key.args_nodes
+                            args = []
                             
-                        if return_value == None or isinstance(return_value, NoneType):
-                            return res.success(None)
+                            for arg in args_node:
+                                args.append(res.register(
+                                    self.visit(arg, context)))
+                                if res.should_return(): return res
+                            
+                            return_value = res.register(value.run(args))
+                            if res.should_return():
+                                    return res
+                                
+                            if return_value == None or isinstance(return_value, NoneType):
+                                return res.success(None)
+                            else:
+                                return res.success(return_value)
                         else:
-                            return res.success(return_value)
-                    else:
-                        if object_name.name == "Export":
-                            error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
-                        else:
-                            error["message"] = f"{object_name.name} has no method {object_key.node_to_call.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                            if object_name.name == "Export":
+                                error['message'] = f"Export has no member '{object_key.node_to_call.value}'"
+                            else:
+                                error["message"] = f"{object_name.name} has no method {object_key.node_to_call.value}"
+                            return res.failure(Program.error()["KeyError"](error))
                     # else:
                     #     return res.failure(Program.error()["KeyError"](error))
         
@@ -3173,6 +3176,29 @@ class Interpreter:
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
+                    if type(object_key.node_to_call).__name__ == "Token":
+                        if object_key.node_to_call.value in object_name.properties:
+                            value = object_name.properties[object_key.node_to_call.value]
+                            args_node = object_key.args_nodes
+                            args = []
+                            
+                            for arg in args_node:
+                                args.append(res.register(
+                                    self.visit(arg, context)))
+                                if res.should_return(): return res
+                            
+                            return_value = res.register(value.run(args))
+                            if res.should_return():
+                                    return res
+                                
+                            if return_value == None or isinstance(return_value, NoneType):
+                                return res.success(None)
+                            else:
+                                return res.success(return_value)
+                        else:
+                            error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
+                            return res.failure(Program.error()["KeyError"](error))
+                else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
                         args_node = object_key.args_nodes
@@ -3284,33 +3310,37 @@ class Interpreter:
                 
                 
             elif type(object_key).__name__ == "CallNode":
-                if object_key.node_to_call.id.value in builtin_string_methods:
-                    args = []
+                if type(object_key.node_to_call).__name__ == "Token":
+                    if object_key.node_to_call.value in builtin_string_methods:
+                        args = []
                     for arg in object_key.args_nodes:
                         args.append(res.register(
                             self.visit(arg, context)))
                         if res.should_return(): return res
                     value = BuiltInMethod_String(
-                        object_key.node_to_call.id.value, object_name, args, node, context)
+                        object_key.node_to_call.value, object_name, args, node, context)
                     return res.success(value)
                 else:
-                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.id.value}"
+                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
                     return res.failure(Program.error()["KeyError"](error))
         
         elif isinstance(object_name, BuiltInMethod_String):
             if type(object_key).__name__ == "CallNode":
-                if object_key.node_to_call.id.value in builtin_string_methods:
-                    args = []
-                    for arg in object_key.args_nodes:
-                        args.append(res.register(
-                            self.visit(arg, context)))
-                        if res.should_return(): return res
-                    value = BuiltInMethod_String(
-                        object_key.node_to_call.id.value, object_name, args, node, context)
-                    return res.success(value)
-                else:
-                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.id.value}"
-                    return res.failure(Program.error()["KeyError"](error))
+                if type(object_key.node_to_call).__name__ == "Token":
+                    if object_key.node_to_call.value in builtin_string_methods:
+                        args = []
+                        for arg in object_key.args_nodes:
+                            args.append(res.register(
+                                self.visit(arg, context)))
+                            if res.should_return(): return res
+                        value = BuiltInMethod_String(
+                            object_key.node_to_call.value, object_name, args, node, context)
+                        return res.success(value)
+                    else:
+                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
+                        return res.failure(Program.error()["KeyError"](error))
+        
+        
         
         elif isinstance(object_name, Number):
             builtin_methods = {

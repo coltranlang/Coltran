@@ -2570,7 +2570,49 @@ class Parser:
           
     def access_property(self,owner):
         res = ParseResult()
-        name = res.register(self.term())
+        name = self.current_token
+        res.register_advancement()
+        self.advance()
+        arg_nodes = []
+        
+        if self.current_token.type == tokenList.TT_LPAREN:
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type == tokenList.TT_RPAREN:
+                res.register_advancement()
+                self.advance()
+                call_node = res.success(CallNode(name, arg_nodes))
+                name = res.register(call_node)
+            else:
+                arg_nodes.append(res.register(self.expr()))
+                if res.error:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': f"Expected ')'",
+                        'exit': False
+                    }))
+                    
+                    
+                while self.current_token.type == tokenList.TT_COMMA:
+                    res.register_advancement()
+                    self.advance()
+                    arg_nodes.append(res.register(self.expr()))
+                    if res.error: return res
+                    
+                if self.current_token.type != tokenList.TT_RPAREN:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected ',' or ')'",
+                        'exit': False
+                    }))
+                res.register_advancement()
+                self.advance()
+                call_node = res.success(CallNode(name, arg_nodes))
+                name = res.register(call_node)
+                print(name)
+                
         return res.success(PropertyNode(owner, name))
 
     def power(self):
@@ -2596,7 +2638,7 @@ class Parser:
         return self.power()
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_PIPE, tokenList.TT_GETTER, tokenList.TT_DOT))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_PIPE, tokenList.TT_GETTER))
 
     def arith_expr(self):
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
