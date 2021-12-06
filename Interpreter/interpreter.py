@@ -910,6 +910,8 @@ class String(Value):
         self.id = value
         if arg:
             self.value = value + str(arg)
+            
+            
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
         self.pos_end = pos_end
@@ -971,7 +973,6 @@ class String(Value):
 
     def get_comparison_eq(self, other):
         return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
-    
     
     def get_comparison_ne(self, other):
         return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
@@ -2109,6 +2110,7 @@ def BuiltInTask_Print(args, node):
 def BuiltInTask_PrintLn(args, node):
     res = RuntimeResult()
     for arg in args:
+        #print(type(arg).__name__)
         value = str(arg)
         sys.stdout.write(value + '\n')
     return res.success(None)
@@ -3092,7 +3094,7 @@ class Interpreter:
         value = ""
         object_name = res.register(self.visit(node.name, context)) 
         object_key = node.property
-        #print(type(object_name).__name__, type(object_key).__name__, object_name, object_key)
+        #print(type(object_name).__name__, type(object_key).__name__, object_key)
         #TODO: check if object_name is not callable
         error = {
             "pos_start": node.pos_start,
@@ -3171,26 +3173,24 @@ class Interpreter:
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
-                    #print(object_name.properties)
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
-                        return res.success(value)
-                        # args_node = object_key.args_nodes
-                        # args = []
+                        args_node = object_key.args_nodes
+                        args = []
                         
-                        # for arg in args_node:
-                        #     args.append(res.register(
-                        #         self.visit(arg, context)))
-                        #     if res.should_return(): return res
+                        for arg in args_node:
+                            args.append(res.register(
+                                self.visit(arg, context)))
+                            if res.should_return(): return res
                         
-                        # return_value = res.register(value.run(args))
-                        # if res.should_return():
-                        #         return res
+                        return_value = res.register(value.run(args))
+                        if res.should_return():
+                                return res
                             
-                        # if return_value == None or isinstance(return_value, NoneType):
-                        #     return res.success(None)
-                        # else:
-                        #     return res.success(return_value)
+                        if return_value == None or isinstance(return_value, NoneType):
+                            return res.success(None)
+                        else:
+                            return res.success(return_value)
                     else:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
@@ -3215,7 +3215,12 @@ class Interpreter:
             
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
-                    print(object_name, object_key, "is the property")
+                    if object_key.name.id.value in object_name.properties:
+                        value = object_name.properties[object_key.name.id.value]
+                        return res.success(value)
+                    else:
+                        error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
+                        return res.failure(Program.error()["KeyError"](error))
    
         elif type(node.name).__name__ == "CallNode":
             print(node.name, "is the call node", object_key)

@@ -216,4 +216,5 @@ line(27)
 println(" is ".join(StringObject))
 line(28)
 let st = "Hi {name}!, You have {count} messages."
-println(st.replace("{name}", "John").replace)
+println(st.replace("{name}", "John"))
+println(CarInventory.cars|0)

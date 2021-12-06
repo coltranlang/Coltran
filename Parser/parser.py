@@ -2570,7 +2570,7 @@ class Parser:
           
     def access_property(self,owner):
         res = ParseResult()
-        name = res.register(self.expr())
+        name = res.register(self.term())
         return res.success(PropertyNode(owner, name))
 
     def power(self):
@@ -2596,7 +2596,7 @@ class Parser:
         return self.power()
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_PIPE, tokenList.TT_GETTER))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_PIPE, tokenList.TT_GETTER, tokenList.TT_DOT))
 
     def arith_expr(self):
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
