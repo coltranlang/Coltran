@@ -25,6 +25,19 @@ builtin_string_methods = {
             'trim': 'trim',
  }
 
+def string_split(string, delimiter):
+    res = []
+    start = 0
+    while True:
+        index = string.find(delimiter, start)
+        if index == -1:
+            res.append(string[start:])
+            break
+        else:
+            res.append(string[start:index])
+            start = index + len(delimiter)
+    return res
+
 builtin_number_methods = {
     'toInt': 'toInt',
     'toFloat': 'toFloat',
@@ -223,6 +236,21 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
                 
+                
+        def IndexError(detail):
+            isDetail = {
+                'name': 'IndexError',
+                'type': 'invalid syntax',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+                
         def ModuleError(detail):
             isDetail = {
                 'name': 'ModuleError',
@@ -246,6 +274,7 @@ class Program:
             'Type': Type,
             'KeyError': KeyError,
             'ValueError': ValueError,
+            'IndexError': IndexError,
             'ModuleError': ModuleError
         }
         return methods
@@ -613,6 +642,24 @@ class Value:
                 return Program.error()['Syntax'](errorDetail)
         return Program.error()['Type'](errorDetail)
 
+    def illegal_operation_indexError(self, error, other=None):
+        errorDetail = {
+            'pos_start': error['pos_start'],
+            'pos_end': error['pos_end'],
+            'message': error['message'],
+            'context': error['context'],
+            'exit': error['exit'] if 'exit' in error else False
+        }
+        if not other:
+            other = self
+        if not 'message' in error:
+            if hasattr(other, 'value'):
+                errorDetail['message'] = f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}'
+                return Program.error()['Syntax'](errorDetail)
+            else:
+                errorDetail['message'] = f"illegal operation"
+                return Program.error()['Syntax'](errorDetail)
+        return Program.error()['IndexError'](errorDetail)
 
 class Statement(Value):
     def __init__(self, elements=None):
@@ -911,6 +958,7 @@ class String(Value):
         if arg:
             self.value = value + str(arg)
             
+    
             
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
@@ -990,7 +1038,7 @@ class String(Value):
         return "true" if len(self.value) > 0 else "false"
 
     def __str__(self):
-        return self.value
+        return f"'{self.value}'"
 
     def __repr__(self):
         return f"'{self.value}'"
@@ -1353,18 +1401,18 @@ class Pair(Value):
 
 
 class List(Value):
-    def __init__(self, elements=None):
+    def __init__(self, elements=None, type=None):
         super().__init__()
         self.elements = elements if elements is not None else []
         self.value = self.elements
+        self.type = type
         self.id = self.elements
-
+        
     def added_to(self, other):
         new_list = self.copy()
         new_list.elements.append(other)
         return new_list, None
 
-    
 
     def subtracted_by(self, other):
         error = {
@@ -1409,7 +1457,6 @@ class List(Value):
         else:
             return None, self.illegal_operation(error, other)
 
-
     def get_comparison_eq(self, other):
         # Need to work on comparing lists
         return self.setTrueorFalse(other.value == self.value), None
@@ -1436,17 +1483,19 @@ class List(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on list",
+            'message': f"",
             'context': self.context,
             'exit': False
         }
         if isinstance(other, Number):
             try:
                 return self.elements[other.value], None
-            except:
-                return None, self.none_value()
+            except IndexError:
+                error['message'] = f"list index {other.value} out of range"
+                return None,  self.illegal_operation_indexError(error, other)
         else:
-            return None, None
+            error['message'] = f"List index must be a number not {TypeOf(other).getType()}"
+            return None, self.illegal_operation(error, other)
 
     def get_element_at(self, index):
         return self.elements[index]
@@ -1460,16 +1509,30 @@ class List(Value):
 
     def join(self, other):
         return List(self.elements + other.elements), None
-
+   
     def copy(self):
         copy = List(self.elements)
-        copy.setPosition(self.pos_start, self.pos_end)
         copy.setContext(self.context)
+        copy.setPosition(self.pos_start, self.pos_end)
         return copy
     
-    
     def __str__(self):
-        return f'[{", ".join([str(x) for x in self.elements])}]'
+        try:
+            if self.type == "split":
+                return f'[{self.elements}]'
+            else:
+                return f'[{", ".join([str(x) for x in self.elements])}]'
+        except:
+            return f'{self.elements}'
+
+    def __repr__(self):
+        try:
+            if self.type != None and self.type == "split":
+                return f'{self.elements}'
+            else:
+                return f'[{", ".join([str(x) for x in self.elements])}]'
+        except:
+            return f'{self.elements}'
 
    
 class Object(Value):
@@ -1803,21 +1866,29 @@ class Class(BaseTask):
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
         method_value = ""
+        arg_name_ = ""
+        arg_value_ = ""
+        new_class_values = []
         # inject args into each method context
         for method_name, method in self.methods.items():
             # add constructor args names and values to method context
             for i in range(len(self.constructor_args)):
                 arg_name = self.constructor_args[i].value
                 arg_value = args[i]
+                new_class_values.append(arg_name)
+                new_class_values.append(arg_value)
                 method.context = new_context
                 method.context.symbolTable.set(arg_name, arg_value)
-                
+        
+        class_args = dict({arg_name_: arg_value_ for arg_name_, arg_value_ in zip(new_class_values[::2], new_class_values[1::2])})
+        self.context.symbolTable.update_object_value(self.class_name, class_args)       
         return res.success(self)
         
-
+        
     def set_method(self, key, value):
         self.methods[key] = value
         return self
+
 
     def get_method(self, method_name):
         error = {
@@ -1837,6 +1908,7 @@ class Class(BaseTask):
                     return value, None
             return "none", self.key_error(error, method_name)
 
+
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
                      self.inherit_class_name, self.inherit_class, self.methods, self.context)
@@ -1844,11 +1916,13 @@ class Class(BaseTask):
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
 
+
     def __str__(self):
         try:
             return f"{{{', '.join([f'{k}: {v}' for k, v in self.methods.items()])}}}"
         except:
             return "{}"
+
 
     def __repr__(self):
         return f"<Class {str(self.class_name)}>"
@@ -2098,11 +2172,17 @@ class BuiltInTask(BaseTask):
 
   
 # Built-in tasks
- 
+
+
+
 def BuiltInTask_Print(args, node):
     res = RuntimeResult()
     for arg in args:
         value = str(arg)
+        if isinstance(arg, String):
+            value = arg.value
+        if value[0] == "'":
+            value = value[1:-1]
         sys.stdout.write(value)
     return res.success(None)
 
@@ -2110,10 +2190,13 @@ def BuiltInTask_Print(args, node):
 def BuiltInTask_PrintLn(args, node):
     res = RuntimeResult()
     for arg in args:
-        #print(type(arg).__name__)
         value = str(arg)
-        sys.stdout.write(value + '\n')
-    return res.success(None)
+        if isinstance(arg, String):
+            value = arg.value
+        if value[0] == "'":
+            value = value[1:-1]
+        sys.stdout.write(value + "\n")
+    return res.success(None) 
 
 
 def BuiltInTask_Input(args, node, context):
@@ -2711,7 +2794,7 @@ class BuiltInMethod_String(Value):
         super().__init__()
         self.type = type
         self.name = name
-        self.value = str(name)
+        self.value = name
         self.args = args
         self.node = node
         self.context = context
@@ -2726,7 +2809,7 @@ class BuiltInMethod_String(Value):
             self.name = value
             if type(self.name).__name__ == "RuntimeResult":
                 self.name = ''
-            return res.success(self.name)
+        return self.name
     
     
     def no_method(self):
@@ -2784,13 +2867,15 @@ class BuiltInMethod_String(Value):
     def BuiltInMethod_split(self):
         res = RuntimeResult()
         if len(self.args) == 0:
-            return List([self.name.value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return List(String(self.name.value.split())).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         elif len(self.args) == 1:
             if isinstance(self.args[0], String):
                 if self.args[0].value == " ":
-                    return List([String(x).setContext(self.context) for x in self.name.value.split()]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return List(String(self.name.value.split(" ")).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
+                elif self.args[0].value == "":
+                    return List(String(list(self.name.value))).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 else:
-                    return List([String(x).setContext(self.context) for x in self.name.value.split(self.args[0].value)]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return List(String(self.name.value).value.split(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
                 return res.failure(Program.error()["Runtime"]({
                     "pos_start": self.node.pos_start,
@@ -2801,7 +2886,7 @@ class BuiltInMethod_String(Value):
                 }))
         elif len(self.args) == 2:
             if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
-                return List([String(x).setContext(self.context) for x in self.name.value.split(self.args[0].value, self.args[1].value)]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return List(String(self.name.value.split(self.args[0].value, self.args[1].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
             else:
                 return res.failure(Program.error()["Runtime"]({
                     "pos_start": self.node.pos_start,
@@ -2819,7 +2904,7 @@ class BuiltInMethod_String(Value):
                 'exit': False
             }))
     
-    
+   
     def BuiltInMethod_join(self):
         res = RuntimeResult()
         if len(self.args) == 1:
@@ -2981,6 +3066,10 @@ class Interpreter:
             for pv in range(len(inter_pv)):
                 replace_value = res.register(self.visit(values_to_replace[pv], context))
                 value_replaced = str(replace_value)
+                if isinstance(replace_value, String):
+                    value_replaced = str(replace_value.value)
+                if value_replaced[0] == "'":
+                    value_replaced = str(value_replaced[1:-1])
                 if value_replaced == "None":
                     value_replaced = str(NoneType.none)
                 # replace placeholder with value
@@ -3128,7 +3217,7 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.value}'"
                         else:
-                            error["message"] = f"{object_name.name} has no method {object_key.value}"
+                            error["message"] = f"{object_name.name} has no property {object_key.value}"
                         return res.failure(Program.error()["KeyError"](error))
             
             elif type(object_key).__name__ == "CallNode":
@@ -3307,8 +3396,6 @@ class Interpreter:
                         return res.failure(Program.error()["KeyError"](error)) 
                 
             
-                
-                
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in builtin_string_methods:
@@ -3319,7 +3406,9 @@ class Interpreter:
                         if res.should_return(): return res
                     value = BuiltInMethod_String(
                         object_key.node_to_call.value, object_name, args, node, context)
-                    return res.success(value)
+                    # if isinstance(value, BuiltInMethod_String):
+                    #     return res.success(value.name)
+                    return res.success(value.name)
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
                     return res.failure(Program.error()["KeyError"](error))
@@ -3339,9 +3428,7 @@ class Interpreter:
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
                         return res.failure(Program.error()["KeyError"](error))
-        
-        
-        
+                
         elif isinstance(object_name, Number):
             builtin_methods = {
                 'Add': 'Add',
@@ -3378,8 +3465,7 @@ class Interpreter:
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.id.value}"
                     return res.failure(Program.error()["KeyError"](error)) 
-        
-        
+               
         elif isinstance(object_name, Task):
             
             task_properties = {
@@ -3437,9 +3523,8 @@ class Interpreter:
                     value = list_properties[object_key.value]
                     return res.success(value)
             #print(isinstance(object_name, List), object_key, 'ff')
-         
-   
-   
+
+
     def visit_PropertySetNode(self, node, context):
         res = RuntimeResult()
         object_name = res.register(self.visit(node.name, context))
@@ -3568,7 +3653,8 @@ class Interpreter:
         if type(node.variable_name_token).__name__ == "tuple":
             var_name = node.variable_name_token
             
-            if type(var_name).__name__ == "Pair":
+            
+            if isinstance(var_name, Pair):
                 if len(var_name) != len(value.elements):
                     return res.failure(Program.error()['ValueError']({
                         'pos_start': node.pos_start,
@@ -3580,21 +3666,8 @@ class Interpreter:
                 else:
                     for i in range(len(var_name)):
                         context.symbolTable.set(var_name[i].name.value, value.elements[i])
-                        
-            elif type(value).__name__ == "List":
-                if len(var_name) != len(value.elements):
-                    return res.failure(Program.error()['ValueError']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"Expected {len(value.elements)} values, unable to pair {len(var_name)} value(s)",
-                        'context': context,
-                        'exit': False
-                    }))
-                else:
-                    for i in range(len(var_name)):
-                        context.symbolTable.set(var_name[i].name.value, value.elements[i])
-                        
-            elif type(value).__name__ == "Object":
+                                
+            elif isinstance(value, Object):
                 if len(var_name) != len(value.properties):
                     var = []
                     for v in var_name:
@@ -3607,13 +3680,11 @@ class Interpreter:
                                 'exit': False
                             }))
                         var.append(v.name.value)
-                    # get the last element of the list
                     if '*' + v.name.value.split('*')[-1] in var:
                         properties = []
                         for prop in value.properties.values():
                             properties.append(prop)
                         for i in range(len(var_name)):
-                            # if len of var_name is less than len of value.properties, assign the remaining properties to rest e.g var_name = [a,b, ..rest] and value.properties = [a,b,c,d]
                             if i < len(var_name) - 1:
                                 context.symbolTable.set(var_name[i].name.value, properties[i])
                             else:
@@ -3628,12 +3699,87 @@ class Interpreter:
                             'exit': False
                         }))
                 else:
-                    # for every name in var_name, set the value of the property doesn't have to be the same as the name
                     properties = []
                     for prop in value.properties.values():
                         properties.append(prop)
                     for i in range(len(var_name)):
                         context.symbolTable.set(var_name[i].name.value, properties[i])   
+            
+            elif isinstance(value, Pair):
+                if len(var_name) != len(value.elements):
+                    var = []
+                    for v in var_name:
+                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
+                            return res.failure(Program.error()['ValueError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
+                                'context': context,
+                                'exit': False
+                            }))
+                        var.append(v.name.value)
+                    if '*' + v.name.value.split('*')[-1] in var:
+                        elements = []
+                        for elem in value.elements:
+                            elements.append(elem)
+                        for i in range(len(var_name)):
+                            if i < len(var_name) - 1:
+                                context.symbolTable.set(var_name[i].name.value, elements[i])
+                            else:
+                                context.symbolTable.set(v.name.value.split('*')[-1], List(elements[i:]))
+                    else:
+                        return res.failure(Program.error()['ValueError']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"Expected {len(value.elements)} values, unable to pair {len(var_name)} value(s)",
+                            'context': context,
+                            'exit': False
+                        }))
+                else:
+                    elements = []
+                    for elem in value.elements:
+                        elements.append(elem)
+                    for i in range(len(var_name)):
+                        context.symbolTable.set(var_name[i].name.value, elements[i])
+            
+            elif isinstance(value, List):
+                if len(var_name) != len(value.elements):
+                    var = []
+                    for v in var_name:
+                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
+                            return res.failure(Program.error()['ValueError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
+                                'context': context,
+                                'exit': False
+                            }))
+                        var.append(v.name.value)
+                    if '*' + v.name.value.split('*')[-1] in var:
+                        elements = []
+                        for elem in value.elements:
+                            elements.append(elem)
+                        for i in range(len(var_name)):
+                            if i < len(var_name) - 1:
+                                context.symbolTable.set(var_name[i].name.value, elements[i])
+                            else:
+                                context.symbolTable.set(v.name.value.split('*')[-1], List(elements[i:]))
+                    else:
+                        return res.failure(Program.error()['ValueError']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"Expected {len(value.elements)} values, unable to pair {len(var_name)} value(s)",
+                            'context': context,
+                            'exit': False
+                        }))
+                else:
+                    elements = []
+                    for elem in value.elements:
+                        elements.append(elem)
+                    for i in range(len(var_name)):
+                        context.symbolTable.set(var_name[i].name.value, elements[i])
+
+            
             else:
                 return res.failure(Program.error()['Runtime']({
                     'pos_start': node.pos_start,
@@ -4370,6 +4516,7 @@ BuiltInTask.remove = BuiltInTask("remove")
 BuiltInTask.sorted = BuiltInTask("sorted")
 BuiltInTask.clearList = BuiltInTask("clearList")
 BuiltInTask.delay = BuiltInTask("delay")
+BuiltInTask.split = BuiltInTask("split")
 BuiltInTask.format = BuiltInTask("format")
 BuiltInTask.max = BuiltInTask("max")
 BuiltInTask.min = BuiltInTask("min")
@@ -4401,6 +4548,7 @@ symbolTable_.set('remove', BuiltInTask.remove)
 symbolTable_.set('sorted', BuiltInTask.sorted)
 symbolTable_.set('clearList', BuiltInTask.clearList)
 symbolTable_.set('delay', BuiltInTask.delay)
+symbolTable_.set('split', BuiltInTask.split)
 symbolTable_.set('format', BuiltInTask.format)
 symbolTable_.set('max', BuiltInTask.max)
 symbolTable_.set('min', BuiltInTask.min)

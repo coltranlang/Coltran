@@ -1911,7 +1911,6 @@ class Parser:
 
             res.register_advancement()
             self.advance()
-
         return res.success(ListNode(elements, pos_start, self.current_token.pos_end.copy()))
 
     def pair_expr(self):
@@ -2611,7 +2610,6 @@ class Parser:
                 self.advance()
                 call_node = res.success(CallNode(name, arg_nodes))
                 name = res.register(call_node)
-                print(name)
                 
         return res.success(PropertyNode(owner, name))
 
@@ -2789,7 +2787,3 @@ class Parser:
         return res.success(left)
 
     
-            
-
-
-

@@ -191,13 +191,6 @@ class SymbolTable:
         self.id = 0
         self.parent = parent
 
-
-    def get(self, name):
-        value = self.symbols.get(name, None)
-        if value == None and self.parent:
-            return self.parent.get(name)
-        return value
-    
     
     def get_by_value(self, value):
         for key, val in self.symbols.items():
@@ -224,6 +217,22 @@ class SymbolTable:
             self.symbols[name] = value
         #print(f"{name} is set to {value}")
 
+
+    def get(self, name):
+        value = self.symbols.get(name, None)
+        if value == None and self.parent:
+            return self.parent.get(name)
+        return value
+    
+    
+    
+    def update_object_value(self,name, value_):
+        value = self.symbols.get(name, None)
+        if value:
+            self.symbols[name].methods.update(value_)
+        else:
+            return None
+    
     
     def set_object(self, obj_name, object):
         self.symbols[obj_name] = object

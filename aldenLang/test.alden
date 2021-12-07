@@ -188,33 +188,40 @@ in names as (name) then
     println(fv`%{name}`)
 end
 
+# test for rest operator
+let students = ["John", "Paul", "George", "Ringo"]
+let (first, *rest) = students
+line(20)
+println(fv`First: %{first}, Rest: %{rest}`)
+
 # string methods test
 let empty_string = ""
 let empty_string_space = " "
 let str = "HelloxWorldHello"
 let l_ist = ['Alden', 'is', 'an', 'awesome', 'programming', 'language']
 let p_air = ('Alden', 'is', 'an', 'awesome', 'programming', 'language')
+
 object StringObject
     name: "John"
     age: 21
     email: "john123@email.com"
 end
-line(20)
-println(str.upperCase())
 line(21)
-println(str.lowerCase())
+println(str.upperCase())
 line(22)
-println(str.trim())
+println(str.lowerCase())
 line(23)
-println(str.split("x"))
+println(str.trim())
 line(24)
-println(str.split("x", 2))
+println(str.split("x"))
 line(25)
-println(empty_string_space.join(l_ist))
+println(str.split("x", 2))
 line(26)
-println(empty_string_space.join(p_air))
+println(empty_string_space.join(l_ist))
 line(27)
-println(" is ".join(StringObject))
+println(empty_string_space.join(p_air))
 line(28)
+println(" is ".join(StringObject))
+line(29)
 let st = "Hi {name}!, You have {count} messages."
 println(st.replace("{name}", "John").replace("{count}", "5"))

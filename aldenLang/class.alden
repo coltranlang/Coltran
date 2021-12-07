@@ -10,5 +10,8 @@ end
 
 
 
-let person = Person(20, "John")
+let person = Person(20, "John Doe 20")
 println(person.getName(), person.getAge())
+let s = person.name.split("")
+println(person.age, s)
+    

@@ -3,5 +3,4 @@ let student = (001, "Kehinde",  ("Computer Science", "Public Speaking", "Biology
 let (id, name, course, school) = student
 
 
-
-print(fv`%{name} attends %{school} and is studying %{course}`)
+println(fv`%{name} attends %{school} and is studying %{course}`)
