@@ -76,7 +76,7 @@ task @task_a()
 end
 
 task @task_b(user) # declare a task named `task_b` with a parameter named `user` .
-    println(fv"Hello {user}")
+    println(fm"Hello {user}")
 end
 
 

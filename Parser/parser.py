@@ -1997,11 +1997,11 @@ class Parser:
         res = ParseResult()
         pos_start = self.current_token.pos_start.copy()
         inter_pv = None
-        if self.current_token.matches(tokenList.TT_KEYWORD, 'fv'):
+        if self.current_token.matches(tokenList.TT_KEYWORD, 'fm'):
             res.register_advancement()
             self.advance()
             string_to_interp = self.current_token.value
-            while self.current_token.type == tokenList.TT_BACKTICK_STRING:
+            while self.current_token.type == tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING or tokenList.TT_BACKTICK:
                 value = self.current_token.value
                 regex = Regex().compile('%{(.*?)}')
                 # we need to allow escaping of the %{}
@@ -2026,7 +2026,7 @@ class Parser:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': f"Expected a backtick string",
+                    'message': "Expected a string",
                     'exit': False
                 }))
         return res.success(StringNode(self.current_token))
@@ -2073,7 +2073,7 @@ class Parser:
             res.register_advancement()
             self.advance()
             
-            if self.current_token.type != tokenList.TT_STRING and self.current_token.type != tokenList.TT_SINGLE_STRING:
+            if self.current_token.type != tokenList.TT_DOUBLE_STRING and self.current_token.type != tokenList.TT_SINGLE_STRING:
                 return res.failure(Program.error()['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
@@ -2384,7 +2384,7 @@ class Parser:
             res.register_advancement()
             self.advance()
             return res.success(NumberNode(tok))
-        elif tok.type == tokenList.TT_STRING or tok.type == tokenList.TT_SINGLE_STRING or tok.type == tokenList.TT_BACKTICK_STRING:
+        elif tok.type == tokenList.TT_DOUBLE_STRING or tok.type == tokenList.TT_SINGLE_STRING or tok.type == tokenList.TT_BACKTICK_STRING:
             res.register_advancement()
             self.advance()
             return res.success(StringNode(tok))
@@ -2463,7 +2463,7 @@ class Parser:
                 return res
             return res.success(class_node)
         
-        elif tok.matches(tokenList.TT_KEYWORD, 'fv'):
+        elif tok.matches(tokenList.TT_KEYWORD, 'fm'):
             string_interp = res.register(self.string_interp())
             if res.error:
                 return res
@@ -2681,11 +2681,11 @@ class Parser:
             self.advance()
             
             if(self.current_token.value in tokenList.KEYWORDS):
-                if self.current_token.value == "fv":
+                if self.current_token.value == "fm":
                     return res.failure(Program.error()['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "Invalid syntax or unknown token, possibly you meant to use 'fv' instead of 'fv' as an identifier?",
+                        'message': "Invalid syntax or unknown token, possibly you meant to use 'fm' instead of 'fm' as an identifier?",
                         'exit': False
                     }))
                 return res.failure(Program.error()['Syntax']({

@@ -1,5 +1,4 @@
 import os
-import io
 from Parser.parser import Parser
 from Parser.stringsWithArrows import *
 from Token.token import Token
@@ -9,10 +8,8 @@ from Memory.memory import SymbolTable
 
 
 
-
 import sys
 import re
-import time
 
 regex = '[+-]?[0-9]+\.[0-9]+'
 builtin_string_methods = {
@@ -23,6 +20,7 @@ builtin_string_methods = {
             'substr': 'substr',
             'replace': 'replace',
             'trim': 'trim',
+            'length': 'length',
  }
 
 def string_split(string, delimiter):
@@ -2967,6 +2965,19 @@ class BuiltInMethod_String(Value):
                 'exit': False
             }))
     
+   
+    def BuiltInMethod_length(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            return Number(len(self.name.value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but length() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
    
     def copy(self):
         copy = BuiltInMethod_String(

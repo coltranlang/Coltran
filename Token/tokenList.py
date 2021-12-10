@@ -36,7 +36,7 @@ TT_OBJECT_GETTER = 'OBJECT_GETTER'
 TT_COMMA = 'COMMA'
 TT_ARROW = 'ARROW'
 TT_DOT = 'DOT'
-TT_STRING = 'STRING'
+TT_DOUBLE_STRING = 'STRING'
 TT_SINGLE_STRING = 'SINGLE_STRING'
 TT_BACKTICK_STRING = 'BACKTICK_STRING'
 TT_RAW_STRING = 'RAW_STRING'
@@ -92,10 +92,12 @@ NOT_ALLOWED_OBJECTS_KEYS = [
     'class',
     'def',
     'end',
+    'match',
+    'case',
     'return',
     'continue',
     'break',
-    'fv'
+    'fm'
 ]
 
 NOT_ALLOWED_OBJECTS_VALUES = [
@@ -118,6 +120,8 @@ NOT_ALLOWED_OBJECTS_VALUES = [
     'class',
     'def',
     'end',
+    'match',
+    'case',
     'return',
     'continue',
     'break',
@@ -155,10 +159,12 @@ KEYWORDS = [
     'class',
     'def',
     'end',
+    'match',
+    'case',
     'return',
     'continue',
     'break',
-    'fv',
+    'fm',
     'raise'
 ]
 
@@ -188,11 +194,13 @@ OBJECT = 'object'
 CLASS = 'class'
 DEF = 'def'
 END = 'end'
+MATCH = 'match'
+CASE = 'case'
 RETURN = 'return'
 CONTINUE = 'continue'
 BREAK = 'break'
 RAISE = 'raise'
-FV = 'fv'
+FM = 'fm'
 PRINT = 'print'
 PRINTLN = 'println'
 

@@ -9,7 +9,7 @@ object Header
     Content_Type: "application/json"
 end
 
-let http = Http.create("https://www.aldenlang.org", Header, "This is a body")
+let http = Http.new("https://www.aldenlang.org", Header, "This is a body")
 #println(http.post(), http.get())
 # Math module test
 get Math from "math"

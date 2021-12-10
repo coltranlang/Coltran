@@ -15,12 +15,7 @@ class Http(url, headers, body)
     end
 end
 
-object File
-    name: "file.txt"
-    content: "Hello, world!"
-end
 
 module Export as Http
-    create: Http
-    test: task () -> "This is a test"
+    new: Http
 end

@@ -335,7 +335,7 @@ class Lexer:
                     string += self.current_char
                 else:
                     string = ''
-                    return Token(tokenList.TT_STRING, string, pos_start, self.pos)
+                    return Token(tokenList.TT_DOUBLE_STRING, string, pos_start, self.pos)
             self.advance()
             escape_character = False 
         if self.current_char == None:
@@ -346,7 +346,7 @@ class Lexer:
                 'exit': False
             })
         self.advance()
-        return Token(tokenList.TT_STRING, string, pos_start, self.pos)
+        return Token(tokenList.TT_DOUBLE_STRING, string, pos_start, self.pos)
    
     def make_single_string(self):
         string = ''
@@ -445,8 +445,6 @@ class Lexer:
             tok_type = tokenList.TT_GETTER
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
     
-    
-
     def make_comment(self):
         self.advance()
         while self.current_char != None and self.current_char != '\n':

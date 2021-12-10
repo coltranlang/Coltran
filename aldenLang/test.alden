@@ -125,7 +125,7 @@ task @filterByname(arr, name)
             return car  
         end
     end
-    return fv`Car %{name} not found`
+    return fm`Car %{name} not found`
 end
 # test for array index
 object CarInventory
@@ -171,8 +171,8 @@ end
 
 line(18)
 in User as (key,value)  then
-    #println(fv`Key: %{key|0}, Value: %{key|1}`) # getting key and value from People object by just using the key 
-    println(fv`Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
+    #println(fm`Key: %{key|0}, Value: %{key|1}`) # getting key and value from People object by just using the key 
+    println(fm`Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
 end
 
 
@@ -181,18 +181,17 @@ let numpairs = (5,6,7,8,9)
 let names = ["John", "Paul", "George", "Ringo"]
 line(19)
 in names as (name) then
-    
     if name == "John" then
-        println(fv`Hi %{name}`)
+        println(fm`Hi %{name}`)
     end
-    println(fv`%{name}`)
+    println(fm`%{name}`)
 end
 
 # test for rest operator
 let students = ["John", "Paul", "George", "Ringo"]
 let (first, *rest) = students
 line(20)
-println(fv`First: %{first}, Rest: %{rest}`)
+println(fm`First: %{first}, Rest: %{rest}`)
 
 # string methods test
 let empty_string = ""
@@ -225,3 +224,4 @@ println(" is ".join(StringObject))
 line(29)
 let st = "Hi {name}!, You have {count} messages."
 println(st.replace("{name}", "John").replace("{count}", "5"))
+print(fm"%{str} is %{str.length()} characters long")
