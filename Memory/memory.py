@@ -229,7 +229,10 @@ class SymbolTable:
     def update_object_value(self,name, value_):
         value = self.symbols.get(name, None)
         if value:
-            self.symbols[name].methods.update(value_)
+            if (type(self.symbols[name]).__name__ == "Object"):
+                self.symbols[name].properties = value_
+            else:
+                self.symbols[name].methods.update(value_)
         else:
             return None
     

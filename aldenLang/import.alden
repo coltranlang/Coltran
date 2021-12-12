@@ -3,20 +3,20 @@ get User from "./aldenLang/module" # You don't need to specify the file extensio
 println(User.Greet())
 
 # System module test
-get System from "system"
-println(System.stdout.write("Hello World!"))
+#get System from "system"
+#println(System.stdout.write("Hello World!"))
 
 # File module test
-get File from "file"
-println(File.read("test.txt"))
+#get File from "file"
+#println(File.read("test.txt"))
 
 # Path module test
-get Path from "path"
-println(Path.dirname("/home/alden/Desktop/test.txt"))
+#get Path from "path"
+#println(Path.dirname("/home/alden/Desktop/test.txt"))
 
 # Process module test
-get Process from "process"
-println(Process.argv)
+#get Process from "process"
+#println(Process.argv)
 
 
 # Http module test
@@ -26,16 +26,16 @@ object Header
     Content_Type: "application/json"
 end
 
-let http = Http.new("https://www.aldenlang.org", Header, "This is a body")
-#println(http.post(), http.get())
+let http = Http.new("https://www.aldenlang.org", Header, "This is a body").get()
+println(http)
 
 
 # Math module test
-get Math from "math"
-println(Math.random())
+#get Math from "math"
+#println(Math.random())
 
 
 # Date module test
-get Date from "date"
-println(Date.now())
+#get Date from "date"
+#println(Date.now())
 

@@ -3412,8 +3412,10 @@ class Interpreter:
                                 args.append(res.register(
                                     self.visit(arg, context)))
                                 if res.should_return(): return res
-                            
-                            return_value = res.register(value.run(args))
+                            if isinstance(value, Class):
+                                return_value = res.register(value.execute(args))
+                            else:
+                                return_value = res.register(value.run(args))
                             if res.should_return():
                                     return res
                                 
