@@ -2786,4 +2786,4 @@ class Parser:
             left = BinOpNode(left, op_tok, right)
         return res.success(left)
 
-    
+

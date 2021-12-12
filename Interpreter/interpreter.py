@@ -7,14 +7,18 @@ from Lexer.lexer import Lexer
 from Memory.memory import SymbolTable
 
 
-
 import sys
 import re
+import time
+import socket
+import json
+
 
 regex = '[+-]?[0-9]+\.[0-9]+'
 builtin_string_methods = {
             'upperCase': 'upperCase',
             'lowerCase': 'lowerCase',
+            'capitalize': 'capitalize',
             'split': 'split',
             'join': 'join',
             'substr': 'substr',
@@ -22,6 +26,11 @@ builtin_string_methods = {
             'trim': 'trim',
             'length': 'length',
  }
+
+builtin_list_methods = {
+                'length': 'length',
+                'append': 'append',
+            }
 
 def string_split(string, delimiter):
     res = []
@@ -659,6 +668,8 @@ class Value:
                 return Program.error()['Syntax'](errorDetail)
         return Program.error()['IndexError'](errorDetail)
 
+
+
 class Statement(Value):
     def __init__(self, elements=None):
         super().__init__()
@@ -953,10 +964,7 @@ class String(Value):
         super().__init__()
         self.value = value
         self.id = value
-        if arg:
-            self.value = value + str(arg)
-            
-    
+         
             
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
@@ -1022,6 +1030,24 @@ class String(Value):
     
     def get_comparison_ne(self, other):
         return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
+    
+    
+    def get_index(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't perform indexing on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Number):
+            try:
+                return String(setNumber(str(self.value))[setNumber(other.value)]).setContext(self.context), None
+            except IndexError:
+                error['message'] = f"string index out of range"
+                return None, self.illegal_operation_indexError(error)
+        else:
+            return None, self.illegal_operation(error, other)
     
     def notted(self):
         return self.setTrueorFalse(not setNumber(self.value)).setContext(self.context), None
@@ -1489,11 +1515,11 @@ class List(Value):
             try:
                 return self.elements[other.value], None
             except IndexError:
-                error['message'] = f"list index {other.value} out of range"
+                error['message'] = f"list index out of range"
                 return None,  self.illegal_operation_indexError(error, other)
         else:
             error['message'] = f"List index must be a number not {TypeOf(other).getType()}"
-            return None, self.illegal_operation(error, other)
+            return None, self.illegal_operation_indexError(error, other)
 
     def get_element_at(self, index):
         return self.elements[index]
@@ -2341,7 +2367,7 @@ def BuiltInTask_InputBool(args, node, context):
             }))
 
 
-def BuiltInType_Str(args, node, context):
+def BuiltInTask_Str(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2366,7 +2392,7 @@ def BuiltInType_Str(args, node, context):
     }))
     
     
-def BuiltInType_Range(args, node, context):
+def BuiltInTask_Range(args, node, context):
     res = RuntimeResult()
     # built in range takes 1 or 3 arguments eg range(5) or range(1, 5) or range(1, 5, 2)
     #print(args)
@@ -2390,7 +2416,7 @@ def BuiltInType_Range(args, node, context):
         }))
 
 
-def BuiltInType_Int(args, node, context):
+def BuiltInTask_Int(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2424,7 +2450,7 @@ def BuiltInType_Int(args, node, context):
     }))
 
 
-def BuiltInType_Float(args, node, context):
+def BuiltInTask_Float(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2458,7 +2484,7 @@ def BuiltInType_Float(args, node, context):
     }))
 
 
-def BuiltInType_Bool(args, node, context):
+def BuiltInTask_Bool(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2493,7 +2519,7 @@ def BuiltInType_Bool(args, node, context):
     }))
 
 
-def BuiltInType_List(args, node, context):
+def BuiltInTask_List(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2529,7 +2555,7 @@ def BuiltInType_List(args, node, context):
         }))
    
 
-def BuiltInType_Pair(args, node, context):
+def BuiltInTask_Pair(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2564,7 +2590,7 @@ def BuiltInType_Pair(args, node, context):
         }))
 
 
-def BuiltInType_Object(args, node, context):
+def BuiltInTask_Object(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2848,6 +2874,20 @@ class BuiltInMethod_String(Value):
             return String(self.name.value.lower()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         
         
+    def BuiltInMethod_capitalize(self):
+        res = RuntimeResult()
+        if len(self.args) != 0:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but Capitalize() takes no argument",
+                "context": self.context,
+                'exit': False
+            }))
+        else:
+            return String(self.name.value.capitalize()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+    
+        
     def BuiltInMethod_trim(self):
         res = RuntimeResult()
         if len(self.args) != 0:
@@ -2865,15 +2905,31 @@ class BuiltInMethod_String(Value):
     def BuiltInMethod_split(self):
         res = RuntimeResult()
         if len(self.args) == 0:
-            return List(String(self.name.value.split())).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            value = []
+            split_list = self.name.value.split()
+            for i in split_list:
+                value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
+            return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         elif len(self.args) == 1:
             if isinstance(self.args[0], String):
                 if self.args[0].value == " ":
-                    return List(String(self.name.value.split(" ")).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
+                    value = []
+                    split_list = self.name.value.split()
+                    for i in split_list:
+                        value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
+                    return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 elif self.args[0].value == "":
-                    return List(String(list(self.name.value))).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    value = []
+                    split_list = self.name.value.split()
+                    for i in split_list:
+                        value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
+                    return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 else:
-                    return List(String(self.name.value).value.split(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    value = []
+                    split_list = self.name.value.split(self.args[0].value)
+                    for i in split_list:
+                        value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
+                    return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
                 return res.failure(Program.error()["Runtime"]({
                     "pos_start": self.node.pos_start,
@@ -2884,7 +2940,20 @@ class BuiltInMethod_String(Value):
                 }))
         elif len(self.args) == 2:
             if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
-                return List(String(self.name.value.split(self.args[0].value, self.args[1].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
+                if self.args[1].value < 0:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": self.node.pos_start,
+                        "pos_end": self.node.pos_end,
+                        'message': f"{self.args[1].value} is not a valid argument for split()",
+                        "context": self.context,
+                        'exit': False
+                    }))
+                else:
+                    value = []
+                    split_list = self.name.value.split(self.args[0].value, self.args[1].value)
+                    for i in split_list:
+                        value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
+                    return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
                 return res.failure(Program.error()["Runtime"]({
                     "pos_start": self.node.pos_start,
@@ -2979,6 +3048,7 @@ class BuiltInMethod_String(Value):
                 'exit': False
             }))
    
+    
     def copy(self):
         copy = BuiltInMethod_String(
             self.type, self.name, self.args, self.node, self.context)
@@ -2995,6 +3065,62 @@ class BuiltInMethod_String(Value):
         return f"<{str(self.type)}()>, [ built-in method ]"
 
 
+class BuiltInMethod_List(Value):
+    def __init__(self, type, name, args, node, context):
+        super().__init__()
+        self.type = type
+        self.name = name
+        self.args = args
+        self.node = node
+        self.context = context
+        self.execute()
+    
+    def execute(self):
+        res = RuntimeResult()
+        if self.type in builtin_list_methods:
+            method = f"BuiltInMethod_{builtin_list_methods[self.type]}"
+            is_method = getattr(self, method, self.no_method)
+            value = is_method()
+            self.name = value
+            if type(self.name).__name__ == "RuntimeResult":
+                self.name = ''
+        return self.name
+    
+    
+    def no_method(self):
+        return RuntimeResult().failure(Program.error()["Runtime"]({
+        "pos_start": self.node.pos_start,
+        "pos_end": self.node.pos_end,
+        'message': f"{self.type} is not a valid method",
+        "context": self.context,
+        'exit': False
+    }))
+            
+    
+    def BuiltInMethod_length(self):
+        res = RuntimeResult()
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": self.node.pos_start,
+            "pos_end": self.node.pos_end,
+            'message': f"'length' is not a callable",
+            "context": self.context,
+            'exit': False
+        }))
+        
+    def BuiltInMethod_append(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.name, List):
+                return List(self.name.elements.append(self.args[0])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but append() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
+        
 
 class BuiltInMethod_Number(Value):
     def __init__(self, type, name, args, node, context):
@@ -3352,18 +3478,32 @@ class Interpreter:
             print(node.name, "is the call node", object_key)
    
         elif isinstance(object_name, List):
-            builtin_properties = {
-                'length': len(object_name.elements),
-            }
             if type(object_key).__name__ == "Token":
-                if object_key.value in builtin_properties:
-                    value = builtin_properties[object_key.value]
+                if object_key.value in builtin_list_methods:
+                    value = value = f"<{str(object_key.value)}()>, [ built-in method ]"
                     if object_key.value == "length":
-                        return res.success(Number(value))
-                    return res.success(value)
+                        return res.success(len(object_name.elements))
+                    else:
+                        value = f"<{str(object_key.value)}()>, [ built-in method ]"
+                        return res.success(String(value))
                 else:
-                    error["message"] = f"{node.name.id.value} has no property {object_key.value}"
+                    error["message"] = f"'list' has no property {object_key.value}"
                     return res.failure(Program.error()["KeyError"](error))
+                
+            elif type(object_key).__name__ == "CallNode":
+                if type(object_key.node_to_call).__name__ == "Token":
+                    if object_key.node_to_call.value in builtin_list_methods:
+                        args = []
+                        for arg in object_key.args_nodes:
+                            args.append(res.register(
+                                self.visit(arg, context)))
+                            if res.should_return(): return res
+                        value = BuiltInMethod_List(
+                            object_key.node_to_call.value, object_name, args, node, context)
+                        return res.success(value.name)
+                    else:
+                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
+                        return res.failure(Program.error()["KeyError"](error))
         
         elif isinstance(object_name, String):
             if type(object_key).__name__ == "Token":
@@ -3381,7 +3521,7 @@ class Interpreter:
                     value = f"<{str(object_key.id.value)}()>, [ built-in method ]"
                     return res.success(String(value))
                 else:
-                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.value}"
+                    error["message"] = f"'string' has no property {object_key.id.value}"
                     return res.failure(Program.error()["KeyError"](error))
                
             elif type(object_key).__name__ == "PropertyNode":
@@ -3396,14 +3536,14 @@ class Interpreter:
                             object_key.id.node_to_call.id.value, object_name, args, node, context)
                         return res.success(value)
                     else:
-                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.node_to_call.id.value}"
+                        error["message"] = f"'string' has no property {object_key.id.node_to_call.id.value}"
                         return res.failure(Program.error()["KeyError"](error))
                 else:
                     if object_key.id.value in builtin_string_methods:
                         value = f"<{str(object_key.id.value)}()>, [ built-in method ]"
                         return res.success(String(value))
                     else:
-                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.value}"
+                        error["message"] = f"'string' has no property {object_key.id.value}"
                         return res.failure(Program.error()["KeyError"](error)) 
                 
             
@@ -3411,18 +3551,16 @@ class Interpreter:
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in builtin_string_methods:
                         args = []
-                    for arg in object_key.args_nodes:
-                        args.append(res.register(
-                            self.visit(arg, context)))
-                        if res.should_return(): return res
-                    value = BuiltInMethod_String(
-                        object_key.node_to_call.value, object_name, args, node, context)
-                    # if isinstance(value, BuiltInMethod_String):
-                    #     return res.success(value.name)
-                    return res.success(value.name)
-                else:
-                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                    return res.failure(Program.error()["KeyError"](error))
+                        for arg in object_key.args_nodes:
+                            args.append(res.register(
+                                self.visit(arg, context)))
+                            if res.should_return(): return res
+                        value = BuiltInMethod_String(
+                            object_key.node_to_call.value, object_name, args, node, context)
+                        return res.success(value.name)
+                    else:
+                        error["message"] = f"'string' has no property {object_key.node_to_call.value}"
+                        return res.failure(Program.error()["KeyError"](error))
         
         elif isinstance(object_name, BuiltInMethod_String):
             if type(object_key).__name__ == "CallNode":
@@ -3437,7 +3575,7 @@ class Interpreter:
                             object_key.node_to_call.value, object_name, args, node, context)
                         return res.success(value)
                     else:
-                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
+                        error["message"] = f"'string' has no property {object_key.node_to_call.value}"
                         return res.failure(Program.error()["KeyError"](error))
                 
         elif isinstance(object_name, Number):
@@ -4441,14 +4579,14 @@ class Interpreter:
                 'inputInt': BuiltInTask_InputInt,
                 'inputFloat': BuiltInTask_InputFloat,
                 'format': BuiltInTask_Format,
-                'str': BuiltInType_Str,
-                'range': BuiltInType_Range,
-                'int': BuiltInType_Int,
-                'float': BuiltInType_Float,
-                'bool': BuiltInType_Bool,
-                'list': BuiltInType_List,
-                'pair' : BuiltInType_Pair,
-                'object': BuiltInType_Object,
+                'str': BuiltInTask_Str,
+                'range': BuiltInTask_Range,
+                'int': BuiltInTask_Int,
+                'float': BuiltInTask_Float,
+                'bool': BuiltInTask_Bool,
+                'list': BuiltInTask_List,
+                'pair' : BuiltInTask_Pair,
+                'object': BuiltInTask_Object,
                 'max': BuiltInTask_Max,
                 'min': BuiltInTask_Min,
                 'sorted': BuiltInTask_Sorted,

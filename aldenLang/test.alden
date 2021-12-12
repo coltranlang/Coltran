@@ -196,7 +196,7 @@ println(fm`First: %{first}, Rest: %{rest}`)
 # string methods test
 let empty_string = ""
 let empty_string_space = " "
-let str = "HelloxWorldHello"
+let _str = "HelloxWorldHello"
 let l_ist = ['Alden', 'is', 'an', 'awesome', 'programming', 'language']
 let p_air = ('Alden', 'is', 'an', 'awesome', 'programming', 'language')
 
@@ -206,15 +206,15 @@ object StringObject
     email: "john123@email.com"
 end
 line(21)
-println(str.upperCase())
+println(_str.upperCase())
 line(22)
-println(str.lowerCase())
+println(_str.lowerCase())
 line(23)
-println(str.trim())
+println(_str.trim())
 line(24)
-println(str.split("x"))
+println(_str.split("x"))
 line(25)
-println(str.split("x", 2))
+println(_str.split("x", 2))
 line(26)
 println(empty_string_space.join(l_ist))
 line(27)
@@ -224,4 +224,13 @@ println(" is ".join(StringObject))
 line(29)
 let st = "Hi {name}!, You have {count} messages."
 println(st.replace("{name}", "John").replace("{count}", "5"))
-print(fm"%{str} is %{str.length()} characters long")
+println(fm"%{_str} is %{_str.length()} characters long")
+let name = "John Doe"
+let n = name.split()
+println(fm"First name: %{n|0}, Last name: %{n|1}")
+let value = []
+in n as (name) then
+    value.append(name)
+    append(value, name)
+end
+println(value)

@@ -1,6 +1,0 @@
-
-class string
-    def split(sep, limit)
-        return list[string]
-    end 
-end
