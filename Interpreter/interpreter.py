@@ -1,4 +1,5 @@
 import os
+from types import new_class
 from Parser.parser import Parser
 from Parser.stringsWithArrows import *
 from Token.token import Token
@@ -25,11 +26,21 @@ builtin_string_methods = {
             'replace': 'replace',
             'trim': 'trim',
             'length': 'length',
+            'charAt': 'charAt',
  }
 
 builtin_list_methods = {
                 'length': 'length',
                 'append': 'append',
+                'pop': 'pop',
+                'remove': 'remove',
+                'insert': 'insert',
+                'empty': 'empty',
+                'reverse': 'reverse',
+                'getItem': 'getItem',
+                'setItem': 'setItem',
+                'slice': 'slice',
+                'join': 'join',
             }
 
 def string_split(string, delimiter):
@@ -44,6 +55,9 @@ def string_split(string, delimiter):
             res.append(string[start:index])
             start = index + len(delimiter)
     return res
+
+def getsubstr(string, start, end):
+        return string[start:end]
 
 builtin_number_methods = {
     'toInt': 'toInt',
@@ -100,20 +114,19 @@ class TypeOf:
         else:
             if isinstance(self.type, str) or isinstance(self.type, String):
                 result = 'string'
-            elif isinstance(self.type, tuple):
+            elif isinstance(self.type, tuple) or isinstance(self.type, Pair):
                 result = 'pair'
-            elif isinstance(self.type, dict):
+            elif isinstance(self.type, dict) or isinstance(self.type, Object):
                 result = 'object'
             elif isinstance(self.type, bool) or isinstance(self.type, Boolean):
                 result = 'boolean'
             elif isinstance(self.type, list) or isinstance(self.type, List):
                 result = 'list'
-            elif isinstance(self.type, list) or isinstance(self.type, Task):
+            elif isinstance(self.type, Task):
                 result = 'task'
             else:
                 result = type(self.type).__name__
         return result
-
 
 class Context:
     def __init__(self, display_name, parent=None, parent_entry_pos=None):
@@ -667,7 +680,6 @@ class Value:
                 errorDetail['message'] = f"illegal operation"
                 return Program.error()['Syntax'](errorDetail)
         return Program.error()['IndexError'](errorDetail)
-
 
 
 class Statement(Value):
@@ -1778,9 +1790,8 @@ class BaseTask(Value):
         for i in range(len(args)):
             arg_name = arg_names[i]
             arg_value = args[i]
-            arg_value.setContext(exec_context)
             exec_context.symbolTable.set(arg_name, arg_value)
-
+            
     def check_and_populate_args(self, arg_names, args, exec_ctx):
         res = RuntimeResult()
         res.register(self.check_args(arg_names, args))
@@ -1790,7 +1801,7 @@ class BaseTask(Value):
 
 
 class Task(BaseTask):
-    def __init__(self, name, body_node, arg_names, implicit_return, ref=None):
+    def __init__(self, name, body_node, arg_names, implicit_return, context):
         super().__init__(name)
         self.id = name
         self.name = name
@@ -1798,29 +1809,30 @@ class Task(BaseTask):
         self.arg_names = arg_names
         self.implicit_return = implicit_return
         self.args = arg_names
-        self.ref = ref
+        self.context = context
         
     def execute(self, args):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
         self.args = args
-        res.register(self.check_and_populate_args(
-            self.arg_names, args, exec_context))
+        self.check_args(self.arg_names, args)
+        self.populate_args(self.arg_names, args, self.context)
         if res.should_return():
             return res
         value = res.register(interpreter.visit(self.body_node, exec_context))
+        if hasattr(self.body_node, "body_node"):
+            print(self.implicit_return, self.name)
         if res.should_return() and res.func_return_value == None:
             return res
+        
+        
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
         if hasattr(return_value, "value"):
             if return_value.value == "none":
                 return res.success(None)
         return res.success(return_value)
-
-
-    
 
     def run(self, args, type=None):
         res = RuntimeResult()
@@ -1856,11 +1868,10 @@ class Task(BaseTask):
             arg_value = args[i]
             arg_value.setContext(exec_context)
             exec_context.symbolTable.set(arg_name, arg_value)
-            
-            
+                      
     def copy(self):
         copy = Task(self.name, self.body_node,
-                    self.arg_names, self.implicit_return)
+                    self.arg_names, self.implicit_return, self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -1884,14 +1895,9 @@ class Class(BaseTask):
         
     def execute(self, args):
         res = RuntimeResult()
-        interpreter = Interpreter()
-        class_value = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherit_class, self.methods, self.context).copy()
         new_context = self.generate_new_context()
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
-        method_value = ""
-        arg_name_ = ""
-        arg_value_ = ""
         new_class_values = []
         # inject args into each method context
         for method_name, method in self.methods.items():
@@ -1905,7 +1911,7 @@ class Class(BaseTask):
                 method.context.symbolTable.set(arg_name, arg_value)
         
         class_args = dict({arg_name_: arg_value_ for arg_name_, arg_value_ in zip(new_class_values[::2], new_class_values[1::2])})
-        self.context.symbolTable.update_object_value(self.class_name, class_args)       
+        self.context.symbolTable.update_object_value(self.class_name, class_args)
         return res.success(self)
         
         
@@ -2007,66 +2013,7 @@ class ModuleExportValue(Value):
     def __repr__(self):
         return f"<ModuleExportValue {str(self.name)}>"
 
-
-class ClassGet(Value):
-    def __init__(self, obj, key):
-        super().__init__()
-        self.obj = obj
-        self.key = key
-        print(type(key).__name__, key.value, "type")
-        
-        
-    def get_method(self, obj, key):
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"Method '{key}' does not exist on class '{obj}'",
-            'context': self.context,
-            'exit': False
-        }
-        value  = ""
-        if  type(key).__name__ == "ObjectRef":
-            if hasattr(obj, "methods"):
-                if key.value in obj.methods:
-                    value = obj.methods[key.value]
-                    return value
-                else:
-                    return NoneType.none
-            else:
-                return NoneType.none
-        
-            
-        if type(key).__name__ == "String":
-            if hasattr(obj, "methods"):
-                if key.value in obj.methods:
-                    value = obj.methods[key.value]
-                    return value
-                else:
-                    return NoneType.none
-            return NoneType.none
-            
-        elif type(key).__name__ == "Number":
-            if hasattr(obj, "methods"):
-                if str(key.value) in obj.methods:
-                    value = obj.methods[str(key.value)]
-                    return value
-                else:
-                    return NoneType.none
-            else:
-                return NoneType.none
-        else:
-            return None, self.illegal_operation(error, key)
-        
-    def copy(self):
-        copy = ClassGet(self.obj, self.key)
-        copy.setPosition(self.pos_start, self.pos_end)
-        copy.setContext(self.context)
-        return copy
-        
-    def __repr__(self):
-        return f"<ClassGet {str(self.obj)} {str(self.key)}>"
-
-    
+   
 class BuiltInTask(BaseTask):
     def __init__(self, name):
         super().__init__(name)
@@ -2197,16 +2144,17 @@ class BuiltInTask(BaseTask):
   
 # Built-in tasks
 
-
-
 def BuiltInTask_Print(args, node):
     res = RuntimeResult()
     for arg in args:
         value = str(arg)
         if isinstance(arg, String):
             value = arg.value
-        if value[0] == "'":
-            value = value[1:-1]
+        try:
+            if value[0] == "'":
+                value = value[1:-1]
+        except:
+            pass
         sys.stdout.write(value)
     return res.success(None)
 
@@ -2217,8 +2165,11 @@ def BuiltInTask_PrintLn(args, node):
         value = str(arg)
         if isinstance(arg, String):
             value = arg.value
-        if value[0] == "'":
-            value = value[1:-1]
+        try:
+            if value[0] == "'":
+                value = value[1:-1]
+        except:
+            pass
         sys.stdout.write(value + "\n")
     return res.success(None) 
 
@@ -2532,7 +2483,10 @@ def BuiltInTask_List(args, node, context):
     if isinstance(args[0], List):
         return res.success(args[0])
     elif isinstance(args[0], String):
-        return res.success(List([String(f"'{char}'") for char in args[0].value]).setPosition(node.pos_start, node.pos_end).setContext(context))
+        new_list = []
+        for char in args[0].value:
+            new_list.append(String(char).setPosition(node.pos_start, node.pos_end).setContext(context))
+        return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
     elif isinstance(args[0], Boolean):
         return res.failure(Program.error()["Type"]({
             "pos_start": node.pos_start,
@@ -2544,7 +2498,10 @@ def BuiltInTask_List(args, node, context):
     elif isinstance(args[0], Object):
         keys = [key for key in args[0].value]
         values = [args[0].value[key] for key in keys]
-        return res.success(List([String(f"'{value}'") for value in values]).setPosition(node.pos_start, node.pos_end).setContext(context))
+        new_list = []
+        for value in values:
+            new_list.append(value)
+        return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
     else: 
         return res.failure(Program.error()["Type"]({
             "pos_start": node.pos_start,
@@ -2690,6 +2647,71 @@ def BuiltInTask_Sorted(args, node, context):
             'exit': False
         }))
    
+
+def BuiltInTask_Substr(args, node, context):
+    res = RuntimeResult()
+    if len(args) > 3:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but substr() takes 3 arguments",
+            "context": context,
+            'exit': False
+        }))
+    
+    elif len(args) == 2:
+        if isinstance(args[0], String) and isinstance(args[1], Number):
+            start = args[1].value
+            end = len(args[0].value)
+            return res.success(String(getsubstr(args[0].value, start, end)).setPosition(node.pos_start, node.pos_end).setContext(context))
+        
+        
+    elif len(args) == 3:
+        if isinstance(args[0], String) and isinstance(args[1], Number) and isinstance(args[2], Number):
+            start = args[1].value
+            length = args[2].value
+            return res.success(String(getsubstr(args[0].value, start, start + length)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    
+    else:
+        return res.failure(Program.error()["Type"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            "context": context,
+            'exit': False
+        }))
+
+
+def BuiltInTask_Reverse(args, node, context):
+    res = RuntimeResult()
+    if len(args) > 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but reverse() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+        
+    if isinstance(args[0], List):
+        new_elements = []
+        elements = args[0].elements
+        for element in elements:
+            if hasattr(element, 'value'):
+                new_elements.append(element.value)
+            else:
+                new_elements.append(element)
+        new_elements.reverse()
+        return res.success(List(new_elements).setPosition(node.pos_start, node.pos_end).setContext(context))
+    else:
+        return res.failure(Program.error()["Type"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            "context": context,
+            'exit': False
+        }))
+   
     
 def BuiltInTask_Format(args, node):
     string = args[0].value
@@ -2697,6 +2719,28 @@ def BuiltInTask_Format(args, node):
     regex = Regex().compile('{(.*?)}')
     matches = regex.match(string)
   
+
+def BuiltInTask_Typeof(args, node, context):
+    res = RuntimeResult()
+    if len(args) > 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but typeof() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+        
+    if len(args) == 0:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"typeof() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+    return res.success(String(TypeOf(args[0]).getType()).setPosition(node.pos_start, node.pos_end).setContext(context))
+
 
 def BuiltInTask_Line(args, node, context):
     res = RuntimeResult()
@@ -2805,6 +2849,7 @@ def BuiltInTask_Exit(args, node, context):
             "context": context,
             'exit': False
         }))
+
 
 
 def BuiltInTask_Http_Get():
@@ -2923,6 +2968,7 @@ class BuiltInMethod_String(Value):
                     split_list = self.name.value.split()
                     for i in split_list:
                         value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
+                    print(value)
                     return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 else:
                     value = []
@@ -3037,17 +3083,81 @@ class BuiltInMethod_String(Value):
    
     def BuiltInMethod_length(self):
         res = RuntimeResult()
-        if len(self.args) == 0:
-            return Number(len(self.name.value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": self.node.pos_start,
+            "pos_end": self.node.pos_end,
+            'message': f"'length' is not a callable",
+            "context": self.context,
+            'exit': False
+        }))
+   
+   
+    def BuiltInMethod_substr(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], Number):
+                start = self.args[0].value
+                end = len(self.name.value)
+                return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for substr()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        elif len(self.args) == 2:
+            if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
+                start = self.args[0].value
+                end = self.args[1].value + 1
+                return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for substr()",
+                    "context": self.context,
+                    'exit': False
+                }))
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but length() takes 0 arguments",
+                'message': f"{len(self.args)} arguments given, but substr() takes 2 arguments",
                 "context": self.context,
                 'exit': False
             }))
    
+    def BuiltInMethod_charAt(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            string = self.name.value.replace(" ", "")
+            start = 0
+            end = 1
+            return String(getsubstr(string, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        if len(self.args) == 1:
+            if isinstance(self.args[0], Number):
+                string = self.name.value.replace(" ", "")
+                start = self.args[0].value
+                end = start + 1
+                return String(getsubstr(string, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for charAt()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but charAt() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
     
     def copy(self):
         copy = BuiltInMethod_String(
@@ -3120,6 +3230,235 @@ class BuiltInMethod_List(Value):
                 "context": self.context,
                 'exit': False
             }))
+    
+            
+    def BuiltInMethod_pop(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            if isinstance(self.name, List):
+                return List(self.name.elements.pop()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        elif len(self.args) == 1:
+            if isinstance(self.name, List):
+                if isinstance(self.args[0], Number):
+                    return List(self.name.elements.pop(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                else:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": self.node.pos_start,
+                        "pos_end": self.node.pos_end,
+                        'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for pop()",
+                        "context": self.context,
+                        'exit': False
+                    }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but pop() takes 0 or 1 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+     
+            
+    def BuiltInMethod_remove(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.name, List):
+                return List(self.name.elements.remove(self.args[0])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but remove() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
+            
+            
+    def BuiltInMethod_insert(self):
+        res = RuntimeResult()
+        if len(self.args) == 2:
+            if isinstance(self.name, List):
+                return List(self.name.elements.insert(self.args[0], self.args[1])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but insert() takes 2 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+            
+            
+    def BuiltInMethod_reverse(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            if isinstance(self.name, List):
+                new_list = []
+                for el in self.name.elements:
+                    new_list.insert(0, el)
+                return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but reverse() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+   
+            
+    def BuiltInMethod_empty(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            if isinstance(self.name, List):
+                return List(self.name.elements.clear()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but empty() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+
+
+    def BuiltInMethod_getItem(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.name, List):
+                if isinstance(self.args[0], Number):
+                    return List(self.name.elements[self.args[0].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                else:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": self.node.pos_start,
+                        "pos_end": self.node.pos_end,
+                        'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for getItem()",
+                        "context": self.context,
+                        'exit': False
+                    }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but getItem() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
+
+
+    def BuiltInMethod_setItem(self):
+        res = RuntimeResult()
+        if len(self.args) == 2:
+            if isinstance(self.name, List):
+                if isinstance(self.args[0], Number):
+                    old_value = self.name.elements[self.args[0].value]
+                    new_value = self.args[1]
+                    self.name.elements[self.args[0].value] = new_value
+                    return List(self.name.elements).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                else:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": self.node.pos_start,
+                        "pos_end": self.node.pos_end,
+                        'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for setItem()",
+                        "context": self.context,
+                        'exit': False
+                    }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but setItem() takes 2 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+
+
+    def BuiltInMethod_slice(self):
+        res = RuntimeResult()
+        if len(self.args) == 2:
+            if isinstance(self.name, List):
+                if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
+                    return List(self.name.elements[self.args[0].value:self.args[1].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                else:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": self.node.pos_start,
+                        "pos_end": self.node.pos_end,
+                        'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for slice()",
+                        "context": self.context,
+                        'exit': False
+                    }))
+        elif len(self.args) == 1:
+            if isinstance(self.name, List):
+                if isinstance(self.args[0], Number):
+                    return List(self.name.elements[self.args[0].value:]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                else:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": self.node.pos_start,
+                        "pos_end": self.node.pos_end,
+                        'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for slice()",
+                        "context": self.context,
+                        'exit': False
+                    }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but slice() takes 2 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+        
+        
+    def BuiltInMethod_join(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.name, List):
+                if isinstance(self.args[0], String):
+                    new_string = ""
+                    for element in self.name.elements:
+                        if type(element.value) == str:
+                            new_string += element.value
+                        else:
+                            new_string += str(element.value)
+                        if element != self.name.elements[-1]:
+                            new_string += self.args[0].value
+                    return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                else:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": self.node.pos_start,
+                        "pos_end": self.node.pos_end,
+                        'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for join()",
+                        "context": self.context,
+                        'exit': False
+                    }))
+        elif len(self.args) == 0:
+            if isinstance(self.name, List):
+                new_string = ""
+                for element in self.name.elements:
+                    if type(element.value) == str:
+                        new_string += element.value
+                    else:
+                        new_string += str(element.value)
+                    if element != self.name.elements[-1]:
+                        new_string += ","
+                return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.name).getType()}' is not a valid argument for join()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but join() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
+        
         
 
 class BuiltInMethod_Number(Value):
@@ -3265,11 +3604,193 @@ class Interpreter:
             elements = elements + (element_value,)
         return res.success(Pair(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
+    
+    def visit_VarAssignNode(self, node, context):
+        res = RuntimeResult()
+        var_name = node.variable_name_token.value if type(
+            node.variable_name_token).__name__ != 'tuple' else ''
+        if type(node.variable_name_token).__name__ == 'tuple':
+            if type(node.variable_name_token[0]).__name__ == 'Token':
+                var_name = node.variable_name_token[0].value
+            elif type(node.variable_name_token[0]).__name__ == 'VarAccessNode':
+                var_name = node.variable_name_token[0].id.value
+        value = res.register(self.visit(node.value_node, context))
+        if node.variable_keyword_token == "module":
+            value = context.symbolTable.get(node.value_node.value)
+            if value == None:
+                Program.error()['Error']({
+                    'name': 'IdentifierError',
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f'{node.value_node.value} is not defined',
+                    'context': context,
+                    'exit': True
+                })
+
+        if type(node.variable_name_token).__name__ == "tuple":
+            var_name = node.variable_name_token
+            if isinstance(var_name, Pair):
+                if len(var_name) != len(value.elements):
+                    return res.failure(Program.error()['ValueError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"Expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
+                        'context': context,
+                        'exit': False
+                    }))
+                else:
+                    for i in range(len(var_name)):
+                        context.symbolTable.set(
+                            var_name[i].name.value, value.elements[i])
+
+            elif isinstance(value, Object):
+                if len(var_name) != len(value.properties):
+                    var = []
+                    for v in var_name:
+                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
+                            return res.failure(Program.error()['ValueError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
+                                'context': context,
+                                'exit': False
+                            }))
+                        var.append(v.name.value)
+                    if '*' + v.name.value.split('*')[-1] in var:
+                        properties = []
+                        for prop in value.properties.values():
+                            properties.append(prop)
+                        for i in range(len(var_name)):
+                            if i < len(var_name) - 1:
+                                context.symbolTable.set(
+                                    var_name[i].name.value, properties[i])
+                            else:
+                                context.symbolTable.set(v.name.value.split(
+                                    '*')[-1], List(properties[i:]))
+
+                    else:
+                        return res.failure(Program.error()['ValueError']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"Expected {len(value.properties)} values, unable to pair {len(var_name)} value(s)",
+                            'context': context,
+                            'exit': False
+                        }))
+                else:
+                    properties = []
+                    for prop in value.properties.values():
+                        properties.append(prop)
+                    for i in range(len(var_name)):
+                        context.symbolTable.set(
+                            var_name[i].name.value, properties[i])
+
+            elif isinstance(value, Pair):
+                if len(var_name) != len(value.elements):
+                    var = []
+                    for v in var_name:
+                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
+                            return res.failure(Program.error()['ValueError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
+                                'context': context,
+                                'exit': False
+                            }))
+                        var.append(v.name.value)
+                    if '*' + v.name.value.split('*')[-1] in var:
+                        elements = []
+                        for elem in value.elements:
+                            elements.append(elem)
+                        for i in range(len(var_name)):
+                            if i < len(var_name) - 1:
+                                context.symbolTable.set(
+                                    var_name[i].name.value, elements[i])
+                            else:
+                                context.symbolTable.set(
+                                    v.name.value.split('*')[-1], List(elements[i:]))
+                    else:
+                        return res.failure(Program.error()['ValueError']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"Expected {len(value.elements)} values, unable to pair {len(var_name)} value(s)",
+                            'context': context,
+                            'exit': False
+                        }))
+                else:
+                    elements = []
+                    for elem in value.elements:
+                        elements.append(elem)
+                    for i in range(len(var_name)):
+                        context.symbolTable.set(
+                            var_name[i].name.value, elements[i])
+
+            elif isinstance(value, List):
+                if len(var_name) != len(value.elements):
+                    var = []
+                    for v in var_name:
+                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
+                            return res.failure(Program.error()['ValueError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
+                                'context': context,
+                                'exit': False
+                            }))
+                        var.append(v.name.value)
+                    if '*' + v.name.value.split('*')[-1] in var:
+                        elements = []
+                        for elem in value.elements:
+                            elements.append(elem)
+                        for i in range(len(var_name)):
+                            if i < len(var_name) - 1:
+                                context.symbolTable.set(
+                                    var_name[i].name.value, elements[i])
+                            else:
+                                context.symbolTable.set(
+                                    v.name.value.split('*')[-1], List(elements[i:]))
+                    else:
+                        return res.failure(Program.error()['ValueError']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"Expected {len(value.elements)} values, unable to pair {len(var_name)} value(s)",
+                            'context': context,
+                            'exit': False
+                        }))
+                else:
+                    elements = []
+                    for elem in value.elements:
+                        elements.append(elem)
+                    for i in range(len(var_name)):
+                        context.symbolTable.set(
+                            var_name[i].name.value, elements[i])
+
+            else:
+                return res.failure(Program.error()['Runtime']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"Cannot assign {type(value).__name__} to Pair",
+                    'context': context,
+                    'exit': False
+                }))
+        else:
+            if res.should_return():
+                return res
+            if node.variable_keyword_token == "let":
+                if value is None:
+                    value = NoneType.none
+                context.symbolTable.set(var_name, value, "let")
+            elif node.variable_keyword_token == "final":
+                if value is None:
+                    value = NoneType.none
+                context.symbolTable.set_final(var_name, value, "final")
+        return res.success(value)
+
 
     def visit_VarAccessNode(self, node, context):
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
+        #print(var_name, "is the value")
         if type(value) is dict:
             value = value['value']
         if var_name in context.symbolTable.symbols and value is None:
@@ -3283,7 +3804,6 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
-            #print(var_name, context.symbolTable.symbols)
             Program.error()['Error']({
                 'name': 'IdentifierError',
                 'pos_start': node.pos_start,
@@ -3373,11 +3893,12 @@ class Interpreter:
                             return_value = res.register(value.run(args))
                             if res.should_return():
                                     return res
-                                
+                            
                             if return_value == None or isinstance(return_value, NoneType):
                                 return res.success(None)
                             else:
                                 return res.success(return_value)
+                            
                         else:
                             if object_name.name == "Export":
                                 error['message'] = f"Export has no member '{object_key.node_to_call.value}'"
@@ -3418,7 +3939,6 @@ class Interpreter:
                                 return_value = res.register(value.run(args))
                             if res.should_return():
                                     return res
-                                
                             if return_value == None or isinstance(return_value, NoneType):
                                 return res.success(None)
                             else:
@@ -3476,15 +3996,12 @@ class Interpreter:
                         error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
                         return res.failure(Program.error()["KeyError"](error))
    
-        elif type(node.name).__name__ == "CallNode":
-            print(node.name, "is the call node", object_key)
-   
         elif isinstance(object_name, List):
             if type(object_key).__name__ == "Token":
                 if object_key.value in builtin_list_methods:
                     value = value = f"<{str(object_key.value)}()>, [ built-in method ]"
                     if object_key.value == "length":
-                        return res.success(len(object_name.elements))
+                        return res.success(Number(len(object_name.elements)))
                     else:
                         value = f"<{str(object_key.value)}()>, [ built-in method ]"
                         return res.success(String(value))
@@ -3511,9 +4028,11 @@ class Interpreter:
             if type(object_key).__name__ == "Token":
                 if object_key.value in builtin_string_methods:
                     value = f"<{str(object_key.value)}()>, [ built-in method ]"
-                    return res.success(String(value))
+                    if object_key.value == "length":
+                        return res.success(Number(len(object_name.value)))
+                    else:
+                        return res.success(String(value))
                 else:
-                    
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
                     return res.failure(Program.error()["KeyError"](error))
                 
@@ -3592,7 +4111,6 @@ class Interpreter:
                     value = f"<{str(object_key.value)}()>, [ built-in method ]"
                     return res.success(String(value))
                 else:
-                    print(object_name, "is the number")
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
                     return res.failure(Program.error()["KeyError"](error))
                 
@@ -3771,187 +4289,6 @@ class Interpreter:
                 Program.createModule(module_name, module, context)
                 context.symbolTable.set_module(module_name, module)
                 
-    
-    def visit_VarAssignNode(self, node, context):
-        res = RuntimeResult()
-        var_name = node.variable_name_token.value if type(node.variable_name_token).__name__ != 'tuple' else ''
-        if type(node.variable_name_token).__name__ == 'tuple':
-            if type(node.variable_name_token[0]).__name__ == 'Token':
-                var_name = node.variable_name_token[0].value
-            elif type(node.variable_name_token[0]).__name__ == 'VarAccessNode':
-                var_name = node.variable_name_token[0].id.value
-        value = res.register(self.visit(node.value_node, context))
-        if node.variable_keyword_token == "module":
-            value = context.symbolTable.get(node.value_node.value)
-            if value == None:
-                Program.error()['Error']({
-                    'name': 'IdentifierError',
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f'{node.value_node.value} is not defined',
-                    'context': context,
-                    'exit': True
-                })
-        # if isinstance(value, Object):
-        #     # objects cannot be reassigned
-        #     return res.failure(Program.error()['Runtime']({
-        #         'pos_start': node.pos_start,
-        #         'pos_end': node.pos_end,
-        #         'message': f"{var_name} cannot be reassigned, because {var_name} is of type  {type(value).__name__}",
-        #         'context': context,
-        #         'exit': False
-        #     }))
-        if type(node.variable_name_token).__name__ == "tuple":
-            var_name = node.variable_name_token
-            
-            
-            if isinstance(var_name, Pair):
-                if len(var_name) != len(value.elements):
-                    return res.failure(Program.error()['ValueError']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"Expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
-                        'context': context,
-                        'exit': False
-                    }))
-                else:
-                    for i in range(len(var_name)):
-                        context.symbolTable.set(var_name[i].name.value, value.elements[i])
-                                
-            elif isinstance(value, Object):
-                if len(var_name) != len(value.properties):
-                    var = []
-                    for v in var_name:
-                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
-                            return res.failure(Program.error()['ValueError']({
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
-                                'context': context,
-                                'exit': False
-                            }))
-                        var.append(v.name.value)
-                    if '*' + v.name.value.split('*')[-1] in var:
-                        properties = []
-                        for prop in value.properties.values():
-                            properties.append(prop)
-                        for i in range(len(var_name)):
-                            if i < len(var_name) - 1:
-                                context.symbolTable.set(var_name[i].name.value, properties[i])
-                            else:
-                                context.symbolTable.set(v.name.value.split('*')[-1], List(properties[i:]))
-                            
-                    else:
-                        return res.failure(Program.error()['ValueError']({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"Expected {len(value.properties)} values, unable to pair {len(var_name)} value(s)",
-                            'context': context,
-                            'exit': False
-                        }))
-                else:
-                    properties = []
-                    for prop in value.properties.values():
-                        properties.append(prop)
-                    for i in range(len(var_name)):
-                        context.symbolTable.set(var_name[i].name.value, properties[i])   
-            
-            elif isinstance(value, Pair):
-                if len(var_name) != len(value.elements):
-                    var = []
-                    for v in var_name:
-                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
-                            return res.failure(Program.error()['ValueError']({
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
-                                'context': context,
-                                'exit': False
-                            }))
-                        var.append(v.name.value)
-                    if '*' + v.name.value.split('*')[-1] in var:
-                        elements = []
-                        for elem in value.elements:
-                            elements.append(elem)
-                        for i in range(len(var_name)):
-                            if i < len(var_name) - 1:
-                                context.symbolTable.set(var_name[i].name.value, elements[i])
-                            else:
-                                context.symbolTable.set(v.name.value.split('*')[-1], List(elements[i:]))
-                    else:
-                        return res.failure(Program.error()['ValueError']({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"Expected {len(value.elements)} values, unable to pair {len(var_name)} value(s)",
-                            'context': context,
-                            'exit': False
-                        }))
-                else:
-                    elements = []
-                    for elem in value.elements:
-                        elements.append(elem)
-                    for i in range(len(var_name)):
-                        context.symbolTable.set(var_name[i].name.value, elements[i])
-            
-            elif isinstance(value, List):
-                if len(var_name) != len(value.elements):
-                    var = []
-                    for v in var_name:
-                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
-                            return res.failure(Program.error()['ValueError']({
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
-                                'context': context,
-                                'exit': False
-                            }))
-                        var.append(v.name.value)
-                    if '*' + v.name.value.split('*')[-1] in var:
-                        elements = []
-                        for elem in value.elements:
-                            elements.append(elem)
-                        for i in range(len(var_name)):
-                            if i < len(var_name) - 1:
-                                context.symbolTable.set(var_name[i].name.value, elements[i])
-                            else:
-                                context.symbolTable.set(v.name.value.split('*')[-1], List(elements[i:]))
-                    else:
-                        return res.failure(Program.error()['ValueError']({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"Expected {len(value.elements)} values, unable to pair {len(var_name)} value(s)",
-                            'context': context,
-                            'exit': False
-                        }))
-                else:
-                    elements = []
-                    for elem in value.elements:
-                        elements.append(elem)
-                    for i in range(len(var_name)):
-                        context.symbolTable.set(var_name[i].name.value, elements[i])
-
-            
-            else:
-                return res.failure(Program.error()['Runtime']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"Cannot assign {type(value).__name__} to Pair",
-                    'context': context,
-                    'exit': False
-                }))
-        else:
-            if res.should_return():
-                return res
-            if node.variable_keyword_token == "let":
-                if value is None:
-                    value = NoneType.none
-                context.symbolTable.set(var_name, value, "let")
-            elif node.variable_keyword_token == "final":
-                if value is None:
-                    value = NoneType.none
-                context.symbolTable.set_final(var_name, value, "final")
-        return res.success(value)
-
     
     def visit_BinOpNode(self, node, context):
         res = RuntimeResult()
@@ -4213,8 +4550,7 @@ class Interpreter:
                             'exit': False
                         })
                     )
-        
-        
+           
         elif isinstance(iterable_node, Pair):
             end_value = len(iterable_node.elements)
             for i in range(end_value):
@@ -4244,6 +4580,36 @@ class Interpreter:
                         })
                     )
         
+        elif isinstance(iterable_node, String):
+            end_value = len(iterable_node.value)
+            for i in range(end_value):
+                if len(iterators) == 1:
+                    if type(iterators[0]).__name__ == "VarAccessNode":
+                        new_list = list(iterable_node.value)
+                        context.symbolTable.set(iterators[0].id.value, String(new_list[i]))
+                        value = res.register(self.visit(node.body_node, context))
+                        elements.append(value)
+                    else:
+                        return res.failure(
+                            Program.error()['Syntax']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'context': context,
+                                'message': 'cannot assign to non-identifier',
+                                'exit': False
+                            })
+                        )
+                elif len(iterators) == 2:
+                    return res.failure(
+                        Program.error()['Syntax']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': f'cannot iterate with type {TypeOf(iterable_node.value[i]).getType()}',
+                            'exit': False
+                        })
+                    )
+        
         else:
             return res.failure(
                 Program.error()['Syntax']({
@@ -4256,7 +4622,6 @@ class Interpreter:
             )
         
        
-        
         return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
     
     
@@ -4287,36 +4652,18 @@ class Interpreter:
         return res.success(NoneType.none if node.implicit_return else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
     
-    def visit_TaskDefNode(self, node, context):
+    def visit_TaskNode(self, node, context):
         res = RuntimeResult()
         task_name = node.task_name_token.value if node.task_name_token else "none"
         body_node = node.body_node
-        # methods = node.methods
-        # #task_methods = []
-        # for method in methods:
-        #     #task_methods.append(res.register(self.visit(method, context)))
-        #     if res.should_return(): return res
-        #     method_name = method.task_name_token.value
-        #     method_body = method.body_node
-        #     method_args = [arg.value for arg in method.args_name_tokens]
-        #     task_method = Task(method_name, method_body, method_args, False).setContext(context).setPosition(method.pos_start, method.pos_end)
-        #     t = Context(context.symbolTable.set(method_name, task_method))
-        #     print(t, "t")
             
         arg_names = [arg_name.value for arg_name in node.args_name_tokens]
-        task_value = Task(task_name, body_node, arg_names, node.implicit_return).setContext(
+        task_value = Task(task_name, body_node, arg_names, node.implicit_return, context).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.type != 'method':
             context.symbolTable.set(task_name, task_value)
 
-        # if task_name in context.symbolTable.symbols:
-        #     return res.failure(Program.error()["Runtime"]({
-        #         "pos_start": node.pos_start,
-        #         "pos_end": node.pos_end,
-        #         "message": "Task with name '{}' already defined".format(task_name),
-        #         "context": context
-        #     }))
-        # print(context.symbolTable.symbols)
+
         return res.success(task_value)
 
     
@@ -4592,9 +4939,12 @@ class Interpreter:
                 'max': BuiltInTask_Max,
                 'min': BuiltInTask_Min,
                 'sorted': BuiltInTask_Sorted,
+                'substr': BuiltInTask_Substr,
+                'reverse': BuiltInTask_Reverse,
                 #'Binary': BuiltInTask_Binary,
                 'line': BuiltInTask_Line,
                 'clear': BuiltInTask_Clear,
+                'typeof': BuiltInTask_Typeof,
                 'delay': BuiltInTask_Delay,
                 'exit': BuiltInTask_Exit
             }
@@ -4621,6 +4971,7 @@ class Interpreter:
     
     def visit_ReturnNode(self, node, context):
         res = RuntimeResult()
+        
         if node.node_to_return:
             value = res.register(self.visit(node.node_to_return, context))
             if value is None: value = NoneType.none
@@ -4659,7 +5010,6 @@ BuiltInTask.list = BuiltInTask("list")
 BuiltInTask.pair = BuiltInTask("pair")
 BuiltInTask.Object = BuiltInTask("Object")
 BuiltInTask.line = BuiltInTask("line")
-BuiltInTask.typeOf = BuiltInTask("typeOf")
 BuiltInTask.append = BuiltInTask("append")
 BuiltInTask.pop = BuiltInTask("pop")
 BuiltInTask.extend = BuiltInTask("extend")
@@ -4668,7 +5018,10 @@ BuiltInTask.sorted = BuiltInTask("sorted")
 BuiltInTask.clearList = BuiltInTask("clearList")
 BuiltInTask.delay = BuiltInTask("delay")
 BuiltInTask.split = BuiltInTask("split")
+BuiltInTask.substr = BuiltInTask("substr")
+BuiltInTask.reverse = BuiltInTask("reverse")
 BuiltInTask.format = BuiltInTask("format")
+BuiltInTask.typeof = BuiltInTask("typeof")
 BuiltInTask.max = BuiltInTask("max")
 BuiltInTask.min = BuiltInTask("min")
 
@@ -4691,7 +5044,6 @@ symbolTable_.set('list', BuiltInTask.list)
 symbolTable_.set('pair', BuiltInTask.pair)
 symbolTable_.set('Object', BuiltInTask.Object)
 symbolTable_.set('line', BuiltInTask.line)
-symbolTable_.set('typeOf', BuiltInTask.typeOf)
 symbolTable_.set('append', BuiltInTask.append)
 symbolTable_.set('pop', BuiltInTask.pop)
 symbolTable_.set('extend', BuiltInTask.extend)
@@ -4700,7 +5052,10 @@ symbolTable_.set('sorted', BuiltInTask.sorted)
 symbolTable_.set('clearList', BuiltInTask.clearList)
 symbolTable_.set('delay', BuiltInTask.delay)
 symbolTable_.set('split', BuiltInTask.split)
+symbolTable_.set('substr', BuiltInTask.substr)
+symbolTable_.set('reverse', BuiltInTask.reverse)
 symbolTable_.set('format', BuiltInTask.format)
+symbolTable_.set('typeof', BuiltInTask.typeof)
 symbolTable_.set('max', BuiltInTask.max)
 symbolTable_.set('min', BuiltInTask.min)
 symbolTable_.setSymbol()

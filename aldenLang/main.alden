@@ -1,0 +1,11 @@
+# curry task
+task @Curry(f)
+    return task (x) -> task (y) -> f(x, y)
+end
+
+
+task @Sum(x, y)
+    return x + y
+end
+
+println(@Curry(@Sum)(1)(2))

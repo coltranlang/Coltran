@@ -179,6 +179,7 @@ class StringNode:
     def __repr__(self):
         return f'{self.tok}'
 
+
 class ObjectRefNode:
     def __init__(self, tok):
         self.tok = tok
@@ -188,6 +189,7 @@ class ObjectRefNode:
 
     def __repr__(self):
         return f'{self.tok}'
+
 
 class StringInterpNode:
     def __init__(self, expr, values_to_replace, string_to_interp, pos_start, pos_end, inter_pv=None):
@@ -201,17 +203,20 @@ class StringInterpNode:
     def __repr__(self):
         return f'{self.values_to_replace}'
 
+
 class ListNode:
     def __init__(self, elements, pos_start, pos_end):
         self.elements = elements
         self.pos_start = pos_start
         self.pos_end = pos_end
 
+
 class PairNode:
     def __init__(self, elements, pos_start, pos_end):
         self.elements = elements
         self.pos_start = pos_start
         self.pos_end = pos_end
+
        
 class PipeNode:
     def __init__(self, elements, pos_start, pos_end):
@@ -219,6 +224,21 @@ class PipeNode:
         self.pos_start = pos_start
         self.pos_end = pos_end 
     
+
+class VarAssignNode:
+    def __init__(self, variable_name_token, value_node, variable_keyword_token):
+        self.variable_keyword_token = variable_keyword_token
+        self.variable_name_token = variable_name_token
+        self.id = variable_name_token
+        self.value_node = value_node
+        if type(self.variable_name_token).__name__ == "tuple":
+            for t in self.variable_name_token:
+                self.pos_start = t.pos_start
+                self.pos_end = t.pos_end
+        else:
+            self.pos_start = variable_name_token.pos_start
+            self.pos_end = value_node.pos_end
+
 
 class VarAccessNode:
     def __init__(self, name, type=None):
@@ -318,6 +338,7 @@ class ObjectCall:
     def __repr__(self):
         return f'{self.left}'
 
+
 class GetterNode:
     def __init__(self, left, right):
         self.id = left
@@ -329,23 +350,7 @@ class GetterNode:
     def __repr__(self):
         return f'{self.left}'
 
-
-
-class VarAssignNode:
-    def __init__(self, variable_name_token, value_node, variable_keyword_token):
-        self.variable_keyword_token = variable_keyword_token
-        self.variable_name_token = variable_name_token
-        self.id = variable_name_token
-        self.value_node = value_node
-        if type(self.variable_name_token).__name__ == "tuple":
-            for t in self.variable_name_token:
-                self.pos_start = t.pos_start
-                self.pos_end = t.pos_end
-        else:
-            self.pos_start = variable_name_token.pos_start
-            self.pos_end = value_node.pos_end
-        
-        
+     
 class BooleanNode:
     def __init__(self, tok):
         self.tok = tok
@@ -442,8 +447,6 @@ class InNode:
         self.pos_end = self.body_node.pos_end    
         
     
-
-
 class WhileNode:
     def __init__(self, condition_node, body_node, return_null):
         self.condition_node = condition_node
@@ -454,7 +457,7 @@ class WhileNode:
         self.pos_end = self.body_node.pos_end
 
 
-class TaskDefNode:
+class TaskNode:
     def __init__(self, task_name_token, args_name_tokens, body_node, implicit_return, class_name=None, type=None):
         self.task_name_token = task_name_token
         self.id = task_name_token
@@ -516,7 +519,6 @@ class ClassNode:
         
     def __repr__(self):
         return f'{self.class_name}'
-
 
 
 class CallNode:
@@ -722,8 +724,7 @@ class Parser:
                 if newline_count == 0:
                     more_statements = False
 
-                if not more_statements:
-                    break
+                if not more_statements: break
                 statement = res.try_register(self.statement())
                 if not statement:
                     self.reverse(res.to_reverse_count)
@@ -1134,7 +1135,6 @@ class Parser:
 
                 res.register_advancement()
                 self.advance()
-
                 return res.success(InNode(iterable_name_token, iterator_keys, body, False))
             else:
                 return res.failure(Program.error()['Syntax']({
@@ -1205,8 +1205,7 @@ class Parser:
                 return res.success(InNode(iterable_name_token, iterator_keys, body, False))
                 
                 
-                
-        print(iterator_keys)
+    
         body = res.register(self.statement())
         return res.success(InNode(iterable_name_token, iterator_keys, body, False)) 
     
@@ -1371,7 +1370,7 @@ class Parser:
             if res.error:
                 return res
 
-            return res.success(TaskDefNode(var_name_tokens, arg_name_tokens, body, True))
+            return res.success(TaskNode(var_name_tokens, arg_name_tokens, body, True))
         
         
         if self.current_token.type != tokenList.TT_NEWLINE:
@@ -1404,7 +1403,7 @@ class Parser:
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            return res.success(TaskDefNode(var_name_tokens, arg_name_tokens, body, False))
+            return res.success(TaskNode(var_name_tokens, arg_name_tokens, body, False))
         else:
             return res.failure(Program.error()['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -1693,7 +1692,7 @@ class Parser:
                 self.advance()
                 class_methods.append({
                     'name': method_name,
-                    'value': TaskDefNode(method_name, args_list, body, False, class_name, "method"),
+                    'value': TaskNode(method_name, args_list, body, False, class_name, "method"),
                     'pos_start': method_name.pos_start,
                     'pos_end': body.pos_end
                 })
@@ -2786,4 +2785,7 @@ class Parser:
             left = BinOpNode(left, op_tok, right)
         return res.success(left)
 
+
+
+            
 

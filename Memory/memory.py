@@ -222,8 +222,8 @@ class SymbolTable:
         value = self.symbols.get(name, None)
         if value == None and self.parent:
             return self.parent.get(name)
+        #print(f"{name} is {value}")
         return value
-    
     
     
     def update_object_value(self,name, value_):

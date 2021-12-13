@@ -26,8 +26,14 @@ object Header
     Content_Type: "application/json"
 end
 
-let http = Http.new("https://www.aldenlang.org", Header, "This is a body").get()
+object User
+    name: "John Doe"
+    age: 30
+end
+
+let http = Http.new("https://www.aldenlang.org", Header, User).post()
 println(http)
+
 
 
 # Math module test

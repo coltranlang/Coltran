@@ -224,13 +224,42 @@ println(" is ".join(StringObject))
 line(29)
 let st = "Hi {name}!, You have {count} messages."
 println(st.replace("{name}", "John").replace("{count}", "5"))
-println(fm"%{_str} is %{_str.length()} characters long")
+println(fm"%{_str} is %{_str.length} characters long")
 let name = "John Doe"
 let n = name.split()
 println(fm"First name: %{n|0}, Last name: %{n|1}")
 let value = []
 in n as (name) then
     value.append(name)
-    append(value, name)
+    #append(value, name)
 end
 println(value)
+# reverse string with built-in task
+task @reverseString(s)
+    return list(s).reverse().join("")
+end
+
+
+# reverse string with in-loop
+task @reverseString2(s)
+    let result  = ""
+    in s as char then
+        let result = char + result
+    end
+    return result
+end
+
+# reverse string with recursion
+task @reverseString3(s)
+    if s == "" then
+        return ""
+    else
+        return @reverseString3(s.substr(1)) + s.charAt(0)
+    end
+end
+
+
+line(30)
+println(@reverseString("freeCodeCamp"))
+println(@reverseString2("freeCodeCamp"))
+println(@reverseString3("freeCodeCamp"))
