@@ -288,7 +288,42 @@ class PropertySetNode:
         
     def __repr__(self):
         return f'{self.name}'
+
+
+class IndexNode:
+    def __init__(self, name, index):
+        self.name = name
+        self.id = name
+        self.index = index
+        self.pos_start = self.name.pos_start
+        if index == None or index == "":
+            return Program.error()['Syntax']({
+                    'pos_start': self.name.pos_start,
+                    'pos_end': self.name.pos_end,
+                    'message': "Expected an index or slice expression",
+                    'exit': False
+                })
+        else:
+            self.pos_end = self.index.pos_end
         
+    def __repr__(self):
+        return f'{self.name}'        
+ 
+    
+class SliceNode:
+    def __init__(self, name, start, end, step=None, type=None):
+        self.name = name
+        self.id = name
+        self.start = start
+        self.end = end
+        self.step = step
+        self.type = type
+        self.pos_start = self.name.pos_start
+        self.pos_end = self.name.pos_end if self.end is None else self.end.pos_end
+        
+    def __repr__(self):
+        return f'{self.name}'
+
 
 class ExportModuleNode:
     def __init__(self, modules):
@@ -2507,6 +2542,8 @@ class Parser:
                         'message': "Expected an identifier",
                         'exit': False
                     }))
+            elif self.current_token.type == tokenList.TT_LSQBRACKET:
+                atom = res.register(self.index_get(atom))
             else:
                 if self.current_token.type == tokenList.TT_GETTER:
                     res.register_advancement()
@@ -2612,6 +2649,72 @@ class Parser:
                 
         return res.success(PropertyNode(owner, name))
 
+    def index_get(self, atom):
+        res = ParseResult()
+        index = 0
+        if self.current_token.type == tokenList.TT_LSQBRACKET:
+            res.register_advancement()
+            self.advance()
+            index = res.register(self.expr())
+            if res.error: return res
+            if self.current_token.type == tokenList.TT_RSQBRACKET:
+                res.register_advancement()
+                self.advance()
+                return res.success(IndexNode(atom, index))
+            elif self.current_token.type == tokenList.TT_COLON:
+                res.register_advancement()
+                self.advance()
+                if self.current_token.type == tokenList.TT_COLON:
+                    res.register_advancement()
+                    self.advance()
+                    start = index if index != "" else None
+                    end = res.register(self.expr())
+                    type_ = "double_colon"
+                    if res.error: return res
+                    if self.current_token.type == tokenList.TT_RSQBRACKET:
+                        res.register_advancement()
+                        self.advance()
+                        if end == "":
+                            end = None
+                        return res.success(SliceNode(atom, start, end, step=None, type=type_))
+                    else:
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected ']'",
+                            'exit': False
+                        }))
+                else:
+                    start = index if index != "" else None
+                    end = res.register(self.expr())
+                    if res.error: return res
+                    if self.current_token.type == tokenList.TT_COLON:
+                        res.register_advancement()
+                        self.advance()
+                        step = res.register(self.expr())
+                        if res.error: return res
+                        if self.current_token.type == tokenList.TT_RSQBRACKET:
+                            res.register_advancement()
+                            self.advance()
+                            if end == "":
+                                end = None
+                            return res.success(SliceNode(atom, start, end, step=step, type="colon"))
+                    elif self.current_token.type == tokenList.TT_RSQBRACKET:
+                        res.register_advancement()
+                        self.advance()
+                        if end == "":
+                            end = None
+                        return res.success(SliceNode(atom, start, end, step=None))
+                    else:
+                        return res.failure(Program.error()['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected ']'",
+                            'exit': False
+                        }))
+
+            
+            
     def power(self):
         return self.binaryOperation(self.call, (tokenList.TT_POWER, ), self.factor)
 
@@ -2789,3 +2892,20 @@ class Parser:
 
             
 
+
+# li = [1,2,3,4,5,6,7,8,9,10]
+# print(li[1:4:1])
+
+# pa = (1,2,3,4,5,6,7,8,9,10)
+# print(pa[:2:1])
+
+# di = {'name1':'james', 'name2':'bond'}
+# print(di['name1'])
+
+# def getname(name):
+#     return di[name]
+
+# print(getname('name1'))
+
+# name = 'james'
+# print(name[::-1])

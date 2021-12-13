@@ -24,6 +24,7 @@ builtin_string_methods = {
             'join': 'join',
             'substr': 'substr',
             'replace': 'replace',
+            'slice': 'slice',
             'trim': 'trim',
             'length': 'length',
             'charAt': 'charAt',
@@ -214,7 +215,7 @@ class Program:
                 Program.printError(Program.asStringTraceBack(isDetail))
      
 
-        def Type(detail):
+        def TypeError(detail):
             isDetail = {
                 'name': 'TypeError',
                 'type': 'invalid syntax',
@@ -291,7 +292,7 @@ class Program:
             'IllegalCharacter': IllegalCharacter,
             'Syntax': Syntax,
             'Runtime': Runtime,
-            'Type': Type,
+            'TypeError': TypeError,
             'KeyError': KeyError,
             'ValueError': ValueError,
             'IndexError': IndexError,
@@ -660,7 +661,7 @@ class Value:
             else:
                 errorDetail['message'] = f"illegal operation"
                 return Program.error()['Syntax'](errorDetail)
-        return Program.error()['Type'](errorDetail)
+        return Program.error()['TypeError'](errorDetail)
 
     def illegal_operation_indexError(self, error, other=None):
         errorDetail = {
@@ -3128,7 +3129,48 @@ class BuiltInMethod_String(Value):
                 "context": self.context,
                 'exit': False
             }))
-   
+
+    
+    
+    def BuiltInMethod_slice(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], Number):
+                start = self.args[0].value
+                end = len(self.name.value)
+                return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for slice()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        elif len(self.args) == 2:
+            if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
+                start = self.args[0].value
+                end = self.args[1].value + 1
+                return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for slice()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but slice() takes 2 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+    
+    
+    
     def BuiltInMethod_charAt(self):
         res = RuntimeResult()
         if len(self.args) == 0:
@@ -3159,6 +3201,8 @@ class BuiltInMethod_String(Value):
                 'exit': False
             }))
     
+    
+    
     def copy(self):
         copy = BuiltInMethod_String(
             self.type, self.name, self.args, self.node, self.context)
@@ -3167,8 +3211,10 @@ class BuiltInMethod_String(Value):
         return copy
     
     
+    
     def __str__(self):
         return f"{self.name}"
+    
     
     
     def repr(self):
@@ -4194,6 +4240,356 @@ class Interpreter:
             #print(isinstance(object_name, List), object_key, 'ff')
 
 
+    def visit_IndexNode(self, node, context):
+        res = RuntimeResult()
+        index_value = res.register(self.visit(node.name, context))
+        index  = res.register(self.visit(node.index, context))
+        if res.should_return(): return res
+        object_type = TypeOf(index_value).getType()
+        index_type = TypeOf(index).getType()
+        if object_type == "list":
+            if index_type == "int":
+                try:
+                    get_value = index_value.elements[index.value]
+                    return res.success(get_value)
+                except IndexError:
+                    return res.failure(Program.error()['IndexError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"list index out of range",
+                        'context': context,
+                        'exit': False
+                    }))
+            else:
+                return res.failure(Program.error()['TypeError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"list indices must be integers or slices, not {index_type}",
+                    'context': context,
+                    'exit': False
+                }))
+        elif object_type == "pair":
+            if index_type == "int":
+                try:
+                    get_value = index_value.elements[index.value]
+                    return res.success(get_value)
+                except IndexError:
+                    return res.failure(Program.error()['IndexError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"pair index out of range",
+                        'context': context,
+                        'exit': False
+                    }))
+            else:
+                return res.failure(Program.error()['TypeError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"pair indices must be integers or slices, not {index_type}",
+                    'context': context,
+                    'exit': False
+                }))
+        elif object_type == "object":
+            if index_type == "string":
+                try:
+                    get_value = index_value.properties[index.value]
+                    return res.success(get_value)
+                except KeyError:
+                    return res.failure(Program.error()['KeyError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"{index_value.name} has no property '{index.value}'" if index.value != "" else f"''",
+                        'context': context,
+                        'exit': False
+                    }))
+            else:
+                return res.failure(Program.error()['TypeError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"object indices must be strings, not {index_type}",
+                    'context': context,
+                    'exit': False
+                }))
+        elif object_type == "string":
+            try:
+                get_value = index_value.value[index.value]
+                return res.success(String(get_value))
+            except IndexError:
+                return res.failure(Program.error()['IndexError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"string index out of range",
+                    'context': context,
+                    'exit': False
+                }))
+
+
+    def visit_SliceNode(self, node, context):
+        res = RuntimeResult()
+        index_value = res.register(self.visit(node.name, context))
+        start = res.register(self.visit(node.start, context))
+        end = res.register(self.visit(node.end, context))
+        step = res.register(self.visit(node.step, context)) if node.step else None
+        type_ = node.type
+        if res.should_return(): return res
+        object_type = TypeOf(index_value).getType()
+        start_type = TypeOf(start).getType()
+        end_type = TypeOf(end).getType()
+        if object_type == "list":
+            if type_ == "double_colon":
+                if not step:
+                    if start_type == "int" and end_type == "int":
+                        try:
+                            get_value = index_value.elements[start.value::end.value]
+                            return res.success(List(get_value))
+                        except IndexError:
+                            return res.failure(Program.error()['IndexError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"list index out of range",
+                                'context': context,
+                                'exit': False
+                            }))
+                    elif start_type == "NoneType" and end_type == "NoneType":
+                        return res.success(List(index_value.elements[::]))
+                    elif start_type == "NoneType" and end_type == "int":
+                        try:
+                            get_value = index_value.elements[::end.value]
+                            return res.success(List(get_value))
+                        except IndexError:
+                            return res.failure(Program.error()['IndexError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"list index out of range",
+                                'context': context,
+                                'exit': False
+                            }))
+                    elif start_type == "int" and end_type == "NoneType":
+                        try:
+                            get_value = index_value.elements[start.value::]
+                            return res.success(List(get_value))
+                        except IndexError:
+                            return res.failure(Program.error()['IndexError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"list index out of range",
+                                'context': context,
+                                'exit': False
+                            }))
+                    else:
+                        return res.failure(Program.error()['TypeError']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"list indices must be integers or slices, not {start_type}",
+                            'context': context,
+                            'exit': False
+                        }))
+            else:
+                if start_type == "int" and end_type == "int":
+                    try:
+                        get_value = index_value.elements[start.value:end.value]
+                        return res.success(List(get_value))
+                    except IndexError:
+                        get_value = index_value.elements[start.value:]
+                        return res.success(List(get_value))
+                elif start_type == "NoneType" and end_type == "NoneType":
+                    return res.success(List(index_value.elements[:]))
+                elif start_type == "NoneType" and end_type == "int":
+                    try:
+                        get_value = index_value.elements[:end.value]
+                        return res.success(List(get_value))
+                    except IndexError:
+                        get_value = index_value.elements[:]
+                        return res.success(List(get_value))
+                elif start_type == "int" and end_type == "NoneType":
+                    try:
+                        get_value = index_value.elements[start.value:]
+                        return res.success(List(get_value))
+                    except IndexError:
+                        get_value = index_value.elements[:]
+                        return res.success(List(get_value))
+                else:
+                    return res.failure(Program.error()['TypeError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"slice indices must be integers, not {start_type} and {end_type}",
+                    'context': context,
+                    'exit': False
+                }))
+
+        elif object_type == "pair":
+            if type_ == "double_colon":
+                if not step:
+                    if start_type == "int" and end_type == "int":
+                        try:
+                            get_value = index_value.elements[start.value::end.value]
+                            return res.success(Pair(get_value))
+                        except IndexError:
+                            return res.failure(Program.error()['IndexError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"pair index out of range",
+                                'context': context,
+                                'exit': False
+                            }))
+                    elif start_type == "NoneType" and end_type == "NoneType":
+                        return res.success(Pair(index_value.elements[::]))
+                    elif start_type == "NoneType" and end_type == "int":
+                        try:
+                            get_value = index_value.elements[::end.value]
+                            return res.success(Pair(get_value))
+                        except IndexError:
+                            return res.failure(Program.error()['IndexError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"pair index out of range",
+                                'context': context,
+                                'exit': False
+                            }))
+                    elif start_type == "int" and end_type == "NoneType":
+                        try:
+                            get_value = index_value.elements[start.value::]
+                            return res.success(Pair(get_value))
+                        except IndexError:
+                            return res.failure(Program.error()['IndexError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"pair index out of range",
+                                'context': context,
+                                'exit': False
+                            }))
+                    else:
+                        return res.failure(Program.error()['TypeError']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"pair indices must be integers or slices, not {start_type}",
+                            'context': context,
+                            'exit': False
+                        }))
+            else:
+                if start_type == "int" and end_type == "int":
+                    try:
+                        get_value = index_value.elements[start.value:end.value]
+                        return res.success(Pair(get_value))
+                    except IndexError:
+                        get_value = index_value.elements[start.value:]
+                        return res.success(Pair(get_value))
+                elif start_type == "NoneType" and end_type == "NoneType":
+                    return res.success(Pair(index_value.elements[:]))
+                elif start_type == "NoneType" and end_type == "int":
+                    try:
+                        get_value = index_value.elements[:end.value]
+                        return res.success(Pair(get_value))
+                    except IndexError:
+                        get_value = index_value.elements[:]
+                        return res.success(Pair(get_value))
+                elif start_type == "int" and end_type == "NoneType":
+                    try:
+                        get_value = index_value.elements[start.value:]
+                        return res.success(Pair(get_value))
+                    except IndexError:
+                        get_value = index_value.elements[:]
+                        return res.success(Pair(get_value))
+                else:
+                    return res.failure(Program.error()['TypeError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"slice indices must be integers, not {start_type} and {end_type}",
+                    'context': context,
+                    'exit': False
+                }))
+          
+        elif object_type == "string":
+            if type_ == "double_colon":
+                if not step:
+                    if start_type == "int" and end_type == "int":
+                        try:
+                            get_value = index_value.value[start.value::end.value]
+                            return res.success(String(get_value))
+                        except IndexError:
+                            return res.failure(Program.error()['IndexError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"string index out of range",
+                                'context': context,
+                                'exit': False
+                            }))
+                    elif start_type == "NoneType" and end_type == "NoneType":
+                        return res.success(String(index_value.value[::]))
+                    elif start_type == "NoneType" and end_type == "int":
+                        try:
+                            get_value = index_value.value[::end.value]
+                            return res.success(String(get_value))
+                        except IndexError:
+                            return res.failure(Program.error()['IndexError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"string index out of range",
+                                'context': context,
+                                'exit': False
+                            }))
+                    elif start_type == "int" and end_type == "NoneType":
+                        try:
+                            get_value = index_value.value[start.value::]
+                            return res.success(String(get_value))
+                        except IndexError:
+                            return res.failure(Program.error()['IndexError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"string index out of range",
+                                'context': context,
+                                'exit': False
+                            }))
+                    else:
+                        return res.failure(Program.error()['TypeError']({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"string indices must be integers or slices, not {start_type}",
+                            'context': context,
+                            'exit': False
+                        }))
+            else:
+                if start_type == "int" and end_type == "int":
+                    try:
+                        get_value = index_value.value[start.value:end.value]
+                        return res.success(String(get_value))
+                    except IndexError:
+                        get_value = index_value.value[start.value:]
+                        return res.success(String(get_value))
+                elif start_type == "NoneType" and end_type == "NoneType":
+                    return res.success(String(index_value.value[:]))
+                elif start_type == "NoneType" and end_type == "int":
+                    try:
+                        get_value = index_value.value[:end.value]
+                        return res.success(String(get_value))
+                    except IndexError:
+                        get_value = index_value.value[:]
+                        return res.success(String(get_value))
+                elif start_type == "int" and end_type == "NoneType":
+                    try:
+                        get_value = index_value.value[start.value:]
+                        return res.success(String(get_value))
+                    except IndexError:
+                        get_value = index_value.value[:]
+                        return res.success(String(get_value))
+                else:
+                    return res.failure(Program.error()['TypeError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"string indices must be integers, not {start_type} and {end_type}",
+                    'context': context,
+                    'exit': False
+                }))
+
+        else:
+            return res.failure(Program.error()['TypeError']({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"{object_type} cannot be sliced",
+                'context': context,
+                'exit': False  
+            }))  
+        
     def visit_PropertySetNode(self, node, context):
         res = RuntimeResult()
         object_name = res.register(self.visit(node.name, context))

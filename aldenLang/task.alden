@@ -84,7 +84,7 @@ sayHello()("David") # double parentheses or assign to a variable : let hello = s
 task @SumAll(list)
     let sum = 0
     for i = 0 to len(list) then
-        let sum = sum + list|i
+        let sum = sum + list[i]
     end
     println("The sum is " + str(sum))
 end

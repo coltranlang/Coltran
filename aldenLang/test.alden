@@ -120,9 +120,8 @@ car.getColor()
 
 task @filterByname(arr, name)
     for i = 0 to len(arr) then
-        let car = arr|i
-        if car.name == name then
-            return car  
+        if arr[i].name == name then
+            return arr[i]
         end
     end
     return fm`Car %{name} not found`
@@ -137,7 +136,7 @@ object CarInventory
         end
         append(CarInventory.cars, NewCar)
     end
-    lookupCar: task (index) ->  CarInventory.cars|index
+    lookupCar: task (index) ->  CarInventory.cars[index]
     lookupCarByName: task (name) -> @filterByname(CarInventory.cars, name)
     size: task () ->  len(CarInventory.cars) # just assigning the value the size of the cars as len(CarInventory.cars) returns 0 but assigning the value as a task returns the size of the cars
 end
@@ -148,14 +147,16 @@ carInventory.addCar("Ford", "Red")
 
 line(13)
 println(carInventory.cars)
-let car = carInventory.cars|0 # pipe '|" operator is used to access the array index, I defined the index because index as to be an identifier not a number
+let car = carInventory.cars[0]
 line(14)
-println(carInventory.lookupCar(1))
+println(car.name, car.color)
 line(15)
-println(carInventory.lookupCarByName("test"))
+println(carInventory.lookupCar(1))
 line(16)
-println(carInventory.lookupCarByName("Ford").name + " is " + carInventory.lookupCarByName("Ford").color)
+println(carInventory.lookupCarByName("test"))
 line(17)
+println(carInventory.lookupCarByName("Ford").name + " is " + carInventory.lookupCarByName("Ford").color)
+line(18)
 println(carInventory.size())
 
 # test for in operator
@@ -169,9 +170,9 @@ object User
 end
 
 
-line(18)
+line(19)
 in User as (key,value)  then
-    #println(fm`Key: %{key|0}, Value: %{key|1}`) # getting key and value from People object by just using the key 
+    #println(fm`Key: %{key[0]}, Value: %{key[1]}`) # getting key and value from People object by just using the key 
     println(fm`Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
 end
 
@@ -179,7 +180,7 @@ end
 let numlist = [1, 2, 3, 4, 5]
 let numpairs = (5,6,7,8,9)
 let names = ["John", "Paul", "George", "Ringo"]
-line(19)
+line(20)
 in names as (name) then
     if name == "John" then
         println(fm`Hi %{name}`)
@@ -190,7 +191,7 @@ end
 # test for rest operator
 let students = ["John", "Paul", "George", "Ringo"]
 let (first, *rest) = students
-line(20)
+line(21)
 println(fm`First: %{first}, Rest: %{rest}`)
 
 # string methods test
@@ -205,35 +206,38 @@ object StringObject
     age: 21
     email: "john123@email.com"
 end
-line(21)
-println(_str.upperCase())
 line(22)
-println(_str.lowerCase())
+println(_str.upperCase())
 line(23)
-println(_str.trim())
+println(_str.lowerCase())
 line(24)
-println(_str.split("x"))
+println(_str.trim())
 line(25)
-println(_str.split("x", 2))
+println(_str.split("x"))
 line(26)
-println(empty_string_space.join(l_ist))
+println(_str.split("x", 2))
 line(27)
-println(empty_string_space.join(p_air))
+println(empty_string_space.join(l_ist))
 line(28)
-println(" is ".join(StringObject))
+println(empty_string_space.join(p_air))
 line(29)
+println(" is ".join(StringObject))
+line(30)
 let st = "Hi {name}!, You have {count} messages."
 println(st.replace("{name}", "John").replace("{count}", "5"))
 println(fm"%{_str} is %{_str.length} characters long")
 let name = "John Doe"
 let n = name.split()
-println(fm"First name: %{n|0}, Last name: %{n|1}")
+println(fm"First name: %{n[0]}, Last name: %{n[1]}")
 let value = []
 in n as (name) then
     value.append(name)
     #append(value, name)
 end
 println(value)
+
+# reverse string
+
 # reverse string with built-in task
 task @reverseString(s)
     return list(s).reverse().join("")
@@ -258,8 +262,11 @@ task @reverseString3(s)
     end
 end
 
+# reverse string with slicing
+let reverseString4 = "Hello World"[::-1]
 
-line(30)
+line(31)
 println(@reverseString("freeCodeCamp"))
 println(@reverseString2("freeCodeCamp"))
 println(@reverseString3("freeCodeCamp"))
+println(reverseString4)
