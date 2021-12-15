@@ -270,3 +270,25 @@ println(@reverseString("freeCodeCamp"))
 println(@reverseString2("freeCodeCamp"))
 println(@reverseString3("freeCodeCamp"))
 println(reverseString4)
+
+# slicing
+let _list = [1,2,3,4,5,6,7,8,9,10]
+let _pair = (1,2,3,4,5,6,7,8,9,10)
+
+
+println(_list[1:4:1])
+println(_pair[:2:1])
+object User
+    name1: "james"
+    name2: "bond"
+end
+println(User['name1'])
+task @getUser(key)
+    return User[key]
+end
+
+
+
+println(@getUser("name1"))
+let name = 'james'
+println(name[::-1])

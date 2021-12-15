@@ -1,21 +1,14 @@
-let list = [1,2,3,4,5,6,7,8,9,10]
-let pair = (1,2,3,4,5,6,7,8,9,10)
+let number = 1_000_000
+let number2 = 1_000_000_000
+let number3 = 1_000_000_000_000
+let number4 = 123_456_789_123_456_789
+println(number, number2, number3, number4)
 
-
-println(list[1:4:1])
-println(pair[:2:1])
-object User
-    name1: "james"
-    name2: "bond"
-end
-println(User['name1'])
-task @getUser(key)
-    return User[key]
+task @countHowManyZeros(num) 
+    let count = 0
+    let new_num = str(num)
+    let num_list = num.split("_")
+    println(num_list)
 end
 
-
-
-println(@getUser("name1"))
-let name = 'james'
-println(name[::-1])
-println(list[2])
+println(@countHowManyZeros(number))

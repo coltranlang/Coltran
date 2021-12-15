@@ -1,11 +1,11 @@
 # testing the http module
 
 class Http(url, headers, body)
-    def post()
-        println("POST", url, headers, body)
+    def post(self)
+        println("POST", self.url, self.headers, self.body)
     end
     def get()
-        println("GET", url, headers, body)
+        println("GET", "Hello from the get method")
     end
     def put()
         println("PUT", url, headers, body)
@@ -18,4 +18,17 @@ end
 
 module Export as Http
     new: Http
+    test: "jk"
 end
+
+let http = Http("http://www.google.com", "application/json", "{'name': 'james'}")
+let http2 = Http("http://www.test.com", "application/json", "{'name': 'john'}")
+http.post()
+http2.post()
+
+task @returnString()
+    return "Hello from the task"
+end
+
+let n = 0b1010
+println(n)

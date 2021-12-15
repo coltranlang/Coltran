@@ -203,11 +203,34 @@ class Lexer:
                 dot_count += 1
                 num_str += '.'
             else:
+                
                 num_str += self.current_char
+                
             self.advance()
-
-        if dot_count == 0:
+            # check for _ in the number, _ makes it easy to read long numbers e.g. 1_000_000
+            if self.current_char == '_':
+                num_str += self.current_char
+                self.advance()
+            # check if binary number
+            if self.current_char == 'b':
+                num_str += self.current_char
+                self.advance()
+                while self.current_char != None and self.current_char in '01':
+                    num_str += self.current_char
+                    self.advance()
+                    # if self.current_char is not a valid binary number
+                    if self.current_char not in '01':
+                        if self.current_char in tokenList.LETTERS_DIGITS_SYMBOLS:
+                            return None, Program.error()['Syntax']({
+                            'pos_start': pos_start,
+                            'pos_end': self.pos,
+                            'message': 'Invalid binary number',
+                            'exit': False
+                        })
+                            
+                return Token(tokenList.TT_BINARY, int(num_str, 2), pos_start, self.pos)
             
+        if dot_count == 0:
             return Token(tokenList.TT_INT, int(num_str), pos_start, self.pos)
         else:
             return Token(tokenList.TT_FLOAT, float(num_str), pos_start, self.pos)
@@ -316,7 +339,6 @@ class Lexer:
             if self.current_char == '\\':
                 self.advance()
                 if self.current_char in escape_characters:
-                    print(escape_characters[self.current_char], self.current_char)
                     string += escape_characters[self.current_char]
                 else:
                     if self.current_char == '"':
@@ -332,6 +354,13 @@ class Lexer:
                     
             else:
                 if character:
+                    if self.current_char == '\n':
+                        return None, Program.error()['Syntax']({
+                            'pos_start': pos_start,
+                            'pos_end': self.pos,
+                            'message': 'String literal is not closed',
+                            'exit': False
+                        })
                     string += self.current_char
                 else:
                     string = ''
@@ -375,6 +404,13 @@ class Lexer:
 
             else:
                 if character:
+                    if self.current_char == '\n':
+                        return None, Program.error()['Syntax']({
+                            'pos_start': pos_start,
+                            'pos_end': self.pos,
+                            'message': 'String literal is not closed',
+                            'exit': False
+                        })
                     string += self.current_char
                 else:
                     string = ''
@@ -419,6 +455,13 @@ class Lexer:
 
             else:
                 if character:
+                    if self.current_char == '\n':
+                        return None, Program.error()['Syntax']({
+                            'pos_start': pos_start,
+                            'pos_end': self.pos,
+                            'message': 'String literal is not closed',
+                            'exit': False
+                        })
                     string += self.current_char
                 else:
                     string = ''

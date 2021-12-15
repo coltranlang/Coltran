@@ -79,6 +79,15 @@ final sayHello = task () -> task (name) -> println(fm"Hello %{name}!")
 # We can call the sayHello function using the following syntax:
 sayHello()("David") # double parentheses or assign to a variable : let hello = sayHello() # call the function hello()
 
+# closure 
+task @main()
+    let name = "Test"
+    task @displayName()
+        println(fm"Hello from %{name}!")
+    end
+    return @displayName()
+end
+@main()
 
 # sum all the numbers in a list
 task @SumAll(list)

@@ -31,9 +31,11 @@ object User
     age: 30
 end
 
-let http = Http.new("https://www.aldenlang.org", Header, User).post()
-println(http)
-
+let http = Http.new("https://www.aldenlang.org", Header, User)
+let http2 = http.post
+task @post ()
+    return Http.test
+end
 
 
 # Math module test

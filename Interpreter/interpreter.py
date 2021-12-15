@@ -16,7 +16,7 @@ import json
 
 
 regex = '[+-]?[0-9]+\.[0-9]+'
-builtin_string_methods = {
+string_methods = {
             'upperCase': 'upperCase',
             'lowerCase': 'lowerCase',
             'capitalize': 'capitalize',
@@ -30,7 +30,7 @@ builtin_string_methods = {
             'charAt': 'charAt',
  }
 
-builtin_list_methods = {
+list_methods = {
                 'length': 'length',
                 'append': 'append',
                 'pop': 'pop',
@@ -44,6 +44,11 @@ builtin_list_methods = {
                 'join': 'join',
             }
 
+number_methods = {
+    'toInt': 'toInt',
+    'toFloat': 'toFloat',
+    'toString': 'toString',
+}
 def string_split(string, delimiter):
     res = []
     start = 0
@@ -60,11 +65,7 @@ def string_split(string, delimiter):
 def getsubstr(string, start, end):
         return string[start:end]
 
-builtin_number_methods = {
-    'toInt': 'toInt',
-    'toFloat': 'toFloat',
-    'toString': 'toString',
-}
+
 
 class Regex:
         def __init__(self):
@@ -123,11 +124,14 @@ class TypeOf:
                 result = 'boolean'
             elif isinstance(self.type, list) or isinstance(self.type, List):
                 result = 'list'
+            elif isinstance(self.type, Class):
+                result = 'class'
             elif isinstance(self.type, Task):
                 result = 'task'
             else:
                 result = type(self.type).__name__
         return result
+
 
 class Context:
     def __init__(self, display_name, parent=None, parent_entry_pos=None):
@@ -335,7 +339,7 @@ class Program:
         pos = detail['pos_start']
         context = detail['context']
         while context:
-            result += f'\nFile {detail["pos_start"].fileName}, line {str(pos.line + 1)}, in {context.display_name if context.display_name != "none" else "anonymous"}\n' + result if hasattr(pos, 'line') else ''
+            result = f'\nFile {detail["pos_start"].fileName}, line {str(pos.line + 1)}, in {context.display_name if context.display_name != "none" else "anonymous"}\n' + result if hasattr(pos, 'line') else ''
             pos = context.parent_entry_pos
             context = context.parent
         return '\nStack trace (most recent call last):\n' + result
@@ -1768,6 +1772,7 @@ class BaseTask(Value):
 
     def check_args(self, arg_names, args):
         res = RuntimeResult()
+        
         if len(args) > len(arg_names):
             return res.failure(Program.error()['Runtime']({
                 'pos_start': self.pos_start,
@@ -1809,7 +1814,6 @@ class Task(BaseTask):
         self.body_node = body_node
         self.arg_names = arg_names
         self.implicit_return = implicit_return
-        self.args = arg_names
         self.context = context
         
     def execute(self, args):
@@ -1818,16 +1822,14 @@ class Task(BaseTask):
         exec_context = self.generate_new_context()
         self.args = args
         self.check_args(self.arg_names, args)
-        self.populate_args(self.arg_names, args, self.context)
+        self.populate_args(self.arg_names, args, exec_context)
+        
         if res.should_return():
             return res
+        
         value = res.register(interpreter.visit(self.body_node, exec_context))
-        if hasattr(self.body_node, "body_node"):
-            print(self.implicit_return, self.name)
         if res.should_return() and res.func_return_value == None:
             return res
-        
-        
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
         if hasattr(return_value, "value"):
@@ -1835,11 +1837,23 @@ class Task(BaseTask):
                 return res.success(None)
         return res.success(return_value)
 
+    # only class Task has this method
     def run(self, args, type=None):
+        if len(self.arg_names) == len(args):
+            self.arg_names.pop(0) if len(self.arg_names) > 0 else None
+        elif len(self.arg_names) > len(args):
+            self.arg_names.pop(0)
+        elif len(args) > len(self.arg_names):
+            self.arg_names.pop(0)
+        #print(args, "is now args", self.arg_names)
+        # if len(args) > 0:
+        #     print(f"{self.name}({args})", self.arg_names)
+        #     args.pop(0)
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
-        self.args = args
+        #self.args = args
+        #print(self.arg_names, args)
         res.register(self.run_check_and_populate_args(
             self.arg_names, args, exec_context))
         if res.should_return():
@@ -1899,21 +1913,17 @@ class Class(BaseTask):
         new_context = self.generate_new_context()
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
-        new_class_values = []
-        # inject args into each method context
         for method_name, method in self.methods.items():
-            # add constructor args names and values to method context
-            for i in range(len(self.constructor_args)):
-                arg_name = self.constructor_args[i].value
-                arg_value = args[i]
-                new_class_values.append(arg_name)
-                new_class_values.append(arg_value)
+            if len(method.arg_names) > 0:
                 method.context = new_context
-                method.context.symbolTable.set(arg_name, arg_value)
+                method.context.symbolTable.set(method.arg_names[0], self)
+            class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.methods)
+            self.context.symbolTable.update_object_value(self.class_name, class_args)
+            new_class = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherit_class, self.methods, new_context)
+            new_class.setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return res.success(new_class)
+        return res.success(None)
         
-        class_args = dict({arg_name_: arg_value_ for arg_name_, arg_value_ in zip(new_class_values[::2], new_class_values[1::2])})
-        self.context.symbolTable.update_object_value(self.class_name, class_args)
-        return res.success(self)
         
         
     def set_method(self, key, value):
@@ -2872,8 +2882,8 @@ class BuiltInMethod_String(Value):
         
     def execute(self):
         res = RuntimeResult()
-        if self.type in builtin_string_methods:
-            method = f"BuiltInMethod_{builtin_string_methods[self.type]}"
+        if self.type in string_methods:
+            method = f"BuiltInMethod_{string_methods[self.type]}"
             is_method = getattr(self, method, self.no_method)
             value = is_method()
             self.name = value
@@ -2969,7 +2979,6 @@ class BuiltInMethod_String(Value):
                     split_list = self.name.value.split()
                     for i in split_list:
                         value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
-                    print(value)
                     return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 else:
                     value = []
@@ -3233,8 +3242,8 @@ class BuiltInMethod_List(Value):
     
     def execute(self):
         res = RuntimeResult()
-        if self.type in builtin_list_methods:
-            method = f"BuiltInMethod_{builtin_list_methods[self.type]}"
+        if self.type in list_methods:
+            method = f"BuiltInMethod_{list_methods[self.type]}"
             is_method = getattr(self, method, self.no_method)
             value = is_method()
             self.name = value
@@ -3520,12 +3529,14 @@ class BuiltInMethod_Number(Value):
         
     def execute(self):
         res = RuntimeResult()
-        if self.type in builtin_number_methods:
-            method = f"BuiltInMethod_{builtin_number_methods[self.type]}"
-            is_method = getattr(self, method)
-            print(f"{method}")
-            #self.name = value
-            #return value
+        if self.type in number_methods:
+            method = f"BuiltInMethod_{number_methods[self.type]}"
+            is_method = getattr(self, method, self.no_method)
+            value = is_method()
+            self.name = value
+            if type(self.name).__name__ == "RuntimeResult":
+                self.name = ''
+        return self.name
 
     
 # Built-in modules
@@ -3836,7 +3847,6 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
-        #print(var_name, "is the value")
         if type(value) is dict:
             value = value['value']
         if var_name in context.symbolTable.symbols and value is None:
@@ -3972,23 +3982,27 @@ class Interpreter:
                     if type(object_key.node_to_call).__name__ == "Token":
                         if object_key.node_to_call.value in object_name.properties:
                             value = object_name.properties[object_key.node_to_call.value]
-                            args_node = object_key.args_nodes
-                            args = []
-                            
-                            for arg in args_node:
-                                args.append(res.register(
-                                    self.visit(arg, context)))
-                                if res.should_return(): return res
-                            if isinstance(value, Class):
-                                return_value = res.register(value.execute(args))
+                            if isinstance(value, Object):
+                                error["message"] = f"{object_key.node_to_call.value} is not callable"
+                                return res.failure(Program.error()["KeyError"](error))
                             else:
-                                return_value = res.register(value.run(args))
-                            if res.should_return():
-                                    return res
-                            if return_value == None or isinstance(return_value, NoneType):
-                                return res.success(None)
-                            else:
-                                return res.success(return_value)
+                                args_node = object_key.args_nodes
+                                args = []
+                                
+                                for arg in args_node:
+                                    args.append(res.register(
+                                        self.visit(arg, context)))
+                                    if res.should_return(): return res
+                                if isinstance(value, Class):
+                                    return_value = res.register(value.execute(args))
+                                else:
+                                    return_value = res.register(value.run(args))
+                                if res.should_return():
+                                        return res
+                                if return_value == None or isinstance(return_value, NoneType):
+                                    return res.success(None)
+                                else:
+                                    return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
                             return res.failure(Program.error()["KeyError"](error))
@@ -4026,11 +4040,12 @@ class Interpreter:
                         value = object_name.properties[object_key.value]
                         return res.success(value)
                     else:
-                        if object_name.properties['__name']:
-                            name = object_name.properties['__name']
-                            error["message"] = f"{name} has no property {object_key.value}"
-                        else:
-                            error["message"] = f"{object_name.name} has no property {object_key.value}"
+                        print(object_name.properties)
+                        # if object_name.properties['__name']:
+                        #     name = object_name.properties['__name']
+                        #     error["message"] = f"{name} has no property {object_key.value}"
+                        # else:
+                        error["message"] = f"{object_name.name} has no property {object_key.value}"
                         return res.failure(Program.error()["KeyError"](error))
             
             elif type(object_key).__name__ == "PropertyNode":
@@ -4044,7 +4059,7 @@ class Interpreter:
    
         elif isinstance(object_name, List):
             if type(object_key).__name__ == "Token":
-                if object_key.value in builtin_list_methods:
+                if object_key.value in list_methods:
                     value = value = f"<{str(object_key.value)}()>, [ built-in method ]"
                     if object_key.value == "length":
                         return res.success(Number(len(object_name.elements)))
@@ -4057,7 +4072,7 @@ class Interpreter:
                 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
-                    if object_key.node_to_call.value in builtin_list_methods:
+                    if object_key.node_to_call.value in list_methods:
                         args = []
                         for arg in object_key.args_nodes:
                             args.append(res.register(
@@ -4072,7 +4087,7 @@ class Interpreter:
         
         elif isinstance(object_name, String):
             if type(object_key).__name__ == "Token":
-                if object_key.value in builtin_string_methods:
+                if object_key.value in string_methods:
                     value = f"<{str(object_key.value)}()>, [ built-in method ]"
                     if object_key.value == "length":
                         return res.success(Number(len(object_name.value)))
@@ -4084,7 +4099,7 @@ class Interpreter:
                 
                 
             elif type(object_key).__name__ == "VarAccessNode":
-                if object_key.id.value in builtin_string_methods:
+                if object_key.id.value in string_methods:
                     value = f"<{str(object_key.id.value)}()>, [ built-in method ]"
                     return res.success(String(value))
                 else:
@@ -4093,7 +4108,7 @@ class Interpreter:
                
             elif type(object_key).__name__ == "PropertyNode":
                 if type(object_key.id).__name__ ==  "CallNode":
-                    if object_key.id.node_to_call.id.value in builtin_string_methods:
+                    if object_key.id.node_to_call.id.value in string_methods:
                         args = []
                         for arg in object_key.id.args_nodes:
                             args.append(res.register(
@@ -4106,7 +4121,7 @@ class Interpreter:
                         error["message"] = f"'string' has no property {object_key.id.node_to_call.id.value}"
                         return res.failure(Program.error()["KeyError"](error))
                 else:
-                    if object_key.id.value in builtin_string_methods:
+                    if object_key.id.value in string_methods:
                         value = f"<{str(object_key.id.value)}()>, [ built-in method ]"
                         return res.success(String(value))
                     else:
@@ -4116,7 +4131,7 @@ class Interpreter:
             
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
-                    if object_key.node_to_call.value in builtin_string_methods:
+                    if object_key.node_to_call.value in string_methods:
                         args = []
                         for arg in object_key.args_nodes:
                             args.append(res.register(
@@ -4132,7 +4147,7 @@ class Interpreter:
         elif isinstance(object_name, BuiltInMethod_String):
             if type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
-                    if object_key.node_to_call.value in builtin_string_methods:
+                    if object_key.node_to_call.value in string_methods:
                         args = []
                         for arg in object_key.args_nodes:
                             args.append(res.register(
@@ -4146,14 +4161,8 @@ class Interpreter:
                         return res.failure(Program.error()["KeyError"](error))
                 
         elif isinstance(object_name, Number):
-            builtin_methods = {
-                'Add': 'Add',
-                'Subtract': 'Subtract',
-                'Multiply': 'Multiply',
-                'Divide': 'Divide',
-            }
             if type(object_key).__name__ == "Token":
-                if object_key.value in builtin_methods:
+                if object_key.value in number_methods:
                     value = f"<{str(object_key.value)}()>, [ built-in method ]"
                     return res.success(String(value))
                 else:
@@ -4161,7 +4170,7 @@ class Interpreter:
                     return res.failure(Program.error()["KeyError"](error))
                 
             elif type(object_key).__name__ == "VarAccessNode":
-                if object_key.id.value in builtin_methods:
+                if object_key.id.value in number_methods:
                     value = f"<{str(object_key.id.value)}()>, [ built-in method ]"
                     return res.success(String(value))
                 else:
@@ -4169,7 +4178,7 @@ class Interpreter:
                     return res.failure(Program.error()["KeyError"](error))
             
             elif type(object_key).__name__ == "CallNode":
-                if object_key.node_to_call.id.value in builtin_methods:
+                if object_key.node_to_call.value in number_methods:
                     args = []
                     for arg in object_key.args_nodes:
                         args.append(res.register(
@@ -4178,7 +4187,7 @@ class Interpreter:
                     value = BuiltInMethod_Number(object_key.node_to_call.id.value, object_name, args, node, context)
                     return res.success(value)
                 else:
-                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.id.value}"
+                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
                     return res.failure(Program.error()["KeyError"](error)) 
                
         elif isinstance(object_name, Task):
@@ -4590,6 +4599,7 @@ class Interpreter:
                 'exit': False  
             }))  
         
+    
     def visit_PropertySetNode(self, node, context):
         res = RuntimeResult()
         object_name = res.register(self.visit(node.name, context))
@@ -5278,7 +5288,7 @@ class Interpreter:
                 if res.should_return():
                     return res
                 methods = dict(methods, **{str(method_name): method_value})
-                class_value = Class(class_name,constructor_args, inherits_class_name, inherits_class, methods, context).setContext(context).setPosition(node.pos_start, node.pos_end)
+                class_value = Class(class_name, constructor_args, inherits_class_name, inherits_class, methods, context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
             context.symbolTable.set_object(class_name, class_value)

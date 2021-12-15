@@ -300,7 +300,7 @@ class IndexNode:
             return Program.error()['Syntax']({
                     'pos_start': self.name.pos_start,
                     'pos_end': self.name.pos_end,
-                    'message': "Expected an index or slice expression",
+                    'message': "Expected index or slice expression",
                     'exit': False
                 })
         else:
@@ -1661,9 +1661,6 @@ class Parser:
                 args_list.append(self.current_token)
                 res.register_advancement()
                 self.advance()
-                if len(args_list) > 0:
-                    if args_list[0].value == 'self':
-                        args_list[0] = class_name
                 while self.current_token.type == tokenList.TT_COMMA:
                     res.register_advancement()
                     self.advance()
@@ -1807,14 +1804,7 @@ class Parser:
         self.advance()
         class_constuctor_args = []
         if self.current_token.type == tokenList.TT_IDENTIFIER:
-            # all constructor args must start with _ or $
-            # if self.current_token.value[0] != '_' and self.current_token.value[0] != '$':
-            #     return res.failure(Program.error()['Syntax']({
-            #         'pos_start': self.current_token.pos_start,
-            #         'pos_end': self.current_token.pos_end,
-            #         'message': "Constructor argument must start with '_' or '$'",
-            #         'exit': False
-            #     }))
+    
             class_constuctor_args.append(self.current_token)
             res.register_advancement()
             self.advance()
@@ -2414,7 +2404,7 @@ class Parser:
     def atom(self):
         res = ParseResult()
         tok = self.current_token
-        if tok.type in (tokenList.TT_INT, tokenList.TT_FLOAT):
+        if tok.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
             res.register_advancement()
             self.advance()
             return res.success(NumberNode(tok))
@@ -2712,9 +2702,7 @@ class Parser:
                             'message': "Expected ']'",
                             'exit': False
                         }))
-
-            
-            
+           
     def power(self):
         return self.binaryOperation(self.call, (tokenList.TT_POWER, ), self.factor)
 
@@ -2894,7 +2882,7 @@ class Parser:
 
 
 # li = [1,2,3,4,5,6,7,8,9,10]
-# print(li[1:4:1])
+# print(li[])
 
 # pa = (1,2,3,4,5,6,7,8,9,10)
 # print(pa[:2:1])
@@ -2909,3 +2897,4 @@ class Parser:
 
 # name = 'james'
 # print(name[::-1])
+
