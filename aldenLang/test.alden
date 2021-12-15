@@ -275,20 +275,38 @@ println(reverseString4)
 let _list = [1,2,3,4,5,6,7,8,9,10]
 let _pair = (1,2,3,4,5,6,7,8,9,10)
 
-
+line(32)
 println(_list[1:4:1])
 println(_pair[:2:1])
 object User
     name1: "james"
     name2: "bond"
 end
+line(33)
 println(User['name1'])
 task @getUser(key)
     return User[key]
 end
 
 
-
+line(34)
 println(@getUser("name1"))
 let name = 'james'
 println(name[::-1])
+
+
+# task @makeList(item, list=[])
+#     list.append(item)
+#     return list
+# end
+
+# let n = 0b1010
+# let m = 0o10
+# let o = 0x10
+# line(35)
+# println(n)
+
+# line(36)
+# println(@makeList("tissue"))
+# println(@makeList("napkins"))
+# println(@makeList("spoons"))

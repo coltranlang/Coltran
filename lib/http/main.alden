@@ -1,16 +1,15 @@
 # testing the http module
-
 class Http(url, headers, body)
-    def post(self)
+    task post(self)
         println("POST", self.url, self.headers, self.body)
     end
-    def get()
+    task get_()
         println("GET", "Hello from the get method")
     end
-    def put()
+    task put()
         println("PUT", url, headers, body)
     end
-    def delete()
+    task delete()
         println("DELETE", url, headers, body)
     end
 end
@@ -25,10 +24,8 @@ let http = Http("http://www.google.com", "application/json", "{'name': 'james'}"
 let http2 = Http("http://www.test.com", "application/json", "{'name': 'john'}")
 http.post()
 http2.post()
+println(http.url)
+println(http2.url)
 
-task @returnString()
-    return "Hello from the task"
-end
 
-let n = 0b1010
-println(n)
+

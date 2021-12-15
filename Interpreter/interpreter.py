@@ -1894,6 +1894,12 @@ class Task(BaseTask):
     def __repr__(self):
         return f"<Task {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
+class ClassInstance:
+    def __init__(self, klass:"Class"):
+        self.klass = klass
+    
+    def __repr__(self):
+        return f"<ClassInstance {str(self.klass.class_name)}>"
 
 class Class(BaseTask):
     def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods, context):
@@ -1910,19 +1916,21 @@ class Class(BaseTask):
         
     def execute(self, args):
         res = RuntimeResult()
+        instance = ClassInstance(self)
         new_context = self.generate_new_context()
+        class_properties = []
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
+        if res.should_return(): return res
+        class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.methods)
+        class_properties.append(class_args)
         for method_name, method in self.methods.items():
+            method.context = new_context
             if len(method.arg_names) > 0:
-                method.context = new_context
-                method.context.symbolTable.set(method.arg_names[0], self)
-            class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.methods)
-            self.context.symbolTable.update_object_value(self.class_name, class_args)
-            new_class = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherit_class, self.methods, new_context)
-            new_class.setContext(self.context).setPosition(self.pos_start, self.pos_end)
-            return res.success(new_class)
-        return res.success(None)
+                method.context.symbolTable.set(
+                    method.arg_names[0], instance.klass)
+        self.methods = class_args
+        return res.success(instance.klass)
         
         
         
@@ -3848,7 +3856,10 @@ class Interpreter:
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
         if type(value) is dict:
-            value = value['value']
+            try:
+                value = value['value']
+            except:
+                value = value
         if var_name in context.symbolTable.symbols and value is None:
             value = context.symbolTable.get(NoneType.none)
         elif value is None:
@@ -5284,11 +5295,13 @@ class Interpreter:
         if node.methods != '':
             for method in node.methods:
                 method_name = method['name'].value
-                method_value = res.register(self.visit(method['value'], context))
+                method_value = res.register(
+                    self.visit(method['value'], context))
                 if res.should_return():
                     return res
                 methods = dict(methods, **{str(method_name): method_value})
-                class_value = Class(class_name, constructor_args, inherits_class_name, inherits_class, methods, context).setContext(context).setPosition(node.pos_start, node.pos_end)
+                class_value = Class(class_name, constructor_args, inherits_class_name, inherits_class,
+                                    methods, context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
             context.symbolTable.set_object(class_name, class_value)

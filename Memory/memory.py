@@ -226,16 +226,7 @@ class SymbolTable:
         return value
     
     
-    def update_object_value(self,name, value_):
-        value = self.symbols.get(name, None)
-        if value:
-            if (type(self.symbols[name]).__name__ == "Object"):
-                self.symbols[name].properties = value_
-            else:
-                self.symbols[name].methods.update(value_)
-        else:
-            return None
-    
+
     
     def set_object(self, obj_name, object):
         self.symbols[obj_name] = object
