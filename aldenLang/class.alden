@@ -1,10 +1,10 @@
 # class constructors must start with _ or $ . class is still a work in progress
 class Person(age, name)
-    def getName()
-       println("Your name is " + name)
+    task getName(self)
+       println("Your name is " + self.name)
     end
-    def getAge()
-       println("Your are " + str(age) + " years old")
+    task getAge(self)
+       println(fm"Your age is %{self.age}")
     end
 end
 

@@ -3,14 +3,14 @@ class Http(url, headers, body)
     task post(self)
         println("POST", self.url, self.headers, self.body)
     end
-    task get_()
-        println("GET", "Hello from the get method")
+    task get_(self)
+        println("GET", self.url, self.headers, self.body)
     end
-    task put()
-        println("PUT", url, headers, body)
+    task put(self)
+        println("PUT", self.url, self.headers, self.body)
     end
-    task delete()
-        println("DELETE", url, headers, body)
+    task delete(self)
+        println("DELETE", self.url, self.headers, self.body)
     end
 end
 
@@ -22,10 +22,7 @@ end
 
 let http = Http("http://www.google.com", "application/json", "{'name': 'james'}")
 let http2 = Http("http://www.test.com", "application/json", "{'name': 'john'}")
-http.post()
-http2.post()
-println(http.url)
-println(http2.url)
+
 
 
 

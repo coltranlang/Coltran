@@ -1838,22 +1838,15 @@ class Task(BaseTask):
         return res.success(return_value)
 
     # only class Task has this method
-    def run(self, args, type=None):
-        if len(self.arg_names) == len(args):
-            self.arg_names.pop(0) if len(self.arg_names) > 0 else None
-        elif len(self.arg_names) > len(args):
-            self.arg_names.pop(0)
-        elif len(args) > len(self.arg_names):
-            self.arg_names.pop(0)
-        #print(args, "is now args", self.arg_names)
-        # if len(args) > 0:
-        #     print(f"{self.name}({args})", self.arg_names)
-        #     args.pop(0)
+    def run(self, args, class_name):
+        if len(args) > 0:
+            args = [class_name] + args
+        if len(self.arg_names) == 1 and len(args) == 0:
+            args = [class_name]
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
-        #self.args = args
-        #print(self.arg_names, args)
+        self.args = args
         res.register(self.run_check_and_populate_args(
             self.arg_names, args, exec_context))
         if res.should_return():
@@ -1872,9 +1865,31 @@ class Task(BaseTask):
     
     def run_check_and_populate_args(self, arg_names, args, exec_ctx):
         res = RuntimeResult()
-        res.register(self.check_args(arg_names, args))
+        res.register(self.run_check_args(arg_names, args))
         if res.should_return(): return res
         self.run_populate_args(arg_names, args, exec_ctx)
+        return res.success(None)
+    
+    def run_check_args(self, arg_names, args):
+        res = RuntimeResult()
+        
+        if len(args) > len(arg_names):
+            return res.failure(Program.error()['Runtime']({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"{len(args) -1} argument(s) given, but {self.name}() expects {len(arg_names) - 1 if len(arg_names) > 0 else 0}",
+                'context': self.context,
+                'exit': False
+            }))
+
+        if len(args) < len(arg_names):
+            return res.failure(Program.error()['Runtime']({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"{len(args) -1 if len(args) > 0 else 0} few argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names) - 1 }",
+                'context': self.context,
+                'exit': False
+            }))
         return res.success(None)
     
     def run_populate_args(self, arg_names, args, exec_context):
@@ -1883,6 +1898,9 @@ class Task(BaseTask):
             arg_value = args[i]
             arg_value.setContext(exec_context)
             exec_context.symbolTable.set(arg_name, arg_value)
+            
+            
+    
                       
     def copy(self):
         copy = Task(self.name, self.body_node,
@@ -1922,15 +1940,19 @@ class Class(BaseTask):
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
         if res.should_return(): return res
-        class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.methods)
-        class_properties.append(class_args)
         for method_name, method in self.methods.items():
             method.context = new_context
             if len(method.arg_names) > 0:
-                method.context.symbolTable.set(
-                    method.arg_names[0], instance.klass)
-        self.methods = class_args
-        return res.success(instance.klass)
+                # set first arg to self
+                new_self = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherit_class, self.methods, self.context)
+                if res.should_return(): return res
+                #method.set_arg(0, self)
+                # return a new method with the first argument set to the class instance
+            method = method.copy()
+            self.methods[method_name] = method
+            class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.methods)
+            self.methods = class_args
+        return res.success(self)
         
         
         
@@ -3957,7 +3979,7 @@ class Interpreter:
                                     self.visit(arg, context)))
                                 if res.should_return(): return res
                             
-                            return_value = res.register(value.run(args))
+                            return_value = res.register(value.run(args, object_name))
                             if res.should_return():
                                     return res
                             

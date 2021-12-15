@@ -2689,6 +2689,14 @@ class Parser:
                     }))
                 res.register_advancement()
                 self.advance()
+                if res.error: return res
+                if self.current_token.type != tokenList.TT_NEWLINE and self.current_token.type != tokenList.TT_RPAREN:
+                    return res.failure(Program.error()['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Statements must be separated by a newline",
+                        'exit': False
+                    }))
                 # if self.current_token.type == tokenList.TT_RPAREN:
                 #     return res.failure(Program.error()['Syntax']({
                 #         'pos_start': self.current_token.pos_start,
