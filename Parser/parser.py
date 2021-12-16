@@ -1366,6 +1366,8 @@ class Parser:
 
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             arg_name_tokens.append(self.current_token)
+            # if len(arg_name_tokens) > 0:
+            #     arg_name_tokens[0] = class_name_token
             res.register_advancement()
             self.advance()
             while self.current_token.type == tokenList.TT_COMMA:
@@ -3045,5 +3047,4 @@ class Parser:
 
 # name = 'james'
 # print(name[::-1])
-
 

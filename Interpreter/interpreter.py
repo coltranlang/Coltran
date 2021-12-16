@@ -8,7 +8,6 @@ from Lexer.lexer import Lexer
 from Memory.memory import SymbolTable
 
 
-
 import sys
 import re
 import time
@@ -1922,7 +1921,6 @@ class ClassInstance:
     def __repr__(self):
         return f"<ClassInstance {str(self.klass.class_name)}>"
 
-
 class Class(BaseTask):
     def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods, context):
         super().__init__(class_name)
@@ -2141,6 +2139,22 @@ class Module(Value):
     def __repr__(self):
         return f"<Module {str(self.name)}>"
 
+class ModuleExportValue(Value):
+    def __init__(self, value):
+        super().__init__()
+        self.value = value
+        
+    def copy(self):
+        copy = ModuleExportValue(self.value)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+    
+    def __str__(self):
+        return str(self.value)
+    
+    def __repr__(self):
+        return f"<ModuleExportValue {str(self.name)}>"
 
 class ModuleExportValue(Value):
     def __init__(self, value):
