@@ -1,0 +1,34 @@
+println("\nLet us play a game\n")
+task @getName()
+    let result = input("What is your name? ")
+    return result
+end
+
+
+task @getAge()
+    let result = input("\nHow old are you? ")
+    return str(result)
+end
+
+
+task @getNumber()
+    let result = inputInt("\nGuess a number between 1 and 10 ")
+    if result < 1 or result > 10 then
+        print("\nThat is not a valid number")
+        return @getNumber()
+    end
+    return str(result)
+end
+
+task @result()
+    let name = @getName()
+    let age = @getAge()
+    let number = @getNumber()
+    let result = "\nYour name is " + name + ", you are " + age + " years old, and you guessed " + number + "."
+    print("\n" + "Calculating..." + "\n")
+    delay(2)
+    println("\n" + result + "\n")
+end
+
+
+@result()

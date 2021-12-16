@@ -1,0 +1,71 @@
+statements  : NEWLINE* statement (NEWLINE+ statement)* NEWLINE*
+
+statement		: KEYWORD:return expr?
+						: KEYWORD:continue
+						: KEYWORD:break
+						: expr
+
+expr        : KEYWORD:let IDENTIFIER:identifier EQUALS:equals expr
+            : KEYWORD: final IDENTIFIER:identifier EQUALS:equals expr (cannot be redeclared)
+            : comp-expr ((KEYWORD:and|KEYWORD:or) comp-expr)*
+
+comp-expr   : not comp-expr
+            : arith-expr ((EE|LT|GT|LTE|GTE) arith-expr)*
+
+arith-expr  :	term ((PLUS|MINUS) term)*
+
+term        : factor ((MUL|DIV|MOD) factor)*
+
+factor      : (PLUS|MINUS) factor
+            : power
+
+power       : call (POW factor)*
+
+call        : atom (LPAREN (expr (COMMA expr)*)? RPAREN)?
+
+atom        : INT|FLOAT|STRING|IDENTIFIER
+            : LPAREN expr RPAREN
+            : list-expr
+            : if-expr
+            : for-expr
+            : while-expr
+            : task-def
+            : class-def
+            : object-def
+
+list-expr   : LSQUARE (expr (COMMA expr)*)? RSQUARE
+
+if-expr     : KEYWORD:IF expr KEYWORD:THEN
+              (statement if-expr-b|if-expr-c?)
+            | (NEWLINE statements KEYWORD:END|if-expr-b|if-expr-c)
+
+if-expr-b   : KEYWORD:ELIF expr KEYWORD:THEN
+              (statement if-expr-b|if-expr-c?)
+            | (NEWLINE statements KEYWORD:END|if-expr-b|if-expr-c)
+
+if-expr-c   : KEYWORD:ELSE
+              statement
+            | (NEWLINE statements KEYWORD:END)
+
+for-expr    : KEYWORD:FOR IDENTIFIER EQ expr KEYWORD:TO expr 
+              (KEYWORD:STEP expr)? KEYWORD:THEN
+              statement
+            | (NEWLINE statements KEYWORD:END)
+
+while-expr  : KEYWORD:WHILE expr KEYWORD:THEN
+              statement
+            | (NEWLINE statements KEYWORD:END)
+
+task-def    : KEYWORD:task IDENTIFIER?
+              LPAREN (IDENTIFIER (COMMA IDENTIFIER)*)? RPAREN
+              (ARROW expr)
+            | (NEWLINE statements KEYWORD:endTask)
+    
+class-def   : KEYWORD:class IDENTIFIER?
+              LPAREN (IDENTIFIER (COMMA IDENTIFIER)*)? RPAREN
+              | (NEWLINE statements KEYWORD:endClass)
+
+object-def  : KEYWORD:object IDENTIFIER?
+              LPAREN (IDENTIFIER (COMMA IDENTIFIER)*)? RPAREN
+              | (NEWLINE statements KEYWORD:endObject)
+

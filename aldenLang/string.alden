@@ -1,0 +1,16 @@
+let name = "Kehinde Akinsanya"
+let occupation = "Software Engineer"
+let id = "123456789"
+
+# String interpolation
+# To interpolate a string, use the fm backtick string literal  and placeholders inside the string using %{} e.g. fm"Hello, %{name}!"
+let description = fm`Hello World, my name is %{name} and I am a %{occupation} with id %{id}` # to escape the placeholder, use double % to escape the % and double {} to escape the {}
+#let description2 = format("Hello World, my name is %s and I am a %s with id %s", name, occupation, id)
+#let description3 = "Hello World, my name is {0} and I am a {1} with id {2}".format(name, occupation, id) 
+
+println(description)
+task @greet(name)
+    return fm`Hello %{name}!`
+end
+
+println(@greet(name))

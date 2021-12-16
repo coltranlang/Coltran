@@ -1,0 +1,47 @@
+# User module test
+get User from "./aldenLang/module" # You don't need to specify the file extension, it will be added by the interpreter
+println(User.Greet())
+
+# System module test
+#get System from "system"
+#println(System.stdout.write("Hello World!"))
+
+# File module test
+#get File from "file"
+#println(File.read("test.txt"))
+
+# Path module test
+#get Path from "path"
+#println(Path.dirname("/home/alden/Desktop/test.txt"))
+
+# Process module test
+#get Process from "process"
+#println(Process.argv)
+
+
+# Http module test
+get Http from "http"
+
+object Header
+    Content_Type: "application/json"
+end
+
+object User
+    name: "John Doe"
+    age: 30
+end
+
+let http = Http.new("https://www.aldenlang.org", Header, User)
+let http2 = Http.new("https://www.testlang.org", Header, User)
+println(http.post(), http2.post())
+
+
+# Math module test
+#get Math from "math"
+#println(Math.random())
+
+
+# Date module test
+#get Date from "date"
+#println(Date.now())
+

@@ -1,0 +1,312 @@
+# test for builtin_task str type
+let name = "John"
+let num = 10
+line(1)
+println(name + str(num))
+
+# test for builtin_task int type
+let num1 = "10"
+let num2 = 20
+line(2)
+println(int(num1) + num2)
+
+# test for builtin_task float type
+let num3 = "10.5"
+let num4 = 20.5
+line(3)
+println(float(num3) + num4)
+
+# test for builtin_task bool type
+let bool1 = "1 > 2"
+let bool2 = false
+line(4)
+println(bool(bool1), bool(bool2))
+
+# test for builtin_task list type
+let list1 = "12345"
+let list2 = "1,2,3,4,5"
+let list3 = [1,2,3,4,5]
+let list4 = 'abcde'
+let list5 = 'a,b,c,d,e'
+let list6 = ['a','b','c','d','e']
+task @greet() 
+   return "Hello World"
+end
+object Test
+    name: "Test"
+    is_test: true
+end
+line(5)
+println(list(list1), list(list2), list(list3), list(list4), list(list5), list(list6), list(@greet()), list(Test))
+let li = [1,2,3,4,5]
+let li2 = [1,4,2,3,5]
+let li3 = [1,2,3,4,5]
+let li4 = [1,2,3,4,8]
+# Need to work on comapring list
+task @compareList(arr1, arr2)
+    let res = ""
+    sorted(arr1)
+    sorted(arr2)
+    print(arr1, arr2)
+    if arr1 == arr2 then
+        res = "The two lists are equal"
+    else
+        res = "The two lists are not equal"
+    end
+    return res
+end
+
+line(6)
+println(@compareList(li, li2))
+line(7)
+println(@compareList(li3, li4))
+
+
+# test for builtin_task pair type
+let pair1 = (1,2,3,4,5)
+let pair2 = "a,b,c,d,e"
+let pair3 = ['a','b','c','d','e']
+let pair4 = "abcde"
+task @greet() 
+   return "Hello World"
+end
+object Test
+    name: "Test"
+    is_test: true
+end
+line(8)
+println(pair(pair1), pair(pair2), pair(pair3), pair(pair4), pair(@greet()), pair(Test))
+
+
+
+# test for object type
+object Student
+    name: "John"
+    age: 21
+end
+line(9)
+println(Student.name, Student.age)
+
+
+# test for builtin_task object type
+let obj1 = "John"
+let obj2 = 21
+line(10)
+println("still need to work on builtin-task object type")
+println(Object(obj1), Object(obj2))
+
+# test for function type
+task @add(a, b)
+    return a + b
+end
+line(11)
+println(@add(1, 2))
+
+
+# test for class type
+class Car(_name, _color)
+    def getName()
+        println("Car name is " + _name)
+    end
+    def getColor()
+        println("Car color is " + _color)
+    end
+end
+let car = Car("BMW", "Black")
+line(12)
+car.getName()
+car.getColor()
+
+
+task @filterByname(arr, name)
+    for i = 0 to len(arr) then
+        if arr[i].name == name then
+            return arr[i]
+        end
+    end
+    return fm`Car %{name} not found`
+end
+# test for array index
+object CarInventory
+    cars: []
+    addCar: task (name, color)
+        object NewCar
+            name: name
+            color: color
+        end
+        append(CarInventory.cars, NewCar)
+    end
+    lookupCar: task (index) ->  CarInventory.cars[index]
+    lookupCarByName: task (name) -> @filterByname(CarInventory.cars, name)
+    size: task () ->  len(CarInventory.cars) # just assigning the value the size of the cars as len(CarInventory.cars) returns 0 but assigning the value as a task returns the size of the cars
+end
+
+let carInventory = CarInventory
+carInventory.addCar("Audi", "Blue")
+carInventory.addCar("Ford", "Red")
+
+line(13)
+println(carInventory.cars)
+let car = carInventory.cars[0]
+line(14)
+println(car.name, car.color)
+line(15)
+println(carInventory.lookupCar(1))
+line(16)
+println(carInventory.lookupCarByName("test"))
+line(17)
+println(carInventory.lookupCarByName("Ford").name + " is " + carInventory.lookupCarByName("Ford").color)
+line(18)
+println(carInventory.size())
+
+# test for in operator
+object User
+    name: "John"
+    age: 21
+    email: "john123@email.com"
+    phone: "1234567890"
+    username: "john123"
+    password: "john123"
+end
+
+
+line(19)
+in User as (key,value)  then
+    #println(fm`Key: %{key[0]}, Value: %{key[1]}`) # getting key and value from People object by just using the key 
+    println(fm`Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
+end
+
+
+let numlist = [1, 2, 3, 4, 5]
+let numpairs = (5,6,7,8,9)
+let names = ["John", "Paul", "George", "Ringo"]
+line(20)
+in names as (name) then
+    if name == "John" then
+        println(fm`Hi %{name}`)
+    end
+    println(fm`%{name}`)
+end
+
+# test for rest operator
+let students = ["John", "Paul", "George", "Ringo"]
+let (first, *rest) = students
+line(21)
+println(fm`First: %{first}, Rest: %{rest}`)
+
+# string methods test
+let empty_string = ""
+let empty_string_space = " "
+let _str = "HelloxWorldHello"
+let l_ist = ['Alden', 'is', 'an', 'awesome', 'programming', 'language']
+let p_air = ('Alden', 'is', 'an', 'awesome', 'programming', 'language')
+
+object StringObject
+    name: "John"
+    age: 21
+    email: "john123@email.com"
+end
+line(22)
+println(_str.upperCase())
+line(23)
+println(_str.lowerCase())
+line(24)
+println(_str.trim())
+line(25)
+println(_str.split("x"))
+line(26)
+println(_str.split("x", 2))
+line(27)
+println(empty_string_space.join(l_ist))
+line(28)
+println(empty_string_space.join(p_air))
+line(29)
+println(" is ".join(StringObject))
+line(30)
+let st = "Hi {name}!, You have {count} messages."
+println(st.replace("{name}", "John").replace("{count}", "5"))
+println(fm"%{_str} is %{_str.length} characters long")
+let name = "John Doe"
+let n = name.split()
+println(fm"First name: %{n[0]}, Last name: %{n[1]}")
+let value = []
+in n as (name) then
+    value.append(name)
+    #append(value, name)
+end
+println(value)
+
+# reverse string
+
+# reverse string with built-in task
+task @reverseString(s)
+    return list(s).reverse().join("")
+end
+
+
+# reverse string with in-loop
+task @reverseString2(s)
+    let result  = ""
+    in s as char then
+        let result = char + result
+    end
+    return result
+end
+
+# reverse string with recursion
+task @reverseString3(s)
+    if s == "" then
+        return ""
+    else
+        return @reverseString3(s.substr(1)) + s.charAt(0)
+    end
+end
+
+# reverse string with slicing
+let reverseString4 = "Hello World"[::-1]
+
+line(31)
+println(@reverseString("freeCodeCamp"))
+println(@reverseString2("freeCodeCamp"))
+println(@reverseString3("freeCodeCamp"))
+println(reverseString4)
+
+# slicing
+let _list = [1,2,3,4,5,6,7,8,9,10]
+let _pair = (1,2,3,4,5,6,7,8,9,10)
+
+line(32)
+println(_list[1:4:1])
+println(_pair[:2:1])
+object User
+    name1: "james"
+    name2: "bond"
+end
+line(33)
+println(User['name1'])
+task @getUser(key)
+    return User[key]
+end
+
+
+line(34)
+println(@getUser("name1"))
+let name = 'james'
+println(name[::-1])
+
+
+# task @makeList(item, list=[])
+#     list.append(item)
+#     return list
+# end
+
+# let n = 0b1010
+# let m = 0o10
+# let o = 0x10
+# line(35)
+# println(n)
+
+# line(36)
+# println(@makeList("tissue"))
+# println(@makeList("napkins"))
+# println(@makeList("spoons"))

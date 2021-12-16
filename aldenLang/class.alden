@@ -1,0 +1,17 @@
+# class constructors must start with _ or $ . class is still a work in progress
+class Person(age, name)
+    task getName(self)
+       println("Your name is " + self.name)
+    end
+    task getAge(self)
+       println(fm"Your age is %{self.age}")
+    end
+end
+
+
+
+let person = Person(20, "John Doe")
+println(person.getName(), person.getAge())
+let s = person.name.split("")
+println(person.age, s)
+    

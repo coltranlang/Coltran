@@ -1,0 +1,44 @@
+# FizzBuzz
+let num = 16
+
+for i = 0 to num then
+    if i % 3 == 0 and i % 5 == 0 then
+        println("FizzBuzz")
+        elif i % 3 == 0 then
+        println("Fizz")
+        elif i % 5 == 0 then
+        println("Buzz")
+        else
+        println(i)
+    end
+end
+
+task @map(arr, tsk)
+    let res = []
+    for i = 0 to len(arr) - 1 then
+        append(res, tsk(arr[i]))
+    end
+    return res
+end
+
+task @filter(arr, tsk)
+    let res = []
+    for i = 0 to len(arr) - 1 then
+        if tsk(arr[i]) then
+            append(res, arr[i])
+        end
+    end
+    return res
+end
+
+
+# Map and Filter
+let arr = [1,2,4,9]
+
+# Map
+let map = @map(arr, task (x) -> x * 2)
+println(map)
+
+# Filter
+let filter = @filter(arr, task (x) -> x % 2 == 0)
+println(filter)

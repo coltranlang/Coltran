@@ -1,0 +1,6 @@
+let student = (001, "Kehinde",  ("Computer Science", "Public Speaking", "Biology"), "John Tyler Community College")
+
+let (id, name, course, school) = student
+
+
+println(fm`%{name} attends %{school} and is studying %{course}`)

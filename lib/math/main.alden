@@ -1,0 +1,42 @@
+# Math module
+get Test from "./lib/math/test"
+
+let (run,__name, *rest) = Test
+println(run)
+
+object Math
+   add: task (a, b) -> a + b
+   min: task (a, b)
+      if a < b then
+        return a
+      else
+         return b
+      end
+   end
+   max: task (a, b)
+      if a > b then
+         return a
+      else
+         return b
+      end
+   end
+   pow: task (a, b) -> a ^ b
+   abs: task (a)
+      if a < 0 then
+         return -a
+      else
+         return a
+      end
+   end
+end
+
+let name = "Task"
+module Export as Math
+   add: Math.add
+   min: Math.min
+   max: Math.max
+   pow: Math.pow
+   abs: Math.abs
+   type: "Math Operations"
+   run: task () -> println(fv`Hello, world! from %{name}`)
+end

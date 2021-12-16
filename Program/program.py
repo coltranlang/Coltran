@@ -1,39 +1,8 @@
-
 import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
-from Interpreter.interpreter import Context, Interpreter, BuiltInTask
-from Global.globalSymbolTable import Global
+from Interpreter.interpreter import Context, Interpreter, BuiltInTask, symbolTable_
 
-BuiltInTask.print = BuiltInTask("print")
-BuiltInTask.exit = BuiltInTask("exit")
-BuiltInTask.input = BuiltInTask("input")
-BuiltInTask.intInput = BuiltInTask("intInput")
-BuiltInTask.floatInput = BuiltInTask("floatInput")
-BuiltInTask.clear = BuiltInTask("clear")
-BuiltInTask.len = BuiltInTask("len")
-BuiltInTask.toString = BuiltInTask("toString")
-BuiltInTask.append = BuiltInTask("append")
-BuiltInTask.pop = BuiltInTask("pop") 
-BuiltInTask.extend = BuiltInTask("extend")
-BuiltInTask.remove = BuiltInTask("remove")
-BuiltInTask.clearList = BuiltInTask("clearList")
-
-GlobalSymbolTable = Global()
-GlobalSymbolTable.set('print', BuiltInTask.print)
-GlobalSymbolTable.set('exit', BuiltInTask.exit)
-GlobalSymbolTable.set('input', BuiltInTask.input)
-GlobalSymbolTable.set('intInput', BuiltInTask.intInput) 
-GlobalSymbolTable.set('floatInput', BuiltInTask.floatInput)
-GlobalSymbolTable.set('clear', BuiltInTask.clear)
-GlobalSymbolTable.set('len', BuiltInTask.len)
-GlobalSymbolTable.set('toString', BuiltInTask.toString)
-GlobalSymbolTable.set('append', BuiltInTask.append)
-GlobalSymbolTable.set('pop', BuiltInTask.pop)
-GlobalSymbolTable.set('extend', BuiltInTask.extend)
-GlobalSymbolTable.set('remove', BuiltInTask.remove)
-GlobalSymbolTable.set('clearList', BuiltInTask.clearList)
-GlobalSymbolTable.setGlobal()
 
 class Program:
     def error():
@@ -62,6 +31,7 @@ class Program:
     def printWithType(args):
         for arg in args:
             print(str(type(arg)) + " <===> " + str(arg))
+  
     def printError(args):
         for arg in args:
             print(arg)
@@ -74,18 +44,54 @@ class Program:
         if error: return "", error
 
         # Generate AST
-        parser = Parser(tokens)
+        parser = Parser(tokens, fileName)
         ast = parser.parse()
         if ast.error: return "", ast.error
         
         interpreter = Interpreter()
-        context = Context('<program>')
-        context.symbolTable = GlobalSymbolTable
+        context = Context('<module>')
+        context.symbolTable = symbolTable_
         result = interpreter.visit(ast.node, context)
         
-        return result.value, result.error
+        if hasattr(result, 'value') and hasattr(result, 'error'):
+            return result.value, result.error
+        
+        return result, "none"
 
     def runFile(fileName):
-        with open(fileName, 'r') as file:
-            text = file.read()
-            return Program.run(fileName, text)
+        try:
+            with open(fileName, 'r') as file:
+                text = file.read()
+                # check if file is ending with .alden
+                if fileName[-6:] != ".alden":
+                    print("File is not an alden file")
+                    return
+                else:
+                    return Program.run(fileName, text)
+        except FileNotFoundError:
+            print(f'File {fileName} not found')
+            
+    def repl():
+        while True:
+            text = input('>>> ')
+            result, error = Program.run("<stdin>", text)
+            if error:
+                print(error)
+            elif result:
+                if result == None:
+                    result
+                else:
+                    if result == "()":  # empty result, parser is returning ParserResult() or RuntimeResult() so we can't print it
+                        result
+                    else:
+                        print(result)
+   
+    def runRepl():
+        try:
+            Program.repl()
+        except KeyboardInterrupt:
+            print("\nExit?")
+            print('Use exit() to exit')
+            Program.runRepl()
+            
+
