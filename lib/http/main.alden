@@ -23,6 +23,10 @@ class Http(url, headers, body)
     def test(self, name)
         println(fm"Hello from %{name}. The url is %{self.url}")
     end
+
+    def repr(self)
+        println(fm"Http(url='%{self.url}', headers='%{self.headers}', body=%{self.body})")
+    end
 end
 
 

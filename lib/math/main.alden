@@ -30,13 +30,11 @@ object Math
    end
 end
 
-let name = "Task"
+
 module Export as Math
    add: Math.add
    min: Math.min
    max: Math.max
    pow: Math.pow
    abs: Math.abs
-   type: "Math Operations"
-   run: task () -> println(fv`Hello, world! from %{name}`)
 end

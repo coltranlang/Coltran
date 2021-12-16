@@ -104,12 +104,12 @@ println(@add(1, 2))
 
 
 # test for class type
-class Car(_name, _color)
-    def getName()
-        println("Car name is " + _name)
+class Car(name, color)
+    def getName(self)
+        println("Car name is " + self.name)
     end
-    def getColor()
-        println("Car color is " + _color)
+    def getColor(self)
+        println("Car color is " + self.color)
     end
 end
 let car = Car("BMW", "Black")
@@ -295,6 +295,24 @@ let name = 'james'
 println(name[::-1])
 
 
+let (first, second, *rest) = [1,2,3,4,5,6,7,8,9,10]
+line(35)
+println(rest)
+
+let user = {name: "John",age: 30,isAdmin: false,
+    friends: ["Max", "Ann", "Kate"],
+    cities: [
+        { name: "New York", population: 800_000 },
+        { name: "Moscow", population: 200_000 },
+        { name: "London", population: 100_000 }
+    ]
+}
+
+task testDict(name, userdata) 
+    println(userdata[name], userdata.name.upperCase(), userdata.cities[0]["name"], userdata.cities[2].population)
+end
+line(36)
+testDict("name", user)
 # task @makeList(item, list=[])
 #     list.append(item)
 #     return list

@@ -128,6 +128,8 @@ class TypeOf:
                 result = 'class'
             elif isinstance(self.type, Task):
                 result = 'task'
+            elif isinstance(self.type, Dict):
+                result = 'dict'
             else:
                 result = type(self.type).__name__
         return result
@@ -441,6 +443,9 @@ class RuntimeResult:
             self.loop_continue or
             self.loop_break
         )
+
+    # def __repr__(self):
+    #     return f'{self.value}, {self.error}'
 
 
 class Value:
@@ -1454,7 +1459,6 @@ class List(Value):
         new_list.elements.append(other)
         return new_list, None
 
-
     def subtracted_by(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1575,6 +1579,26 @@ class List(Value):
         except:
             return f'{self.elements}'
 
+
+class Dict(Value):
+    def __init__(self, properties):
+        super().__init__()
+        self.properties = properties
+        
+    def copy(self):
+        copy = Dict(self.properties)
+        copy.setContext(self.context)
+        copy.setPosition(self.pos_start, self.pos_end)
+        return copy
+       
+    
+    
+    def __repr__(self):
+        try:
+            return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
+        except:
+            return f'{self.properties}'
+    
    
 class Object(Value):
     def __init__(self, name, properties, type=None):
@@ -1838,14 +1862,16 @@ class Task(BaseTask):
         return res.success(return_value)
 
     # only class Task has this method
-    def run(self, args, class_name):
+    def run(self, args, class_name, context=None):
+        res = RuntimeResult()
+        interpreter = Interpreter()
+        exec_context = self.generate_new_context()
         if len(args) > 0:
             args = [class_name] + args
         if len(self.arg_names) == 1 and len(args) == 0:
             args = [class_name]
-        res = RuntimeResult()
-        interpreter = Interpreter()
-        exec_context = self.generate_new_context()
+        
+        
         self.args = args
         res.register(self.run_check_and_populate_args(
             self.arg_names, args, exec_context))
@@ -1913,13 +1939,13 @@ class Task(BaseTask):
         return f"<Task {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
 
-
 class ClassInstance:
     def __init__(self, klass:"Class"):
         self.klass = klass
     
     def __repr__(self):
         return f"<ClassInstance {str(self.klass.class_name)}>"
+
 
 class Class(BaseTask):
     def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods, context):
@@ -1941,14 +1967,24 @@ class Class(BaseTask):
         instance = ClassInstance(self)
         new_context = self.generate_new_context()
         class_properties = []
+        class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.methods)
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
         if res.should_return(): return res
+        # get repr method and call it
+        # try:
+        #     repr_method = self.methods['repr']
+        #     interpreter = Interpreter()
+        #     self_new = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherit_class, class_args, self.context)
+        #     new_context.symbolTable.set('self', self_new)
+        #     self.__str__ = String(interpreter.visit(
+        #         repr_method.body_node, new_context)).value
+        # except:
+        #     self.__str__ = String("<Class {0}>".format(self.class_name)).value
         for method_name, method in self.methods.items():
             method.context = new_context
             method = method.copy()
             self.methods[method_name] = method
-            class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.methods)
             self.methods = class_args
         return res.success(self)
         
@@ -1986,16 +2022,9 @@ class Class(BaseTask):
         return copy
 
 
-    def __str__(self):
-        try:
-            return f"{{{', '.join([f'{k}: {v}' for k, v in self.methods.items()])}}}"
-        except:
-            return "{}"
-
-
     def __repr__(self):
         return f"<Class {str(self.class_name)}>"
-
+        
 
 class ModuleObject(Value):
     def __init__(self, name, properties, type=None):
@@ -2139,22 +2168,6 @@ class Module(Value):
     def __repr__(self):
         return f"<Module {str(self.name)}>"
 
-class ModuleExportValue(Value):
-    def __init__(self, value):
-        super().__init__()
-        self.value = value
-        
-    def copy(self):
-        copy = ModuleExportValue(self.value)
-        copy.setPosition(self.pos_start, self.pos_end)
-        copy.setContext(self.context)
-        return copy
-    
-    def __str__(self):
-        return str(self.value)
-    
-    def __repr__(self):
-        return f"<ModuleExportValue {str(self.name)}>"
 
 class ModuleExportValue(Value):
     def __init__(self, value):
@@ -2299,9 +2312,7 @@ class BuiltInTask(BaseTask):
     def __repr__(self):
         return f"<{str(self.name)}()>, [ built-in task ]"
 
-  
 
-  
 # Built-in tasks
 
 def BuiltInTask_Print(args, node):
@@ -3376,7 +3387,7 @@ class BuiltInMethod_String(Value):
     
     
     def repr(self):
-        return f"<{str(self.type)}()>, [ built-in method ]"
+        return f"<{str(self.type)}()>, [ built-in string method ]"
 
 
 class BuiltInMethod_List(Value):
@@ -3421,16 +3432,17 @@ class BuiltInMethod_List(Value):
             'exit': False
         }))
         
+    
     def BuiltInMethod_append(self):
         res = RuntimeResult()
         if len(self.args) == 1:
-            if isinstance(self.name, List):
-                return List(self.name.elements.append(self.args[0])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            self.name.elements.append(self.args[0])
+            return NoneType('none').none
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but append() takes 1 argument",
+                'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for append()",
                 "context": self.context,
                 'exit': False
             }))
@@ -3832,7 +3844,7 @@ class Interpreter:
                     'context': context,
                     'exit': True
                 })
-
+        
         if type(node.variable_name_token).__name__ == "tuple":
             var_name = node.variable_name_token
             if isinstance(var_name, Pair):
@@ -3999,8 +4011,10 @@ class Interpreter:
         if type(value) is dict:
             try:
                 value = value['value']
+                
             except:
                 value = value
+                
         if var_name in context.symbolTable.symbols and value is None:
             value = context.symbolTable.get(NoneType.none)
         elif value is None:
@@ -4021,7 +4035,9 @@ class Interpreter:
                 'exit': True
             })
             return res.noreturn()
-        value = value.copy().setPosition(node.pos_start, node.pos_end).setContext(context) if value.copy else value
+        
+        value = value.copy().setContext(context).setPosition(node.pos_start, node.pos_end) if value.copy else value
+        
         return res.success(value)
  
     
@@ -4207,14 +4223,109 @@ class Interpreter:
                         error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
                         return res.failure(Program.error()["KeyError"](error))
    
+        elif isinstance(object_name, Dict):
+            builtin_properties = {
+                'get': 'get',
+            }
+            if type(object_key).__name__ == "VarAccessNode":
+                if hasattr(object_name, "properties"):
+                    if object_key.id.value in object_name.properties:
+                        value = object_name.properties[object_key.id.value]
+                        return res.success(value)
+                    else:
+                        error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
+                        return res.failure(Program.error()["KeyError"](error))
+
+            elif type(object_key).__name__ == "CallNode":
+                if hasattr(object_name, "properties"):
+                    if type(object_key.node_to_call).__name__ == "Token":
+                        if object_key.node_to_call.value in object_name.properties:
+                            value = object_name.properties[object_key.node_to_call.value]
+                            if isinstance(value, Object):
+                                error["message"] = f"{object_key.node_to_call.value} is not callable"
+                                return res.failure(Program.error()["KeyError"](error))
+                            else:
+                                args_node = object_key.args_nodes
+                                args = []
+
+                                for arg in args_node:
+                                    args.append(res.register(
+                                        self.visit(arg, context)))
+                                    if res.should_return():
+                                        return res
+
+                                return_value = res.register(
+                                    value.execute(args))
+                                #print(type(return_value).__name__, return_value)
+                                if res.should_return():
+                                    return res
+                                if return_value == None or isinstance(return_value, NoneType):
+                                    return res.success(None)
+                                else:
+                                    return res.success(return_value)
+                        else:
+                            error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
+                            return res.failure(Program.error()["KeyError"](error))
+                else:
+                    if object_key.node_to_call.id.value in object_name.properties:
+                        value = object_name.properties[object_key.node_to_call.id.value]
+                        args_node = object_key.args_nodes
+                        args = []
+
+                        for arg in args_node:
+                            args.append(res.register(
+                                self.visit(arg, context)))
+                            if res.should_return():
+                                return res
+
+                        return_value = res.register(value.run(args))
+                        if res.should_return():
+                            return res
+
+                        if return_value == None or isinstance(return_value, NoneType):
+                            return res.success(None)
+                        else:
+                            return res.success(return_value)
+                    else:
+                        if object_name.name == "Export":
+                            error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
+                        else:
+                            error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
+                        return res.failure(Program.error()["KeyError"](error))
+                    # else:
+                    #     return res.failure(Program.error()["KeyError"](error))
+
+            elif type(object_key).__name__ == "Token":
+                if hasattr(object_name, "properties"):
+                    if object_key.value in object_name.properties:
+                        value = object_name.properties[object_key.value]
+                        return res.success(value)
+                    else:
+                        print()
+                        # if object_name.properties['__name']:
+                        #     name = object_name.properties['__name']
+                        #     error["message"] = f"{name} has no property {object_key.value}"
+                        # else:
+                        error["message"] = f"{object_name.name} has no property {object_key.value}"
+                        return res.failure(Program.error()["KeyError"](error))
+
+            elif type(object_key).__name__ == "PropertyNode":
+                if hasattr(object_name, "properties"):
+                    if object_key.name.id.value in object_name.properties:
+                        value = object_name.properties[object_key.name.id.value]
+                        return res.success(value)
+                    else:
+                        error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
+                        return res.failure(Program.error()["KeyError"](error))
+   
         elif isinstance(object_name, List):
             if type(object_key).__name__ == "Token":
                 if object_key.value in list_methods:
-                    value = value = f"<{str(object_key.value)}()>, [ built-in method ]"
+                    value = value = f"<{str(object_key.value)}()>, [ built-in list method ]"
                     if object_key.value == "length":
                         return res.success(Number(len(object_name.elements)))
                     else:
-                        value = f"<{str(object_key.value)}()>, [ built-in method ]"
+                        value = f"<{str(object_key.value)}()>, [ built-in list method ]"
                         return res.success(String(value))
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
@@ -4238,7 +4349,7 @@ class Interpreter:
         elif isinstance(object_name, String):
             if type(object_key).__name__ == "Token":
                 if object_key.value in string_methods:
-                    value = f"<{str(object_key.value)}()>, [ built-in method ]"
+                    value = f"<{str(object_key.value)}()>, [ built-in string method ]"
                     if object_key.value == "length":
                         return res.success(Number(len(object_name.value)))
                     else:
@@ -4250,7 +4361,7 @@ class Interpreter:
                 
             elif type(object_key).__name__ == "VarAccessNode":
                 if object_key.id.value in string_methods:
-                    value = f"<{str(object_key.id.value)}()>, [ built-in method ]"
+                    value = f"<{str(object_key.id.value)}()>, [ built-in string method ]"
                     return res.success(String(value))
                 else:
                     error["message"] = f"'string' has no property {object_key.id.value}"
@@ -4272,7 +4383,7 @@ class Interpreter:
                         return res.failure(Program.error()["KeyError"](error))
                 else:
                     if object_key.id.value in string_methods:
-                        value = f"<{str(object_key.id.value)}()>, [ built-in method ]"
+                        value = f"<{str(object_key.id.value)}()>, [ built-in string method ]"
                         return res.success(String(value))
                     else:
                         error["message"] = f"'string' has no property {object_key.id.value}"
@@ -4313,7 +4424,7 @@ class Interpreter:
         elif isinstance(object_name, Number):
             if type(object_key).__name__ == "Token":
                 if object_key.value in number_methods:
-                    value = f"<{str(object_key.value)}()>, [ built-in method ]"
+                    value = f"<{str(object_key.value)}()>, [ built-in number method ]"
                     return res.success(String(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
@@ -4321,7 +4432,7 @@ class Interpreter:
                 
             elif type(object_key).__name__ == "VarAccessNode":
                 if object_key.id.value in number_methods:
-                    value = f"<{str(object_key.id.value)}()>, [ built-in method ]"
+                    value = f"<{str(object_key.id.value)}()>, [ built-in number method ]"
                     return res.success(String(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.value}"
@@ -4529,6 +4640,27 @@ class Interpreter:
                     'exit': False
                 }))
         elif object_type == "object":
+            if index_type == "string":
+                try:
+                    get_value = index_value.properties[index.value]
+                    return res.success(get_value)
+                except KeyError:
+                    return res.failure(Program.error()['KeyError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"{index_value.name} has no property '{index.value}'" if index.value != "" else f"''",
+                        'context': context,
+                        'exit': False
+                    }))
+            else:
+                return res.failure(Program.error()['TypeError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"object indices must be strings, not {index_type}",
+                    'context': context,
+                    'exit': False
+                }))
+        elif object_type == "dict":
             if index_type == "string":
                 try:
                     get_value = index_value.properties[index.value]
@@ -5338,6 +5470,17 @@ class Interpreter:
                 context.symbolTable.set_object(object_name, object_value)
         return res.success(object_value)
 
+    
+    def visit_DictNode(self, node, context):
+        res = RuntimeResult()
+        properties = {}
+        for prop in node.properties:
+            key = prop['key'].value
+            value = res.register(self.visit(prop['value'], context))
+            if res.should_return(): return res
+            properties = dict(properties, **{str(key): value})
+        return res.success(Dict(properties).setContext(context).setPosition(node.pos_start, node.pos_end))
+    
     
     def visit_ModuleObject(self, node, context):
         res = RuntimeResult()

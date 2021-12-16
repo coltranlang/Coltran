@@ -1,14 +1,15 @@
-let number = 1_000_000
-let number2 = 1_000_000_000
-let number3 = 1_000_000_000_000
-let number4 = 123_456_789_123_456_789
-println(number, number2, number3, number4)
+# let number = 1_000_000
+# let number2 = 1_000_000_000
+# let number3 = 1_000_000_000_000
+# let number4 = 123_456_789_123_456_789
+# println(number, number2, number3, number4)
 
-task @countHowManyZeros(num) 
-    let count = 0
-    let new_num = str(num)
-    let num_list = num.split("_")
-    println(num_list)
-end
+# task @countHowManyZeros(num) 
+#     let count = 0
+#     let new_num = str(num)
+#     let num_list = num.split("_")
+#     println(num_list)
+# end
 
-println(@countHowManyZeros(number))
+# println(@countHowManyZeros(number))
+let n = []
