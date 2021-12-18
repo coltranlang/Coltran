@@ -2236,19 +2236,18 @@ class BuiltInTask(BaseTask):
         exec_context = self.generate_new_context()
 
         method_name = f'execute_{self.name}'
-        method = getattr(self, method_name, self.no_visiit)
-
+        method = getattr(self, method_name, self.no_visit)
         res.register(self.check_and_populate_args(
             method.arg_names, args, exec_context))
         if res.should_return():
             return res
-
+        
         return_value = res.register(method(exec_context))
         if res.should_return():
             return res
         return res.success(return_value)
 
-    def no_visiit(self, node, exec_context):
+    def no_visit(self, node, exec_context):
         res = RuntimeResult()
         return res.failure(Program.error()['Runtime']({
             'pos_start': self.pos_start,
@@ -2701,6 +2700,15 @@ def BuiltInTask_List(args, node, context):
         for value in values:
             new_list.append(value)
         return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
+    
+    elif isinstance(args[0], Dict):
+        keys = [key for key in args[0].value]
+        values = [args[0].value[key] for key in keys]
+        new_list = []
+        for value in values:
+            new_list.append(value)
+        return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
+   
     else: 
         return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
@@ -2726,15 +2734,32 @@ def BuiltInTask_Pair(args, node, context):
         return res.success(args[0])
     
     elif isinstance(args[0], String):
-        return res.success(Pair([String(f"'{char}'") for char in args[0].value]).setPosition(node.pos_start, node.pos_end).setContext(context))
+        new_pair = ()
+        for char in args[0].value:
+            new_pair += (String(char).setPosition(node.pos_start, node.pos_end).setContext(context),)
+        return res.success(Pair(new_pair).setPosition(node.pos_start, node.pos_end).setContext(context))
     
     elif isinstance(args[0], List):
-        return res.success(Pair([i for i in args[0].value]).setPosition(node.pos_start, node.pos_end).setContext(context))
+        new_pair = ()
+        for value in args[0].value:
+            new_pair += (value,)
+        return res.success(Pair(new_pair).setPosition(node.pos_start, node.pos_end).setContext(context))
     
     elif isinstance(args[0], Object):
         keys = [key for key in args[0].value]
         values = [args[0].value[key] for key in keys]
-        return res.success(Pair(values).setPosition(node.pos_start, node.pos_end).setContext(context))
+        new_pair = ()
+        for value in values:
+            new_pair += (value,)
+        return res.success(Pair(new_pair).setPosition(node.pos_start, node.pos_end).setContext(context))
+    
+    elif isinstance(args[0], Dict):
+        keys = [key for key in args[0].value]
+        values = [args[0].value[key] for key in keys]
+        new_pair = ()
+        for value in values:
+            new_pair += (value,)
+        return res.success(Pair(new_pair).setPosition(node.pos_start, node.pos_end).setContext(context))
     
     else:
         return res.failure(Program.error()["TypeError"]({
@@ -5803,7 +5828,7 @@ class Interpreter:
             'bool': BuiltInTask_Bool,
             'list': BuiltInTask_List,
             'pair' : BuiltInTask_Pair,
-            'object': BuiltInTask_Object,
+            'Object': BuiltInTask_Object,
             'max': BuiltInTask_Max,
             'min': BuiltInTask_Min,
             'sorted': BuiltInTask_Sorted,

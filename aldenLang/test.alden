@@ -50,7 +50,7 @@ task @compareList(arr1, arr2)
     print(arr1, arr2)
     if arr1 == arr2 :
         res = "The two lists are equal"
-    else
+    else :
         res = "The two lists are not equal"
     end
     return res
@@ -65,11 +65,8 @@ println(@compareList(li3, li4))
 # test for builtin_task pair type
 let pair1 = (1,2,3,4,5)
 let pair2 = "a,b,c,d,e"
-let pair3 = ['a','b','c','d','e']
+let pair3 = ['23','b','c','d','e']
 let pair4 = "abcde"
-task @greet() 
-   return "Hello World"
-end
 object Test
     name: "Test"
     is_test: true
@@ -93,7 +90,7 @@ let obj1 = "John"
 let obj2 = 21
 line(10)
 println("still need to work on builtin-task object type")
-println(Object(obj1), Object(obj2))
+#println(Object(obj1), Object(obj2))
 
 # test for function type
 task @add(a, b)
@@ -211,7 +208,7 @@ println(_str.upperCase())
 line(23)
 println(_str.lowerCase())
 line(24)
-println(_str.trim())
+println(_str.strip())
 line(25)
 println(_str.split("x"))
 line(26)
@@ -257,7 +254,7 @@ end
 task @reverseString3(s)
     if s == "" :
         return ""
-    else
+    else :
         return @reverseString3(s.substr(1)) + s.charAt(0)
     end
 end
@@ -317,11 +314,11 @@ end
 line(36)
 testDict("name", user)
 let age = 18
-let verified = if age >= 18 : true else false
+let verified = if age >= 18 : true else : false
 if verified:
     line(37)
     println("You are verified")
-else
+else :
     line(37)
     println("You are not verified")
 end

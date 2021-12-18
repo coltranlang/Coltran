@@ -880,7 +880,11 @@ class Parser:
                 if res.error: return res
                 values = expr.elements
                 for val in values:
-                    if not isinstance(val, VarAccessNode):
+                    if isinstance(val, StringNode):
+                        single_check_for_rest_operator = val.name.value.split('*')
+                        if len(single_check_for_rest_operator) > 1 and single_check_for_rest_operator[0] == "":
+                            self.error_detected = False
+                    elif not isinstance(val, VarAccessNode):
                         self.error_detected = True
                         return res.failure(self.error['Syntax']({
                             'pos_start': val.pos_start,
@@ -3371,14 +3375,11 @@ class Parser:
 
 # pa = (1,2,3,4,5,6,7,8,9,10)
 # print(pa[:2:1])
-
 # di = {'name1':'james', 'name2':'bond'}
 # print(di['name1'])
-
 # def getname(name):
 #     return di[name]
-
 # print(getname('name1'))
-
 # name = 'james'
 # print(name[::-1])
+
