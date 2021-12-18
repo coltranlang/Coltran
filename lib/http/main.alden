@@ -1,7 +1,6 @@
 # testing the http module
 class Http(url, headers, body)
     def init(self)
-        let n = 0
         if self.url == "http://www.google.com":
             self.type = "GET"
         end
@@ -58,3 +57,4 @@ let http = Http("http://www.google.com", "application/json", {
     age: "42"
 })
 println(http.to().repr())
+

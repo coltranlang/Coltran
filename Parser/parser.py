@@ -1682,13 +1682,6 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 return res.success(InNode(iterable_name_token, iterator_keys, body, False))
-            else:
-                return res.failure(self.error['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "Expected a newline",
-                    'exit': False
-                }))
         else:
             expr = res.register(self.expr())
             if not isinstance(expr, PairNode):
@@ -3382,4 +3375,3 @@ class Parser:
 # print(getname('name1'))
 # name = 'james'
 # print(name[::-1])
-

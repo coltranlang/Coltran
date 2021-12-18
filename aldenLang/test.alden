@@ -338,7 +338,14 @@ println(func.sum(1,2))
 line(39)
 println(car["getName"]())
 
-
+let l = [1,2,3,4,5,6,7,8,9,10]
+line(40)
+println(l[1:4:1])
+let food = " rice  beans chicken"
+let l = [1,2,3]
+let x = food.strip().join(in l as i: str(i))
+line(41)
+println(fm"I love %{x}")
 # task @makeList(item, list=[])
 #     list.append(item)
 #     return list
@@ -355,5 +362,3 @@ println(car["getName"]())
 # println(@makeList("napkins"))
 # println(@makeList("spoons"))
 
-let l = [1,2,3,4,5,6,7,8,9,10]
-print(l[1:4:1])

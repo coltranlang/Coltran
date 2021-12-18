@@ -1980,7 +1980,7 @@ class Class(BaseTask):
         self.constructor_args = constructor_args
         self.inherit_class_name = inherit_class_name
         self.inherit_class = inherit_class
-        self.methods = methods if methods else {}
+        self.methods_properties = methods if methods else {}
         self.context = context
         self.body_node = None
        
@@ -1991,14 +1991,13 @@ class Class(BaseTask):
         res = RuntimeResult()
         instance = ClassInstance(self)
         new_context = self.generate_new_context()
-        class_properties = []
-        class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.methods)
+        class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.methods_properties)
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
         if res.should_return(): return res
         # get repr method and call it
         # try:
-        #     repr_method = self.methods['repr']
+        #     repr_method = self.methods_properties['repr']
         #     interpreter = Interpreter()
         #     self_new = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherit_class, class_args, self.context)
         #     new_context.symbolTable.set('self', self_new)
@@ -2006,11 +2005,11 @@ class Class(BaseTask):
         #         repr_method.body_node, new_context)).value
         # except:
         #     self.__str__ = String("<Class {0}>".format(self.class_name)).value
-        for method_name, method in self.methods.items():
+        for method_name, method in self.methods_properties.items():
             method.context = new_context
             method = method.copy()
-            self.methods[method_name] = method
-            self.methods = class_args
+            self.methods_properties[method_name] = method
+            self.methods_properties = class_args
             # run init method if it exists
             if method_name == 'init':
                 method_args = method.arg_names
@@ -2031,7 +2030,7 @@ class Class(BaseTask):
         
         
     def set_method(self, key, value):
-        self.methods[key] = value
+        self.methods_properties[key] = value
         return self
 
 
@@ -2056,7 +2055,7 @@ class Class(BaseTask):
 
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
-                     self.inherit_class_name, self.inherit_class, self.methods, self.context)
+                     self.inherit_class_name, self.inherit_class, self.methods_properties, self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -2190,7 +2189,7 @@ class Module(Value):
         if isinstance(self.value, Object):
             self.properties = self.value.properties
             if isinstance(self.value.properties, Class):
-                self.properties = self.value.properties.methods
+                self.properties = self.value.properties.methods_properties
         else:
             self.properties = {}
         return self.value
@@ -4166,9 +4165,9 @@ class Interpreter:
         
         if isinstance(object_name, Class):
             if type(object_key).__name__ == "VarAccessNode":
-                if hasattr(object_name, "methods"):
-                    if object_key.id.value in object_name.methods:
-                        value = object_name.methods[object_key.id.value]
+                if hasattr(object_name, "methods_properties"):
+                    if object_key.id.value in object_name.methods_properties:
+                        value = object_name.methods_properties[object_key.id.value]
                         return res.success(value)
                     else:
                         if object_name.name == "Export":
@@ -4178,9 +4177,9 @@ class Interpreter:
                         return res.failure(Program.error()["KeyError"](error))
             
             if type(object_key).__name__ == "Token":
-                if hasattr(object_name, "methods"):
-                    if object_key.value in object_name.methods:
-                        value = object_name.methods[object_key.value]
+                if hasattr(object_name, "methods_properties"):
+                    if object_key.value in object_name.methods_properties:
+                        value = object_name.methods_properties[object_key.value]
                         return res.success(value)
                     else:
                         if object_name.name == "Export":
@@ -4190,10 +4189,10 @@ class Interpreter:
                         return res.failure(Program.error()["KeyError"](error))
             
             elif type(object_key).__name__ == "CallNode":
-                if hasattr(object_name, "methods"):
+                if hasattr(object_name, "methods_properties"):
                     if type(object_key.node_to_call).__name__ == "Token":
-                        if object_key.node_to_call.value in object_name.methods:
-                            value = object_name.methods[object_key.node_to_call.value]
+                        if object_key.node_to_call.value in object_name.methods_properties:
+                            value = object_name.methods_properties[object_key.node_to_call.value]
                             args_node = object_key.args_nodes
                             args = []
                             
@@ -5038,8 +5037,8 @@ class Interpreter:
         #print(type(object_name).__name__, type(property).__name__, type(value).__name__)
         if isinstance(object_name, Class):
             if type(property).__name__ == "Token":
-               if hasattr(object_name, "methods"):
-                   object_name.methods[property.value] = value
+               if hasattr(object_name, "methods_properties"):
+                   object_name.methods_properties[property.value] = value
         if isinstance(object_name, Dict):
             if type(property).__name__ == "Token":
                if hasattr(object_name, "properties"):
@@ -5644,8 +5643,8 @@ class Interpreter:
             key = node.right_node
             if isinstance(object_name, Class):
                 value = ""
-                if key.node_to_call.id.value in object_name.methods:
-                    value = object_name.methods[key.node_to_call.id.value]
+                if key.node_to_call.id.value in object_name.methods_properties:
+                    value = object_name.methods_properties[key.node_to_call.id.value]
                     args = key.args_nodes
                     return_value = res.register(key.node_to_call.id.value.execute(args))
                     #return_value = return_value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
@@ -5707,9 +5706,9 @@ class Interpreter:
                             "exit": False
                         }
             if isinstance(object_key, String):
-                if hasattr(object_name, "methods"):
-                    if object_key.value in object_name.methods:
-                        value = object_name.methods[object_key.value]
+                if hasattr(object_name, "methods_properties"):
+                    if object_key.value in object_name.methods_properties:
+                        value = object_name.methods_properties[object_key.value]
                         return value
                     else:
                         return res.failure(Program.error()["KeyError"](error))
@@ -5717,9 +5716,9 @@ class Interpreter:
                     error['message'] = "{} has no method '{}'".format(object_name.name, object_key.value)
                     return res.failure(Program.error()["KeyError"](error))
             elif isinstance(object_key, Number):
-                if hasattr(object_name, "methods"):
-                    if object_key.value in object_name.methods:
-                        value = object_name.methods[str(object_key.value)]
+                if hasattr(object_name, "methods_properties"):
+                    if object_key.value in object_name.methods_properties:
+                        value = object_name.methods_properties[str(object_key.value)]
                         return value
                     else:
                         return res.failure(Program.error()["KeyError"](error))
@@ -5727,9 +5726,9 @@ class Interpreter:
                     error['message'] = "{} has no method '{}'".format(object_name.name, object_key.value)
                     return res.failure(Program.error()["KeyError"](error))
             elif isinstance(object_key, ObjectRefNode):
-                if hasattr(object_name, "methods"):
-                    if object_key.value in object_name.methods:
-                        value = object_name.methods[object_key.value]
+                if hasattr(object_name, "methods_properties"):
+                    if object_key.value in object_name.methods_properties:
+                        value = object_name.methods_properties[object_key.value]
                         return value
                     else:
                         return res.failure(Program.error()["KeyError"](error))
@@ -5790,7 +5789,8 @@ class Interpreter:
             node.node_to_call, context)) if node.node_to_call else None
         if res.should_return():
             return res
-        value_to_call = value_to_call.copy().setPosition(node.pos_start, node.pos_end)
+        value_to_call = value_to_call.copy().setPosition(
+            node.pos_start, node.pos_end) if hasattr(value_to_call, 'copy') else value_to_call
         
         if not isinstance(value_to_call, Task) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInTask):
             return res.failure(Program.error()["Runtime"](
