@@ -4677,6 +4677,8 @@ class Interpreter:
                         'context': context,
                         'exit': False
                     }))
+                except AttributeError:
+                     pass
             else:
                 return res.failure(Program.error()['TypeError']({
                     'pos_start': node.pos_start,
@@ -4685,6 +4687,7 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
+        
         elif object_type == "pair":
             if index_type == "int":
                 try:
@@ -4698,6 +4701,8 @@ class Interpreter:
                         'context': context,
                         'exit': False
                     }))
+                except AttributeError:
+                    pass
             else:
                 return res.failure(Program.error()['TypeError']({
                     'pos_start': node.pos_start,
@@ -4706,6 +4711,7 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
+        
         elif object_type == "object":
             if index_type == "string":
                 try:
@@ -4719,6 +4725,8 @@ class Interpreter:
                         'context': context,
                         'exit': False
                     }))
+                except AttributeError:
+                    pass
             else:
                 return res.failure(Program.error()['TypeError']({
                     'pos_start': node.pos_start,
@@ -4727,6 +4735,7 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
+        
         elif object_type == "dict":
             if index_type == "string":
                 try:
@@ -4740,6 +4749,8 @@ class Interpreter:
                         'context': context,
                         'exit': False
                     }))
+                except AttributeError:
+                    pass
             else:
                 return res.failure(Program.error()['TypeError']({
                     'pos_start': node.pos_start,
@@ -4748,6 +4759,7 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
+        
         elif object_type == "string":
             try:
                 get_value = index_value.value[index.value]
@@ -4760,6 +4772,8 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
+            except AttributeError:
+                pass
 
 
     def visit_SliceNode(self, node, context):
