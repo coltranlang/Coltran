@@ -48,7 +48,7 @@ task @compareList(arr1, arr2)
     sorted(arr1)
     sorted(arr2)
     print(arr1, arr2)
-    if arr1 == arr2 then
+    if arr1 == arr2 :
         res = "The two lists are equal"
     else
         res = "The two lists are not equal"
@@ -119,8 +119,8 @@ car.getColor()
 
 
 task @filterByname(arr, name)
-    for i = 0 to len(arr) then
-        if arr[i].name == name then
+    for i = 0 to len(arr) :
+        if arr[i].name == name :
             return arr[i]
         end
     end
@@ -171,7 +171,7 @@ end
 
 
 line(19)
-in User as (key,value)  then
+in User as (key,value)  :
     #println(fm`Key: %{key[0]}, Value: %{key[1]}`) # getting key and value from People object by just using the key 
     println(fm`Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
 end
@@ -181,8 +181,8 @@ let numlist = [1, 2, 3, 4, 5]
 let numpairs = (5,6,7,8,9)
 let names = ["John", "Paul", "George", "Ringo"]
 line(20)
-in names as (name) then
-    if name == "John" then
+in names as (name) :
+    if name == "John" :
         println(fm`Hi %{name}`)
     end
     println(fm`%{name}`)
@@ -230,7 +230,7 @@ let name = "John Doe"
 let n = name.split()
 println(fm"First name: %{n[0]}, Last name: %{n[1]}")
 let value = []
-in n as (name) then
+in n as (name) :
     value.append(name)
     #append(value, name)
 end
@@ -247,7 +247,7 @@ end
 # reverse string with in-loop
 task @reverseString2(s)
     let result  = ""
-    in s as char then
+    in s as char :
         let result = char + result
     end
     return result
@@ -255,7 +255,7 @@ end
 
 # reverse string with recursion
 task @reverseString3(s)
-    if s == "" then
+    if s == "" :
         return ""
     else
         return @reverseString3(s.substr(1)) + s.charAt(0)
@@ -299,7 +299,10 @@ let (first, second, *rest) = [1,2,3,4,5,6,7,8,9,10]
 line(35)
 println(rest)
 
-let user = {name: "John",age: 30,isAdmin: false,
+let user = {
+    name: "John",
+    age: 30,
+    isAdmin: false,
     friends: ["Max", "Ann", "Kate"],
     cities: [
         { name: "New York", population: 800_000 },
@@ -313,6 +316,32 @@ task testDict(name, userdata)
 end
 line(36)
 testDict("name", user)
+let age = 18
+let verified = if age >= 18 : true else false
+if verified:
+    line(37)
+    println("You are verified")
+else
+    line(37)
+    println("You are not verified")
+end
+let func = {
+    sum: task (a,b)
+        return a + b
+    end
+}
+
+let car = {
+    name: "Ford",
+    color: "Black",
+    getName: task () -> "My car is a " + car.name + " and it is " + car.color
+}
+line(38)
+println(func.sum(1,2))
+line(39)
+println(car["getName"]())
+
+
 # task @makeList(item, list=[])
 #     list.append(item)
 #     return list
@@ -328,3 +357,6 @@ testDict("name", user)
 # println(@makeList("tissue"))
 # println(@makeList("napkins"))
 # println(@makeList("spoons"))
+
+let l = [1,2,3,4,5,6,7,8,9,10]
+print(l[1:4:1])

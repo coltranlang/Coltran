@@ -1,12 +1,12 @@
 # FizzBuzz
 let num = 16
 
-for i = 0 to num then
-    if i % 3 == 0 and i % 5 == 0 then
+for i = 0 to num :
+    if i % 3 == 0 and i % 5 == 0 :
         println("FizzBuzz")
-        elif i % 3 == 0 then
+        elif i % 3 == 0 :
         println("Fizz")
-        elif i % 5 == 0 then
+        elif i % 5 == 0 :
         println("Buzz")
         else
         println(i)
@@ -15,7 +15,7 @@ end
 
 task @map(arr, tsk)
     let res = []
-    for i = 0 to len(arr) - 1 then
+    for i = 0 to len(arr) - 1 :
         append(res, tsk(arr[i]))
     end
     return res
@@ -23,8 +23,8 @@ end
 
 task @filter(arr, tsk)
     let res = []
-    for i = 0 to len(arr) - 1 then
-        if tsk(arr[i]) then
+    for i = 0 to len(arr) - 1 :
+        if tsk(arr[i]) :
             append(res, arr[i])
         end
     end

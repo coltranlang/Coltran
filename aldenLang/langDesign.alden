@@ -1,46 +1,39 @@
 # This is a comment
-get users from "./users"; 
+get users from "./users" 
 
-task @greet(name) -> "Hello " + name; 
+task @greet(name) -> "Hello " + name
 
 
 task @loop(numFrom, numTo)
     let result = ""
-	for i = numFrom to numTo then
+	for i = numFrom to numTo :
 		result = i
-	endFor
-	return results
-endTask
+	end
+	return result
+end
 
 
 
 task @main()
 	let result = 8 + (let x = 6)
 	return result
-endTask
+end
 
 let name = "John"
 let age = 25
-if name == "John" then
+if name == "John" :
 	let result = @greet(name)
 	return result
 else
 	let result = "Hello " + name
 	return result
-
+end
 print("name")
 
-if age > 18 and name == "John" and then
+if age > 18 and name == "John" :
 	let result = "You are old enough"
 	return print(result)
 else
 	let result = "You are not old enough"
 	return print(result)
-
-format("Hello {name}", name)
-format("This is a {0} {1}", "test1", "test2")
-format"Hello :name:"
-
-let a = "a"
-let a += "a"
-let abc = a + "b" + "c"
+end

@@ -27,7 +27,7 @@ class Regex:
 class Program:
     def error():
         def IllegalCharacter(options):
-            error = f'\nFile: {options["pos_start"].fileName} at line {options["pos_start"].line + 1}\n\nSyntaxError: Illegal character unexpected  {options["originator"]}\n'
+            error = f"\nFile: {options['pos_start'].fileName} at line {options['pos_start'].line + 1}\n\nSyntaxError: Illegal character unexpected  '{options['originator']}'\n"
             Program.printError(error)
 
         def Syntax(detail):

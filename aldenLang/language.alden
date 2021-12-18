@@ -59,7 +59,7 @@ let (pair_b, pair_c) = pair_a # declare two variables named `pair_b` and `pair_c
 #   - Objects are collections of key-value pairs.
 #   - Objects are declared with the `Object` keyword.
 #   - Objects names starting with a capital letter.
-#   - Objects don;t use comma's after the last key-value pair.
+#   - Objects don't use comma's after the last key-value pair.
 #  - The 'end' keyword is used to end an object.
 object Object_a
     name: "Alden"

@@ -25,7 +25,7 @@ string_methods = {
             'substr': 'substr',
             'replace': 'replace',
             'slice': 'slice',
-            'trim': 'trim',
+            'strip': 'strip',
             'length': 'length',
             'charAt': 'charAt',
  }
@@ -65,7 +65,15 @@ def string_split(string, delimiter):
 def getsubstr(string, start, end):
         return string[start:end]
 
-
+def string_strip(text):
+    split_text = text.split()
+    new_text = ''
+    for i in range(len(split_text)):
+        if i == 0:
+            new_text += split_text[i].strip()
+        else:
+            new_text += ' ' + split_text[i].strip()
+    return new_text
 
 class Regex:
         def __init__(self):
@@ -219,7 +227,19 @@ class Program:
                 Program.printErrorExit(Program.asStringTraceBack(isDetail))
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
-     
+
+        def ZeroDivisionError(detail):
+            isDetail = {
+                'name': 'ZeroDivisionError',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
 
         def TypeError(detail):
             isDetail = {
@@ -262,8 +282,7 @@ class Program:
                 Program.printErrorExit(Program.asStringTraceBack(isDetail))
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
-                
-                
+                          
         def IndexError(detail):
             isDetail = {
                 'name': 'IndexError',
@@ -298,6 +317,7 @@ class Program:
             'IllegalCharacter': IllegalCharacter,
             'Syntax': Syntax,
             'Runtime': Runtime,
+            'ZeroDivisionError': ZeroDivisionError,
             'TypeError': TypeError,
             'KeyError': KeyError,
             'ValueError': ValueError,
@@ -305,9 +325,6 @@ class Program:
             'ModuleError': ModuleError
         }
         return methods
-
-    def NoneValue():
-        return 'none'
 
     def printWithType(*args):
         for arg in args:
@@ -389,8 +406,8 @@ class Program:
 class RuntimeResult:
     def __init__(self):
         self.reset()
-
-    def reset(self):
+        
+    def reset(self, error=None):
         self.value = None
         self.error = None
         self.func_return_value = None
@@ -428,13 +445,13 @@ class RuntimeResult:
         return self
 
     def failure(self, error):
-        self.reset()
-        self.error = error
+        self.reset(True)
+        self.error = True
+        self.value = ''
         return self
 
     def noreturn(self):
-        self.reset()
-        return self
+        return str('')
 
     def should_return(self):
         return (
@@ -444,8 +461,7 @@ class RuntimeResult:
             self.loop_break
         )
 
-    # def __repr__(self):
-    #     return f'{self.value}, {self.error}'
+    
 
 
 class Value:
@@ -782,6 +798,15 @@ class Number(Value):
             return None, self.illegal_operation_typerror(error)
 
     def divided_by(self, other):
+        if other.value == 0:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"division by zero",
+                'context': self.context,
+                'exit': False
+            }
+            return None, Program.error()['ZeroDivisionError'](error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1986,6 +2011,21 @@ class Class(BaseTask):
             method = method.copy()
             self.methods[method_name] = method
             self.methods = class_args
+            # run init method if it exists
+            if method_name == 'init':
+                method_args = method.arg_names
+                if len(method_args) == 1:
+                    method_args = method_args[1:]
+                else:
+                    return res.failure(Program.error()['Runtime']({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"{method_name} method cannot have any arguments",
+                        'context': self.context,
+                        'exit': False
+                    }))
+                res.register(method.run(method_args, self, new_context))
+                if res.should_return(): return res
         return res.success(self)
         
         
@@ -2327,7 +2367,7 @@ def BuiltInTask_Print(args, node):
         except:
             pass
         sys.stdout.write(value)
-    return res.success(None)
+    return res.noreturn()
 
 
 def BuiltInTask_PrintLn(args, node):
@@ -2369,7 +2409,7 @@ def BuiltInTask_Input(args, node, context):
                 return res.failure("KeyboardInterrupt")
             return res.success(String(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["Type"]({
+            return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0]} is not a valid argument for input()",
@@ -2407,7 +2447,7 @@ def BuiltInTask_InputInt(args, node, context):
                     return res.failure("KeyboardInterrupt")
             return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["Type"]({
+            return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for inputInt()",
@@ -2445,7 +2485,7 @@ def BuiltInTask_InputFloat(args, node, context):
                     return res.failure("KeyboardInterrupt")
             return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["Type"]({
+            return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for inputFloat()",
@@ -2480,7 +2520,7 @@ def BuiltInTask_InputBool(args, node, context):
                     return res.failure("KeyboardInterrupt")
             return res.success(Boolean(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["Type"]({
+            return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for inputBool()",
@@ -2499,19 +2539,7 @@ def BuiltInTask_Str(args, node, context):
             "context": context,
             'exit': False
         }))
-    if isinstance(args[0], String):
-        return res.success(args[0])
-    if isinstance(args[0], Number):
-        return res.success(String(str(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    if isinstance(args[0], Boolean):
-        return res.success(String(str(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    return res.failure(Program.error()["Type"]({
-        "pos_start": node.pos_start,
-        "pos_end": node.pos_end,
-        'message': f"{args[0].value} is not a valid argument for str()",
-        "context": context,
-        'exit': False
-    }))
+    return res.success(String(str(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     
     
 def BuiltInTask_Range(args, node, context):
@@ -2529,7 +2557,7 @@ def BuiltInTask_Range(args, node, context):
     if len(args) == 1:
         if isinstance(args[0], Number):
             return res.success(Number(range(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        return res.failure(Program.error()["Type"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{args[0].value} is not a valid argument for range()",
@@ -2554,7 +2582,7 @@ def BuiltInTask_Int(args, node, context):
         try:
             return res.success(Number(int(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         except ValueError:
-            return res.failure(Program.error()["Type"]({
+            return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for int()",
@@ -2588,7 +2616,7 @@ def BuiltInTask_Float(args, node, context):
         try:
             return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         except ValueError:
-            return res.failure(Program.error()["Type"]({
+            return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for float()",
@@ -2597,7 +2625,7 @@ def BuiltInTask_Float(args, node, context):
             }))
     if isinstance(args[0], Boolean):
         return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    return res.failure(Program.error()["Type"]({
+    return res.failure(Program.error()["TypeError"]({
         "pos_start": node.pos_start,
         "pos_end": node.pos_end,
         'message': f"{args[0].value} is not a valid argument for float()",
@@ -2625,7 +2653,7 @@ def BuiltInTask_Bool(args, node, context):
         try:
             return res.success(Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         except ValueError:
-            return res.failure(Program.error()["Type"]({
+            return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid argument for bool()",
@@ -2659,7 +2687,7 @@ def BuiltInTask_List(args, node, context):
             new_list.append(String(char).setPosition(node.pos_start, node.pos_end).setContext(context))
         return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
     elif isinstance(args[0], Boolean):
-        return res.failure(Program.error()["Type"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
@@ -2674,7 +2702,7 @@ def BuiltInTask_List(args, node, context):
             new_list.append(value)
         return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
     else: 
-        return res.failure(Program.error()["Type"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
@@ -2709,7 +2737,7 @@ def BuiltInTask_Pair(args, node, context):
         return res.success(Pair(values).setPosition(node.pos_start, node.pos_end).setContext(context))
     
     else:
-        return res.failure(Program.error()["Type"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
@@ -2733,7 +2761,7 @@ def BuiltInTask_Object(args, node, context):
         return res.success(args[0])
     
     if isinstance(args[0], Number):
-        return res.failure(Program.error()["Type"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
@@ -2756,7 +2784,7 @@ def BuiltInTask_Max(args, node, context):
     if isinstance(args[0], Number) and isinstance(args[1], Number):
         return res.success(Number(max(args[0].value, args[1].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
-        return res.failure(Program.error()["Type"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
@@ -2779,7 +2807,7 @@ def BuiltInTask_Min(args, node, context):
     if isinstance(args[0], Number) and isinstance(args[1], Number):
         return res.success(Number(min(args[0].value, args[1].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
-        return res.failure(Program.error()["Type"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
@@ -2810,7 +2838,7 @@ def BuiltInTask_Sorted(args, node, context):
         is_sorted = sorted(new_elements)
         return res.success(List(is_sorted).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
-        return res.failure(Program.error()["Type"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
@@ -2844,7 +2872,7 @@ def BuiltInTask_Substr(args, node, context):
             return res.success(String(getsubstr(args[0].value, start, start + length)).setPosition(node.pos_start, node.pos_end).setContext(context))
     
     else:
-        return res.failure(Program.error()["Type"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
@@ -2875,7 +2903,7 @@ def BuiltInTask_Reverse(args, node, context):
         new_elements.reverse()
         return res.success(List(new_elements).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
-        return res.failure(Program.error()["Type"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
@@ -2990,7 +3018,7 @@ def BuiltInTask_Delay(args, node, context):
 def BuiltInTask_Exit(args, node, context):
     res = RuntimeResult()
     if len(args) == 0:
-                    sys.exit()
+        sys.exit()
     elif len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
             "pos_start": node.pos_start,
@@ -3104,18 +3132,18 @@ class BuiltInMethod_String(Value):
             return String(self.name.value.capitalize()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
     
         
-    def BuiltInMethod_trim(self):
+    def BuiltInMethod_strip(self):
         res = RuntimeResult()
         if len(self.args) != 0:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but Trim() takes no argument",
+                'message': f"{len(self.args)} arguments given, but strip() takes no argument",
                 "context": self.context,
                 'exit': False
             }))
         else:
-            return String(self.name.value.strip()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return String(string_strip(self.name.value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
     
     
     def BuiltInMethod_split(self):
@@ -3192,11 +3220,38 @@ class BuiltInMethod_String(Value):
         res = RuntimeResult()
         if len(self.args) == 1:
             if isinstance(self.args[0], List):
-                return String(self.name.value.join([x.value for x in self.args[0].elements])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                try:
+                    return String(self.name.value.join([x.value for x in self.args[0].elements])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                except:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": self.node.pos_start,
+                        "pos_end": self.node.pos_end,
+                        'message': f"expected sequence of strings, but got {TypeOf(self.args[0]).getType()}",
+                        "context": self.context,
+                        'exit': False
+                    }))
             elif isinstance(self.args[0], Pair):
-                return String(self.name.value.join([x.value for x in self.args[0].elements])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                try:
+                    return String(self.name.value.join([x.value for x in self.args[0].elements])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                except:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": self.node.pos_start,
+                        "pos_end": self.node.pos_end,
+                        'message': f"expected sequence of strings, but got {TypeOf(self.args[0]).getType()}",
+                        "context": self.context,
+                        'exit': False
+                    }))
             elif isinstance(self.args[0], Object):
-                return String(self.name.value.join([x.value for x in self.args[0].get_keys()])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                try:
+                    return String(self.name.value.join([x.value for x in self.args[0].get_keys()])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                except:
+                    return res.failure(Program.error()["Runtime"]({
+                        "pos_start": self.node.pos_start,
+                        "pos_end": self.node.pos_end,
+                        'message': f"expected sequence of strings, but got {TypeOf(self.args[0]).getType()}",
+                        "context": self.context,
+                        'exit': False
+                    }))
             else:
                 return res.failure(Program.error()["Runtime"]({
                     "pos_start": self.node.pos_start,
@@ -3706,7 +3761,12 @@ def BuiltInModule_Http(context):
     module_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return Module("http", module_path, context)
  
+ 
+ 
 class Interpreter:
+    
+    def __init__(self):
+        self.error_detected = False
     
     def visit(self, node, context):
         method_name = f'visit_{type(node).__name__}'
@@ -3756,35 +3816,38 @@ class Interpreter:
         string_to_interp = res.register(self.visit(node.expr, context)).value
         inter_pv = node.inter_pv
         value = ""
-        if isinstance(values_to_replace, list):
-            for pv in range(len(inter_pv)):
-                replace_value = res.register(self.visit(values_to_replace[pv], context))
-                value_replaced = str(replace_value)
-                if isinstance(replace_value, String):
-                    value_replaced = str(replace_value.value)
-                if value_replaced[0] == "'":
-                    value_replaced = str(value_replaced[1:-1])
-                if value_replaced == "None":
-                    value_replaced = str(NoneType.none)
-                # replace placeholder with value
-                string_to_interp = string_to_interp.replace(
-                    '%{' + str(inter_pv[pv]) + '}', value_replaced)
-                if '%%{{' in string_to_interp and '}}' in string_to_interp:
+        try:
+            if isinstance(values_to_replace, list):
+                for pv in range(len(inter_pv)):
+                    replace_value = res.register(self.visit(values_to_replace[pv], context))
+                    value_replaced = str(replace_value)
+                    if isinstance(replace_value, String):
+                        value_replaced = str(replace_value.value)
+                    if value_replaced[0] == "'":
+                        value_replaced = str(value_replaced[1:-1])
+                    if value_replaced == "None":
+                        value_replaced = str(NoneType.none)
+                    # replace placeholder with value
                     string_to_interp = string_to_interp.replace(
-                        '%%{{' + str(inter_pv[pv]) + '}}', '%{' + str(value_replaced) + '}')
-                elif '{{' in string_to_interp and '}}' in string_to_interp:
-                    string_to_interp = string_to_interp.replace(
-                        '%{{' + str(inter_pv[pv]) + '}}', '{' + str(value_replaced) + '}')
-                value = String(string_to_interp).setContext(
-                    context).setPosition(node.pos_start, node.pos_end)
-        else:
-            string = values_to_replace
-            value = String(string).setContext(context).setPosition(node.pos_start, node.pos_end)
-            
-        if value:
-            return res.success(value)
-        else:
-            res.noreturn()
+                        '%{' + str(inter_pv[pv]) + '}', value_replaced)
+                    if '%%{{' in string_to_interp and '}}' in string_to_interp:
+                        string_to_interp = string_to_interp.replace(
+                            '%%{{' + str(inter_pv[pv]) + '}}', '%{' + str(value_replaced) + '}')
+                    elif '{{' in string_to_interp and '}}' in string_to_interp:
+                        string_to_interp = string_to_interp.replace(
+                            '%{{' + str(inter_pv[pv]) + '}}', '{' + str(value_replaced) + '}')
+                    value = String(string_to_interp).setContext(
+                        context).setPosition(node.pos_start, node.pos_end)
+            else:
+                string = values_to_replace
+                value = String(string).setContext(context).setPosition(node.pos_start, node.pos_end)
+                
+            if value:
+                return res.success(value)
+            else:
+                res.noreturn()
+        except:
+            pass
     
     
     def visit_ListNode(self, node, context):
@@ -3842,7 +3905,7 @@ class Interpreter:
                     'pos_end': node.pos_end,
                     'message': f'{node.value_node.value} is not defined',
                     'context': context,
-                    'exit': True
+                    'exit': False
                 })
         
         if type(node.variable_name_token).__name__ == "tuple":
@@ -4032,7 +4095,7 @@ class Interpreter:
                 'pos_end': node.pos_end,
                 'message': f'{var_name} is not defined',
                 'context': context,
-                'exit': True
+                'exit': False
             })
             return res.noreturn()
         
@@ -4126,6 +4189,7 @@ class Interpreter:
                             if object_name.name == "Export":
                                 error['message'] = f"Export has no member '{object_key.node_to_call.value}'"
                             else:
+                                self.error_detected = True
                                 error["message"] = f"{object_name.name} has no method {object_key.node_to_call.value}"
                             return res.failure(Program.error()["KeyError"](error))
                     # else:
@@ -4301,12 +4365,8 @@ class Interpreter:
                         value = object_name.properties[object_key.value]
                         return res.success(value)
                     else:
-                        print()
-                        # if object_name.properties['__name']:
-                        #     name = object_name.properties['__name']
-                        #     error["message"] = f"{name} has no property {object_key.value}"
-                        # else:
-                        error["message"] = f"{object_name.name} has no property {object_key.value}"
+                        self.error_detected = True
+                        error["message"] = f"'{object_key.value}'"
                         return res.failure(Program.error()["KeyError"](error))
 
             elif type(object_key).__name__ == "PropertyNode":
@@ -4476,18 +4536,7 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
-          
-        elif type(object_name).__name__ == "NoneType":
-            
-            if type(node.name).__name__ == "CallNode":
-                return res.failure(Program.error()['Runtime']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"Undefined property {object_key.value}" if hasattr(object_key, "value") else f"Undefined property {object_key.id.value}",
-                    'context': context,
-                    'exit': False
-                }))
-            
+         
         elif type(object_name).__name__ == "PropertyNode":
             print("PropertyNode", "fg")
             print(type(object_key))
@@ -4580,14 +4629,8 @@ class Interpreter:
                         return res.success(value)
        
         else:
-            if isinstance(object_name, List):
-                list_properties = {
-                    'length': Number(len(object_name.elements)),
-                }
-                if object_key.value in list_properties:
-                    value = list_properties[object_key.value]
-                    return res.success(value)
-            #print(isinstance(object_name, List), object_key, 'ff')
+            error["message"] = f"'{TypeOf(object_name).getType()}' has no property {object_key.node_to_call.value}"
+            return res.failure(Program.error()["KeyError"](error))
 
 
     def visit_IndexNode(self, node, context):
@@ -4648,7 +4691,7 @@ class Interpreter:
                     return res.failure(Program.error()['KeyError']({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
-                        'message': f"{index_value.name} has no property '{index.value}'" if index.value != "" else f"''",
+                        'message': f"'{index.value}'",
                         'context': context,
                         'exit': False
                     }))
@@ -4669,7 +4712,7 @@ class Interpreter:
                     return res.failure(Program.error()['KeyError']({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
-                        'message': f"{index_value.name} has no property '{index.value}'" if index.value != "" else f"''",
+                        'message': f"'{index.value}'",
                         'context': context,
                         'exit': False
                     }))
@@ -4961,13 +5004,21 @@ class Interpreter:
                 'exit': False  
             }))  
         
-    
+   
     def visit_PropertySetNode(self, node, context):
         res = RuntimeResult()
         object_name = res.register(self.visit(node.name, context))
-        object_key = node.property
+        property = node.property
         value = res.register(self.visit(node.value, context))
-        #print(object_name, object_key, value)  
+        #print(type(object_name).__name__, type(property).__name__, type(value).__name__)
+        if isinstance(object_name, Class):
+            if type(property).__name__ == "Token":
+               if hasattr(object_name, "methods"):
+                   object_name.methods[property.value] = value
+        if isinstance(object_name, Dict):
+            if type(property).__name__ == "Token":
+               if hasattr(object_name, "properties"):
+                   object_name.properties[property.value] = value
       
     
     def visit_ExportModuleNode(self, node, context):
@@ -4985,7 +5036,7 @@ class Interpreter:
                         'pos_end': node.pos_end,
                         'message': f'{name} is not defined',
                         'context': context,
-                        'exit': True
+                        'exit': False
                     })
                 else:
                     #print(name, value)
@@ -5007,7 +5058,7 @@ class Interpreter:
                 'pos_end': node.pos_end,
                 'message': f'{node.value.value} is not defined',
                 'context': context,
-                'exit': True
+                'exit': False
             })
         return res.success(Object(var_name,value, "module"))
     
@@ -5062,8 +5113,7 @@ class Interpreter:
         res = RuntimeResult()
         try:
             left = res.register(self.visit(node.left_node, context))
-            if res.should_return():
-                return res
+            if res.should_return(): return res
             right = res.register(self.visit(node.right_node, context))
             if node.op_tok.type == tokenList.TT_PLUS:
                 result, error = left.added_to(right)
@@ -5106,8 +5156,8 @@ class Interpreter:
                 return res.failure(error)
             else:
                 return res.success(result.setPosition(node.pos_start, node.pos_end))
-        except AttributeError or TypeError or ValueError:
-            return RuntimeResult()
+        except:
+            pass
 
     
     def visit_UnaryOpNode(self, node, context):
@@ -5241,7 +5291,7 @@ class Interpreter:
                 'pos_end': node.pos_end,
                 'message': f'{node.iterable_node.value} is not defined',
                 'context': context,
-                'exit': True
+                'exit': False
             }))
         
  
@@ -5710,82 +5760,79 @@ class Interpreter:
    
     def visit_CallNode(self, node, context):
         res = RuntimeResult()
-        try:
-            args = []
-            value_to_call = res.register(self.visit(
-                node.node_to_call, context)) if node.node_to_call else None
+        args = []
+        value_to_call = res.register(self.visit(
+            node.node_to_call, context)) if node.node_to_call else None
+        if res.should_return():
+            return res
+        value_to_call = value_to_call.copy().setPosition(node.pos_start, node.pos_end)
+        
+        if not isinstance(value_to_call, Task) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInTask):
+            return res.failure(Program.error()["Runtime"](
+                {
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    "message": "'{}' is not callable".format(node.node_to_call.name.value),
+                    "context": context,
+                    "exit": False
+                }))
+        for arg_node in node.args_nodes:
+            args.append(res.register(self.visit(arg_node, context)))
             if res.should_return():
                 return res
-            value_to_call = value_to_call.copy().setPosition(node.pos_start, node.pos_end)
             
-            if not isinstance(value_to_call, Task) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInTask):
-                return res.failure(Program.error()["Runtime"](
-                    {
-                        "pos_start": node.pos_start,
-                        "pos_end": node.pos_end,
-                        "message": "'{}' is not callable".format(node.node_to_call.name.value),
-                        "context": context,
-                        "exit": False
-                    }))
-            for arg_node in node.args_nodes:
-                args.append(res.register(self.visit(arg_node, context)))
-                if res.should_return():
-                    return res
+        if len(args) > 0:
+            for arg in args:
+                if arg == None:
+                    # remove None from args
+                    args = [x for x in args if x != None]
                 
-            if len(args) > 0:
-                for arg in args:
-                    if arg == None:
-                        # remove None from args
-                        args = [x for x in args if x != None]
-                    
-            builtin = value_to_call.name
-            
-            builtins = {
-                'print': BuiltInTask_Print,
-                'println': BuiltInTask_PrintLn,
-                'input': BuiltInTask_Input,
-                'inputInt': BuiltInTask_InputInt,
-                'inputFloat': BuiltInTask_InputFloat,
-                'format': BuiltInTask_Format,
-                'str': BuiltInTask_Str,
-                'range': BuiltInTask_Range,
-                'int': BuiltInTask_Int,
-                'float': BuiltInTask_Float,
-                'bool': BuiltInTask_Bool,
-                'list': BuiltInTask_List,
-                'pair' : BuiltInTask_Pair,
-                'object': BuiltInTask_Object,
-                'max': BuiltInTask_Max,
-                'min': BuiltInTask_Min,
-                'sorted': BuiltInTask_Sorted,
-                'substr': BuiltInTask_Substr,
-                'reverse': BuiltInTask_Reverse,
-                #'Binary': BuiltInTask_Binary,
-                'line': BuiltInTask_Line,
-                'clear': BuiltInTask_Clear,
-                'typeof': BuiltInTask_Typeof,
-                'delay': BuiltInTask_Delay,
-                'exit': BuiltInTask_Exit
-            }
-            
-            
-            
-            if builtin in builtins:
-                if builtin == 'print' or builtin == 'println':
-                    return builtins[builtin](args,node)
-                return builtins[builtin](args, node, context)
-            
-            return_value = res.register(value_to_call.execute(args))
-            
-            if res.should_return():
-                return res
-            return_value = return_value.copy().setPosition(
-                node.pos_start, node.pos_end).setContext(context)
-            if isinstance(return_value, NoneType):
-                return res.noreturn()
-            return res.success(return_value)
-        except AttributeError or TypeError or ValueError:
-            return RuntimeResult()
+        builtin = value_to_call.name
+        
+        builtins = {
+            'print': BuiltInTask_Print,
+            'println': BuiltInTask_PrintLn,
+            'input': BuiltInTask_Input,
+            'inputInt': BuiltInTask_InputInt,
+            'inputFloat': BuiltInTask_InputFloat,
+            'format': BuiltInTask_Format,
+            'str': BuiltInTask_Str,
+            'range': BuiltInTask_Range,
+            'int': BuiltInTask_Int,
+            'float': BuiltInTask_Float,
+            'bool': BuiltInTask_Bool,
+            'list': BuiltInTask_List,
+            'pair' : BuiltInTask_Pair,
+            'object': BuiltInTask_Object,
+            'max': BuiltInTask_Max,
+            'min': BuiltInTask_Min,
+            'sorted': BuiltInTask_Sorted,
+            'substr': BuiltInTask_Substr,
+            'reverse': BuiltInTask_Reverse,
+            #'Binary': BuiltInTask_Binary,
+            'line': BuiltInTask_Line,
+            'clear': BuiltInTask_Clear,
+            'typeof': BuiltInTask_Typeof,
+            'delay': BuiltInTask_Delay,
+            'exit': BuiltInTask_Exit
+        }
+        
+        
+        
+        if builtin in builtins:
+            if builtin == 'print' or builtin == 'println':
+                return builtins[builtin](args,node)
+            return builtins[builtin](args, node, context)
+        
+        return_value = res.register(value_to_call.execute(args))
+        
+        if res.should_return():
+            return res
+        return_value = return_value.copy().setPosition(
+            node.pos_start, node.pos_end).setContext(context) if hasattr(return_value, 'copy') else return_value
+        if isinstance(return_value, NoneType):
+            return res.noreturn()
+        return res.success(return_value)
          
     
     def visit_ReturnNode(self, node, context):

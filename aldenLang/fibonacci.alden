@@ -1,5 +1,5 @@
 task @fibonacci(num)
-    if num <= 1 then
+    if num <= 1 :
         return num
     else
         return @fibonacci(num - 1) + @fibonacci(num - 2)

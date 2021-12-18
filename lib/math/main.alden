@@ -7,14 +7,14 @@ println(run)
 object Math
    add: task (a, b) -> a + b
    min: task (a, b)
-      if a < b then
+      if a < b :
         return a
       else
          return b
       end
    end
    max: task (a, b)
-      if a > b then
+      if a > b :
          return a
       else
          return b
@@ -22,7 +22,7 @@ object Math
    end
    pow: task (a, b) -> a ^ b
    abs: task (a)
-      if a < 0 then
+      if a < 0 :
          return -a
       else
          return a

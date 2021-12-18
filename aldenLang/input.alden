@@ -13,7 +13,7 @@ end
 
 task @getNumber()
     let result = inputInt("\nGuess a number between 1 and 10 ")
-    if result < 1 or result > 10 then
+    if result < 1 or result > 10 :
         print("\nThat is not a valid number")
         return @getNumber()
     end

@@ -6,10 +6,10 @@ let v = 0
 v = v + 37
 println(v)
 task @sum(message)
-    if message == "hello" then
+    if message == "hello" :
         let greeting = "Hello"
         println(greeting)
     end
-    println(greeting) # error
+    println(greeting) # error if message is not "hello"
 end
 @sum("test")
