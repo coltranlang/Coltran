@@ -31,6 +31,7 @@ TT_GTE ='GTE'
 TT_LTE ='LTE'
 TT_PLUS_EQ = 'PLUS_EQ'
 TT_AND = 'AND'
+TT_NOT_IN = 'NOT_IN'
 TT_COLON = 'COLON'
 TT_SEMICOLON ='SEMICOLON'
 TT_IDENTIFIER = 'IDENTIFIER'
@@ -149,6 +150,8 @@ KEYWORDS = [
     'for',
     'to',
     'in',
+    'notin',
+    'is',
     'as',
     'get',
     'from',

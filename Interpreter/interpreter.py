@@ -28,6 +28,8 @@ string_methods = {
             'strip': 'strip',
             'length': 'length',
             'charAt': 'charAt',
+            'includes': 'includes',
+            'startsWith': 'startsWith',
  }
 
 list_methods = {
@@ -42,6 +44,9 @@ list_methods = {
                 'setItem': 'setItem',
                 'slice': 'slice',
                 'join': 'join',
+                'sort': 'sort',
+                'contains': 'contains',
+                'includes': 'includes',
             }
 
 number_methods = {
@@ -99,6 +104,7 @@ class Regex:
 
 def isEmptyString(value):
     return value == ""
+ 
             
 class TypeOf:
     def __init__(self, type):
@@ -136,6 +142,14 @@ class TypeOf:
                 result = 'class'
             elif isinstance(self.type, Task):
                 result = 'task'
+            elif isinstance(self.type, BuiltInTask):
+                result = 'builtin_task'
+            elif isinstance(self.type, BuiltInMethod):
+                result = 'builtin_method'
+            elif isinstance(self.type, BuiltInMethod_String):
+                result = 'builtin_method_string'
+            elif isinstance(self.type, BuiltInMethod_List):
+                result = 'builtin_method_list'
             elif isinstance(self.type, Dict):
                 result = 'dict'
             else:
@@ -613,6 +627,22 @@ class Value:
             'context': self.context
         })
 
+    def get_comparison_in(self, other):
+        return None, self.illegal_operation_typerror({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'in' operator cannot be used with {TypeOf(self).getType()} on {TypeOf(other).getType()}",
+            'context': self.context
+        })
+        
+    def get_comparison_notin(self, other):
+        return None, self.illegal_operation_typerror({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'not in' operator cannot be used with {TypeOf(self).getType()} on {TypeOf(other).getType()}",
+            'context': self.context
+        })
+
     def notted(self, other):
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
@@ -635,7 +665,7 @@ class Value:
         raise Exception('No copy method defined')
 
     def is_true(self):
-        return "false"
+        return Boolean(False)
 
     def illegal_operation(self, error, other=None):
         if not other:
@@ -856,7 +886,7 @@ class Number(Value):
 
     def get_comparison_ne(self, other):
         return Boolean(setNumber(self.value) != setNumber(other.value)), None
-
+    
     def get_comparison_lt(self, other):
         if isinstance(other, Number):
             return self.setTrueorFalse(setNumber(self.value) < setNumber(other.value)).setContext(self.context), None
@@ -882,6 +912,60 @@ class Number(Value):
         else:
             return None, self.illegal_operation_typerror(error, other)
 
+    def get_comparison_in(self, other):
+        new_list = []
+        for el in other.value:
+            if hasattr(el, 'value'):
+                new_list.append(el.value) 
+            elif hasattr(el, 'name'):
+                new_list.append(el) 
+            else:
+                new_list.append(el)
+        error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"'in' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'context': self.context,
+                    'exit': False
+                }
+        if isinstance(other, List):
+            return self.setTrueorFalse(setNumber(self.value) in new_list).setContext(self.context), None
+        if isinstance(other, Pair):
+            return self.setTrueorFalse(setNumber(self.value) in new_list).setContext(self.context), None
+        else:
+            return None, self.illegal_operation_typerror(error, other)
+
+    def get_comparison_not_in(self, other):
+        val = 'false'
+        if self.get_comparison_in(other)[0].value == "false":
+            val = "true"
+        return Boolean(val), None
+                
+        
+    
+    def get_comparison_notin(self, other):
+        new_list = []
+        for el in other.value:
+            if hasattr(el, 'value'):
+                new_list.append(el.value) 
+            elif hasattr(el, 'name'):
+                new_list.append(el) 
+            else:
+                new_list.append(el)
+        error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"'not in' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'context': self.context,
+                    'exit': False
+                }
+        if isinstance(other, List):
+            return self.setTrueorFalse(setNumber(self.value) not in new_list).setContext(self.context), None
+        if isinstance(other, Pair):
+            return self.setTrueorFalse(setNumber(self.value) not in new_list).setContext(self.context), None
+        else:
+            return None, self.illegal_operation_typerror(error, other)
+    
     def get_comparison_rshift(self, other):
         error = {
                     'pos_start': self.pos_start,
@@ -944,6 +1028,8 @@ class Number(Value):
         else:
             return None, self.illegal_operation_typerror(error, other)
 
+    
+
     def and_by(self, other): 
         error = {
                 'pos_start': self.pos_start,
@@ -993,6 +1079,7 @@ class Number(Value):
             return Boolean(self.setTrueorFalse(not setNumber(self.value))).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
+    
     def copy(self):
         copy = Number(self.value)
         copy.setPosition(self.pos_start, self.pos_end)
@@ -1036,15 +1123,12 @@ class String(Value):
             'context': self.context,
             'exit': False
         }
-        if hasattr(other, 'value') and hasattr(self, 'value'):
-            if other.value == "true" or other.value == "false" or other.value == "none" or self.value == "true" or self.value == "false" or self.value == "none":
-                return None, self.illegal_operation_typerror(error, other)
         if isinstance(other, Number):
             return None, self.illegal_operation_typerror(error, other)
         if isinstance(other, String):
             return String(setNumber(str(self.value)) + setNumber(str(other.value))).setContext(self.context), None
         else:
-            return "none", self.illegal_operation(error, other)
+            return "none", self.illegal_operation_typerror(error, other)
 
     def multiplied_by(self, other):
         error = {
@@ -1069,15 +1153,23 @@ class String(Value):
         else:
             return None, self.illegal_operation(self, error, other)
 
-    def and_by(self, other):
-        return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-
     def get_comparison_eq(self, other):
         return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
     
     def get_comparison_ne(self, other):
         return self.setTrueorFalse(setNumber(self.value) != setNumber(other.value)).setContext(self.context), None
     
+    def get_comparison_lt(self, other):
+        return self.setTrueorFalse(setNumber(self.value) < setNumber(other.value)).setContext(self.context), None
+    
+    def get_comparison_gt(self, other):
+        return self.setTrueorFalse(setNumber(self.value) > setNumber(other.value)).setContext(self.context), None
+    
+    def get_comparison_lte(self, other):
+        return self.setTrueorFalse(setNumber(self.value) <= setNumber(other.value)).setContext(self.context), None
+    
+    def get_comparison_gte(self, other):
+        return self.setTrueorFalse(setNumber(self.value) >= setNumber(other.value)).setContext(self.context), None
     
     def get_index(self, other):
         error = {
@@ -1099,11 +1191,18 @@ class String(Value):
     def notted(self):
         return self.setTrueorFalse(not setNumber(self.value)).setContext(self.context), None
 
+    def and_by(self, other):
+        return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
+
+    def or_by(self, other):
+        return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+
     def copy(self):
         copy = String(self.value)
         copy.setPosition(self.pos_start, self.pos_end)
         copy.setContext(self.context)
         return copy
+    
 
     def is_true(self):
         return "true" if len(self.value) > 0 else "false"
@@ -1437,7 +1536,31 @@ class Pair(Value):
                 return None, "none"
         else:
             return None, self.illegal_operation(error, other)
+    
+    def get_comparison_eq(self, other):
+        return self.setTrueorFalse(self.elements == other.elements), None
+    
+    def get_comparison_ne(self, other):
+        return self.setTrueorFalse(self.elements != other.elements), None
+    
 
+    def and_by(self, other):
+        return self.setTrueorFalse(self.elements and other.elements), None
+    
+    def or_by(self, other):
+        return self.setTrueorFalse(self.elements or other.elements), None
+    
+    def get_comparison_in(self, other):
+        return self.setTrueorFalse(other.value in self.elements), None
+    
+    def get_comparison_not_in(self, other):
+        return self.setTrueorFalse(other.value not in self.elements), None
+    
+    def notted(self):
+        return self.setTrueorFalse(not self.elements), None
+    
+    
+    
     def get_index(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1457,6 +1580,11 @@ class Pair(Value):
         
     def len(self):
         return Number(len(self.elements))
+
+    def isSame(self, other):
+        new_list = f'[{", ".join([str(x) for x in self.elements])}]'
+        other_list = f'[{", ".join([str(x) for x in other.elements])}]'
+        return new_list == other_list
 
     def copy(self):
         copy = Pair(self.elements)
@@ -1574,6 +1702,11 @@ class List(Value):
         self.elements[index] = value
         return self
 
+    def isSame(self, other):
+        new_list = f'[{", ".join([str(x) for x in self.elements])}]'
+        other_list = f'[{", ".join([str(x) for x in other.elements])}]'
+        return new_list == other_list
+
     def length(self):
         return len(self.elements)
 
@@ -1616,6 +1749,11 @@ class Dict(Value):
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
        
+        
+    def isSame(self, other):
+        new_dict = f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
+        other_dict = f"{{{', '.join([f'{k}: {v}' for k, v in other.properties.items()])}}}"
+        return new_dict == other_dict
     
     
     def __repr__(self):
@@ -1712,6 +1850,10 @@ class Object(Value):
     def get_comparison_gte(self, other):
         return Boolean(self.setTrueorFalse(self.value >= other.value)), None
          
+    def isSame(self, other):
+        new_object = f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
+        other_object = f"{{{', '.join([f'{k}: {v}' for k, v in other.properties.items()])}}}"
+        return new_object == other_object
     
     def copy(self):
         copy = Object(self.name, self.properties)
@@ -1854,7 +1996,10 @@ class BaseTask(Value):
         self.populate_args(arg_names, args, exec_ctx)
         return res.success(None)
 
-
+    
+    def get_comparison_in(self, other):
+        print()
+        
 class Task(BaseTask):
     def __init__(self, name, body_node, arg_names, implicit_return, context):
         super().__init__(name)
@@ -2052,6 +2197,10 @@ class Class(BaseTask):
                     return value, None
             return "none", self.key_error(error, method_name)
 
+    def isSame(self, other):
+        new_class = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherit_class, self.methods_properties, self.context)
+        other_class = Class(other.class_name, other.constructor_args, other.inherit_class_name, other.inherit_class, other.methods_properties, other.context)
+        return new_class == other_class
 
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
@@ -2059,6 +2208,8 @@ class Class(BaseTask):
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
+
+
 
 
     def __repr__(self):
@@ -3080,7 +3231,37 @@ def BuiltInTask_Http_Get():
 
 
 # Built-in methods 
+class BuiltInMethod(Value):
+    def __init__(self, value, arg=None):
+        super().__init__()
+        self.value = value
+        self.id = value
+         
+            
+    def setPosition(self, pos_start=None, pos_end=None):
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        return self
 
+    def setContext(self, context=None):
+        self.context = context
+        return self
+
+    def setTrueorFalse(self, value):
+        if value:
+            return Boolean(True)
+        else:
+            return Boolean(False)
+    
+    def copy(self):
+        copy = BuiltInMethod(self.value)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+        
+    def __repr__(self):
+        return f"'{self.value}'"
+    
 class BuiltInMethod_String(Value):
     def __init__(self, type, name, args, node, context):
         super().__init__()
@@ -3377,8 +3558,7 @@ class BuiltInMethod_String(Value):
                 "context": self.context,
                 'exit': False
             }))
-
-    
+ 
     
     def BuiltInMethod_slice(self):
         res = RuntimeResult()
@@ -3418,7 +3598,6 @@ class BuiltInMethod_String(Value):
             }))
     
     
-    
     def BuiltInMethod_charAt(self):
         res = RuntimeResult()
         if len(self.args) == 0:
@@ -3449,6 +3628,30 @@ class BuiltInMethod_String(Value):
                 'exit': False
             }))
     
+    
+    def BuiltInMethod_includes(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], String):
+                string = self.name.value.replace(" ", "")
+                substring = self.args[0].value.replace(" ", "")
+                return Boolean(string.find(substring) != -1).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for includes()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but includes() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
     
     
     def copy(self):
@@ -3530,20 +3733,19 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_pop(self):
         res = RuntimeResult()
         if len(self.args) == 0:
-            if isinstance(self.name, List):
-                return List(self.name.elements.pop()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+             return List(self.name.elements.pop()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)  
         elif len(self.args) == 1:
-            if isinstance(self.name, List):
-                if isinstance(self.args[0], Number):
+            if isinstance(self.args[0], Number):
                     return List(self.name.elements.pop(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                else:
-                    return res.failure(Program.error()["Runtime"]({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
-                        'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for pop()",
-                        "context": self.context,
-                        'exit': False
-                    }))
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for pop()",
+                    "context": self.context,
+                    'exit': False
+                }))
+                
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
@@ -3557,8 +3759,7 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_remove(self):
         res = RuntimeResult()
         if len(self.args) == 1:
-            if isinstance(self.name, List):
-                return List(self.name.elements.remove(self.args[0])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+           return List(self.name.elements.remove(self.args[0])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)  
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
@@ -3572,8 +3773,7 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_insert(self):
         res = RuntimeResult()
         if len(self.args) == 2:
-            if isinstance(self.name, List):
-                return List(self.name.elements.insert(self.args[0], self.args[1])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return List(self.name.elements.insert(self.args[0], self.args[1])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
@@ -3587,11 +3787,11 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_reverse(self):
         res = RuntimeResult()
         if len(self.args) == 0:
-            if isinstance(self.name, List):
-                new_list = []
-                for el in self.name.elements:
-                    new_list.insert(0, el)
-                return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            new_list = []
+            for el in self.name.elements:
+                new_list.insert(0, el)
+            return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
@@ -3605,8 +3805,7 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_empty(self):
         res = RuntimeResult()
         if len(self.args) == 0:
-            if isinstance(self.name, List):
-                return List(self.name.elements.clear()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return List(self.name.elements.clear()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end) 
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
@@ -3620,17 +3819,17 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_getItem(self):
         res = RuntimeResult()
         if len(self.args) == 1:
-            if isinstance(self.name, List):
-                if isinstance(self.args[0], Number):
+            if isinstance(self.args[0], Number):
                     return List(self.name.elements[self.args[0].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                else:
-                    return res.failure(Program.error()["Runtime"]({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
-                        'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for getItem()",
-                        "context": self.context,
-                        'exit': False
-                    }))
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for getItem()",
+                    "context": self.context,
+                    'exit': False
+                }))
+                
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
@@ -3644,20 +3843,20 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_setItem(self):
         res = RuntimeResult()
         if len(self.args) == 2:
-            if isinstance(self.name, List):
-                if isinstance(self.args[0], Number):
+            if isinstance(self.args[0], Number):
                     old_value = self.name.elements[self.args[0].value]
                     new_value = self.args[1]
                     self.name.elements[self.args[0].value] = new_value
                     return List(self.name.elements).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                else:
-                    return res.failure(Program.error()["Runtime"]({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
-                        'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for setItem()",
-                        "context": self.context,
-                        'exit': False
-                    }))
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for setItem()",
+                    "context": self.context,
+                    'exit': False
+                }))
+                
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
@@ -3671,17 +3870,16 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_slice(self):
         res = RuntimeResult()
         if len(self.args) == 2:
-            if isinstance(self.name, List):
-                if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
+            if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
                     return List(self.name.elements[self.args[0].value:self.args[1].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                else:
-                    return res.failure(Program.error()["Runtime"]({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
-                        'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for slice()",
-                        "context": self.context,
-                        'exit': False
-                    }))
+            else:
+                return res.failure(Program.error()["Runtime"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for slice()",
+                    "context": self.context,
+                    'exit': False
+                }))
         elif len(self.args) == 1:
             if isinstance(self.name, List):
                 if isinstance(self.args[0], Number):
@@ -3707,8 +3905,7 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_join(self):
         res = RuntimeResult()
         if len(self.args) == 1:
-            if isinstance(self.name, List):
-                if isinstance(self.args[0], String):
+            if isinstance(self.args[0], String):
                     new_string = ""
                     for element in self.name.elements:
                         if type(element.value) == str:
@@ -3718,33 +3915,25 @@ class BuiltInMethod_List(Value):
                         if element != self.name.elements[-1]:
                             new_string += self.args[0].value
                     return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                else:
-                    return res.failure(Program.error()["Runtime"]({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
-                        'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for join()",
-                        "context": self.context,
-                        'exit': False
-                    }))
-        elif len(self.args) == 0:
-            if isinstance(self.name, List):
-                new_string = ""
-                for element in self.name.elements:
-                    if type(element.value) == str:
-                        new_string += element.value
-                    else:
-                        new_string += str(element.value)
-                    if element != self.name.elements[-1]:
-                        new_string += ","
-                return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
                 return res.failure(Program.error()["Runtime"]({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.name).getType()}' is not a valid argument for join()",
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for join()",
                     "context": self.context,
                     'exit': False
                 }))
+                
+        elif len(self.args) == 0:
+            new_string = ""
+            for element in self.name.elements:
+                if type(element.value) == str:
+                    new_string += element.value
+                else:
+                    new_string += str(element.value)
+                if element != self.name.elements[-1]:
+                    new_string += ","
+            return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
@@ -3754,7 +3943,49 @@ class BuiltInMethod_List(Value):
                 'exit': False
             }))
         
-        
+    def BuiltInMethod_includes(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            new_list = []
+            for element in self.name.elements:
+                if hasattr(element, "value"):
+                    new_list.append(element.value)
+                elif hasattr(element, "elements"):
+                    new_list.append(element.elements)
+                elif hasattr(element, "name"):
+                    new_list.append(element.name)
+                elif hasattr(element, "methods_properties"):
+                    new_list.append(element.methods_properties)
+                elif hasattr(element, "properties"):
+                    new_list.append(element)
+                else:
+                    new_list.append(element)
+                    
+            if isinstance(self.args[0], String) or isinstance(self.args[0], Number):
+                if self.args[0].value in new_list:
+                    return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                else:
+                    return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            elif isinstance(self.args[0], BuiltInTask):
+                if self.args[0].name in new_list:
+                    return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                else:
+                    return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            elif isinstance(self.args[0], Dict):
+                isSame = False
+                for element in new_list:
+                    if isinstance(element, Dict):
+                        isSame = element.isSame(self.args[0])
+                        
+                return Boolean(isSame).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but includes() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
 
 class BuiltInMethod_Number(Value):
     def __init__(self, type, name, args, node, context):
@@ -4410,7 +4641,7 @@ class Interpreter:
                         return res.success(Number(len(object_name.elements)))
                     else:
                         value = f"<{str(object_key.value)}()>, [ built-in list method ]"
-                        return res.success(String(value))
+                        return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
                     return res.failure(Program.error()["KeyError"](error))
@@ -4437,7 +4668,7 @@ class Interpreter:
                     if object_key.value == "length":
                         return res.success(Number(len(object_name.value)))
                     else:
-                        return res.success(String(value))
+                        return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
                     return res.failure(Program.error()["KeyError"](error))
@@ -4509,7 +4740,7 @@ class Interpreter:
             if type(object_key).__name__ == "Token":
                 if object_key.value in number_methods:
                     value = f"<{str(object_key.value)}()>, [ built-in number method ]"
-                    return res.success(String(value))
+                    return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
                     return res.failure(Program.error()["KeyError"](error))
@@ -4517,7 +4748,7 @@ class Interpreter:
             elif type(object_key).__name__ == "VarAccessNode":
                 if object_key.id.value in number_methods:
                     value = f"<{str(object_key.id.value)}()>, [ built-in number method ]"
-                    return res.success(String(value))
+                    return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.value}"
                     return res.failure(Program.error()["KeyError"](error))
@@ -5165,10 +5396,6 @@ class Interpreter:
                 result, error = left.powred_by(right)
             elif node.op_tok.type == tokenList.TT_MOD:
                 result, error = left.modulo(right)
-            elif node.op_tok.type == tokenList.TT_PIPE:
-                result, error = left.get_index(right)
-            elif node.op_tok.type == tokenList.TT_GETTER:
-                return self.visit_ObjectGetNode(node, context)
             elif node.op_tok.type == tokenList.TT_EQEQ:
                 result, error = left.get_comparison_eq(right)
             elif node.op_tok.type == tokenList.TT_NEQ:
@@ -5185,6 +5412,12 @@ class Interpreter:
                 result, error = left.get_comparison_lte(right)
             elif node.op_tok.type == tokenList.TT_GTE:
                 result, error = left.get_comparison_gte(right)
+            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'in'):
+                result, error = left.get_comparison_in(right)
+            elif node.op_tok.type == tokenList.TT_NOT_IN:
+                result, error = left.get_comparison_not_in(right)
+            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'notin'):
+                result, error = left.get_comparison_notin(right)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'and'):
                 result, error = left.and_by(right)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
@@ -5194,7 +5427,7 @@ class Interpreter:
                 return res.failure(error)
             else:
                 return res.success(result.setPosition(node.pos_start, node.pos_end))
-        except:
+        except KeyboardInterrupt:
             pass
 
     

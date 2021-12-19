@@ -109,7 +109,7 @@ class Lexer:
             elif self.current_char in tokenList.LETTERS_SYMBOLS:
                 tokens.append(self.make_identifier())
             elif self.current_char == '"':
-                tokens.append(self.make_string())
+                tokens.append(self.make_double_string())
             elif self.current_char == "'":
                 tokens.append(self.make_single_string())
             elif self.current_char == "`":
@@ -270,11 +270,23 @@ class Lexer:
         if self.current_char == '=':
             self.advance()
             return Token(tokenList.TT_NEQ, pos_start=pos_start, pos_end=self.pos), None
+        # else if an identifier
+        # elif self.current_char in tokenList.LETTERS_DIGITS_SYMBOLS:
+        #     identifier = self.make_identifier()
+        #     if identifier.matches(tokenList.TT_KEYWORD, 'in'):
+        #         return Token(tokenList.TT_NOT_IN, pos_start=pos_start, pos_end=self.pos), None
+        #     else:
+        #         return None, Program.error()['Syntax']({
+        #             'pos_start': pos_start,
+        #             'pos_end': self.pos,
+        #             'message': 'Invalid identifier',
+        #             'exit': False
+        #         })
         self.advance()
         return None, Program.error()['Syntax']({
             'pos_start': pos_start,
             'pos_end': self.pos,
-            'message': 'Expected = after !',
+            'message': 'invalid syntax',
             'exit': False
         })
 
@@ -319,7 +331,7 @@ class Lexer:
         self.advance()
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
 
-    def make_string(self):
+    def make_double_string(self):
         string = ''
         string_concat = ''
         character = True

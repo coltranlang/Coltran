@@ -12,3 +12,18 @@
 # end
 
 # println(@countHowManyZeros(number))
+
+let DIGITS = '0123456789'
+let LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+let SYMBOLS = '@_'
+let num = 123
+let num2 = 123.456
+let LETTERS_SYMBOLS = LETTERS + SYMBOLS
+let verfied = true
+let list = [1, 2, 3, 4, 5, 6, 7, 8, '*', print, {name: 'rt'}]
+let pair = (1, 2, 3, 4, 5, 6, 7, 8, 9, '*', print, {name: 'rt'})
+println(fm"For String: %{LETTERS_SYMBOLS.includes('w'.strip())}")
+let n = {name: 'rt'}
+println(fm"For List: %{list.includes(n)}")
+#println(fm"For Pair: %{pair.includes(print)}")
+println(fm"For List2: %{print in list}")

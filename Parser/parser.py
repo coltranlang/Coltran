@@ -948,9 +948,9 @@ class Parser:
                 return res
             return res.success(VarAssignNode(var_name, expr, variable_keyword_token))
         node = res.register(self.binaryOperation(
-            self.comp_expr, ((tokenList.TT_KEYWORD, 'and'), (tokenList.TT_KEYWORD, 'or'))))
-
+            self.comp_expr, ((tokenList.TT_KEYWORD, 'and'), (tokenList.TT_KEYWORD, 'or'), (tokenList.TT_KEYWORD, 'in'))))
         if res.error:
+            self.error_detected = True
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
@@ -961,19 +961,18 @@ class Parser:
     
     def comp_expr(self):
         res = ParseResult()
-
         if self.current_token.matches(tokenList.TT_KEYWORD, 'not'):
             op_tok = self.current_token
             res.register_advancement()
             self.advance()
-
             node = res.register(self.comp_expr())
+            
             if res.error:
                 return res
             return res.success(UnaryOpNode(op_tok, node))
 
         node = res.register(self.binaryOperation(
-            self.arith_expr, (tokenList.TT_EQEQ, tokenList.TT_NEQ, tokenList.TT_LT, tokenList.TT_GT, tokenList.TT_RSHIFT, tokenList.TT_LSHIFT, tokenList.TT_LTE, tokenList.TT_GTE, tokenList.TT_AND, )))
+            self.arith_expr, (tokenList.TT_EQEQ, tokenList.TT_NEQ, tokenList.TT_LT, tokenList.TT_GT, tokenList.TT_RSHIFT, tokenList.TT_LSHIFT, tokenList.TT_LTE, tokenList.TT_GTE, tokenList.TT_AND)))
 
         if res.error:
             return res.failure(self.error['Syntax']({
@@ -989,7 +988,7 @@ class Parser:
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD, tokenList.TT_PIPE, tokenList.TT_GETTER))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIVISION, tokenList.TT_MOD))
     
     def factor(self):
         res = ParseResult()
@@ -1127,26 +1126,13 @@ class Parser:
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
-            # if self.current_token.type == tokenList.TT_DOT:
+            # if self.current_token.type == tokenList.TT_EQ:
             #     res.register_advancement()
             #     self.advance()
-            #     if self.current_token.type == tokenList.TT_IDENTIFIER:
-            #         property = self.current_token
-            #         res.register_advancement()
-            #         self.advance()
-            #         if self.current_token.type == tokenList.TT_EQ:
-            #             res.register_advancement()
-            #             self.advance()
-            #             value = res.register(self.expr())
-            #             if res.error: return res
-            #             return res.success(PropertySetNode(tok, property, value))
-            if self.current_token.type == tokenList.TT_EQ:
-                res.register_advancement()
-                self.advance()
-                expr = res.register(self.expr())
-                if res.error:
-                       return res
-                return res.success(VarTypeNode(tok, expr))
+            #     expr = res.register(self.expr())
+            #     if res.error:
+            #            return res
+            #     return res.success(VarTypeNode(tok, expr))
 
             return res.success(VarAccessNode(tok))
         elif tok.value == 'true' or tok.value == 'false':
@@ -3347,9 +3333,6 @@ class Parser:
             res.register_advancement()
             self.advance()
             right = res.register(func_2())
-            #print(type(right).__name__,type(left).__name__, )
-            # if op_tok.type == tokenList.TT_DOT:
-            #     return res.success(PropertyNode(left, right))
             if res.error:
                 return res
             try:
@@ -3376,3 +3359,9 @@ class Parser:
 # name = 'james'
 # print(name[::-1])
 
+# LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+# SYMBOLS = '@_'
+# num = 123
+# num2 = 123.456
+# LETTERS_SYMBOLS = LETTERS + SYMBOLS
+# print(f"For String: {''.strip() in LETTERS_SYMBOLS}")
