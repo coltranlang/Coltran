@@ -45,21 +45,20 @@ let li4 = [1,2,3,4,8]
 # Need to work on comapring list
 task @compareList(arr1, arr2)
     let res = ""
-    sorted(arr1)
-    sorted(arr2)
-    print(arr1, arr2)
-    if arr1 == arr2 :
-        res = "The two lists are equal"
-    else :
-        res = "The two lists are not equal"
+    let new_array = sorted(arr1)
+    let new_array2 = sorted(arr2)
+    if new_array == new_array2:
+        let res = "The two lists are equal"
+    else:
+       let res = "The two lists are not equal"
     end
     return res
 end
 
 line(6)
-println(@compareList(li, li2))
+println(@compareList(li, li2)) # should be equal
 line(7)
-println(@compareList(li3, li4))
+println(@compareList(li3, li4)) # should be not equal
 
 
 # test for builtin_task pair type

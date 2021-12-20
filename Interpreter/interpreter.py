@@ -1,5 +1,4 @@
 import os
-from types import new_class
 from Parser.parser import Parser
 from Parser.stringsWithArrows import *
 from Token.token import Token
@@ -30,6 +29,7 @@ string_methods = {
             'charAt': 'charAt',
             'includes': 'includes',
             'startsWith': 'startsWith',
+            'find': 'find',
  }
 
 list_methods = {
@@ -79,6 +79,8 @@ def string_strip(text):
         else:
             new_text += ' ' + split_text[i].strip()
     return new_text
+
+
 
 class Regex:
         def __init__(self):
@@ -503,7 +505,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'+' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -511,7 +513,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'-' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -519,7 +521,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'*' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -527,7 +529,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'/' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -535,7 +537,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'**' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -543,7 +545,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'%' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -551,7 +553,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'==' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -559,7 +561,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'!=' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -567,7 +569,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'<' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -575,7 +577,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'>' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
         
@@ -583,7 +585,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'>>' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -591,7 +593,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'<<' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -599,7 +601,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'<=' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -607,7 +609,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'>=' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context,
         })
 
@@ -615,7 +617,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'&&' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -623,7 +625,7 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
+            'message': f"'or' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -631,15 +633,15 @@ class Value:
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'in' operator cannot be used with {TypeOf(self).getType()} on {TypeOf(other).getType()}",
+            'message': f"'in' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
         
-    def get_comparison_notin(self, other):
+    def get_comparison_not_in(self, other):
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'not in' operator cannot be used with {TypeOf(self).getType()} on {TypeOf(other).getType()}",
+            'message': f"'notin' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -1171,6 +1173,22 @@ class String(Value):
     def get_comparison_gte(self, other):
         return self.setTrueorFalse(setNumber(self.value) >= setNumber(other.value)).setContext(self.context), None
     
+    def get_comparison_in(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'in' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
+            'context': self.context
+        }
+        if isinstance(other, String):
+            return self.setTrueorFalse(other.value in self.value).setContext(self.context), None
+        else:
+            return None, self.illegal_operation_typerror(error, other)
+        
+    def get_comparison_not_in(self, other):
+        value = self.get_comparison_in(other)[0].value
+        return self.setTrueorFalse(True if value == "false" else False), None
+    
     def get_index(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1507,96 +1525,7 @@ Boolean.false = Boolean("false")
 NoneType.none = NoneType("none")
 
 
-class Pair(Value):
-    def __init__(self, elements=None):
-        super().__init__()
-        self.elements = elements if elements is not None else ()
-        self.value = self.elements
-        self.id = self.elements
 
-    def added_to(self, other):
-        new_list = self.copy()
-        new_list.elements += other
-        return new_list, None
-
-    def subtracted_by(self, other):
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"Illegal operation on pair",
-            'context': self.context,
-            'exit': False
-        }
-        if isinstance(other, Number):
-            new_list = self.copy()
-            try:
-                new_list.elements = new_list.elements[:-other.value]
-                return new_list, None
-            except:
-                return None, "none"
-        else:
-            return None, self.illegal_operation(error, other)
-    
-    def get_comparison_eq(self, other):
-        return self.setTrueorFalse(self.elements == other.elements), None
-    
-    def get_comparison_ne(self, other):
-        return self.setTrueorFalse(self.elements != other.elements), None
-    
-
-    def and_by(self, other):
-        return self.setTrueorFalse(self.elements and other.elements), None
-    
-    def or_by(self, other):
-        return self.setTrueorFalse(self.elements or other.elements), None
-    
-    def get_comparison_in(self, other):
-        return self.setTrueorFalse(other.value in self.elements), None
-    
-    def get_comparison_not_in(self, other):
-        return self.setTrueorFalse(other.value not in self.elements), None
-    
-    def notted(self):
-        return self.setTrueorFalse(not self.elements), None
-    
-    
-    
-    def get_index(self, other):
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"Illegal operation on pair",
-            'context': self.context,
-            'exit': False
-        }
-        if isinstance(other, Number):
-            try:
-                return self.elements[other.value], None
-            except:
-                return None, self.none_value()
-        else:
-            error['message'] = f"Pair index must be a number not {TypeOf(other).getType()}"
-            return None, self.illegal_operation(error, other)
-        
-    def len(self):
-        return Number(len(self.elements))
-
-    def isSame(self, other):
-        new_list = f'[{", ".join([str(x) for x in self.elements])}]'
-        other_list = f'[{", ".join([str(x) for x in other.elements])}]'
-        return new_list == other_list
-
-    def copy(self):
-        copy = Pair(self.elements)
-        copy.setPosition(self.pos_start, self.pos_end)
-        copy.setContext(self.context)
-        return copy
-
-    def __str__(self):
-        try:
-            return f'({", ".join([str(x) for x in self.elements])})'
-        except:
-            return "()"
 
 
 class List(Value):
@@ -1656,23 +1585,80 @@ class List(Value):
             return None, self.illegal_operation(error, other)
 
     def get_comparison_eq(self, other):
-        # Need to work on comparing lists
-        return self.setTrueorFalse(other.value == self.value), None
+        value = self.isSame(other)
+        return self.setTrueorFalse(True if value else False), None
     
     def get_comparison_ne(self, other):
-        return self.setTrueorFalse(self.elements != other.elements), None
+        value = self.isSame(other)
+        return self.setTrueorFalse(False if value else True), None
     
     def get_comparison_lt(self, other):
-        return self.setTrueorFalse(self.elements < other.elements), None
+        if isinstance(other, List):
+            value = len(self.elements) < len(other.elements)
+            return self.setTrueorFalse(True if value else False), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"'>' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
     
     def get_comparison_gt(self, other):
-        return self.setTrueorFalse(self.elements > other.elements), None
-
+        if isinstance(other, List):
+            value = len(self.elements) > len(other.elements)
+            return self.setTrueorFalse(True if value else False), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"'>' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
+   
+   
     def get_comparison_lte(self, other):
-        return self.setTrueorFalse(self.elements <= other.elements), None
+        if isinstance(other, List):
+            value = len(self.elements) <= len(other.elements)
+            return self.setTrueorFalse(True if value else False), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"'<=' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
     
     def get_comparison_gte(self, other):
-        return self.setTrueorFalse(self.elements >= other.elements), None
+        if isinstance(other, List):
+            value = len(self.elements) >= len(other.elements)
+            return self.setTrueorFalse(True if value else False), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"'>=' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
+        
+    def get_comparison_in(self, other):
+        for element in self.elements:
+            
+            if other.isSame(element) if hasattr(other, "isSame") else other.value == element.value:
+                return self.setTrueorFalse(True), None
+        return self.setTrueorFalse(other.value in self.value), None
+    
+    def get_comparison_not_in(self, other):
+        value = self.get_comparison_in(other)[0].value
+        return self.setTrueorFalse(True if value == "false" else False), None
     
     def notted(self):
         return List(self.elements[::-1]), None
@@ -1703,9 +1689,11 @@ class List(Value):
         return self
 
     def isSame(self, other):
-        new_list = f'[{", ".join([str(x) for x in self.elements])}]'
-        other_list = f'[{", ".join([str(x) for x in other.elements])}]'
-        return new_list == other_list
+        if isinstance(other, List):
+            new_list = f'[{", ".join([str(x) for x in self.elements])}]'
+            other_list = f'[{", ".join([str(x) for x in other.elements])}]'
+            return new_list == other_list
+        return False
 
     def length(self):
         return len(self.elements)
@@ -1738,22 +1726,196 @@ class List(Value):
             return f'{self.elements}'
 
 
+class Pair(Value):
+    def __init__(self, elements=None):
+        super().__init__()
+        self.elements = elements if elements is not None else ()
+        self.value = self.elements
+        self.id = self.elements
+
+    def added_to(self, other):
+        new_list = self.copy()
+        new_list.elements += other
+        return new_list, None
+
+    def subtracted_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Illegal operation on pair",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Number):
+            new_list = self.copy()
+            try:
+                new_list.elements = new_list.elements[:-other.value]
+                return new_list, None
+            except:
+                return None, "none"
+        else:
+            return None, self.illegal_operation(error, other)
+    
+    def get_comparison_eq(self, other):
+        value = self.isSame(other)
+        return self.setTrueorFalse(True if value else False), None
+    
+    def get_comparison_ne(self, other):
+        value = self.isSame(other)
+        return self.setTrueorFalse(False if value else True), None
+    
+    def get_comparison_lt(self, other):
+        if isinstance(other, Pair):
+            value = len(self.elements) < len(other.elements)
+            return self.setTrueorFalse(True if value else False), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"'>' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
+    
+    def get_comparison_gt(self, other):
+        if isinstance(other, Pair):
+            value = len(self.elements) > len(other.elements)
+            return self.setTrueorFalse(True if value else False), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"'>' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
+   
+   
+    def get_comparison_lte(self, other):
+        if isinstance(other, Pair):
+            value = len(self.elements) <= len(other.elements)
+            return self.setTrueorFalse(True if value else False), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"'<=' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
+    
+    def get_comparison_gte(self, other):
+        if isinstance(other, Pair):
+            value = len(self.elements) >= len(other.elements)
+            return self.setTrueorFalse(True if value else False), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"'>=' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
+        
+    
+
+    def and_by(self, other):
+        return self.setTrueorFalse(self.elements and other.elements), None
+    
+    def or_by(self, other):
+        return self.setTrueorFalse(self.elements or other.elements), None
+    
+    def get_comparison_in(self, other):
+        for element in self.elements:
+            
+            if other.isSame(element) if hasattr(other, "isSame") else other.value == element.value:
+                return self.setTrueorFalse(True), None
+        return self.setTrueorFalse(other.value in self.value), None
+    
+    def get_comparison_not_in(self, other):
+        value = self.get_comparison_in(other)[0].value
+        return self.setTrueorFalse(True if value == "false" else False), None
+    
+    
+    def notted(self):
+        return self.setTrueorFalse(not self.elements), None
+    
+    
+    
+    def get_index(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Illegal operation on pair",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Number):
+            try:
+                return self.elements[other.value], None
+            except:
+                return None, self.none_value()
+        else:
+            error['message'] = f"Pair index must be a number not {TypeOf(other).getType()}"
+            return None, self.illegal_operation(error, other)
+        
+    def len(self):
+        return Number(len(self.elements))
+
+    def isSame(self, other):
+        if isinstance(other, Pair):
+            new_pair = f'[{", ".join([str(x) for x in self.elements])}]'
+            other_pair = f'[{", ".join([str(x) for x in other.elements])}]'
+            return new_pair == other_pair
+        else:
+            return False
+
+    def copy(self):
+        copy = Pair(self.elements)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+
+    def __str__(self):
+        try:
+            return f'({", ".join([str(x) for x in self.elements])})'
+        except:
+            return "()"
+        
+        
 class Dict(Value):
     def __init__(self, properties):
         super().__init__()
         self.properties = properties
+        self.value = self.properties
+        
         
     def copy(self):
         copy = Dict(self.properties)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
-       
-        
+    
     def isSame(self, other):
-        new_dict = f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
-        other_dict = f"{{{', '.join([f'{k}: {v}' for k, v in other.properties.items()])}}}"
-        return new_dict == other_dict
+        if isinstance(other, Dict):
+            new_dict = f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
+            other_dict = f"{{{', '.join([f'{k}: {v}' for k, v in other.properties.items()])}}}"
+            return new_dict == other_dict
+        return False
+   
+        
+    def get_comparison_eq(self, other):
+        value = self.isSame(other)
+        return self.setTrueorFalse(True if value else False), None
+    
+    def get_comparison_ne(self, other):
+        value = self.isSame(other)
+        return self.setTrueorFalse(False if value else True), None
+        
     
     
     def __repr__(self):
@@ -1833,27 +1995,20 @@ class Object(Value):
             return None, self.illegal_operation(error, other)
             
     def get_comparison_eq(self, other):
-        return Boolean(self.setTrueorFalse(self.value == other.value)), None
+        value = self.isSame(other)
+        return self.setTrueorFalse(True if value else False), None
     
     def get_comparison_ne(self, other):
-        return Boolean(self.setTrueorFalse(self.value != other.value)), None
-        
-    def get_comparison_lt(self, other):
-        return Boolean(self.setTrueorFalse(self.value < other.value)), None
-        
-    def get_comparison_gt(self, other):
-        return Boolean(self.setTrueorFalse(self.value > other.value)), None
-    
-    def get_comparison_lte(self, other):
-        return Boolean(self.setTrueorFalse(self.value <= other.value)), None
-    
-    def get_comparison_gte(self, other):
-        return Boolean(self.setTrueorFalse(self.value >= other.value)), None
+        value = self.isSame(other)
+        return self.setTrueorFalse(False if value else True), None
          
     def isSame(self, other):
-        new_object = f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
-        other_object = f"{{{', '.join([f'{k}: {v}' for k, v in other.properties.items()])}}}"
-        return new_object == other_object
+        if isinstance(other, Object):
+            new_dict = f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
+            other_dict = f"{{{', '.join([f'{k}: {v}' for k, v in other.properties.items()])}}}"
+            return new_dict == other_dict
+        return False
+
     
     def copy(self):
         copy = Object(self.name, self.properties)
@@ -1955,6 +2110,7 @@ class BaseTask(Value):
     def __init__(self, name):
         super().__init__()
         self.name = name or "<anonymous>"
+        self.value = self.name
 
     def generate_new_context(self):
         new_context = Context(self.name, self.context, self.pos_start)
@@ -1995,10 +2151,12 @@ class BaseTask(Value):
         if res.should_return(): return res
         self.populate_args(arg_names, args, exec_ctx)
         return res.success(None)
-
-    
-    def get_comparison_in(self, other):
-        print()
+   
+    def isSame(self, other):
+        if isinstance(other, BuiltInTask):
+            return self.name == other.name
+        return False
+     
         
 class Task(BaseTask):
     def __init__(self, name, body_node, arg_names, implicit_return, context):
@@ -2126,9 +2284,9 @@ class Class(BaseTask):
         self.inherit_class_name = inherit_class_name
         self.inherit_class = inherit_class
         self.methods_properties = methods if methods else {}
+        self.value = self.methods_properties
         self.context = context
         self.body_node = None
-       
        
     
         
@@ -2140,16 +2298,7 @@ class Class(BaseTask):
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
         if res.should_return(): return res
-        # get repr method and call it
-        # try:
-        #     repr_method = self.methods_properties['repr']
-        #     interpreter = Interpreter()
-        #     self_new = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherit_class, class_args, self.context)
-        #     new_context.symbolTable.set('self', self_new)
-        #     self.__str__ = String(interpreter.visit(
-        #         repr_method.body_node, new_context)).value
-        # except:
-        #     self.__str__ = String("<Class {0}>".format(self.class_name)).value
+        
         for method_name, method in self.methods_properties.items():
             method.context = new_context
             method = method.copy()
@@ -2198,9 +2347,9 @@ class Class(BaseTask):
             return "none", self.key_error(error, method_name)
 
     def isSame(self, other):
-        new_class = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherit_class, self.methods_properties, self.context)
-        other_class = Class(other.class_name, other.constructor_args, other.inherit_class_name, other.inherit_class, other.methods_properties, other.context)
-        return new_class == other_class
+        if isinstance(other, Class):
+            return self.methods_properties == other.methods_properties and self.constructor_args == other.constructor_args and self.inherit_class_name == other.inherit_class_name and self.inherit_class == other.inherit_class
+        return False
 
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
@@ -3231,6 +3380,7 @@ def BuiltInTask_Http_Get():
 
 
 # Built-in methods 
+
 class BuiltInMethod(Value):
     def __init__(self, value, arg=None):
         super().__init__()
@@ -3261,6 +3411,7 @@ class BuiltInMethod(Value):
         
     def __repr__(self):
         return f"'{self.value}'"
+    
     
 class BuiltInMethod_String(Value):
     def __init__(self, type, name, args, node, context):
@@ -3987,6 +4138,8 @@ class BuiltInMethod_List(Value):
                 'exit': False
             }))
 
+
+
 class BuiltInMethod_Number(Value):
     def __init__(self, type, name, args, node, context):
         super().__init__()
@@ -4155,7 +4308,7 @@ class Interpreter:
             value = context.symbolTable.get(node.value_node.value)
             if value == None:
                 Program.error()['Error']({
-                    'name': 'IdentifierError',
+                    'name': 'NameError',
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f'{node.value_node.value} is not defined',
@@ -4345,7 +4498,7 @@ class Interpreter:
                     'exit': False
                 }))
             Program.error()['Error']({
-                'name': 'IdentifierError',
+                'name': 'NameError',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f'{var_name} is not defined',
@@ -5300,7 +5453,7 @@ class Interpreter:
                 value = context.symbolTable.get(name)
                 if value == None:
                     Program.error()['Error']({
-                        'name': 'IdentifierError',
+                        'name': 'NameError',
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f'{name} is not defined',
@@ -5322,7 +5475,7 @@ class Interpreter:
         value = context.symbolTable.get(node.value.value)
         if value == None:
             Program.error()['Error']({
-                'name': 'IdentifierError',
+                'name': 'NameError',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f'{node.value.value} is not defined',
@@ -5398,6 +5551,8 @@ class Interpreter:
                 result, error = left.modulo(right)
             elif node.op_tok.type == tokenList.TT_EQEQ:
                 result, error = left.get_comparison_eq(right)
+            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'is'):
+                result, error = left.get_comparison_eq(right)
             elif node.op_tok.type == tokenList.TT_NEQ:
                 result, error = left.get_comparison_ne(right)
             elif node.op_tok.type == tokenList.TT_LT:
@@ -5413,11 +5568,9 @@ class Interpreter:
             elif node.op_tok.type == tokenList.TT_GTE:
                 result, error = left.get_comparison_gte(right)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'in'):
-                result, error = left.get_comparison_in(right)
-            elif node.op_tok.type == tokenList.TT_NOT_IN:
-                result, error = left.get_comparison_not_in(right)
+                result, error = right.get_comparison_in(left)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'notin'):
-                result, error = left.get_comparison_notin(right)
+                result, error = right.get_comparison_not_in(left)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'and'):
                 result, error = left.and_by(right)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
@@ -5557,7 +5710,7 @@ class Interpreter:
         if type(iterable_node).__name__ == "NoneType":
             return res.failure(
                 Program.error()['Error']({
-                'name': 'IdentifierError',
+                'name': 'NameError',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f'{node.iterable_node.value} is not defined',
@@ -5770,17 +5923,27 @@ class Interpreter:
                 return res
             object_value = Object(object_name, properties).setContext(context).setPosition(node.pos_start, node.pos_end)
             if isinstance(prop_value, NoneType):
-                object_value = Object(object_name, {'key': {}, 'value': {}}).setContext(
+                object_value = Object(object_name, {}).setContext(
                     context).setPosition(node.pos_start, node.pos_end)
-                already_defined = context.symbolTable.get(object_name)
-                if already_defined:
-                    return res.failure(Program.error()["Runtime"]({
-                        "pos_start": node.pos_start,
-                        "pos_end": node.pos_end,
-                        "message": "Object with name '{}' already defined".format(object_name),
-                        "context": context,
-                        "exit": False
-                    }))
+                # already_defined = context.symbolTable.get(object_name)
+                
+                # if already_defined:
+                #     if isinstance(already_defined, Object):
+                #         return res.failure(Program.error()["Runtime"]({
+                #             "pos_start": node.pos_start,
+                #             "pos_end": node.pos_end,
+                #             "message": "Object with name '{}' already defined".format(object_name),
+                #             "context": context,
+                #             "exit": False
+                #         }))
+                #     else:
+                #         return res.failure(Program.error()["Runtime"]({
+                #             "pos_start": node.pos_start,
+                #             "pos_end": node.pos_end,
+                #             "message": "name '{}' already defined".format(object_name),
+                #             "context": context,
+                #             "exit": False
+                #         }))
                 context.symbolTable.set(object_name, object_value)
             else:
                 if node.other != None:
@@ -6011,9 +6174,9 @@ class Interpreter:
         constructor_args = node.class_constuctor_args
         inherits_class_name = node.inherits_class_name
         inherits_class = node.inherits_class
-        class_value = ""
+        class_value = {}
         methods = {}
-        if node.methods != '':
+        if node.methods != '' and node.methods != None:
             for method in node.methods:
                 method_name = method['name'].value
                 method_value = res.register(
@@ -6025,6 +6188,8 @@ class Interpreter:
                                     methods, context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
+            class_value = Class(class_name, [], inherits_class_name, inherits_class,
+                                {}, context).setContext(context).setPosition(node.pos_start, node.pos_end)
             context.symbolTable.set_object(class_name, class_value)
         return res.success(class_value)
 

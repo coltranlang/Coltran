@@ -612,6 +612,8 @@ class CallNode:
         return f'{self.node_to_call}({self.args_nodes})'
 
 
+
+
 class GetNode:
     def __init__(self, module_name, module_path):
         self.id = module_name
@@ -813,7 +815,7 @@ class Parser:
                 statements.append(statement)
             return res.success(ListNode(statements, pos_start, self.current_token.pos_end.copy()))
 
-        except:
+        except KeyboardInterrupt:
             pass
 
     def statement(self):
@@ -850,10 +852,6 @@ class Parser:
     
     def expr(self):
         res = ParseResult()
-        # if self.current_token.type == tokenList.TT_IDENTIFIER:
-        #     node_name = self.current_token
-        #     res.register_advancement()
-        #     self.advance()
             
         if self.current_token.matches(tokenList.TT_KEYWORD, 'let') or self.current_token.matches(tokenList.TT_KEYWORD, 'final'):
             res.register_advancement()
@@ -948,7 +946,7 @@ class Parser:
                 return res
             return res.success(VarAssignNode(var_name, expr, variable_keyword_token))
         node = res.register(self.binaryOperation(
-            self.comp_expr, ((tokenList.TT_KEYWORD, 'and'), (tokenList.TT_KEYWORD, 'or'), (tokenList.TT_KEYWORD, 'in'))))
+            self.comp_expr, ((tokenList.TT_KEYWORD, 'and'), (tokenList.TT_KEYWORD, 'or'), (tokenList.TT_KEYWORD, 'in'), (tokenList.TT_KEYWORD, 'notin'))))
         if res.error:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -2493,13 +2491,18 @@ class Parser:
         res.register_advancement()
         self.advance()
         methods = None
+        
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            res.success(ClassNode(class_name, inherit_class_name, inherit_class, methods))
+            return res.success(ClassNode(class_name, [], inherit_class_name, inherit_class, methods))
         while self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
+            if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                res.register_advancement()
+                self.advance()
+                return res.success(ClassNode(class_name, [], inherit_class_name, inherit_class, methods))
             if self.current_token.matches(tokenList.TT_KEYWORD, "def"):
                 methods = self.set_methods(class_name)
                 
@@ -2525,6 +2528,13 @@ class Parser:
                 self.advance()
                 #res.success(ClassNode(class_constuctor_args,class_name, inherit_class_name, inherit_class, methods))
                 return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, inherit_class, methods))
+        if self.current_token.matches(tokenList.TT_KEYWORD, "end"):
+            res.register_advancement()
+            self.advance()
+            #res.success(ClassNode(class_constuctor_args,class_name, inherit_class_name, inherit_class, methods))
+            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, inherit_class, methods))
+        if self.current_token.type == tokenList.TT_EOF:
+            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, inherit_class, methods))
         return res.failure(self.error['Syntax']({
             'pos_start': self.current_token.pos_start,
             'pos_end': self.current_token.pos_end,
@@ -2723,6 +2733,15 @@ class Parser:
 
             res.register_advancement()
             self.advance()
+            for element in elements:
+                if element == "":
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': start_token.pos_start,
+                        'pos_end': start_token.pos_end,
+                        'message': "Invalid syntax",
+                        'exit': False
+                    }))
         return res.success(ListNode(elements, pos_start, self.current_token.pos_end.copy()))
 
     def pair_expr(self):
@@ -2818,6 +2837,15 @@ class Parser:
 
             res.register_advancement()
             self.advance()
+            for element in elements:
+                if element == "":
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': start_token.pos_start,
+                        'pos_end': start_token.pos_end,
+                        'message': "Invalid syntax",
+                        'exit': False
+                    }))
         return res.success(PairNode(elements, pos_start, self.current_token.pos_end.copy()))
 
     def string_interp(self):
@@ -3359,9 +3387,8 @@ class Parser:
 # name = 'james'
 # print(name[::-1])
 
-# LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-# SYMBOLS = '@_'
-# num = 123
-# num2 = 123.456
-# LETTERS_SYMBOLS = LETTERS + SYMBOLS
-# print(f"For String: {''.strip() in LETTERS_SYMBOLS}")
+LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+SYMBOLS = '@_'
+num = 123
+num2 = 123.456
+LETTERS_SYMBOLS = LETTERS + SYMBOLS

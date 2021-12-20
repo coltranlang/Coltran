@@ -198,12 +198,6 @@ class SymbolTable:
         return None
     
     
-    def get_by_interp_value(self, value):
-        for key, val in self.symbols.items():
-            if str(val) == value:
-                return key
-        return None
-
    
     def set(self, name, value, type=None):
         if not value:
