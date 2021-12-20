@@ -13,14 +13,14 @@
 
 # println(@countHowManyZeros(number))
 
-let DIGITS = '0123456789'
-let LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-let SYMBOLS = '@_'
-let num = 123
-let num2 = 123.456
-let LETTERS_SYMBOLS = LETTERS + SYMBOLS
-let verfied = true
-class Test()
+# let DIGITS = '0123456789'
+# let LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+# let SYMBOLS = '@_'
+# let num = 123
+# let num2 = 123.456
+# let LETTERS_SYMBOLS = LETTERS + SYMBOLS
+# let verfied = true
+# class Test()
 
 
 
@@ -30,41 +30,41 @@ class Test()
 
 
 
-end
-let list = [1, 2, 3, 4, 5, 6, 7, 8, '*', print, {name: 'rt'},[1,2,3], Test]
-let pair = (1, 2, 3, 4, 5, 6, 7, 8, 9, '*', print, {name: 'rt'}, true)
-println(fm"For String: %{'*' in LETTERS_SYMBOLS}")
-println(fm"For String2: %{'*' notin LETTERS_SYMBOLS}")
-let n = {name: '2rt'}
-let n_empty = {}
-object Prop
-end
-println(fm"This is a %{Prop}")
-#println(fm"For List: %{list.includes(n)}")
-#println(fm"For Pair: %{pair.includes(print)}")
-println(fm"For in List: %{Test in list}")
-println(fm"For notin List2: %{Test notin list}")
-println(fm"For in Pair: %{true in pair}")
-println(fm"For notin Pair2: %{true notin pair}")
-println(fm"For == Dict: %{n == n}")   # true  
-println(fm"For == Dict2: %{n == n_empty}")   # false
-println(fm"For != Dict3: %{n != n}")   # false
-println(fm"For != Dict4: %{n != n_empty}")   # true
-println(fm"For == Dict5: %{n_empty == n_empty}")   # true
-println(fm"For == Dict6: %{n_empty == n}")   # false
-println(fm"For != Dict7: %{n_empty != true}")   # true
-println(fm"For != Dict8: %{n != 2}")   # true
-println(fm"For == List: %{list == list}")   # true
-println(fm"For == List2: %{list < [1, 2, 3, 4, 5, 6, 7, 8, '*', print,n ,[1,2,3], Test,23, 45, 56]}")   # true
-println(fm"For <= List3: %{list <= [1, 2, 3, 4, 5, 6, 7, 8, '*', print,n ,[1,2,3], Test,23, 45, 56]}")   # true
-println(fm"For >= List4: %{list >= [1, 2, 3, 4, 5, 6, 7, 8, '*', print,n ,[1,2,3], Test,23, 45, 56]}")   # false
-println(fm"For == List5: %{list == [1, 2, 3, 4, 5, 6, 7, 8, '*', print,n ,[1,2,3], Test,23, 45, 56]}")   # false
-println(fm"For != List6: %{list != [1, 2, 3, 4, 5, 6, 7, 8, '*', print,n ,[1,2,3], Test,23, 45, 56]}")   # true
-println(fm"For != List7: %{list != list}")   # false
-println(fm"For == Pair: %{pair == pair}")   # true
-println(fm"For == Pair2: %{pair < (1, 2, 3, 4, 5, 6, 7, 8, 9, '*', print,n ,true, [1,2,3], Test,23, 45, 56)}")   # true
-println(fm"For <= Pair3: %{pair <= (1, 2, 3, 4, 5, 6, 7, 8, 9, '*', print,n ,true, [1,2,3], Test,23, 45, 56)}")   # true
-println(fm"For >= Pair4: %{pair >= (1, 2, 3, 4, 5, 6, 7, 8, 9, '*', print,n ,true, [1,2,3], Test,23, 45, 56)}")   # false
+# end
+# let list = [1, 2, 3, 4, 5, 6, 7, 8, '*', print, {name: 'rt'},[1,2,3], Test]
+# let pair = (1, 2, 3, 4, 5, 6, 7, 8, 9, '*', print, {name: 'rt'}, true)
+# println(fm"For String: %{'*' in LETTERS_SYMBOLS}")
+# println(fm"For String2: %{'*' notin LETTERS_SYMBOLS}")
+# let n = {name: '2rt'}
+# let n_empty = {}
+# object Prop
+# end
+# println(fm"This is a %{Prop}")
+# #println(fm"For List: %{list.includes(n)}")
+# #println(fm"For Pair: %{pair.includes(print)}")
+# println(fm"For in List: %{Test in list}")
+# println(fm"For notin List2: %{Test notin list}")
+# println(fm"For in Pair: %{true in pair}")
+# println(fm"For notin Pair2: %{true notin pair}")
+# println(fm"For == Dict: %{n == n}")   # true  
+# println(fm"For == Dict2: %{n == n_empty}")   # false
+# println(fm"For != Dict3: %{n != n}")   # false
+# println(fm"For != Dict4: %{n != n_empty}")   # true
+# println(fm"For == Dict5: %{n_empty == n_empty}")   # true
+# println(fm"For == Dict6: %{n_empty == n}")   # false
+# println(fm"For != Dict7: %{n_empty != true}")   # true
+# println(fm"For != Dict8: %{n != 2}")   # true
+# println(fm"For == List: %{list == list}")   # true
+# println(fm"For == List2: %{list < [1, 2, 3, 4, 5, 6, 7, 8, '*', print,n ,[1,2,3], Test,23, 45, 56]}")   # true
+# println(fm"For <= List3: %{list <= [1, 2, 3, 4, 5, 6, 7, 8, '*', print,n ,[1,2,3], Test,23, 45, 56]}")   # true
+# println(fm"For >= List4: %{list >= [1, 2, 3, 4, 5, 6, 7, 8, '*', print,n ,[1,2,3], Test,23, 45, 56]}")   # false
+# println(fm"For == List5: %{list == [1, 2, 3, 4, 5, 6, 7, 8, '*', print,n ,[1,2,3], Test,23, 45, 56]}")   # false
+# println(fm"For != List6: %{list != [1, 2, 3, 4, 5, 6, 7, 8, '*', print,n ,[1,2,3], Test,23, 45, 56]}")   # true
+# println(fm"For != List7: %{list != list}")   # false
+# println(fm"For == Pair: %{pair == pair}")   # true
+# println(fm"For == Pair2: %{pair < (1, 2, 3, 4, 5, 6, 7, 8, 9, '*', print,n ,true, [1,2,3], Test,23, 45, 56)}")   # true
+# println(fm"For <= Pair3: %{pair <= (1, 2, 3, 4, 5, 6, 7, 8, 9, '*', print,n ,true, [1,2,3], Test,23, 45, 56)}")   # true
+# println(fm"For >= Pair4: %{pair >= (1, 2, 3, 4, 5, 6, 7, 8, 9, '*', print,n ,true, [1,2,3], Test,23, 45, 56)}")   # false
 # println(fm"For is Boolean: %{true is true}")   # true  
 # println(fm"For is Boolean2: %{false is false}")  # true
 # println(fm"For is Boolean3: %{false is not true}") # true
@@ -73,3 +73,17 @@ println(fm"For >= Pair4: %{pair >= (1, 2, 3, 4, 5, 6, 7, 8, 9, '*', print,n ,tru
 # println(fm"For is String: %{'rt' is 'rt'}")  # true
 # println(fm"For is String2: %{'rt' is not 'rt2'}")  # true
 # println(fm"For is String3: %{'rt' is not 'rt'}")  # false
+
+task @greet(name, age, hobby="Programming")
+    println(fm"Hello, %{name} you are %{age} years old and you like %{hobby}")
+end
+task @greet2(prop)
+    let name = prop.name
+    let age = prop.age
+    let hobby = prop.hobby
+     println(fm"Hello, %{name} you are %{age} years old and you like %{hobby}")
+end
+
+@greet("David", 23)
+@greet("Kenny", 25, "Eating Rice")
+@greet2({name:"Bob", age:40, hobby: "Playing soccer"}) # can be used to simulate named arguments

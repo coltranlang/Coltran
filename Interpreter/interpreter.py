@@ -2119,7 +2119,6 @@ class BaseTask(Value):
 
     def check_args(self, arg_names, args):
         res = RuntimeResult()
-        
         if len(args) > len(arg_names):
             return res.failure(Program.error()['Runtime']({
                 'pos_start': self.pos_start,
@@ -2159,13 +2158,14 @@ class BaseTask(Value):
      
         
 class Task(BaseTask):
-    def __init__(self, name, body_node, arg_names, implicit_return, context):
+    def __init__(self, name, body_node, arg_names, implicit_return, default_values, context):
         super().__init__(name)
         self.id = name
         self.name = name
         self.body_node = body_node
         self.arg_names = arg_names
         self.implicit_return = implicit_return
+        self.default_values = default_values
         self.context = context
         
     def execute(self, args):
@@ -2173,6 +2173,23 @@ class Task(BaseTask):
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
         self.args = args
+        len_expected = None
+        arg_giving = None
+        if len(self.default_values) > 0:
+            for i in range(len(self.default_values)):
+                
+                name = self.default_values[i]['name']
+                value = res.register(interpreter.visit(self.default_values[i]['value'], exec_context))
+                if res.should_return(): return res
+                # if no value is given corresponding to the argument, then the default value is used
+                # the one that has a default value is the one that is used
+                arg_giving = args
+                if len(args) < len(self.arg_names):
+                    if value not in args:
+                        args.append(value)
+                if len(args) <= i:
+                    args.append(value)
+                
         self.check_args(self.arg_names, args)
         self.populate_args(self.arg_names, args, exec_context)
         
@@ -2258,7 +2275,7 @@ class Task(BaseTask):
                       
     def copy(self):
         copy = Task(self.name, self.body_node,
-                    self.arg_names, self.implicit_return, self.context)
+                    self.arg_names, self.implicit_return, self.default_values,self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -4094,6 +4111,7 @@ class BuiltInMethod_List(Value):
                 'exit': False
             }))
         
+    
     def BuiltInMethod_includes(self):
         res = RuntimeResult()
         if len(self.args) == 1:
@@ -4138,6 +4156,8 @@ class BuiltInMethod_List(Value):
                 'exit': False
             }))
 
+
+    
 
 
 class BuiltInMethod_Number(Value):
@@ -5898,9 +5918,9 @@ class Interpreter:
         res = RuntimeResult()
         task_name = node.task_name_token.value if node.task_name_token else "none"
         body_node = node.body_node
-            
         arg_names = [arg_name.value for arg_name in node.args_name_tokens]
-        task_value = Task(task_name, body_node, arg_names, node.implicit_return, context).setContext(
+        defualt_values = node.default_values
+        task_value = Task(task_name, body_node, arg_names, node.implicit_return, defualt_values, context).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.type != 'method':
             context.symbolTable.set(task_name, task_value)

@@ -101,10 +101,10 @@ println(@add(1, 2))
 
 # test for class type
 class Car(name, color)
-    def getName(self)
+    task getName(self)
         println("Car name is " + self.name)
     end
-    def getColor(self)
+    task getColor(self)
         println("Car color is " + self.color)
     end
 end

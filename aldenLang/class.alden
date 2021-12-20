@@ -1,10 +1,12 @@
 class Animal(name, age, breed, color)
-   def initialize(self)
+   task initialize(self)
    end  
-   def bark(self)
+
+   task bark(self)
       println(fm"%{self.name} barks")
    end
-   def eat(self)
+   
+   task eat(self)
       println(fm"%{self.name} eats")
    end
 end
