@@ -69,8 +69,7 @@ class Program:
         try:
             with open(fileName, 'r') as file:
                 text = file.read()
-                # check if file is ending with .alden
-                if fileName[-6:] != ".alden":
+                if fileName[-6:] != ".ald":
                     print("File is not an alden file")
                     return
                 else:
