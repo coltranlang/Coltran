@@ -1,3 +1,3 @@
 *.ald linguist-detectable
 *.py linguist-language=Python
-*.ald linguist-language=Ruby
+*.ald linguist-language=Alden
