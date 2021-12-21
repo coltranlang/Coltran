@@ -1144,7 +1144,7 @@ class Parser:
             #         return res.success(VarReassignNode(tok, expr, "+="))
             #     else:
             #         right = res.register(self.expr())
-            #         left = tok
+            #         left = tok 
             #         b = BinOpNode(left, op_tok, right)
             #         res.register_advancement()
             #         self.advance()
