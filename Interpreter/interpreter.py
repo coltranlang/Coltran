@@ -2123,7 +2123,7 @@ class BaseTask(Value):
             return res.failure(Program.error()['Runtime']({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"{len(args)} argument(s) given, but {self.name}() expects {len(arg_names)}",
+                'message': f"{len(args)} argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names)}",
                 'context': self.context,
                 'exit': False
             }))
@@ -2248,7 +2248,7 @@ class Task(BaseTask):
             return res.failure(Program.error()['Runtime']({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"{len(args) -1} argument(s) given, but {self.name}() expects {len(arg_names) - 1 if len(arg_names) > 0 else 0}",
+                'message': f"{len(args) -1} argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names) - 1 if len(arg_names) > 0 else 0}",
                 'context': self.context,
                 'exit': False
             }))
@@ -2363,11 +2363,13 @@ class Class(BaseTask):
                     return value, None
             return "none", self.key_error(error, method_name)
 
+    
     def isSame(self, other):
         if isinstance(other, Class):
             return self.methods_properties == other.methods_properties and self.constructor_args == other.constructor_args and self.inherit_class_name == other.inherit_class_name and self.inherit_class == other.inherit_class
         return False
 
+   
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
                      self.inherit_class_name, self.inherit_class, self.methods_properties, self.context)
@@ -4327,14 +4329,14 @@ class Interpreter:
         if node.variable_keyword_token == "module":
             value = context.symbolTable.get(node.value_node.value)
             if value == None:
-                Program.error()['Error']({
+               return res.failure(Program.error()['Error']({
                     'name': 'NameError',
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f'{node.value_node.value} is not defined',
                     'context': context,
                     'exit': False
-                })
+                }))
         
         if type(node.variable_name_token).__name__ == "tuple":
             var_name = node.variable_name_token
@@ -4517,38 +4519,78 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
-            Program.error()['Error']({
+            return res.failure(Program.error()['Error']({
                 'name': 'NameError',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f'{var_name} is not defined',
                 'context': context,
                 'exit': False
-            })
+            }))
             return res.noreturn()
         
         value = value.copy().setContext(context).setPosition(node.pos_start, node.pos_end) if value.copy else value
         
         return res.success(value)
  
-    
-    def visit_VarTypeNode(self, node, context):
+   
+    def visit_VarReassignNode(self, node, context):
         res = RuntimeResult()
         var_name = node.name.value
+        operation = node.operation
         v = context.symbolTable.get(var_name)
         value = res.register(self.visit(node.value, context))
-        if type(v) is dict:
-            var_type = v['type']
-            if var_type == "final":
-                return res.failure(Program.error()['Runtime']({ 
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"Identifier '{var_name}' cannot be reassigned",
-                    'context': context,
-                    'exit': False
-                }))
-            else:
-                context.symbolTable.set(var_name, value)
+        if v != None:
+            if type(v) is dict:
+                var_type = v['type']
+                if var_type == "final":
+                    return res.failure(Program.error()['Error']({
+                        'name': 'NameError',
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"'{var_name}' cannot be reassigned",
+                        'context': context,
+                        'exit': False
+                    }))
+                else:
+                    if operation == "+=":
+                        if isinstance(v['value'], Number):
+                            if isinstance(value, Number):
+                                new_value = Number(v['value'].value + value.value)
+                                context.symbolTable.set(var_name, new_value)
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        elif isinstance(v['value'], String):
+                            if isinstance(value, String):
+                                new_value = String(v['value'].value + value.value)
+                                context.symbolTable.set(var_name, new_value)
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"reassignment of {TypeOf(v['value']).getType()} to {TypeOf(value).getType()} is not allowed",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                    else:
+                        context.symbolTable.set(var_name, value)
+        else:
+            return res.failure(Program.error()['Error']({
+                        'name': 'NameError',
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"'{var_name}' is not defined",
+                        'context': context,
+                        'exit': False
+                    }))
+        value = value.copy().setContext(context).setPosition(
+            node.pos_start, node.pos_end) if value.copy else value
         return res.success(value)
  
  
@@ -5452,12 +5494,15 @@ class Interpreter:
         object_name = res.register(self.visit(node.name, context))
         property = node.property
         value = res.register(self.visit(node.value, context))
-        #print(type(object_name).__name__, type(property).__name__, type(value).__name__)
         if isinstance(object_name, Class):
             if type(property).__name__ == "Token":
                if hasattr(object_name, "methods_properties"):
                    object_name.methods_properties[property.value] = value
         if isinstance(object_name, Dict):
+            if type(property).__name__ == "Token":
+               if hasattr(object_name, "properties"):
+                   object_name.properties[property.value] = value
+        if isinstance(object_name, Object):
             if type(property).__name__ == "Token":
                if hasattr(object_name, "properties"):
                    object_name.properties[property.value] = value
@@ -5472,14 +5517,14 @@ class Interpreter:
                 name = module.value
                 value = context.symbolTable.get(name)
                 if value == None:
-                    Program.error()['Error']({
+                    res.failure(Program.error()['Error']({
                         'name': 'NameError',
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f'{name} is not defined',
                         'context': context,
                         'exit': False
-                    })
+                    }))
                 else:
                     #print(name, value)
                     context.symbolTable.set(name, value)
@@ -5494,14 +5539,14 @@ class Interpreter:
         var_name = node.name.value
         value = context.symbolTable.get(node.value.value)
         if value == None:
-            Program.error()['Error']({
+           return res.failure(Program.error()['Error']({
                 'name': 'NameError',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f'{node.value.value} is not defined',
                 'context': context,
                 'exit': False
-            })
+            }))
         return res.success(Object(var_name,value, "module"))
     
     

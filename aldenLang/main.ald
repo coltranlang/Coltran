@@ -74,16 +74,30 @@
 # println(fm"For is String2: %{'rt' is not 'rt2'}")  # true
 # println(fm"For is String3: %{'rt' is not 'rt'}")  # false
 
-task @greet(name, age, hobby="Programming")
-    println(fm"Hello, %{name} you are %{age} years old and you like %{hobby}")
-end
-task @greet2(prop)
-    let name = prop.name
-    let age = prop.age
-    let hobby = prop.hobby
-     println(fm"Hello, %{name} you are %{age} years old and you like %{hobby}")
-end
+# task @greet(name, age, hobby="Programming")
+#     println(fm"Hello, %{name} you are %{age} years old and you like %{hobby}")
+# end
+# task @greet2(prop)
+#     let name = prop.name
+#     let age = prop.age
+#     let hobby = prop.hobby
+#      println(fm"Hello, %{name} you are %{age} years old and you like %{hobby}")
+# end
 
-@greet("David", 23)
-@greet("Kenny", 25, "Eating Rice")
-@greet2({name:"Bob", age:40, hobby: "Playing soccer"}) # can be used to simulate named arguments
+# @greet("David", 23)
+# @greet("Kenny", 25, "Eating Rice")
+# @greet2({name:"Bob", age:40, hobby: "Playing soccer"}) # can be used to simulate named arguments
+
+let a = 10
+a = 20
+println(a)
+let b = 20
+let a = a + b
+b += a
+let hello = "Hello"
+let world = " World"
+let hello_world = hello + world
+println(hello_world)
+let list = [1,2,3]
+list += [4,5,6]
+println(fm"a = %{a} b = %{b} list = %{list}")

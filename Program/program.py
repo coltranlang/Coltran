@@ -69,7 +69,7 @@ class Program:
         try:
             with open(fileName, 'r') as file:
                 text = file.read()
-                if fileName[-6:] != ".ald":
+                if fileName[-4:] != ".ald":
                     print("File is not an alden file")
                     return
                 else:

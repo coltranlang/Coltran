@@ -252,12 +252,12 @@ class VarAccessNode:
         return f'{self.name}'
 
 
-class VarTypeNode:
-    def __init__(self, name, value=None, type=None):
+class VarReassignNode:
+    def __init__(self, name, value=None, operation=None):
         self.name = name
         self.id = name
-        self.type = type
         self.value = value
+        self.operation = operation
         self.pos_start = self.name.pos_start
         self.pos_end = self.name.pos_end
 
@@ -613,8 +613,6 @@ class CallNode:
         return f'{self.node_to_call}({self.args_nodes})'
 
 
-
-
 class GetNode:
     def __init__(self, module_name, module_path):
         self.id = module_name
@@ -852,7 +850,6 @@ class Parser:
     
     def expr(self):
         res = ParseResult()
-            
         if self.current_token.matches(tokenList.TT_KEYWORD, 'let') or self.current_token.matches(tokenList.TT_KEYWORD, 'final'):
             res.register_advancement()
             variable_keyword_token = "let" if self.current_token.matches(
@@ -1135,15 +1132,30 @@ class Parser:
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
-            # if self.current_token.type == tokenList.TT_EQ:
+            # if self.current_token.type == tokenList.TT_PLUS:
+            #     op_tok = self.current_token
             #     res.register_advancement()
             #     self.advance()
-            #     expr = res.register(self.expr())
-            #     if res.error:
-            #            return res
-            #     return res.success(VarTypeNode(tok, expr))
-
-            return res.success(VarAccessNode(tok))
+            #     if self.current_token.type == tokenList.TT_EQ:
+            #         res.register_advancement()
+            #         self.advance()
+            #         expr = res.register(self.expr())
+            #         if res.error: return res
+            #         return res.success(VarReassignNode(tok, expr, "+="))
+            #     else:
+            #         right = res.register(self.expr())
+            #         left = tok
+            #         b = BinOpNode(left, op_tok, right)
+            #         res.register_advancement()
+            #         self.advance()
+            if self.current_token.type == tokenList.TT_EQ:
+                res.register_advancement()
+                self.advance()
+                expr = res.register(self.expr())
+                if res.error: return res
+                return res.success(VarReassignNode(tok, expr))
+            else:
+                return res.success(VarAccessNode(tok))
         elif tok.value == 'true' or tok.value == 'false':
             res.register_advancement()
             self.advance()
@@ -1798,6 +1810,8 @@ class Parser:
 
     def task_def(self):
         res = ParseResult()
+        default_values = {}
+        default_values_list = []
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'task'):
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -1849,8 +1863,7 @@ class Parser:
             #     arg_name_tokens[0] = class_name_token
             res.register_advancement()
             self.advance()
-            default_values = {}
-            default_values_list = []
+            
             if self.current_token.type == tokenList.TT_EQ:
                 # a default value cannot be followed by a non-default value e.g if a has a default value of 1 and b has no default value, b cannot be followed by a default value, default values must be at the end of the argument list
                 res.register_advancement()
@@ -1941,7 +1954,6 @@ class Parser:
                 }))
             body = res.register(self.expr())
             if res.error: return res
-
             return res.success(TaskNode(task_name_token, arg_name_tokens, body, True, default_values_list))
         
         
@@ -3436,3 +3448,8 @@ SYMBOLS = '@_'
 num = 123
 num2 = 123.456
 LETTERS_SYMBOLS = LETTERS + SYMBOLS
+
+num = 20
+num2 = 10
+num += num2
+print(num)
