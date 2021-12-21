@@ -4591,6 +4591,7 @@ class Interpreter:
                     }))
         value = value.copy().setContext(context).setPosition(
             node.pos_start, node.pos_end) if value.copy else value
+        context.symbolTable.set(var_name, value)
         return res.success(value)
  
  
