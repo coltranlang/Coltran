@@ -98,4 +98,4 @@ let world = " World"
 let hello_world = hello + world
 println(hello_world)
 let list = [1,2,3]
-println(fm"a = %{a} b = %{b} list = %{list}")
+println(fm"a = %{a} b = %{b} list = %{list}") 
