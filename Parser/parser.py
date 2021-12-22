@@ -350,18 +350,6 @@ class ModuleExport:
         self.pos_end = self.value.pos_end
     
 
-class ObjectGetNode:
-    def __init__(self, left , right):
-        self.id = left
-        self.left = left
-        self.right = right
-        self.pos_start = self.left.pos_start
-        self.pos_end = self.right.pos_end
-        
-    def __repr__(self):
-        return f'{self.left}'
-
-
 class ObjectCall:
     def __init__(self, left, op_tok, right, args):
         self.id = left
@@ -419,11 +407,11 @@ class NoneNode:
 
 class BinOpNode:
     def __init__(self, left_node, op_tok, right_node):
+        res = ParseResult()
         self.left_node = left_node
         self.op_tok = op_tok
         self.right_node = right_node
         if self.left_node == '' or self.right_node == '' or self.op_tok == '':
-            res = ParseResult()
             res.failure(Program.error()['Syntax']({
                 'message': 'Invalid syntax',
                 'pos_start': self.op_tok.pos_start,
@@ -1011,7 +999,6 @@ class Parser:
         res = ParseResult()
         atom = res.register(self.atom())
         if res.error:  return res
-        
         while True:
             if self.current_token.type == tokenList.TT_LPAREN:
                 atom = res.register(self.finish_call(atom))
@@ -1031,6 +1018,66 @@ class Parser:
                     }))
             elif self.current_token.type == tokenList.TT_LSQBRACKET:
                 atom = res.register(self.index_get(atom))
+            elif self.current_token.type == tokenList.TT_PLUS:
+                res.register_advancement()
+                self.advance()
+                right_node = res.register(self.expr())
+                op_tok = Token(tokenList.TT_PLUS, '+', self.current_token.pos_start, self.current_token.pos_end)
+                if self.current_token.type == tokenList.TT_EQ:
+                    res.register_advancement()
+                    self.advance()
+                    right_node = res.register(self.expr())
+                    return res.success(VarReassignNode(atom, right_node, "add"))
+                else:
+                    return res.success(BinOpNode(atom, op_tok, right_node))
+            elif self.current_token.type == tokenList.TT_MINUS:
+                res.register_advancement()
+                self.advance()
+                right_node = res.register(self.expr())
+                op_tok = Token(tokenList.TT_MINUS, '-', self.current_token.pos_start, self.current_token.pos_end)
+                if self.current_token.type == tokenList.TT_EQ:
+                    res.register_advancement()
+                    self.advance()
+                    right_node = res.register(self.expr())
+                    return res.success(VarReassignNode(atom, right_node, "sub"))
+                else:
+                    return res.success(BinOpNode(atom, op_tok, right_node))
+            elif self.current_token.type == tokenList.TT_MUL:
+                res.register_advancement()
+                self.advance()
+                right_node = res.register(self.expr())
+                op_tok = Token(tokenList.TT_MUL, '*', self.current_token.pos_start, self.current_token.pos_end)
+                if self.current_token.type == tokenList.TT_EQ:
+                    res.register_advancement()
+                    self.advance()
+                    right_node = res.register(self.expr())
+                    return res.success(VarReassignNode(atom, right_node, "mul"))
+                else:
+                    return res.success(BinOpNode(atom, op_tok, right_node))
+            elif self.current_token.type == tokenList.TT_DIVISION:
+                res.register_advancement()
+                self.advance()
+                right_node = res.register(self.expr())
+                op_tok = Token(tokenList.TT_DIVISION, '/', self.current_token.pos_start, self.current_token.pos_end)
+                if self.current_token.type == tokenList.TT_EQ:
+                    res.register_advancement()
+                    self.advance()
+                    right_node = res.register(self.expr())
+                    return res.success(VarReassignNode(atom, right_node, "div"))
+                else:
+                    return res.success(BinOpNode(atom, op_tok, right_node))
+            elif self.current_token.type == tokenList.TT_MOD:
+                res.register_advancement()
+                self.advance()
+                right_node = res.register(self.expr())
+                op_tok = Token(tokenList.TT_MOD, '%', self.current_token.pos_start, self.current_token.pos_end)
+                if self.current_token.type == tokenList.TT_EQ:
+                    res.register_advancement()
+                    self.advance()
+                    right_node = res.register(self.expr())
+                    return res.success(VarReassignNode(atom, right_node, "mod"))
+                else:
+                    return res.success(BinOpNode(atom, op_tok, right_node))
             else:
                 if self.current_token.type == tokenList.TT_GETTER:
                     res.register_advancement()
@@ -1132,22 +1179,6 @@ class Parser:
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
-            # if self.current_token.type == tokenList.TT_PLUS:
-            #     op_tok = self.current_token
-            #     res.register_advancement()
-            #     self.advance()
-            #     if self.current_token.type == tokenList.TT_EQ:
-            #         res.register_advancement()
-            #         self.advance()
-            #         expr = res.register(self.expr())
-            #         if res.error: return res
-            #         return res.success(VarReassignNode(tok, expr, "+="))
-            #     else:
-            #         right = res.register(self.expr())
-            #         left = tok 
-            #         b = BinOpNode(left, op_tok, right)
-            #         res.register_advancement()
-            #         self.advance()
             if self.current_token.type == tokenList.TT_EQ:
                 res.register_advancement()
                 self.advance()
@@ -1245,6 +1276,50 @@ class Parser:
                 return res
             return res.success(export_module)
     
+    def make_expr(self,atom):
+        res = ParseResult()
+        name = atom
+        arg_nodes = []
+        if self.current_token.type == tokenList.TT_LPAREN:
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type == tokenList.TT_RPAREN:
+                res.register_advancement()
+                self.advance()
+                call_node = res.success(CallNode(name, arg_nodes))
+                name = res.register(call_node)
+                
+                return res.success(name)
+            else:
+                arg_nodes.append(res.register(self.expr()))
+                if res.error:
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': f"Expected ')'",
+                        'exit': False
+                    }))
+
+                while self.current_token.type == tokenList.TT_COMMA:
+                    res.register_advancement()
+                    self.advance()
+                    arg_nodes.append(res.register(self.expr()))
+                    if res.error:
+                        return res
+
+                if self.current_token.type != tokenList.TT_RPAREN:
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "Expected ',' or ')'",
+                        'exit': False
+                    }))
+                res.register_advancement()
+                self.advance()
+                call_node = res.success(CallNode(name, arg_nodes))
+                name = res.register(call_node)
+                return res.success(name)
+               
     def if_expr(self):
         res = ParseResult()
         all_cases = res.register(self.if_expr_cases('if'))
@@ -1973,9 +2048,6 @@ class Parser:
         
         body = res.register(self.statements())
         if res.error: return res
-        
-        
-            
             
         
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
@@ -2410,7 +2482,7 @@ class Parser:
                 self.advance()
                 methods.append({
                     'name': method_name,
-                    'value': TaskNode(method_name, args_list, body, False, "method"),
+                    'value': TaskNode(method_name, args_list, body, False, [],"method"),
                     'pos_start': method_name.pos_start,
                     'pos_end': body.pos_end
                 })
@@ -3402,6 +3474,7 @@ class Parser:
             value = res.register(self.expr())
             if res.error: return res
             return res.success(PropertySetNode(owner, name, value))
+       
         return res.success(PropertyNode(owner, name))
       
     def binaryOperation(self, func_1, ops, func_2=None):
@@ -3430,7 +3503,7 @@ class Parser:
             
 
 
-# li = [1,2,3,4,5,6,7,8,9,10]
+li = [1,2,3,4,5,6,7,8,9,10]
 # print(li[])
 
 # pa = (1,2,3,4,5,6,7,8,9,10)
@@ -3449,7 +3522,23 @@ num = 123
 num2 = 123.456
 LETTERS_SYMBOLS = LETTERS + SYMBOLS
 
-num = 20
-num2 = 10
-num += num2
-print(num)
+
+# class Test:
+#     def test(a, b):
+#         return a + b
+
+# test.go = 1
+# # print all test attributes
+# print(test)
+# num = 1
+# for i in range(10):
+#     num = num + i
+#     print(f"num = {num}")
+# hello = 'hello'
+# world = 'world'
+# li += "hello"
+# print(li * 2)
+# a = 20
+# b = 30
+# a = b
+# print(a)

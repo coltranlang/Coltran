@@ -345,14 +345,154 @@ let l = [1,2,3]
 let x = food.strip().join(in l as i: str(i))
 line(41)
 println(fm"I love %{x}")
+
+# asssign property to task
+task test(a, b)
+    println(fm"a = %{a} b = %{b}")
+end
+test.call = task () -> println("I was just called")
+test.call()
+class Person(fname, lname)
+    task getName(self)
+        println(fm"My name is %{self.fname}")
+    end
+end
+task getFullName(self)
+    println(fm"My full name is %{self.fname} %{self.lname}")
+end
+let person = Person("David", "Michael")
+# set getFullName as the task of person
+person.getFullName = getFullName
+line(42)
+person.getName()
+person.getFullName()
+# change fname and lname properties of person
+person.fname = "Kehinde"
+person.lname = "Akinsanya"
+line(44)
+person.getName()
+person.getFullName()
+
+
+# assignment operator
+# addition assignment operator
+let a = 20
+let b = 30
+final c = a + b
+a += b # expected result is 50
+let hello = "Hello"
+let world = " World"
+let hello_world = hello + world
+println(hello_world)
+let list = [1,2,3]
+let pair = (1,2,3)
+list += [4,5,6]
+pair += (4,5,6)
+line(45)
+println(fm"a = %{a} b = %{b} list = %{list} pair = %{pair}") 
+let num = 1
+for i = 0 to 10:
+    num += i
+    println(fm"num = %{num}")
+end
+
+# subtraction assignment operator
+let a = 20
+let b = 30
+final d = a - b
+
+a -= b # expected result is -10
+let hello = "Hello"
+let world = " World"
+#let hello_world = hello - world # expected result is error
+let list = [1,2,3]
+let pair = (1,2,3)
+#list -= [4,5,6] # expected result is error
+#pair -= (4,5,6) # expected result is error
+line(46)
+println(fm"d = %{d}")
+println(fm"a = %{a} b = %{b} list = %{list} pair = %{pair}")
+
+# multiplication assignment operator
+let a = 20
+let b = 30
+final e = a * b
+
+a *= b # expected result is 600
+let hello = "Hello"
+let world = " World"
+#let hello_world = hello * world # expected result is error
+let hello_world = hello * 2
+let list = [1,2,3]
+let pair = (1,2,3)
+list *= 2 # expected result is error
+pair *= 2 # expected result is error
+line(47)
+println(fm"e = %{e}")
+println(fm"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
+
+# division assignment operator
+let a = 20
+let b = 30
+final f = a / b
+
+
+a /= b # expected result is 0.6
+let hello = "Hello"
+let world = " World"
+#let hello_world = hello / world # expected result is error
+#let hello_world = hello / 2 
+let list = [1,2,3]
+let pair = (1,2,3)
+#list /= [4,5,6] # expected result is error
+#pair /= (4,5,6) # expected result is error
+line(48)
+println(fm"f = %{f}")
+println(fm"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
+
+# modulus assignment operator
+let a = 20
+let b = 30
+final g = a % b
+
+
+a %= b # expected result is 10
+let hello = "Hello"
+let world = " World"
+#let hello_world = hello % world # expected result is error
+#let hello_world = hello % 2
+let list = [1,2,3]
+let pair = (1,2,3)
+#list %= [4,5,6] # expected result is error
+#pair %= (4,5,6) # expected result is error
+line(49)
+println(fm"g = %{g}")
+println(fm"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
+
+let list = [1,2,3,4]
+let pair = (1,2,3,4)
+list += [5]
+pair += (5)
+line(50)
+println(fm"True or False1: %{list == [1,2,3,4,5]}") # true
+println(fm"True or False2: %{pair == (1,2,3,4,5)}") # true
+println(fm"True or False3: %{list == pair}") # false
+println(fm"True or False4: %{pair == list}") # false
+println(fm"True or False5: %{list < [1,2,3,4,5]}") # false
+println(fm"True or False6: %{pair < (1,2,3,4,5)}") # false
+println(fm"True or False7: %{list <= [1,2,3,4,5]}") # true
+println(fm"True or False8: %{pair <= (1,2,3,4,5)}") # true
+println(fm"True or False9: %{[1,2,3,4,5,6] > list}") # true
+println(fm"True or False10: %{(1,2,3,4,5,6) > pair}") # true
+println(fm"For List: %{list}, For Pair: %{pair}") # For List: [1, 2, 3, 4, 5], For Pair: (1, 2, 3, 4, 5)
 # task @makeList(item, list=[])
 #     list.append(item)
 #     return list
 # end
 
 # let n = 0b1010
-# let m = 0o10
-# let o = 0x10
+# #let m = 0o10
+# #let o = 0x10
 # line(35)
 # println(n)
 
@@ -360,4 +500,3 @@ println(fm"I love %{x}")
 # println(@makeList("tissue"))
 # println(@makeList("napkins"))
 # println(@makeList("spoons"))
-

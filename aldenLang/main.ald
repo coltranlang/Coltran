@@ -88,14 +88,3 @@
 # @greet("Kenny", 25, "Eating Rice")
 # @greet2({name:"Bob", age:40, hobby: "Playing soccer"}) # can be used to simulate named arguments
 
-let a = 10
-a = 20
-let b = 10
-a = a + b
-b = b + a
-let hello = "Hello"
-let world = " World"
-let hello_world = hello + world
-println(hello_world)
-let list = [1,2,3]
-println(fm"a = %{a} b = %{b} list = %{list}") 

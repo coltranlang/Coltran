@@ -298,6 +298,20 @@ class Program:
                 Program.printErrorExit(Program.asStringTraceBack(isDetail))
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
+         
+        def PropertyError(detail):
+            isDetail = {
+                'name': 'PropertyError',
+                'type': 'invalid syntax',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
                           
         def IndexError(detail):
             isDetail = {
@@ -337,6 +351,7 @@ class Program:
             'TypeError': TypeError,
             'KeyError': KeyError,
             'ValueError': ValueError,
+            'PropertyError': PropertyError,
             'IndexError': IndexError,
             'ModuleError': ModuleError
         }
@@ -942,9 +957,7 @@ class Number(Value):
         if self.get_comparison_in(other)[0].value == "false":
             val = "true"
         return Boolean(val), None
-                
-        
-    
+                          
     def get_comparison_notin(self, other):
         new_list = []
         for el in other.value:
@@ -1029,8 +1042,6 @@ class Number(Value):
             return self.setTrueorFalse(setNumber(self.value) >= setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error, other)
-
-    
 
     def and_by(self, other): 
         error = {
@@ -1537,15 +1548,28 @@ class List(Value):
         self.id = self.elements
         
     def added_to(self, other):
-        new_list = self.copy()
-        new_list.elements.append(other)
-        return new_list, None
+        if isinstance(other, List):
+            return List(self.elements + other.elements), None
+        elif isinstance(other, String):
+            new_list = []
+            for char in other.value:
+                new_list.append(String(char).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+            return List(self.elements + new_list), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't add '{TypeOf(other.value).getType()}' to '{TypeOf(self.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation(error, other)
 
     def subtracted_by(self, other):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on list",
+            'message': f"can't subtract '{TypeOf(other.value).getType()}' from {TypeOf(self.value).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -1553,7 +1577,7 @@ class List(Value):
             new_list = self.copy()
             try:
                 new_list.elements.pop(other.value)
-                return new_list, None
+                return List(new_list), None
             except:
                 return None, "none"
         else:
@@ -1563,7 +1587,7 @@ class List(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Did you mean to use the `:` operator to get the element at a certain index?",
+            'message': f"unsupported operation on 'list' and '{TypeOf(other.value).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -1573,14 +1597,14 @@ class List(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on list",
+            'message': f"can't multiply {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
             'context': self.context,
             'exit': False
         }
-        if isinstance(other, List):
+        if isinstance(other, Number):
             new_list = self.copy()
-            new_list.elements.extend(other.elements)
-            return new_list, None
+            new_list = new_list.elements * other.value
+            return List(new_list), None
         else:
             return None, self.illegal_operation(error, other)
 
@@ -1619,8 +1643,7 @@ class List(Value):
                 'exit': False
             }
             return None, self.illegal_operation_typerror(error, other)
-   
-   
+     
     def get_comparison_lte(self, other):
         if isinstance(other, List):
             value = len(self.elements) <= len(other.elements)
@@ -1661,25 +1684,18 @@ class List(Value):
         return self.setTrueorFalse(True if value == "false" else False), None
     
     def notted(self):
-        return List(self.elements[::-1]), None
+        value = self.value
+        return self.setTrueorFalse(False if value == "true" else True), None
 
     def get_index(self, other):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"",
+            'message': f"can't get index of {TypeOf(self.value).getType()}",
             'context': self.context,
             'exit': False
         }
-        if isinstance(other, Number):
-            try:
-                return self.elements[other.value], None
-            except IndexError:
-                error['message'] = f"list index out of range"
-                return None,  self.illegal_operation_indexError(error, other)
-        else:
-            error['message'] = f"List index must be a number not {TypeOf(other).getType()}"
-            return None, self.illegal_operation_indexError(error, other)
+        return None, self.illegal_operation_typerror(error, other)
 
     def get_element_at(self, index):
         return self.elements[index]
@@ -1734,28 +1750,66 @@ class Pair(Value):
         self.id = self.elements
 
     def added_to(self, other):
-        new_list = self.copy()
-        new_list.elements += other
-        return new_list, None
+        if isinstance(other, Pair):
+            return Pair(self.elements + other.elements), None
+        elif isinstance(other, String):
+            new_pair = ()
+            for char in other.value:
+                new_pair += (String(char).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+            return Pair(self.elements + new_pair), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't add '{TypeOf(other.value).getType()}' to '{TypeOf(self.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation(error, other)
 
     def subtracted_by(self, other):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on pair",
+            'message': f"can't subtract '{TypeOf(other.value).getType()}' from {TypeOf(self.value).getType()}'",
             'context': self.context,
             'exit': False
         }
         if isinstance(other, Number):
             new_list = self.copy()
             try:
-                new_list.elements = new_list.elements[:-other.value]
-                return new_list, None
+                new_list.elements.pop(other.value)
+                return List(new_list), None
             except:
                 return None, "none"
         else:
             return None, self.illegal_operation(error, other)
-    
+
+    def divided_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"unsupported operation on 'pair' and '{TypeOf(other.value).getType()}'",
+            'context': self.context,
+            'exit': False
+        }
+        return None, self.illegal_operation_typerror(error, other)
+
+    def multiplied_by(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't multiply {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Number):
+            new_pair = self.copy()
+            new_pair = new_pair.elements * other.value
+            return Pair(new_pair), None
+        else:
+            return None, self.illegal_operation(error, other)
+
     def get_comparison_eq(self, other):
         value = self.isSame(other)
         return self.setTrueorFalse(True if value else False), None
@@ -1821,14 +1875,6 @@ class Pair(Value):
             }
             return None, self.illegal_operation_typerror(error, other)
         
-    
-
-    def and_by(self, other):
-        return self.setTrueorFalse(self.elements and other.elements), None
-    
-    def or_by(self, other):
-        return self.setTrueorFalse(self.elements or other.elements), None
-    
     def get_comparison_in(self, other):
         for element in self.elements:
             
@@ -1840,29 +1886,28 @@ class Pair(Value):
         value = self.get_comparison_in(other)[0].value
         return self.setTrueorFalse(True if value == "false" else False), None
     
-    
     def notted(self):
-        return self.setTrueorFalse(not self.elements), None
-    
-    
-    
+        value = self.value
+        return self.setTrueorFalse(False if value == "true" else True), None
+
     def get_index(self, other):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on pair",
+            'message': f"can't get index of {TypeOf(self.value).getType()}",
             'context': self.context,
             'exit': False
         }
-        if isinstance(other, Number):
-            try:
-                return self.elements[other.value], None
-            except:
-                return None, self.none_value()
-        else:
-            error['message'] = f"Pair index must be a number not {TypeOf(other).getType()}"
-            return None, self.illegal_operation(error, other)
-        
+        return None, self.illegal_operation_typerror(error, other)
+
+
+    def get_element_at(self, index):
+        return self.elements[index]
+
+    def set_element_at(self, index, value):
+        self.elements[index] = value
+        return self
+    
     def len(self):
         return Number(len(self.elements))
 
@@ -2111,7 +2156,8 @@ class BaseTask(Value):
         super().__init__()
         self.name = name or "<anonymous>"
         self.value = self.name
-
+        
+  
     def generate_new_context(self):
         new_context = Context(self.name, self.context, self.pos_start)
         new_context.symbolTable = SymbolTable(new_context.parent.symbolTable)
@@ -2155,10 +2201,10 @@ class BaseTask(Value):
         if isinstance(other, BuiltInTask):
             return self.name == other.name
         return False
-     
+   
         
 class Task(BaseTask):
-    def __init__(self, name, body_node, arg_names, implicit_return, default_values, context):
+    def __init__(self, name, body_node, arg_names, implicit_return, default_values, properties,context):
         super().__init__(name)
         self.id = name
         self.name = name
@@ -2166,7 +2212,9 @@ class Task(BaseTask):
         self.arg_names = arg_names
         self.implicit_return = implicit_return
         self.default_values = default_values
+        self.properties = properties
         self.context = context
+        
         
     def execute(self, args):
         res = RuntimeResult()
@@ -2177,12 +2225,9 @@ class Task(BaseTask):
         arg_giving = None
         if len(self.default_values) > 0:
             for i in range(len(self.default_values)):
-                
                 name = self.default_values[i]['name']
                 value = res.register(interpreter.visit(self.default_values[i]['value'], exec_context))
                 if res.should_return(): return res
-                # if no value is given corresponding to the argument, then the default value is used
-                # the one that has a default value is the one that is used
                 arg_giving = args
                 if len(args) < len(self.arg_names):
                     if value not in args:
@@ -2197,16 +2242,14 @@ class Task(BaseTask):
             return res
         
         value = res.register(interpreter.visit(self.body_node, exec_context))
-        if res.should_return() and res.func_return_value == None:
-            return res
-        return_value = (
-            value if self.implicit_return else None) or res.func_return_value or NoneType.none
-        if hasattr(return_value, "value"):
-            if return_value.value == "none":
-                return res.success(None)
+        if res.should_return() and res.func_return_value == None: return res
+        return_value = (value if self.implicit_return else None) or res.func_return_value or NoneType.none
+        # if hasattr(return_value, "value"):
+        #     if return_value.value == "none":
+        #         return_value.value = NoneType.none
         return res.success(return_value)
 
-    # only class Task has this method
+    # only class Task calls this method
     def run(self, args, class_name, context=None):
         res = RuntimeResult()
         interpreter = Interpreter()
@@ -2229,9 +2272,9 @@ class Task(BaseTask):
             return res
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
-        if hasattr(return_value, "value"):
-            if return_value.value == "none":
-                return res.success(None)
+        # if hasattr(return_value, "value"):
+        #     if return_value.value == "none":
+        #         return res.success(None)
         return res.success(return_value)
     
     def run_check_and_populate_args(self, arg_names, args, exec_ctx):
@@ -2269,13 +2312,11 @@ class Task(BaseTask):
             arg_value = args[i]
             arg_value.setContext(exec_context)
             exec_context.symbolTable.set(arg_name, arg_value)
-            
-            
-    
+                     
                       
     def copy(self):
         copy = Task(self.name, self.body_node,
-                    self.arg_names, self.implicit_return, self.default_values,self.context)
+                    self.arg_names, self.implicit_return, self.default_values,self.properties,self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -4326,6 +4367,7 @@ class Interpreter:
             elif type(node.variable_name_token[0]).__name__ == 'VarAccessNode':
                 var_name = node.variable_name_token[0].id.value
         value = res.register(self.visit(node.value_node, context))
+        
         if node.variable_keyword_token == "module":
             value = context.symbolTable.get(node.value_node.value)
             if value == None:
@@ -4528,15 +4570,14 @@ class Interpreter:
                 'exit': False
             }))
             return res.noreturn()
-        
-        value = value.copy().setContext(context).setPosition(node.pos_start, node.pos_end) if value.copy else value
-        
+        value = value.copy().setContext(context).setPosition(
+            node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
         return res.success(value)
  
    
     def visit_VarReassignNode(self, node, context):
         res = RuntimeResult()
-        var_name = node.name.value
+        var_name = node.name.value if hasattr(node.name, 'value') else node.name.id.value
         operation = node.operation
         v = context.symbolTable.get(var_name)
         value = res.register(self.visit(node.value, context))
@@ -4553,11 +4594,11 @@ class Interpreter:
                         'exit': False
                     }))
                 else:
-                    if operation == "+=":
+                    if operation == "add":
                         if isinstance(v['value'], Number):
-                            if isinstance(value, Number):
+                            if isinstance(value, Number):  
                                 new_value = Number(v['value'].value + value.value)
-                                context.symbolTable.set(var_name, new_value)
+                                context.symbolTable.set(var_name, new_value, "let")
                             else:
                                 return res.failure(Program.error()['TypeError']({
                                     'pos_start': node.pos_start,
@@ -4569,6 +4610,25 @@ class Interpreter:
                         elif isinstance(v['value'], String):
                             if isinstance(value, String):
                                 new_value = String(v['value'].value + value.value)
+                                context.symbolTable.set(var_name, new_value, "let")
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"reassignment of {TypeOf(v['value']).getType()} to {TypeOf(value).getType()} is not allowed",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        elif isinstance(v['value'], List):
+                            if isinstance(value, List):
+                                new_value = List(v['value'].elements + value.elements)
+                                context.symbolTable.set(var_name, new_value)
+                            elif isinstance(value, String):
+                                # split string into list
+                                new_list = []
+                                for char in value.value:
+                                    new_list.append(String(char).setPosition(node.pos_start, node.pos_end).setContext(context))
+                                new_value = List(v['value'].elements + new_list)
                                 context.symbolTable.set(var_name, new_value)
                             else:
                                 return res.failure(Program.error()['TypeError']({
@@ -4578,8 +4638,177 @@ class Interpreter:
                                     'context': context,
                                     'exit': False
                                 }))
+                        elif isinstance(v['value'], Pair):
+                            if isinstance(value, Pair):
+                                new_value = Pair(v['value'].elements + value.elements)
+                                context.symbolTable.set(var_name, new_value)
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"reassignment of {TypeOf(v['value']).getType()} to {TypeOf(value).getType()} is not allowed",
+                                    'context': context,
+                                    'exit': False
+                                }))    
+                        else:
+                            return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                })) 
+                    elif operation == "sub":
+                        if isinstance(v['value'], Number):
+                            if isinstance(value, Number):
+                                new_value = Number(v['value'].value - value.value)
+                                context.symbolTable.set(var_name, new_value, "let")
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        else:
+                            return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                    elif operation == "mul":
+                        if isinstance(v['value'], Number):
+                            if isinstance(value, Number):
+                                new_value = Number(v['value'].value * value.value)
+                                context.symbolTable.set(var_name, new_value, "let")
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        elif isinstance(v['value'], String):
+                            if isinstance(value, Number):
+                                new_value = String(v['value'].value * value.value)
+                                context.symbolTable.set(var_name, new_value, "let")
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        elif isinstance(v['value'], List):
+                            if isinstance(value, Number):
+                                new_value = List(v['value'].elements * value.value)
+                                context.symbolTable.set(var_name, new_value)
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        elif isinstance(v['value'], Pair):
+                            if isinstance(value, Number):
+                                new_value = Pair(v['value'].elements * value.value)
+                                context.symbolTable.set(var_name, new_value)
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        else:
+                            return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                    elif operation == "div":
+                        if isinstance(v['value'], Number):
+                            if isinstance(value, Number):
+                                new_value = Number(v['value'].value / value.value)
+                                context.symbolTable.set(var_name, new_value, "let")
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        else:
+                            return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))    
+                    elif operation == "mod":
+                        if isinstance(v['value'], Number):
+                            if isinstance(value, Number):
+                                new_value = Number(v['value'].value % value.value)
+                                context.symbolTable.set(var_name, new_value, "let")
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        else:
+                            return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
                     else:
-                        context.symbolTable.set(var_name, value)
+                        context.symbolTable.set(var_name, value, "let")
+            # else:
+            #     if operation == "+=":
+            #         if isinstance(v, Number):
+            #             if isinstance(value, Number):
+            #                 new_value = Number(v.value + value.value)
+            #                 context.symbolTable.set(var_name, new_value)
+            #             else:
+            #                 return res.failure(Program.error()['TypeError']({
+            #                     'pos_start': node.pos_start,
+            #                     'pos_end': node.pos_end,
+            #                     'message': f"unsupported '+=' operation for '{TypeOf(v).getType()}' and '{TypeOf(value).getType()}'",
+            #                     'context': context,
+            #                     'exit': False
+            #                 }))
+            #         elif isinstance(v, String):
+            #             if isinstance(value, String):
+            #                 new_value = String(v.value + value.value)
+            #                 context.symbolTable.set(var_name, new_value)
+            #             else:
+            #                 return res.failure(Program.error()['TypeError']({
+            #                     'pos_start': node.pos_start,
+            #                     'pos_end': node.pos_end,
+            #                     'message': f"reassignment of {TypeOf(v).getType()} to {TypeOf(value).getType()} is not allowed",
+            #                     'context': context,
+            #                     'exit': False
+            #                 }))
+            #     else:
+            #         context.symbolTable.set(var_name, value)
+        
         else:
             return res.failure(Program.error()['Error']({
                         'name': 'NameError',
@@ -4590,8 +4819,7 @@ class Interpreter:
                         'exit': False
                     }))
         value = value.copy().setContext(context).setPosition(
-            node.pos_start, node.pos_end) if value.copy else value
-        context.symbolTable.set(var_name, value)
+            node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
         return res.success(value)
  
  
@@ -4621,7 +4849,7 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no method {object_key.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
             
             if type(object_key).__name__ == "Token":
                 if hasattr(object_name, "methods_properties"):
@@ -4633,7 +4861,7 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
             
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "methods_properties"):
@@ -4662,9 +4890,9 @@ class Interpreter:
                             else:
                                 self.error_detected = True
                                 error["message"] = f"{object_name.name} has no method {object_key.node_to_call.value}"
-                            return res.failure(Program.error()["KeyError"](error))
+                            return res.failure(Program.error()["PropertyError"](error))
                     # else:
-                    #     return res.failure(Program.error()["KeyError"](error))
+                    #     return res.failure(Program.error()["PropertyError"](error))
         
         elif isinstance(object_name, Object):
             builtin_properties = {
@@ -4677,7 +4905,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -4686,7 +4914,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                return res.failure(Program.error()["KeyError"](error))
+                                return res.failure(Program.error()["PropertyError"](error))
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -4706,7 +4934,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            return res.failure(Program.error()["KeyError"](error))
+                            return res.failure(Program.error()["PropertyError"](error))
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -4731,9 +4959,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
                     # else:
-                    #     return res.failure(Program.error()["KeyError"](error))
+                    #     return res.failure(Program.error()["PropertyError"](error))
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -4747,7 +4975,7 @@ class Interpreter:
                         #     error["message"] = f"{name} has no property {object_key.value}"
                         # else:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
             
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -4756,7 +4984,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
    
         elif isinstance(object_name, Dict):
             builtin_properties = {
@@ -4769,7 +4997,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
 
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -4778,7 +5006,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                return res.failure(Program.error()["KeyError"](error))
+                                return res.failure(Program.error()["PropertyError"](error))
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -4800,7 +5028,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            return res.failure(Program.error()["KeyError"](error))
+                            return res.failure(Program.error()["PropertyError"](error))
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -4826,9 +5054,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
                     # else:
-                    #     return res.failure(Program.error()["KeyError"](error))
+                    #     return res.failure(Program.error()["PropertyError"](error))
 
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -4838,7 +5066,7 @@ class Interpreter:
                     else:
                         self.error_detected = True
                         error["message"] = f"'{object_key.value}'"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
 
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -4847,7 +5075,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
    
         elif isinstance(object_name, List):
             if type(object_key).__name__ == "Token":
@@ -4860,7 +5088,7 @@ class Interpreter:
                         return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
-                    return res.failure(Program.error()["KeyError"](error))
+                    return res.failure(Program.error()["PropertyError"](error))
                 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -4875,7 +5103,7 @@ class Interpreter:
                         return res.success(value.name)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
         
         elif isinstance(object_name, String):
             if type(object_key).__name__ == "Token":
@@ -4887,7 +5115,7 @@ class Interpreter:
                         return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                    return res.failure(Program.error()["KeyError"](error))
+                    return res.failure(Program.error()["PropertyError"](error))
                 
                 
             elif type(object_key).__name__ == "VarAccessNode":
@@ -4896,7 +5124,7 @@ class Interpreter:
                     return res.success(String(value))
                 else:
                     error["message"] = f"'string' has no property {object_key.id.value}"
-                    return res.failure(Program.error()["KeyError"](error))
+                    return res.failure(Program.error()["PropertyError"](error))
                
             elif type(object_key).__name__ == "PropertyNode":
                 if type(object_key.id).__name__ ==  "CallNode":
@@ -4911,14 +5139,14 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'string' has no property {object_key.id.node_to_call.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
                 else:
                     if object_key.id.value in string_methods:
                         value = f"<{str(object_key.id.value)}()>, [ built-in string method ]"
                         return res.success(String(value))
                     else:
                         error["message"] = f"'string' has no property {object_key.id.value}"
-                        return res.failure(Program.error()["KeyError"](error)) 
+                        return res.failure(Program.error()["PropertyError"](error)) 
                 
             
             elif type(object_key).__name__ == "CallNode":
@@ -4934,7 +5162,7 @@ class Interpreter:
                         return res.success(value.name)
                     else:
                         error["message"] = f"'string' has no property {object_key.node_to_call.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
         
         elif isinstance(object_name, BuiltInMethod_String):
             if type(object_key).__name__ == "CallNode":
@@ -4950,7 +5178,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'string' has no property {object_key.node_to_call.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
                 
         elif isinstance(object_name, Number):
             if type(object_key).__name__ == "Token":
@@ -4959,7 +5187,7 @@ class Interpreter:
                     return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                    return res.failure(Program.error()["KeyError"](error))
+                    return res.failure(Program.error()["PropertyError"](error))
                 
             elif type(object_key).__name__ == "VarAccessNode":
                 if object_key.id.value in number_methods:
@@ -4967,7 +5195,7 @@ class Interpreter:
                     return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.value}"
-                    return res.failure(Program.error()["KeyError"](error))
+                    return res.failure(Program.error()["PropertyError"](error))
             
             elif type(object_key).__name__ == "CallNode":
                 if object_key.node_to_call.value in number_methods:
@@ -4980,17 +5208,20 @@ class Interpreter:
                     return res.success(value)
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                    return res.failure(Program.error()["KeyError"](error)) 
+                    return res.failure(Program.error()["PropertyError"](error)) 
                
         elif isinstance(object_name, Task):
-            
-            task_properties = {
-                    'name': String(object_name.name)
-                }
             if type(object_key).__name__ == "Token":
-                if object_key.value in task_properties:
-                    value = task_properties[object_key.value]
-                    return res.success(value)
+                if object_key.value in object_name.properties.properties:
+                    if object_key.value in object_name.properties.properties:
+                        value = object_name.properties.properties[object_key.value]
+                        return res.success(value)
+                    else:
+                        if object_name.name == "Export":
+                            error['message'] = f"Export has no member '{object_key.value}'"
+                        else:
+                            error["message"] = f"{object_name.name} has no property {object_key.value}"
+                        return res.failure(Program.error()["PropertyError"](error))
                 else:
                     return res.failure(Program.error()['Runtime']({
                         'pos_start': node.pos_start,
@@ -4999,17 +5230,47 @@ class Interpreter:
                         'context': context,
                         'exit': False
                     }))
+            if type(object_key).__name__ == "CallNode":
+                if type(object_key.node_to_call).__name__ == "Token":
+                    if object_key.node_to_call.value in object_name.properties.properties:
+                        value = object_name.properties.properties[object_key.node_to_call.value]
+                        args_node = object_key.args_nodes
+                        args = []
+                        
+                        for arg in args_node:
+                            args.append(res.register(
+                                self.visit(arg, context)))
+                            if res.should_return(): return res
+                        _type = object_name.properties.properties[object_key.node_to_call.value].properties.properties['__type'].value
+                        if _type == "method":
+                            return_value = res.register(value.run(args, object_name))
+                        else:
+                            return_value = res.register(value.execute(args))
+                        if res.should_return():
+                                return res
+                        
+                        if return_value == None or isinstance(return_value, NoneType):
+                            return res.success(None)
+                        else:
+                            return res.success(return_value)
+                else:
+                    return res.failure(Program.error()['Runtime']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"{object_name.name} has no property {object_key.node_to_call.value}",
+                        'context': context,
+                        'exit': False
+                    }))
             else:
-                return res.failure(Program.error()['Runtime']({
+                return res.failure(Program.error()['PropertyError']({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"{object_name.name} has no property {object_key.id.value}",
+                    'message': f"'{object_name.name}'",
                     'context': context,
                     'exit': False
                 }))
          
         elif type(object_name).__name__ == "PropertyNode":
-            print("PropertyNode", "fg")
             print(type(object_key))
 
         elif isinstance(object_name, ModuleObject):
@@ -5020,7 +5281,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -5029,7 +5290,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                return res.failure(Program.error()["KeyError"](error))
+                                return res.failure(Program.error()["PropertyError"](error))
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -5048,7 +5309,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            return res.failure(Program.error()["KeyError"](error))
+                            return res.failure(Program.error()["PropertyError"](error))
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -5073,9 +5334,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        return res.failure(Program.error()["KeyError"](error))
+                        return res.failure(Program.error()["PropertyError"](error))
                     # else:
-                    #     return res.failure(Program.error()["KeyError"](error))
+                    #     return res.failure(Program.error()["PropertyError"](error))
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -5089,9 +5350,8 @@ class Interpreter:
                         #     error["message"] = f"{name} has no property {object_key.value}"
                         # else:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        return res.failure(Program.error()["KeyError"](error))
-        
-        
+                        return res.failure(Program.error()["PropertyError"](error))
+                
         elif isinstance(object_name, Module):
             if type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -5100,10 +5360,35 @@ class Interpreter:
                         return res.success(value)
        
         else:
-            error["message"] = f"'{TypeOf(object_name).getType()}' has no property {object_key.node_to_call.value}"
-            return res.failure(Program.error()["KeyError"](error))
+            error["message"] = f"'{object_key.value}'"
+            return res.failure(Program.error()["PropertyError"](error))
 
-
+    
+    def visit_PropertySetNode(self, node, context):
+        res = RuntimeResult()
+        object_name = res.register(self.visit(node.name, context))
+        property = node.property
+        value = res.register(self.visit(node.value, context))
+        if isinstance(object_name, Class):
+            if type(property).__name__ == "Token":
+               if hasattr(object_name, "methods_properties"):
+                   object_name.methods_properties[property.value] = value
+        if isinstance(object_name, Dict):
+            if type(property).__name__ == "Token":
+               if hasattr(object_name, "properties"):
+                   object_name.properties[property.value] = value
+        if isinstance(object_name, Object):
+            if type(property).__name__ == "Token":
+               if hasattr(object_name, "properties"):
+                   object_name.properties[property.value] = value
+                   
+        if isinstance(object_name, Task):
+            if type(property).__name__ == "Token":
+                if hasattr(object_name, "properties"):
+                    object_name.properties.properties[property.value] = value
+                    object_name.properties.properties['__properties'].properties[property.value] = value
+                    
+ 
     def visit_IndexNode(self, node, context):
         res = RuntimeResult()
         index_value = res.register(self.visit(node.name, context))
@@ -5488,26 +5773,7 @@ class Interpreter:
                 'context': context,
                 'exit': False  
             }))  
-        
-   
-    def visit_PropertySetNode(self, node, context):
-        res = RuntimeResult()
-        object_name = res.register(self.visit(node.name, context))
-        property = node.property
-        value = res.register(self.visit(node.value, context))
-        if isinstance(object_name, Class):
-            if type(property).__name__ == "Token":
-               if hasattr(object_name, "methods_properties"):
-                   object_name.methods_properties[property.value] = value
-        if isinstance(object_name, Dict):
-            if type(property).__name__ == "Token":
-               if hasattr(object_name, "properties"):
-                   object_name.properties[property.value] = value
-        if isinstance(object_name, Object):
-            if type(property).__name__ == "Token":
-               if hasattr(object_name, "properties"):
-                   object_name.properties[property.value] = value
-      
+            
     
     def visit_ExportModuleNode(self, node, context):
         res = RuntimeResult()
@@ -5649,6 +5915,19 @@ class Interpreter:
         except KeyboardInterrupt:
             pass
 
+    
+    def visit_OperationNode(self, node, context):
+        res = RuntimeResult()
+        left = context.symbolTable.get(node.left_node.value)
+        op_tok = node.op_tok
+        right = node.right_node
+        if type(right).__name__ == "VarAccessNode":
+            right = context.symbolTable.get(right.id.value)
+            if op_tok.type == tokenList.TT_PLUS:
+                if isinstance(left, Number) and isinstance(right['value'], Number):
+                    result = left.value + right['value'].value
+                    return res.success(Number(result).setPosition(node.pos_start, node.pos_end))
+    
     
     def visit_UnaryOpNode(self, node, context):
         res = RuntimeResult()
@@ -5966,10 +6245,24 @@ class Interpreter:
         body_node = node.body_node
         arg_names = [arg_name.value for arg_name in node.args_name_tokens]
         defualt_values = node.default_values
-        task_value = Task(task_name, body_node, arg_names, node.implicit_return, defualt_values, context).setContext(
+        __type = node.type
+        if __type == None:
+            __type = "task"
+        set_properties = {
+            '__name': String(task_name),
+            '__type': String(__type),
+            '__properties': Dict({
+                '__name': String(task_name),
+                '__type': String(__type),
+            })
+        }
+        #_properties = set_properties
+        properties = Dict(set_properties)
+        task_value = Task(task_name, body_node, arg_names, node.implicit_return, defualt_values, properties, context).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.type != 'method':
-            context.symbolTable.set(task_name, task_value)
+            if node.task_name_token:
+                context.symbolTable.set(task_name, task_value)
 
 
         return res.success(task_value)
@@ -6068,170 +6361,6 @@ class Interpreter:
                                 context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(object_name, object_value)
         return res.success(object_value)
-    
-    
-    def visit_ObjectGetNode(self, node, context):
-        res = RuntimeResult()
-        object_name = res.register(self.visit(node.left_node, context))
-        object_key = res.register(self.visit(node.right_node, context))
-        if res.should_return(): return res
-        if not isinstance(object_name, Object):
-            res.success(NoneType.none)
-        if object_key == None:
-            object_key = node.right_node
-            if isinstance(object_name, Object):
-                value = ""
-                if type(object_key).__name__ == 'CallNode':
-                    key = object_key.node_to_call.id.value
-                    if key in object_name.properties:
-                        value = object_name.properties[key]
-                        if not isinstance(value, Task):
-                            # if value is an object then the key is not callable
-                            return res.failure(Program.error()["Runtime"]({
-                                "pos_start": node.pos_start,
-                                "pos_end": node.pos_end,
-                                "message": "'{}' is not callable".format(key),
-                                "context": context,
-                                "exit": False
-                            }))
-                        else:
-                            args_node = object_key.args_nodes
-                            args = []
-                            for arg in args_node:
-                                args.append(res.register(self.visit(arg, context)))
-                                if res.should_return():
-                                    return res
-                            return_value = res.register(value.run(args))
-                            if res.should_return(): return res
-                            if return_value == None or return_value == NoneType.none:
-                                return res.success(NoneType.none)
-                            else:
-                                return res.success(return_value)
-                    else:
-                        return res.failure(Program.error()["Runtime"]({
-                            "pos_start": node.pos_start,
-                            "pos_end": node.pos_end,
-                            "message": "'{}' has no property '{}'".format(object_name.name, key),
-                            "context": context,
-                            "exit": False
-                        }))
-        if object_key == None:
-            key = node.right_node
-            if isinstance(object_name, Class):
-                value = ""
-                if key.node_to_call.id.value in object_name.methods_properties:
-                    value = object_name.methods_properties[key.node_to_call.id.value]
-                    args = key.args_nodes
-                    return_value = res.register(key.node_to_call.id.value.execute(args))
-                    #return_value = return_value.copy().setPosition(node.pos_start, node.pos_end).setContext(context)
-                    return res.success(return_value)
-            
-        if isinstance(object_name, Object):
-            value = ""
-            error = {
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    "message": "'{}' has no property '{}'".format(object_name.name, object_key),
-                    "context": context,
-                    "exit": False
-                }
-            if isinstance(object_key, String):
-                if hasattr(object_name, "properties"):
-                    if object_key.value in object_name.properties:
-                        value = object_name.properties[object_key.value]
-                        return value
-                    else:
-                        return res.failure(Program.error()["KeyError"](error))
-                else:
-                    error['message'] = "{} has no property '{}'".format(object_name.name, object_key)
-                    return res.failure(Program.error()["KeyError"](error))
-            
-            elif isinstance(object_key, Number):
-                if hasattr(object_name, "properties"):
-                    if object_key.value in object_name.properties:
-                        value = object_name.properties[str(object_key.value)]
-                        return value
-                    else:
-                        return res.failure(Program.error()["KeyError"](error))
-                else:
-                    error['message'] = "{} has no property '{}'".format(object_name.name, object_key)
-                    return res.failure(Program.error()["KeyError"](error))
-            
-            elif isinstance(object_key, ObjectRefNode):
-                if hasattr(object_name, "properties"):
-                    if object_key.value in object_name.properties:
-                        value = object_name.properties[object_key.value]
-                        return value
-                    else:
-                        return res.failure(Program.error()["KeyError"](error))
-                else:
-                    error['message'] = "{} has no property '{}'".format(
-                        object_name.name, object_key.value)
-                    return res.failure(Program.error()["KeyError"](error))
-            return res.success(value)
- 
-        
-        elif isinstance(object_name, Class):
-            
-            value = ""
-            error = {
-                            "pos_start": node.pos_start,
-                            "pos_end": node.pos_end,
-                            "message": "'{}' has no method '{}'".format(object_name.name, object_key.value),
-                            "context": context,
-                            "exit": False
-                        }
-            if isinstance(object_key, String):
-                if hasattr(object_name, "methods_properties"):
-                    if object_key.value in object_name.methods_properties:
-                        value = object_name.methods_properties[object_key.value]
-                        return value
-                    else:
-                        return res.failure(Program.error()["KeyError"](error))
-                else:
-                    error['message'] = "{} has no method '{}'".format(object_name.name, object_key.value)
-                    return res.failure(Program.error()["KeyError"](error))
-            elif isinstance(object_key, Number):
-                if hasattr(object_name, "methods_properties"):
-                    if object_key.value in object_name.methods_properties:
-                        value = object_name.methods_properties[str(object_key.value)]
-                        return value
-                    else:
-                        return res.failure(Program.error()["KeyError"](error))
-                else:
-                    error['message'] = "{} has no method '{}'".format(object_name.name, object_key.value)
-                    return res.failure(Program.error()["KeyError"](error))
-            elif isinstance(object_key, ObjectRefNode):
-                if hasattr(object_name, "methods_properties"):
-                    if object_key.value in object_name.methods_properties:
-                        value = object_name.methods_properties[object_key.value]
-                        return value
-                    else:
-                        return res.failure(Program.error()["KeyError"](error))
-                else:
-                    error['message'] = "{} has no method '{}'".format(object_name.name, object_key.value)
-                    return res.failure(Program.error()["KeyError"](error))
-                
-            elif isinstance(object_key, NoneType):
-                return res.success(NoneType.none)
-            return res.success(value)
-
-
-        elif isinstance(object_name, Task):
-            value = ""
-            error = {
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    "message": "'{}' has no method '{}'".format(object_name.id, object_key.id),
-                    "context": context,
-                    "exit": False
-                }
-            return res.failure(Program.error()["KeyError"](error))
-        
-    
-        
-        else:
-            return res.success(NoneType.none)
                                   
     
     def visit_ClassNode(self, node, context):
@@ -6269,7 +6398,6 @@ class Interpreter:
             return res
         value_to_call = value_to_call.copy().setPosition(
             node.pos_start, node.pos_end) if hasattr(value_to_call, 'copy') else value_to_call
-        
         if not isinstance(value_to_call, Task) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInTask):
             return res.failure(Program.error()["Runtime"](
                 {
