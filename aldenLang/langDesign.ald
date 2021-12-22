@@ -1,5 +1,5 @@
 # This is a comment
-get users from "./users" 
+#get users from "./users" 
 
 task @greet(name) -> "Hello " + name
 
@@ -21,19 +21,16 @@ end
 
 let name = "John"
 let age = 25
-if name == "John" :
-	let result = @greet(name)
-	return result
-else
-	let result = "Hello " + name
-	return result
+if name == "John":
+	println(@greet(name))
+else:
+	println("Hello")
 end
-print("name")
 
 if age > 18 and name == "John" :
 	let result = "You are old enough"
-	return print(result)
-else
+	println(result)
+else:
 	let result = "You are not old enough"
-	return print(result)
+	println(result)
 end

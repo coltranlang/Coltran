@@ -234,7 +234,7 @@ class Lexer:
             return Token(tokenList.TT_INT, int(num_str), pos_start, self.pos)
         else:
             return Token(tokenList.TT_FLOAT, float(num_str), pos_start, self.pos)
-
+        
     def make_identifier(self):
         identifier_str = ''
         pos_start = self.pos.copy()

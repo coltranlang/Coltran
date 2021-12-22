@@ -1021,12 +1021,14 @@ class Parser:
             elif self.current_token.type == tokenList.TT_PLUS:
                 res.register_advancement()
                 self.advance()
-                right_node = res.register(self.expr())
+                right_node = res.register(self.atom())
                 op_tok = Token(tokenList.TT_PLUS, '+', self.current_token.pos_start, self.current_token.pos_end)
                 if self.current_token.type == tokenList.TT_EQ:
                     res.register_advancement()
                     self.advance()
-                    right_node = res.register(self.expr())
+                    right_node = res.register(self.atom())
+                    res.register_advancement()
+                    self.advance()
                     return res.success(VarReassignNode(atom, right_node, "add"))
                 else:
                     return res.success(BinOpNode(atom, op_tok, right_node))
@@ -1069,7 +1071,7 @@ class Parser:
             elif self.current_token.type == tokenList.TT_MOD:
                 res.register_advancement()
                 self.advance()
-                right_node = res.register(self.expr())
+                right_node = res.register(self.atom())
                 op_tok = Token(tokenList.TT_MOD, '%', self.current_token.pos_start, self.current_token.pos_end)
                 if self.current_token.type == tokenList.TT_EQ:
                     res.register_advancement()
@@ -3542,3 +3544,7 @@ LETTERS_SYMBOLS = LETTERS + SYMBOLS
 # b = 30
 # a = b
 # print(a)
+num = 16
+# fizzbuzz
+for i in range(num):
+    print(i)

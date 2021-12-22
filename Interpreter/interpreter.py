@@ -892,9 +892,29 @@ class Number(Value):
                     'exit': False
                 }
         if isinstance(other, Number):
-            return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
+            if other.value == 0 or setNumber(other.value) == 0:
+                error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"modulo by zero",
+                    'context': self.context,
+                    'exit': False
+                }
+                return None, Program.error()['ZeroDivisionError'](error)
+            else:
+                return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
         elif isinstance(other, Boolean):
-            return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
+            if other.value == 0 or setNumber(other.value) == 0:
+                error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"modulo by zero",
+                    'context': self.context,
+                    'exit': False
+                }
+                return None, Program.error()['ZeroDivisionError'](error)
+            else:
+                return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
 
@@ -1845,8 +1865,7 @@ class Pair(Value):
                 'exit': False
             }
             return None, self.illegal_operation_typerror(error, other)
-   
-   
+     
     def get_comparison_lte(self, other):
         if isinstance(other, Pair):
             value = len(self.elements) <= len(other.elements)
@@ -1899,7 +1918,6 @@ class Pair(Value):
             'exit': False
         }
         return None, self.illegal_operation_typerror(error, other)
-
 
     def get_element_at(self, index):
         return self.elements[index]
@@ -5911,6 +5929,7 @@ class Interpreter:
             if error:
                 return res.failure(error)
             else:
+                print(result, "result")
                 return res.success(result.setPosition(node.pos_start, node.pos_end))
         except KeyboardInterrupt:
             pass
