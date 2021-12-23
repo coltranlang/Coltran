@@ -9,7 +9,7 @@ let description = fm`Hello World, my name is %{name} and I am a %{occupation} wi
 #let description3 = "Hello World, my name is {0} and I am a {1} with id {2}".format(name, occupation, id) 
 
 println(description)
-task @greet(name)
+def @greet(name)
     return fm`Hello %{name}!`
 end
 

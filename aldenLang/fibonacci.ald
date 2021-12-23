@@ -1,7 +1,15 @@
-task @fibonacci(num)
+def @fibonacci(num)
     if num <= 1 :
         return num
-    else
+    else:
+        return @fibonacci(num - 1) + @fibonacci(num - 2)
+    end
+end
+
+def @fibonacci(num)
+    if num <= 1 :
+        return num
+    else:
         return @fibonacci(num - 1) + @fibonacci(num - 2)
     end
 end

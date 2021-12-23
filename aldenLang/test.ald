@@ -29,7 +29,7 @@ let list3 = [1,2,3,4,5]
 let list4 = 'abcde'
 let list5 = 'a,b,c,d,e'
 let list6 = ['a','b','c','d','e']
-task @greet() 
+def @greet() 
    return "Hello World"
 end
 object Test
@@ -43,7 +43,7 @@ let li2 = [1,4,2,3,5]
 let li3 = [1,2,3,4,5]
 let li4 = [1,2,3,4,8]
 # Need to work on comapring list
-task @compareList(arr1, arr2)
+def @compareList(arr1, arr2)
     let res = ""
     let new_array = sorted(arr1)
     let new_array2 = sorted(arr2)
@@ -88,11 +88,11 @@ println(Student.name, Student.age)
 let obj1 = "John"
 let obj2 = 21
 line(10)
-println("still need to work on builtin-task object type")
+println("still need to work on builtin-def object type")
 #println(Object(obj1), Object(obj2))
 
 # test for function type
-task @add(a, b)
+def @add(a, b)
     return a + b
 end
 line(11)
@@ -101,10 +101,10 @@ println(@add(1, 2))
 
 # test for class type
 class Car(name, color)
-    task getName(self)
+    def getName(self)
         println("Car name is " + self.name)
     end
-    task getColor(self)
+    def getColor(self)
         println("Car color is " + self.color)
     end
 end
@@ -114,7 +114,7 @@ car.getName()
 car.getColor()
 
 
-task @filterByname(arr, name)
+def @filterByname(arr, name)
     for i = 0 to len(arr) :
         if arr[i].name == name :
             return arr[i]
@@ -125,16 +125,16 @@ end
 # test for array index
 object CarInventory
     cars: []
-    addCar: task (name, color)
+    addCar: def (name, color)
         object NewCar
             name: name
             color: color
         end
         append(CarInventory.cars, NewCar)
     end
-    lookupCar: task (index) ->  CarInventory.cars[index]
-    lookupCarByName: task (name) -> @filterByname(CarInventory.cars, name)
-    size: task () ->  len(CarInventory.cars) # just assigning the value the size of the cars as len(CarInventory.cars) returns 0 but assigning the value as a task returns the size of the cars
+    lookupCar: def (index) ->  CarInventory.cars[index]
+    lookupCarByName: def (name) -> @filterByname(CarInventory.cars, name)
+    size: def () ->  len(CarInventory.cars) # just assigning the value the size of the cars as len(CarInventory.cars) returns 0 but assigning the value as a def returns the size of the cars
 end
 
 let carInventory = CarInventory
@@ -234,14 +234,14 @@ println(value)
 
 # reverse string
 
-# reverse string with built-in task
-task @reverseString(s)
+# reverse string with built-in def
+def @reverseString(s)
     return list(s).reverse().join("")
 end
 
 
 # reverse string with in-loop
-task @reverseString2(s)
+def @reverseString2(s)
     let result  = ""
     in s as char :
         let result = char + result
@@ -250,7 +250,7 @@ task @reverseString2(s)
 end
 
 # reverse string with recursion
-task @reverseString3(s)
+def @reverseString3(s)
     if s == "" :
         return ""
     else :
@@ -280,7 +280,7 @@ object User
 end
 line(33)
 println(User['name1'])
-task @getUser(key)
+def @getUser(key)
     return User[key]
 end
 
@@ -307,7 +307,7 @@ let user = {
     ]
 }
 
-task testDict(name, userdata) 
+def testDict(name, userdata) 
     println(userdata[name], userdata.name.upperCase(), userdata.cities[0]["name"], userdata.cities[2].population)
 end
 line(36)
@@ -322,7 +322,7 @@ else :
     println("You are not verified")
 end
 let func = {
-    sum: task (a,b)
+    sum: def (a,b)
         return a + b
     end
 }
@@ -330,7 +330,7 @@ let func = {
 let car = {
     name: "Ford",
     color: "Black",
-    getName: task () -> "My car is a " + car.name + " and it is " + car.color
+    getName: def () -> "My car is a " + car.name + " and it is " + car.color
 }
 line(38)
 println(func.sum(1,2))
@@ -346,22 +346,22 @@ let x = food.strip().join(in l as i: str(i))
 line(41)
 println(fm"I love %{x}")
 
-# asssign property to task
-task test(a, b)
+# asssign property to def
+def test(a, b)
     println(fm"a = %{a} b = %{b}")
 end
-test.call = task () -> println("I was just called")
+test.call = def () -> println("I was just called")
 test.call()
 class Person(fname, lname)
-    task getName(self)
+    def getName(self)
         println(fm"My name is %{self.fname}")
     end
 end
-task getFullName(self)
+def getFullName(self)
     println(fm"My full name is %{self.fname} %{self.lname}")
 end
 let person = Person("David", "Michael")
-# set getFullName as the task of person
+# set getFullName as the def of person
 person.getFullName = getFullName
 line(42)
 person.getName()
@@ -485,7 +485,7 @@ println(fm"True or False8: %{pair <= (1,2,3,4,5)}") # true
 println(fm"True or False9: %{[1,2,3,4,5,6] > list}") # true
 println(fm"True or False10: %{(1,2,3,4,5,6) > pair}") # true
 println(fm"For List: %{list}, For Pair: %{pair}") # For List: [1, 2, 3, 4, 5], For Pair: (1, 2, 3, 4, 5)
-# task @makeList(item, list=[])
+# def @makeList(item, list=[])
 #     list.append(item)
 #     return list
 # end

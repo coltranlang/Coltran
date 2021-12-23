@@ -14,7 +14,7 @@ TT_OCTAL = 'OCTAL'
 TT_PLUS = 'PLUS'
 TT_MINUS = 'MINUS'
 TT_MUL = 'MUL'
-TT_DIVISION = 'DIVISION'
+TT_DIV = 'DIV'
 TT_MOD = 'MODULO'
 TT_LPAREN = 'LPAREN'
 TT_RPAREN = 'RPAREN'
@@ -29,7 +29,13 @@ TT_LSHIFT ='LSHIFT'
 TT_LT ='LT'
 TT_GTE ='GTE'
 TT_LTE ='LTE'
+TT_PLUS_PLUS ='PLUS_PLUS'
+TT_MINUS_MINUS ='MINUS_MINUS'
 TT_PLUS_EQ = 'PLUS_EQ'
+TT_MINUS_EQ = 'MINUS_EQ'
+TT_MUL_EQ = 'MUL_EQ'
+TT_DIV_EQ = 'DIV_EQ'
+TT_MOD_EQ = 'MOD_EQ'
 TT_AND = 'AND'
 TT_NOT_IN = 'NOT_IN'
 TT_COLON = 'COLON'
@@ -100,6 +106,7 @@ NOT_ALLOWED_OBJECTS_KEYS = [
     'end',
     'match',
     'case',
+    'default',
     'return',
     'continue',
     'break',
@@ -130,6 +137,7 @@ NOT_ALLOWED_OBJECTS_VALUES = [
     'end',
     'match',
     'case',
+    'default',
     'return',
     'continue',
     'break',
@@ -171,6 +179,7 @@ KEYWORDS = [
     'end',
     'match',
     'case',
+    'default',
     'return',
     'continue',
     'break',
@@ -206,6 +215,7 @@ DEF = 'def'
 END = 'end'
 MATCH = 'match'
 CASE = 'case'
+DEFAULT = 'default'
 RETURN = 'return'
 CONTINUE = 'continue'
 BREAK = 'break'

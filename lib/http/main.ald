@@ -1,12 +1,12 @@
 # testing the http module
 class Http(url, headers, body)
-    task init(self)
+    def init(self)
         if self.url == "http://www.google.com":
             self.type = "GET"
         end
         self.check_type()
     end
-    task check_type(self)
+    def check_type(self)
         if self.type == "GET":
             # do something
             print()
@@ -17,33 +17,33 @@ class Http(url, headers, body)
             print("Invalid type")
         end
     end
-    task post(self)
+    def post(self)
         println("POST", self.url.split("://"), self.headers, self.body)
         self.test("POST")
         return self
     end
     
-    task get_(self)
+    def get_(self)
         println("GET", self.url, self.headers, self.body)
     end
 
-    task put(self)
+    def put(self)
         println("PUT", self.url, self.headers, self.body)
     end
 
-    task delete(self)
+    def delete(self)
         println("DELETE", self.url, self.headers, self.body)
     end
 
-    task test(self, name)
+    def test(self, name)
         println(fm"Hello from %{name}. The url is %{self.url}")
     end
 
-    task repr(self)
+    def repr(self)
         println(fm"Http(url='%{self.url}', headers='%{self.headers}', body=%{self.body})")
     end
 
-    task to(self)
+    def to(self)
         return self
     end
 end

@@ -1,10 +1,10 @@
 # This is a comment
 #get users from "./users" 
 
-task @greet(name) -> "Hello " + name
+def @greet(name) -> "Hello " + name
 
 
-task @loop(numFrom, numTo)
+def @loop(numFrom, numTo)
     let result = ""
 	for i = numFrom to numTo :
 		result = i
@@ -14,7 +14,7 @@ end
 
 
 
-task @main()
+def @main()
 	let result = 8 + (let x = 6)
 	return result
 end

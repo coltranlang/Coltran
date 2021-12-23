@@ -1,4 +1,4 @@
-task @Factorial(n)
+def @Factorial(n)
     if n == 0 :
         return 1
     else:
@@ -10,7 +10,7 @@ end
 println(@Factorial(5))
 
 
-task @UpdateUser(user)
+def @UpdateUser(user)
  println("Your id is " + str(user.id))
  println(user.username)
 end
@@ -23,7 +23,7 @@ end
 @UpdateUser(User)
 
 
-task @HowmanyCoffeeDrank(coffeeDrank)
+def @HowmanyCoffeeDrank(coffeeDrank)
     for i = 0 to coffeeDrank :
         println("Coffee drank: " + str(i))
         # if last coffee drank,  print out the message
@@ -36,7 +36,7 @@ end
 @HowmanyCoffeeDrank(5)
 
 # fibonacci series
-task @FibonacciSeries()
+def @FibonacciSeries()
     let prompt = "Fibonacci series: "
     let nterm = inputInt("Enter a number: ")
     let count = 0
@@ -63,26 +63,26 @@ end
 
 
 # first class function
-task @Animal(getAnimal)
+def @Animal(getAnimal)
     let animal = getAnimal()
     println("The animal is " + animal)
 end
 
-task @getAnimal()
+def @getAnimal()
     return "Lion"
 end
 
 @Animal(@getAnimal)
 
-final sayHello = task () -> task (name) -> println(fm"Hello %{name}!")
+final sayHello = def () -> def (name) -> println(fm"Hello %{name}!")
 
 # We can call the sayHello function using the following syntax:
 sayHello()("David") # double parentheses or assign to a variable : let hello = sayHello() # call the function hello()
 
 # closure 
-task @main()
+def @main()
     let name = "Test"
-    task @displayName()
+    def @displayName()
         println(fm"Hello from %{name}!")
     end
     return @displayName()
@@ -91,7 +91,7 @@ end
 
 
 
-task @countZeros(N)
+def @countZeros(N)
     let n = 32
     let y = N >> 16
     if y != 0 :

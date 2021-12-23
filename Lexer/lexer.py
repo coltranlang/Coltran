@@ -115,19 +115,15 @@ class Lexer:
             elif self.current_char == "`":
                 tokens.append(self.make_backtick_string())
             elif self.current_char == '+':
-                tokens.append(Token(tokenList.TT_PLUS, pos_start=self.pos))
-                self.advance()
+                tokens.append(self.make_plus_or_plus_equal())
             elif self.current_char == '-':
-                tokens.append(self.make_minus_or_arrow())
+                tokens.append(self.make_minus_or_arrow_or_minus_equal())
             elif self.current_char == '*':
-                tokens.append(Token(tokenList.TT_MUL, pos_start=self.pos))
-                self.advance()
+                tokens.append(self.make_mul_or_mul_equal())
             elif self.current_char == '/':
-                tokens.append(Token(tokenList.TT_DIVISION, pos_start=self.pos))
-                self.advance()
+                tokens.append(self.make_div_or_div_equal())
             elif self.current_char == '%':
-                tokens.append(Token(tokenList.TT_MOD, pos_start=self.pos))
-                self.advance()
+                tokens.append(self.make_mod_or_mod_equal())
             elif self.current_char == '^':
                 tokens.append(Token(tokenList.TT_POWER, pos_start=self.pos))
                 self.advance()
@@ -254,7 +250,19 @@ class Lexer:
             self.advance() 
         return Token(tokenList.TT_OBJECT_REF, object_ref, pos_start, self.pos)
     
-    def make_minus_or_arrow(self):
+    def make_plus_or_plus_equal(self):
+        tok_type = tokenList.TT_PLUS
+        pos_start = self.pos.copy()
+        self.advance()
+        if self.current_char == '+':
+            self.advance()
+            tok_type = tokenList.TT_PLUS_PLUS
+        elif self.current_char == '=':
+            self.advance()
+            tok_type = tokenList.TT_PLUS_EQ
+        return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
+    
+    def make_minus_or_arrow_or_minus_equal(self):
         tok_type = tokenList.TT_MINUS
         pos_start = self.pos.copy()
         self.advance()
@@ -262,6 +270,39 @@ class Lexer:
         if self.current_char == '>':
             self.advance()
             tok_type = tokenList.TT_ARROW
+        elif self.current_char == '-':
+            self.advance()
+            tok_type = tokenList.TT_MINUS_MINUS
+        elif self.current_char == '=':
+            self.advance()
+            tok_type = tokenList.TT_MINUS_EQ
+        return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
+
+    def make_mul_or_mul_equal(self):
+        tok_type = tokenList.TT_MUL
+        pos_start = self.pos.copy()
+        self.advance()
+        if self.current_char == '=':
+            self.advance()
+            tok_type = tokenList.TT_MUL_EQ
+        return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
+    
+    def make_div_or_div_equal(self):
+        tok_type = tokenList.TT_DIV
+        pos_start = self.pos.copy()
+        self.advance()
+        if self.current_char == '=':
+            self.advance()
+            tok_type = tokenList.TT_DIV_EQ
+        return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
+    
+    def make_mod_or_mod_equal(self):
+        tok_type = tokenList.TT_MOD
+        pos_start = self.pos.copy()
+        self.advance()
+        if self.current_char == '=':
+            self.advance()
+            tok_type = tokenList.TT_MOD_EQ
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
 
     def make_not_equals(self):

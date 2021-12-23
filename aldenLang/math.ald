@@ -12,7 +12,7 @@ for i = 0 to num:
     end
 end
 
-task @map(arr, tsk)
+def @map(arr, tsk)
     let res = []
     for i = 0 to len(arr) - 1:
         append(res, tsk(arr[i]))
@@ -20,7 +20,7 @@ task @map(arr, tsk)
     return res
 end
 
-task @filter(arr, tsk)
+def @filter(arr, tsk)
     let res = []
     for i = 0 to len(arr) - 1:
         if tsk(arr[i]) :
@@ -32,22 +32,23 @@ end
 
 
 # Map and Filter
-let arr = [1,2,4,9]
+# let arr = [1,2,4,9]
 
-# Map
-let map = @map(arr, task (x) -> x * 2)
-println(map)
+# # Map
+# let map = @map(arr, def (x) -> x * 2)
+# println(map)
 
-# Filter
-let filter = @filter(arr, task (x) -> x % 2 == 0)
-println(filter)
-let a = 20
-let b = 30
+# # Filter
+# let filter = @filter(arr, def (x) -> x % 2 == 0)
+# println(filter)
+# let a = 20
+# let b = 30
 
-println(a + b > 10)
-if a + b > 10:
-    println("a + b > 10")
-else:
-    println("a + b <= 10")
-end
-println(str("Hello") + str("World"))
+# println(a + b > 10)
+# if a + b > 10:
+#     println("a + b > 10")
+# else:
+#     println("a + b <= 10")
+# end
+# println(str("Hello") + str("World"))
+# a++

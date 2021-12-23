@@ -138,14 +138,16 @@ class TypeOf:
                 result = 'object'
             elif isinstance(self.type, bool) or isinstance(self.type, Boolean):
                 result = 'boolean'
+            elif isinstance(self.type, NoneType):
+                result = 'none'
             elif isinstance(self.type, list) or isinstance(self.type, List):
                 result = 'list'
             elif isinstance(self.type, Class):
                 result = 'class'
-            elif isinstance(self.type, Task):
+            elif isinstance(self.type, Def):
                 result = 'task'
-            elif isinstance(self.type, BuiltInTask):
-                result = 'builtin_task'
+            elif isinstance(self.type, BuiltInFunction):
+                result = 'builtin_function'
             elif isinstance(self.type, BuiltInMethod):
                 result = 'builtin_method'
             elif isinstance(self.type, BuiltInMethod_String):
@@ -524,6 +526,22 @@ class Value:
             'context': self.context
         })
 
+    def increment(self):
+        return None, self.illegal_operation_typerror({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'++' not supported on type '{TypeOf(self).getType()}'",
+            'context': self.context
+        })
+        
+    def decrement(self):
+        return None, self.illegal_operation_typerror({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'--' not supported on type '{TypeOf(self).getType()}'",
+            'context': self.context
+        })
+
     def subtracted_by(self, other):
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
@@ -812,6 +830,12 @@ class Number(Value):
             return Number(setNumber(self.value) + setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
+
+    def increment(self):
+        return Number(setNumber(self.value) + 1).setContext(self.context), None
+    
+    def decrement(self):
+        return Number(setNumber(self.value) - 1).setContext(self.context), None
 
     def subtracted_by(self, other):
         error = {
@@ -1252,7 +1276,6 @@ class String(Value):
         copy.setContext(self.context)
         return copy
     
-
     def is_true(self):
         return "true" if len(self.value) > 0 else "false"
 
@@ -1306,6 +1329,12 @@ class Boolean(Value):
             return Number(setNumber(self.value) + setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(error, other)
+        
+    def increment(self):
+        return Number(setNumber(self.value) + 1).setContext(self.context), None
+    
+    def decrement(self):
+        return Number(setNumber(self.value) - 1).setContext(self.context), None
         
         
     def multiplied_by(self, other):
@@ -1543,6 +1572,9 @@ class NoneType(Value):
         
     def notted(self):
         return Boolean("true").setContext(self.context), None
+    
+    def is_true(self):
+        return self.value == "true" if self.value else "false"
     
     def __str__(self):
         return self.value
@@ -2083,7 +2115,7 @@ class Object(Value):
         try:
             if self.type == "module":
                 return str(self.properties)
-            return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
+            return f"{{{','.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
         except:
             return "{}"
     
@@ -2169,7 +2201,7 @@ class ObjectRefNode(Value):
         return f"'{self.value}'"
 
 
-class BaseTask(Value):
+class BaseFunction(Value):
     def __init__(self, name):
         super().__init__()
         self.name = name or "<anonymous>"
@@ -2216,12 +2248,12 @@ class BaseTask(Value):
         return res.success(None)
    
     def isSame(self, other):
-        if isinstance(other, BuiltInTask):
+        if isinstance(other, BuiltInFunction):
             return self.name == other.name
         return False
    
         
-class Task(BaseTask):
+class Def(BaseFunction):
     def __init__(self, name, body_node, arg_names, implicit_return, default_values, properties,context):
         super().__init__(name)
         self.id = name
@@ -2267,7 +2299,7 @@ class Task(BaseTask):
         #         return_value.value = NoneType.none
         return res.success(return_value)
 
-    # only class Task calls this method
+    # only class Def calls this method
     def run(self, args, class_name, context=None):
         res = RuntimeResult()
         interpreter = Interpreter()
@@ -2333,14 +2365,14 @@ class Task(BaseTask):
                      
                       
     def copy(self):
-        copy = Task(self.name, self.body_node,
+        copy = Def(self.name, self.body_node,
                     self.arg_names, self.implicit_return, self.default_values,self.properties,self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
 
     def __repr__(self):
-        return f"<Task {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
+        return f"<Function {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
 
 class ClassInstance:
@@ -2351,7 +2383,7 @@ class ClassInstance:
         return f"<ClassInstance {str(self.klass.class_name)}>"
 
 
-class Class(BaseTask):
+class Class(BaseFunction):
     def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods, context):
         super().__init__(class_name)
         self.id = class_name
@@ -2604,7 +2636,7 @@ class ModuleExportValue(Value):
         return f"<ModuleExportValue {str(self.name)}>"
 
    
-class BuiltInTask(BaseTask):
+class BuiltInFunction(BaseFunction):
     def __init__(self, name):
         super().__init__(name)
 
@@ -2720,7 +2752,7 @@ class BuiltInTask(BaseTask):
     execute_extend.arg_names = ["list", "value"]
 
     def copy(self):
-        copy = BuiltInTask(self.name)
+        copy = BuiltInFunction(self.name)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -2731,7 +2763,7 @@ class BuiltInTask(BaseTask):
 
 # Built-in tasks
 
-def BuiltInTask_Print(args, node):
+def BuiltInFunction_Print(args, node):
     res = RuntimeResult()
     for arg in args:
         value = str(arg)
@@ -2746,7 +2778,7 @@ def BuiltInTask_Print(args, node):
     return res.noreturn()
 
 
-def BuiltInTask_PrintLn(args, node):
+def BuiltInFunction_PrintLn(args, node):
     res = RuntimeResult()
     for arg in args:
         value = str(arg)
@@ -2761,7 +2793,7 @@ def BuiltInTask_PrintLn(args, node):
     return res.success(None) 
 
 
-def BuiltInTask_Input(args, node, context):
+def BuiltInFunction_Input(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2794,7 +2826,7 @@ def BuiltInTask_Input(args, node, context):
             }))
 
 
-def BuiltInTask_InputInt(args, node, context):
+def BuiltInFunction_InputInt(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2832,7 +2864,7 @@ def BuiltInTask_InputInt(args, node, context):
             }))
 
 
-def BuiltInTask_InputFloat(args, node, context):
+def BuiltInFunction_InputFloat(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2870,7 +2902,7 @@ def BuiltInTask_InputFloat(args, node, context):
             }))
 
 
-def BuiltInTask_InputBool(args, node, context):
+def BuiltInFunction_InputBool(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2905,7 +2937,7 @@ def BuiltInTask_InputBool(args, node, context):
             }))
 
 
-def BuiltInTask_Str(args, node, context):
+def BuiltInFunction_Str(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2918,7 +2950,7 @@ def BuiltInTask_Str(args, node, context):
     return res.success(String(str(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     
     
-def BuiltInTask_Range(args, node, context):
+def BuiltInFunction_Range(args, node, context):
     res = RuntimeResult()
     # built in range takes 1 or 3 arguments eg range(5) or range(1, 5) or range(1, 5, 2)
     #print(args)
@@ -2942,7 +2974,7 @@ def BuiltInTask_Range(args, node, context):
         }))
 
 
-def BuiltInTask_Int(args, node, context):
+def BuiltInFunction_Int(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -2976,7 +3008,7 @@ def BuiltInTask_Int(args, node, context):
     }))
 
 
-def BuiltInTask_Float(args, node, context):
+def BuiltInFunction_Float(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -3010,7 +3042,7 @@ def BuiltInTask_Float(args, node, context):
     }))
 
 
-def BuiltInTask_Bool(args, node, context):
+def BuiltInFunction_Bool(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -3045,7 +3077,7 @@ def BuiltInTask_Bool(args, node, context):
     }))
 
 
-def BuiltInTask_List(args, node, context):
+def BuiltInFunction_List(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
@@ -3096,7 +3128,7 @@ def BuiltInTask_List(args, node, context):
         }))
    
 
-def BuiltInTask_Pair(args, node, context):
+def BuiltInFunction_Pair(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -3148,7 +3180,7 @@ def BuiltInTask_Pair(args, node, context):
         }))
 
 
-def BuiltInTask_Object(args, node, context):
+def BuiltInFunction_Object(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -3172,7 +3204,7 @@ def BuiltInTask_Object(args, node, context):
         }))
  
  
-def BuiltInTask_Max(args, node, context):
+def BuiltInFunction_Max(args, node, context):
     res = RuntimeResult()
     if len(args) > 2:
         return res.failure(Program.error()["Runtime"]({
@@ -3195,7 +3227,7 @@ def BuiltInTask_Max(args, node, context):
         }))
   
 
-def BuiltInTask_Min(args, node, context):
+def BuiltInFunction_Min(args, node, context):
     res = RuntimeResult()
     if len(args) > 2:
         return res.failure(Program.error()["Runtime"]({
@@ -3218,7 +3250,7 @@ def BuiltInTask_Min(args, node, context):
         }))  
 
 
-def BuiltInTask_Sorted(args, node, context):
+def BuiltInFunction_Sorted(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -3249,7 +3281,7 @@ def BuiltInTask_Sorted(args, node, context):
         }))
    
 
-def BuiltInTask_Substr(args, node, context):
+def BuiltInFunction_Substr(args, node, context):
     res = RuntimeResult()
     if len(args) > 3:
         return res.failure(Program.error()["Runtime"]({
@@ -3283,7 +3315,7 @@ def BuiltInTask_Substr(args, node, context):
         }))
 
 
-def BuiltInTask_Reverse(args, node, context):
+def BuiltInFunction_Reverse(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -3314,14 +3346,14 @@ def BuiltInTask_Reverse(args, node, context):
         }))
    
     
-def BuiltInTask_Format(args, node):
+def BuiltInFunction_Format(args, node):
     string = args[0].value
     values_list = args[1].value
     regex = Regex().compile('{(.*?)}')
     matches = regex.match(string)
   
 
-def BuiltInTask_Typeof(args, node, context):
+def BuiltInFunction_Typeof(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -3343,7 +3375,7 @@ def BuiltInTask_Typeof(args, node, context):
     return res.success(String(TypeOf(args[0]).getType()).setPosition(node.pos_start, node.pos_end).setContext(context))
 
 
-def BuiltInTask_Line(args, node, context):
+def BuiltInFunction_Line(args, node, context):
     res = RuntimeResult()
     if len(args) == 0:
         return res.failure(Program.error()["Runtime"]({
@@ -3378,7 +3410,7 @@ def BuiltInTask_Line(args, node, context):
         }))
 
     
-def BuiltInTask_Clear(args, node, context):
+def BuiltInFunction_Clear(args, node, context):
     res = RuntimeResult()
     if len(args) > 0:
         return res.failure(Program.error()["Runtime"]({
@@ -3393,7 +3425,7 @@ def BuiltInTask_Clear(args, node, context):
         return res.success(None)
    
     
-def BuiltInTask_Delay(args, node, context):
+def BuiltInFunction_Delay(args, node, context):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 1:
         return res.failure(Program.error()["Runtime"]({
@@ -3417,7 +3449,7 @@ def BuiltInTask_Delay(args, node, context):
         }))
  
     
-def BuiltInTask_Exit(args, node, context):
+def BuiltInFunction_Exit(args, node, context):
     res = RuntimeResult()
     if len(args) == 0:
         sys.exit()
@@ -3453,7 +3485,7 @@ def BuiltInTask_Exit(args, node, context):
 
 
 
-def BuiltInTask_Http_Get():
+def BuiltInFunction_Http_Get():
     print(f"I got")
 
 
@@ -4196,7 +4228,7 @@ class BuiltInMethod_List(Value):
                     return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 else:
                     return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            elif isinstance(self.args[0], BuiltInTask):
+            elif isinstance(self.args[0], BuiltInFunction):
                 if self.args[0].name in new_list:
                     return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 else:
@@ -4642,7 +4674,6 @@ class Interpreter:
                                 new_value = List(v['value'].elements + value.elements)
                                 context.symbolTable.set(var_name, new_value)
                             elif isinstance(value, String):
-                                # split string into list
                                 new_list = []
                                 for char in value.value:
                                     new_list.append(String(char).setPosition(node.pos_start, node.pos_end).setContext(context))
@@ -4652,7 +4683,7 @@ class Interpreter:
                                 return res.failure(Program.error()['TypeError']({
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"reassignment of {TypeOf(v['value']).getType()} to {TypeOf(value).getType()} is not allowed",
+                                    'message': f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed",
                                     'context': context,
                                     'exit': False
                                 }))
@@ -4664,7 +4695,7 @@ class Interpreter:
                                 return res.failure(Program.error()['TypeError']({
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"reassignment of {TypeOf(v['value']).getType()} to {TypeOf(value).getType()} is not allowed",
+                                    'message': f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed",
                                     'context': context,
                                     'exit': False
                                 }))    
@@ -5228,7 +5259,7 @@ class Interpreter:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
                     return res.failure(Program.error()["PropertyError"](error)) 
                
-        elif isinstance(object_name, Task):
+        elif isinstance(object_name, Def):
             if type(object_key).__name__ == "Token":
                 if object_key.value in object_name.properties.properties:
                     if object_key.value in object_name.properties.properties:
@@ -5400,7 +5431,7 @@ class Interpreter:
                if hasattr(object_name, "properties"):
                    object_name.properties[property.value] = value
                    
-        if isinstance(object_name, Task):
+        if isinstance(object_name, Def):
             if type(property).__name__ == "Token":
                 if hasattr(object_name, "properties"):
                     object_name.properties.properties[property.value] = value
@@ -5889,11 +5920,15 @@ class Interpreter:
             right = res.register(self.visit(node.right_node, context))
             if node.op_tok.type == tokenList.TT_PLUS:
                 result, error = left.added_to(right)
+            if node.op_tok.type == tokenList.TT_PLUS_PLUS:
+                result, error = left.increment()
             elif node.op_tok.type == tokenList.TT_MINUS:
                 result, error = left.subtracted_by(right)
+            elif node.op_tok.type == tokenList.TT_MINUS_MINUS:
+                result, error = left.decrement()
             elif node.op_tok.type == tokenList.TT_MUL:
                 result, error = left.multiplied_by(right)
-            elif node.op_tok.type == tokenList.TT_DIVISION:
+            elif node.op_tok.type == tokenList.TT_DIV:
                 result, error = left.divided_by(right)
             elif node.op_tok.type == tokenList.TT_POWER:
                 result, error = left.powred_by(right)
@@ -5929,24 +5964,10 @@ class Interpreter:
             if error:
                 return res.failure(error)
             else:
-                print(result, "result")
                 return res.success(result.setPosition(node.pos_start, node.pos_end))
         except KeyboardInterrupt:
             pass
 
-    
-    def visit_OperationNode(self, node, context):
-        res = RuntimeResult()
-        left = context.symbolTable.get(node.left_node.value)
-        op_tok = node.op_tok
-        right = node.right_node
-        if type(right).__name__ == "VarAccessNode":
-            right = context.symbolTable.get(right.id.value)
-            if op_tok.type == tokenList.TT_PLUS:
-                if isinstance(left, Number) and isinstance(right['value'], Number):
-                    result = left.value + right['value'].value
-                    return res.success(Number(result).setPosition(node.pos_start, node.pos_end))
-    
     
     def visit_UnaryOpNode(self, node, context):
         res = RuntimeResult()
@@ -5954,7 +5975,10 @@ class Interpreter:
         if res.should_return():
             return res
         error = None
-
+        if node.op_tok.type == tokenList.TT_PLUS_PLUS:
+            number, error = number.increment()
+        elif node.op_tok.type == tokenList.TT_MINUS_MINUS:
+            number, error = number.decrement()
         if node.op_tok.type == tokenList.TT_MINUS:
             number, error = number.multiplied_by(Number(-1))
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
@@ -6237,9 +6261,11 @@ class Interpreter:
         try:
             while True:
                 condition = res.register(self.visit(node.condition_node, context))
+                
                 if res.should_return():
                     return res
-                if not condition.is_true():
+                is_true = True if hasattr(condition, "value") and condition.value == "true" else False
+                if not is_true:
                     break
                 value = res.register(self.visit(node.body_node, context))
                 if res.should_return() and res.loop_continue == False and res.loop_break == False:
@@ -6255,10 +6281,32 @@ class Interpreter:
         except KeyboardInterrupt:
             print('Exiting...')
 
-        return res.success(NoneType.none if node.implicit_return else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+        return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+
+
+    def visit_MatchNode(self, node, context):
+        res = RuntimeResult()
+        expression = res.register(self.visit(node.expression, context))
+        cases = node.cases
+        default_case = node.default_case
+        for case in cases:
+            condition = res.register(self.visit(case['case'], context))
+            if res.should_return(): return res
+            if isinstance(expression, String) and isinstance(condition, String):
+                if condition.value == expression.value:
+                        value_expression = res.register(self.visit(case['body'], context))
+                        return res.success(value_expression)
+                else:
+                    if default_case != None:
+                        default_expression = res.register(self.visit(default_case['body'], context))
+                        return res.success(default_expression)
+                    else:
+                        return res.success(None)
+                    
+                
 
     
-    def visit_TaskNode(self, node, context):
+    def visit_DefNode(self, node, context):
         res = RuntimeResult()
         task_name = node.task_name_token.value if node.task_name_token else "none"
         body_node = node.body_node
@@ -6277,7 +6325,7 @@ class Interpreter:
         }
         #_properties = set_properties
         properties = Dict(set_properties)
-        task_value = Task(task_name, body_node, arg_names, node.implicit_return, defualt_values, properties, context).setContext(
+        task_value = Def(task_name, body_node, arg_names, node.implicit_return, defualt_values, properties, context).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.type != 'method':
             if node.task_name_token:
@@ -6417,7 +6465,7 @@ class Interpreter:
             return res
         value_to_call = value_to_call.copy().setPosition(
             node.pos_start, node.pos_end) if hasattr(value_to_call, 'copy') else value_to_call
-        if not isinstance(value_to_call, Task) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInTask):
+        if not isinstance(value_to_call, Def) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInFunction):
             return res.failure(Program.error()["Runtime"](
                 {
                     "pos_start": node.pos_start,
@@ -6440,31 +6488,31 @@ class Interpreter:
         builtin = value_to_call.name
         
         builtins = {
-            'print': BuiltInTask_Print,
-            'println': BuiltInTask_PrintLn,
-            'input': BuiltInTask_Input,
-            'inputInt': BuiltInTask_InputInt,
-            'inputFloat': BuiltInTask_InputFloat,
-            'format': BuiltInTask_Format,
-            'str': BuiltInTask_Str,
-            'range': BuiltInTask_Range,
-            'int': BuiltInTask_Int,
-            'float': BuiltInTask_Float,
-            'bool': BuiltInTask_Bool,
-            'list': BuiltInTask_List,
-            'pair' : BuiltInTask_Pair,
-            'Object': BuiltInTask_Object,
-            'max': BuiltInTask_Max,
-            'min': BuiltInTask_Min,
-            'sorted': BuiltInTask_Sorted,
-            'substr': BuiltInTask_Substr,
-            'reverse': BuiltInTask_Reverse,
-            #'Binary': BuiltInTask_Binary,
-            'line': BuiltInTask_Line,
-            'clear': BuiltInTask_Clear,
-            'typeof': BuiltInTask_Typeof,
-            'delay': BuiltInTask_Delay,
-            'exit': BuiltInTask_Exit
+            'print': BuiltInFunction_Print,
+            'println': BuiltInFunction_PrintLn,
+            'input': BuiltInFunction_Input,
+            'inputInt': BuiltInFunction_InputInt,
+            'inputFloat': BuiltInFunction_InputFloat,
+            'format': BuiltInFunction_Format,
+            'str': BuiltInFunction_Str,
+            'range': BuiltInFunction_Range,
+            'int': BuiltInFunction_Int,
+            'float': BuiltInFunction_Float,
+            'bool': BuiltInFunction_Bool,
+            'list': BuiltInFunction_List,
+            'pair' : BuiltInFunction_Pair,
+            'Object': BuiltInFunction_Object,
+            'max': BuiltInFunction_Max,
+            'min': BuiltInFunction_Min,
+            'sorted': BuiltInFunction_Sorted,
+            'substr': BuiltInFunction_Substr,
+            'reverse': BuiltInFunction_Reverse,
+            #'Binary': BuiltInFunction_Binary,
+            'line': BuiltInFunction_Line,
+            'clear': BuiltInFunction_Clear,
+            'typeof': BuiltInFunction_Typeof,
+            'delay': BuiltInFunction_Delay,
+            'exit': BuiltInFunction_Exit
         }
         
         
@@ -6508,70 +6556,70 @@ class Interpreter:
         return RuntimeResult().success_break()
 
 
-BuiltInTask.print = BuiltInTask("print")
-BuiltInTask.println = BuiltInTask("println")
-BuiltInTask.exit = BuiltInTask("exit")
-BuiltInTask.input = BuiltInTask("input")
-BuiltInTask.inputInt = BuiltInTask("inputInt")
-BuiltInTask.inputFloat = BuiltInTask("inputFloat")
-BuiltInTask.inputBool = BuiltInTask("inputBool")
-BuiltInTask.clear = BuiltInTask("clear")
-BuiltInTask.len = BuiltInTask("len")
-#BuiltInTask.range = BuiltInTask("range")
-BuiltInTask.str = BuiltInTask("str")
-BuiltInTask.int = BuiltInTask("int")
-BuiltInTask.float = BuiltInTask("float")
-BuiltInTask.bool = BuiltInTask("bool")
-BuiltInTask.list = BuiltInTask("list")
-BuiltInTask.pair = BuiltInTask("pair")
-BuiltInTask.Object = BuiltInTask("Object")
-BuiltInTask.line = BuiltInTask("line")
-BuiltInTask.append = BuiltInTask("append")
-BuiltInTask.pop = BuiltInTask("pop")
-BuiltInTask.extend = BuiltInTask("extend")
-BuiltInTask.remove = BuiltInTask("remove")
-BuiltInTask.sorted = BuiltInTask("sorted")
-BuiltInTask.clearList = BuiltInTask("clearList")
-BuiltInTask.delay = BuiltInTask("delay")
-BuiltInTask.split = BuiltInTask("split")
-BuiltInTask.substr = BuiltInTask("substr")
-BuiltInTask.reverse = BuiltInTask("reverse")
-BuiltInTask.format = BuiltInTask("format")
-BuiltInTask.typeof = BuiltInTask("typeof")
-BuiltInTask.max = BuiltInTask("max")
-BuiltInTask.min = BuiltInTask("min")
+BuiltInFunction.print = BuiltInFunction("print")
+BuiltInFunction.println = BuiltInFunction("println")
+BuiltInFunction.exit = BuiltInFunction("exit")
+BuiltInFunction.input = BuiltInFunction("input")
+BuiltInFunction.inputInt = BuiltInFunction("inputInt")
+BuiltInFunction.inputFloat = BuiltInFunction("inputFloat")
+BuiltInFunction.inputBool = BuiltInFunction("inputBool")
+BuiltInFunction.clear = BuiltInFunction("clear")
+BuiltInFunction.len = BuiltInFunction("len")
+#BuiltInFunction.range = BuiltInFunction("range")
+BuiltInFunction.str = BuiltInFunction("str")
+BuiltInFunction.int = BuiltInFunction("int")
+BuiltInFunction.float = BuiltInFunction("float")
+BuiltInFunction.bool = BuiltInFunction("bool")
+BuiltInFunction.list = BuiltInFunction("list")
+BuiltInFunction.pair = BuiltInFunction("pair")
+BuiltInFunction.Object = BuiltInFunction("Object")
+BuiltInFunction.line = BuiltInFunction("line")
+BuiltInFunction.append = BuiltInFunction("append")
+BuiltInFunction.pop = BuiltInFunction("pop")
+BuiltInFunction.extend = BuiltInFunction("extend")
+BuiltInFunction.remove = BuiltInFunction("remove")
+BuiltInFunction.sorted = BuiltInFunction("sorted")
+BuiltInFunction.clearList = BuiltInFunction("clearList")
+BuiltInFunction.delay = BuiltInFunction("delay")
+BuiltInFunction.split = BuiltInFunction("split")
+BuiltInFunction.substr = BuiltInFunction("substr")
+BuiltInFunction.reverse = BuiltInFunction("reverse")
+BuiltInFunction.format = BuiltInFunction("format")
+BuiltInFunction.typeof = BuiltInFunction("typeof")
+BuiltInFunction.max = BuiltInFunction("max")
+BuiltInFunction.min = BuiltInFunction("min")
 
 symbolTable_ = SymbolTable()
-symbolTable_.set('print', BuiltInTask.print)
-symbolTable_.set('println', BuiltInTask.println)
-symbolTable_.set('exit', BuiltInTask.exit)
-symbolTable_.set('input', BuiltInTask.input)
-symbolTable_.set('inputInt', BuiltInTask.inputInt)
-symbolTable_.set('inputFloat', BuiltInTask.inputFloat)
-symbolTable_.set('inputBool', BuiltInTask.inputBool)
-symbolTable_.set('clear', BuiltInTask.clear)
-symbolTable_.set('len', BuiltInTask.len)
-#symbolTable_.set('range', BuiltInTask.range)
-symbolTable_.set('str', BuiltInTask.str)
-symbolTable_.set('int', BuiltInTask.int)
-symbolTable_.set('float', BuiltInTask.float)
-symbolTable_.set('bool', BuiltInTask.bool)
-symbolTable_.set('list', BuiltInTask.list)
-symbolTable_.set('pair', BuiltInTask.pair)
-symbolTable_.set('Object', BuiltInTask.Object)
-symbolTable_.set('line', BuiltInTask.line)
-symbolTable_.set('append', BuiltInTask.append)
-symbolTable_.set('pop', BuiltInTask.pop)
-symbolTable_.set('extend', BuiltInTask.extend)
-symbolTable_.set('remove', BuiltInTask.remove)
-symbolTable_.set('sorted', BuiltInTask.sorted)
-symbolTable_.set('clearList', BuiltInTask.clearList)
-symbolTable_.set('delay', BuiltInTask.delay)
-symbolTable_.set('split', BuiltInTask.split)
-symbolTable_.set('substr', BuiltInTask.substr)
-symbolTable_.set('reverse', BuiltInTask.reverse)
-symbolTable_.set('format', BuiltInTask.format)
-symbolTable_.set('typeof', BuiltInTask.typeof)
-symbolTable_.set('max', BuiltInTask.max)
-symbolTable_.set('min', BuiltInTask.min)
+symbolTable_.set('print', BuiltInFunction.print)
+symbolTable_.set('println', BuiltInFunction.println)
+symbolTable_.set('exit', BuiltInFunction.exit)
+symbolTable_.set('input', BuiltInFunction.input)
+symbolTable_.set('inputInt', BuiltInFunction.inputInt)
+symbolTable_.set('inputFloat', BuiltInFunction.inputFloat)
+symbolTable_.set('inputBool', BuiltInFunction.inputBool)
+symbolTable_.set('clear', BuiltInFunction.clear)
+symbolTable_.set('len', BuiltInFunction.len)
+#symbolTable_.set('range', BuiltInFunction.range)
+symbolTable_.set('str', BuiltInFunction.str)
+symbolTable_.set('int', BuiltInFunction.int)
+symbolTable_.set('float', BuiltInFunction.float)
+symbolTable_.set('bool', BuiltInFunction.bool)
+symbolTable_.set('list', BuiltInFunction.list)
+symbolTable_.set('pair', BuiltInFunction.pair)
+symbolTable_.set('Object', BuiltInFunction.Object)
+symbolTable_.set('line', BuiltInFunction.line)
+symbolTable_.set('append', BuiltInFunction.append)
+symbolTable_.set('pop', BuiltInFunction.pop)
+symbolTable_.set('extend', BuiltInFunction.extend)
+symbolTable_.set('remove', BuiltInFunction.remove)
+symbolTable_.set('sorted', BuiltInFunction.sorted)
+symbolTable_.set('clearList', BuiltInFunction.clearList)
+symbolTable_.set('delay', BuiltInFunction.delay)
+symbolTable_.set('split', BuiltInFunction.split)
+symbolTable_.set('substr', BuiltInFunction.substr)
+symbolTable_.set('reverse', BuiltInFunction.reverse)
+symbolTable_.set('format', BuiltInFunction.format)
+symbolTable_.set('typeof', BuiltInFunction.typeof)
+symbolTable_.set('max', BuiltInFunction.max)
+symbolTable_.set('min', BuiltInFunction.min)
 symbolTable_.setSymbol()

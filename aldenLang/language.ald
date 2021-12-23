@@ -11,7 +11,7 @@
 #   - A variable is a named location in memory that holds a value.
 #   - Variables are declared with the `let` and `final` keywords. 
 let var_a = 10 # declare a variable named `a` and assign it a value of `10` . Variables decalred with `let` are mutable.
-final var_ b = 20 # declare a variable named `b` and assign it a value of `20` . Variables decalred with `final` are immutable.
+final var_b = 20 # declare a variable named `b` and assign it a value of `20` . Variables decalred with `final` are immutable.
 
 
 # ## 3. Strings
@@ -28,11 +28,11 @@ let num_b = 10.5 # declare a variable named `b` and assign it a value of `10.5` 
 # negative numbers
 let num_c = -10 # declare a variable named `c` and assign it a value of `-10` .
 # hexadecimal numbers
-let num_d = 0xFF # declare a variable named `d` and assign it a value of `0xFF` .
+#let num_d = 0xFF # declare a variable named `d` and assign it a value of `0xFF` .
 # binary numbers
 let num_e = 0b1010 # declare a variable named `e` and assign it a value of `0b1010` .
 # octal numbers
-let num_f = 0o777 # declare a variable named `f` and assign it a value of `0o777` .
+#let num_f = 0o777 # declare a variable named `f` and assign it a value of `0o777` .
  
 # ## 5. Booleans
 #   - Booleans are either `true` or `false`.
@@ -61,22 +61,22 @@ let (pair_b, pair_c) = pair_a # declare two variables named `pair_b` and `pair_c
 #   - Objects names starting with a capital letter.
 #   - Objects don't use comma's after the last key-value pair.
 #  - The 'end' keyword is used to end an object.
-object Object_a
+object Objecta
     name: "Alden"
     type: "Programming Language"
 end
 
 # ## 9. Task
-#   - Tasks are blocks of code that perform a specific task.
-#   - Tasks are declared with the `task` keyword.
+#   - Tasks are blocks of code that perform a specific def.
+#   - Tasks are declared with the `def` keyword.
 #   - Tasks names starting with a @ symbol.
 
-task @task_a()
+def @task_a()
     println("Hello World")
 end
 
-task @task_b(user) # declare a task named `task_b` with a parameter named `user` .
-    println(fm"Hello {user}")
+def @task_b(user) # declare a def named `task_b` with a parameter named `user` .
+    println(fm"Hello %{user}")
 end
 
 
@@ -85,13 +85,14 @@ end
 
 #  Built-in tasks for printing to the console:
 print(@task_a()) # prints "Hello World" to the console.
-println(@task_a()) # prints "Hello World" to the console and adds a new line.
+println(@task_b("Kehinde")) # prints "Hello Kehinde" to the console.
 
 # Built-in tasks for input:
-input() # print a prompt to the console and wait for the user to enter a string.
-inputInt() # print a prompt to the console and wait for the user to enter an integer.
-inputFloat() # print a prompt to the console and wait for the user to enter a float.
-inputBool() # print a prompt to the console and wait for the user to enter a boolean.
+#input() # print a prompt to the console and wait for the user to enter a string.
+#inputInt() # print a prompt to the console and wait for the user to enter an integer.
+#inputFloat() # print a prompt to the console and wait for the user to enter a float.
+#inputBool() # print a prompt to the console and wait for the user to enter a boolean.
 
 # Built-in tasks for list:
-len(array_a) # returns the length of the array `array_a` .
+ # returns the length of the array `array_a` .
+println(len(array_a)) # prints 3 to the console.

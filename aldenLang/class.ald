@@ -1,12 +1,12 @@
 class Animal(name, age, breed, color)
-   task initialize(self)
+   def initialize(self)
    end  
 
-   task bark(self)
+   def bark(self)
       println(fm"%{self.name} barks")
    end
    
-   task eat(self)
+   def eat(self)
       println(fm"%{self.name} eats")
    end
 end
@@ -16,3 +16,4 @@ end
 let dog = Animal("dog", 2, "labrador", "brown")
 dog.bark()
 dog.eat()
+

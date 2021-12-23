@@ -5,7 +5,7 @@ let list = [1,2,3,4,5]
 let v = 0
 v = v + 37
 println(v)
-task @sum(message)
+def @sum(message)
     if message == "hello" :
         let greeting = "Hello"
         println(greeting)

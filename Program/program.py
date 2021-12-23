@@ -1,8 +1,7 @@
 import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
-from Interpreter.interpreter import Context, Interpreter, BuiltInTask, symbolTable_
-
+from Interpreter.interpreter import Context, Interpreter, symbolTable_
 
 class Program:
     def error():
@@ -15,7 +14,8 @@ class Program:
             Program.printError(error)
 
         def Runtime(options):
-            error = f'Runtime error {options["originator"]} at line {options["line"]}'
+            error = ""
+            error += f'\nFile:{options["fileName"]},  line {options["line"]} \n\nRuntimeError: {options["originator"]}\n'
             Program.printError(error)
         methods = {
             'IllegalCharacter': IllegalCharacter,
@@ -32,9 +32,8 @@ class Program:
         for arg in args:
             print(str(type(arg)) + " <===> " + str(arg))
   
-    def printError(args):
-        for arg in args:
-            print(arg)
+    def printError(arg):
+        print(arg)
         sys.exit(1)
 
     def run(fileName, text):
