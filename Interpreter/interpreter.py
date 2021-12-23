@@ -1617,6 +1617,28 @@ class List(Value):
             }
             return None, self.illegal_operation(error, other)
 
+    def spread(self, other):
+        if isinstance(other, List):
+            return List(self.elements + other.elements), None
+        if isinstance(other, Pair):
+            for i in range(len(other.elements)):
+                self.elements.append(other.elements[i])
+            return List(self.elements), None
+        elif isinstance(other, String):
+            new_list = []
+            for char in other.value:
+                new_list.append(String(char).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end))
+            return List(self.elements + new_list), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't add '{TypeOf(other.value).getType()}' to '{TypeOf(self.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation(error, other)
     def subtracted_by(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1819,6 +1841,30 @@ class Pair(Value):
             }
             return None, self.illegal_operation(error, other)
 
+    def spread(self, other):
+        if isinstance(other, Pair):
+            return Pair(self.elements + other.elements), None
+        elif isinstance(other, List):
+            new_pair = ()
+            for element in other.elements:
+                new_pair += (element,)
+            return Pair(self.elements + new_pair), None
+        elif isinstance(other, String):
+            new_pair = ()
+            for char in other.value:
+                new_pair += (String(char).setContext(self.context)
+                             .setPosition(self.pos_start, self.pos_end))
+            return Pair(self.elements + new_pair), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't add '{TypeOf(other.value).getType()}' to '{TypeOf(self.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation(error, other)
+   
     def subtracted_by(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -4291,6 +4337,7 @@ class Interpreter:
     def __init__(self):
         self.error_detected = False
     
+    
     def visit(self, node, context):
         method_name = f'visit_{type(node).__name__}'
         method = getattr(self, method_name, self.no_visit)
@@ -4441,7 +4488,7 @@ class Interpreter:
         
         if type(node.variable_name_token).__name__ == "tuple" or type(node.variable_name_token).__name__ == "list":
             var_name = node.variable_name_token
-            if isinstance(var_name, Pair):
+            if isinstance(var_name, Pair) or isinstance(var_name, List):
                 if len(var_name) != len(value.elements):
                     return res.failure(Program.error()['ValueError']({
                         'pos_start': node.pos_start,
@@ -4495,13 +4542,25 @@ class Interpreter:
                         }))
                 else:
                     properties = []
+                    var = []
                     for prop in value.properties.values():
                         properties.append(prop)
-                    for i in range(len(var_name)):
-                        context.symbolTable.set(
-                            var_name[i].name.value, properties[i])
+                    for v in var_name:
+                        var.append(v.name.value)
+                        if '*' + v.name.value.split('*')[-1] in var:
+                            return res.failure(Program.error()['ValueError']({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"not to many values to pair",
+                                'context': context,
+                                'exit': False
+                            }))
+                        else:
+                            for i in range(len(var_name)):
+                                context.symbolTable.set(
+                                    var_name[i].name.value, properties[i])
 
-            elif isinstance(value, Pair):
+            elif isinstance(value, Pair) or isinstance(value, List):
                 if len(var_name) != len(value.elements):
                     var = []
                     for v in var_name:
@@ -4535,51 +4594,23 @@ class Interpreter:
                         }))
                 else:
                     elements = []
+                    var = []
                     for elem in value.elements:
                         elements.append(elem)
-                    for i in range(len(var_name)):
-                        context.symbolTable.set(
-                            var_name[i].name.value, elements[i])
-
-            elif isinstance(value, List):
-                if len(var_name) != len(value.elements):
-                    var = []
                     for v in var_name:
-                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
+                        var.append(v.name.value)
+                        if '*' + v.name.value.split('*')[-1] in var:
                             return res.failure(Program.error()['ValueError']({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
-                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
+                                'message': f"not to many values to pair",
                                 'context': context,
                                 'exit': False
                             }))
-                        var.append(v.name.value)
-                    if '*' + v.name.value.split('*')[-1] in var:
-                        elements = []
-                        for elem in value.elements:
-                            elements.append(elem)
-                        for i in range(len(var_name)):
-                            if i < len(var_name) - 1:
+                        else:
+                            for i in range(len(var_name)):
                                 context.symbolTable.set(
                                     var_name[i].name.value, elements[i])
-                            else:
-                                context.symbolTable.set(
-                                    v.name.value.split('*')[-1], List(elements[i:]))
-                    else:
-                        return res.failure(Program.error()['ValueError']({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"Expected {len(value.elements)} values, unable to pair {len(var_name)} value(s)",
-                            'context': context,
-                            'exit': False
-                        }))
-                else:
-                    elements = []
-                    for elem in value.elements:
-                        elements.append(elem)
-                    for i in range(len(var_name)):
-                        context.symbolTable.set(
-                            var_name[i].name.value, elements[i])
 
             else:
                 return res.failure(Program.error()['Runtime']({
@@ -4840,6 +4871,27 @@ class Interpreter:
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
                                     'message': f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                    elif operation == "pow":
+                        if isinstance(v['value'], Number):
+                            if isinstance(value, Number):
+                                new_value = Number(v['value'].value ** value.value)
+                                context.symbolTable.set(var_name, new_value, "let")
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '**=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        else:
+                            return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '**=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 }))
@@ -5843,7 +5895,7 @@ class Interpreter:
                 'context': context,
                 'exit': False  
             }))  
-            
+           
     
     def visit_ExportModuleNode(self, node, context):
         res = RuntimeResult()
@@ -5973,6 +6025,8 @@ class Interpreter:
                 result, error = left.get_comparison_lte(right)
             elif node.op_tok.type == tokenList.TT_GTE:
                 result, error = left.get_comparison_gte(right)
+            elif node.op_tok.type == tokenList.TT_SPREAD:
+                result, error = left.spread(right)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'in'):
                 result, error = right.get_comparison_in(left)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'notin'):
@@ -6335,8 +6389,7 @@ class Interpreter:
             value = res.register(self.visit(default_case['body'], context))
             if res.should_return(): return res
             return res.success(value)
-            
-       
+                 
 
     def visit_DefNode(self, node, context):
         res = RuntimeResult()

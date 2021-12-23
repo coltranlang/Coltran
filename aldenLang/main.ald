@@ -88,4 +88,17 @@
 # @greet("Kenny", 25, "Eating Rice")
 # @greet2({name:"Bob", age:40, hobby: "Playing soccer"}) # can be used to simulate named arguments
 
-
+let list = [1,2,3]
+let list2 = [4,5,6]
+let pair = (1,2,3)
+let pair2 = (4,5,6)
+let [a,*c] = list
+println(fm"a: %{a} c: %{c}")
+let new_list = [] ** list ** list2 ** pair ** pair2 # spread operator, syntax sugar for + operator and list.extend(list2)
+let new_pair = pair ** pair2 ** list ** list2
+println(len(new_list))
+println(len(new_pair))
+println(fm"new_list: %{new_list}, typeof new_list: %{typeof(new_list)}")
+println(fm"new_pair: %{new_pair}, typeof new_pair: %{typeof(new_pair)}")
+#let new_pair = (**pair, **pair2)
+# typeof new_list: %{new_list[1].toInt}

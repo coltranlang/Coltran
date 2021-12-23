@@ -336,6 +336,17 @@ class SliceNode:
         return f'{self.name}'
 
 
+class SpreadNode:
+    def __init__(self, name):
+        self.name = name
+        self.id = name
+        self.pos_start = self.name.pos_start
+        self.pos_end = self.name.pos_end
+        
+    def __repr__(self):
+        return f'{self.name}'
+
+
 class ExportModuleNode:
     def __init__(self, modules):
         self.modules = modules
@@ -984,7 +995,10 @@ class Parser:
                 }))
             res.register_advancement()
             self.advance()
+            # if self.current_token.type == tokenList.TT_LSQBRACKET:
+            #     return self.list_expr(var_name, variable_keyword_token, "spread")
             expr = res.register(self.expr())
+            
             if res.error:
                 return res
             return res.success(VarAssignNode(var_name, expr, variable_keyword_token))
@@ -1028,7 +1042,7 @@ class Parser:
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS))
 
     def term(self):
-        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIV, tokenList.TT_MOD))
+        return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIV, tokenList.TT_MOD, tokenList.TT_SPREAD))
     
     def factor(self):
         res = ParseResult()
@@ -1197,6 +1211,28 @@ class Parser:
                 else:
                     expr  = res.register(self.expr())
                     return res.success(VarReassignNode(atom, expr, "mod"))
+            
+            elif self.current_token.type == tokenList.TT_POWER_EQ:
+                res.register_advancement()
+                self.advance()
+                if self.current_token.type == tokenList.TT_IDENTIFIER:
+                    identifier = res.register(self.expr())
+                    return res.success(VarReassignNode(atom, identifier, "pow"))
+                elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
+                    value = res.register(self.atom())
+                    return res.success(VarReassignNode(atom, value, "pow"))
+                elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
+                    self.error_detected = True
+                    self.error['Syntax']({
+                        'message': "invalid syntax",
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'exit': False
+                    })
+                else:
+                    expr  = res.register(self.expr())
+                    return res.success(VarReassignNode(atom, expr, "pow"))
+            
             
             else:
                 # if self.current_token.type == tokenList.TT_GETTER:
@@ -1445,7 +1481,7 @@ class Parser:
                 call_node = res.success(CallNode(name, arg_nodes))
                 name = res.register(call_node)
                 return res.success(name)
-               
+      
     def if_expr(self):
         res = ParseResult()
         all_cases = res.register(self.if_expr_cases('if'))
@@ -3063,11 +3099,17 @@ class Parser:
                 
         return default_case
                            
-    def list_expr(self):
+    def list_expr(self, var_name=None, variable_type=None, _type=None):
         res = ParseResult()
         elements = []
         pos_start = self.current_token.pos_start.copy()
-
+        # if _type == "spread":
+        #     res.register_advancement()
+        #     self.advance()
+        #     if self.current_token.type == tokenList.TT_SPREAD:
+        #         res.register_advancement()
+        #         self.advance()
+        #         print("spread", self.current_token)
         if self.current_token.type != tokenList.TT_LSQBRACKET:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -3083,6 +3125,142 @@ class Parser:
         if self.current_token.type == tokenList.TT_RSQBRACKET:
             res.register_advancement()
             self.advance()
+        
+        
+                # while self.current_token.type == tokenList.TT_COMMA:
+                #     res.register_advancement()
+                #     self.advance()
+                #     while self.current_token.type == tokenList.TT_NEWLINE:
+                #         res.register_advancement()
+                #         self.advance()
+                #     if self.current_token.type == tokenList.TT_SPREAD:
+                #             res.register_advancement()
+                #             self.advance()
+                #             if self.current_token.type != tokenList.TT_IDENTIFIER:
+                #                     self.error_detected = True
+                #                     return res.failure(self.error['Syntax']({
+                #                         'pos_start': self.current_token.pos_start,
+                #                         'pos_end': self.current_token.pos_end,
+                #                         'message': "Expected an identifier",
+                #                         'exit': False
+                #                     }))
+                #             res.register_advancement()
+                #             self.advance()
+                #     else:
+                #         element = res.register(self.expr())
+                #         elements.append(element)
+                #         while self.current_token.type == tokenList.TT_COMMA:
+                #             res.register_advancement()
+                #             self.advance()
+                #             while self.current_token.type == tokenList.TT_NEWLINE:
+                #                 res.register_advancement()
+                #                 self.advance()
+                #             element = res.register(self.expr())
+                #             elements.append(element)
+                #         if self.current_token.type == tokenList.TT_SPREAD:
+                #             res.register_advancement()
+                #             self.advance()
+                #             if self.current_token.type != tokenList.TT_IDENTIFIER:
+                #                 self.error_detected = True
+                #                 return res.failure(self.error['Syntax']({
+                #                     'pos_start': self.current_token.pos_start,
+                #                     'pos_end': self.current_token.pos_end,
+                #                     'message': "Expected an identifier",
+                #                     'exit': False
+                #                 }))
+                #             res.register_advancement()
+                #             self.advance()
+                #         if self.current_token.type != tokenList.TT_RSQBRACKET:
+                #             self.error_detected = True
+                #             return res.failure(self.error['Syntax']({
+                #                 'pos_start': self.current_token.pos_start,
+                #                 'pos_end': self.current_token.pos_end,
+                #                 'message': "Expected ']'",
+                #                 'exit': False
+                #             }))
+                #         res.register_advancement()
+                #         self.advance()
+
+                #         for element in elements:
+                #             if element == "":
+                #                 self.error_detected = True
+                #                 return res.failure(self.error['Syntax']({
+                #                     'pos_start': start_token.pos_start,
+                #                     'pos_end': start_token.pos_end,
+                #                     'message': "Invalid syntax",
+                #                     'exit': False
+                #                 }))
+                        
+        #         if self.current_token.type != tokenList.TT_MUL:
+        #             self.error_detected = True
+        #             return res.failure(self.error['Syntax']({
+        #                 'pos_start': self.current_token.pos_start,
+        #                 'pos_end': self.current_token.pos_end,
+        #                 'message': "Expected '*'",
+        #                 'exit': False
+        #             }))
+                    
+        #         res.register_advancement()
+        #         self.advance()
+        #         current_token = self.current_token
+        #         if current_token.type != tokenList.TT_IDENTIFIER:
+        #             return res.failure(self.error['Syntax']({
+        #                 'pos_start': self.current_token.pos_start,
+        #                 'pos_end': self.current_token.pos_end,
+        #                 'message': "Expected an identifier",
+        #                 'exit': False
+        #             }))
+        #         rest = res.register(self.expr())
+        #         if res.error:
+        #             return res
+                # elements.append(StringNode(Token(tokenList.TT_IDENTIFIER, str(
+                #     "**") + str(rest.name.value), current_token.pos_start, current_token.pos_end)))
+                # if self.current_token.type == tokenList.TT_RSQBRACKET:
+                #     print("here", elements)
+                # else:
+                #     while self.current_token.type == tokenList.TT_NEWLINE:
+                #         res.register_advancement()
+                #         self.advance()
+                #         start_token = self.current_token
+                #     while self.current_token.type == tokenList.TT_COMMA:
+                #         res.register_advancement()
+                #         self.advance()
+                #         while self.current_token.type == tokenList.TT_NEWLINE:
+                #              res.register_advancement()
+                #              self.advance()
+                #     if self.current_token.type == tokenList.TT_MUL:
+                #         res.register_advancement()
+                #         self.advance()
+                #         if self.current_token.type != tokenList.TT_MUL:
+                #             self.error_detected = True
+                #             return res.failure(self.error['Syntax']({
+                #                 'pos_start': self.current_token.pos_start,
+                #                 'pos_end': self.current_token.pos_end,
+                #                 'message': "Expected '*'",
+                #                 'exit': False
+                #             }))
+                            
+                #         res.register_advancement()
+                #         self.advance()
+                #         current_token = self.current_token
+                #         if current_token.type != tokenList.TT_IDENTIFIER:
+                #             return res.failure(self.error['Syntax']({
+                #                 'pos_start': self.current_token.pos_start,
+                #                 'pos_end': self.current_token.pos_end,
+                #                 'message': "Expected an identifier",
+                #                 'exit': False
+                #             }))
+                #         rest = res.register(self.expr())
+                #         if res.error:
+                #             return res
+                #         elements.append(StringNode(Token(tokenList.TT_IDENTIFIER, str(
+                #             "**") + str(rest.name.value), current_token.pos_start, current_token.pos_end)))
+                #         print("here", elements)
+                #         if self.current_token.type == tokenList.TT_RSQBRACKET:
+                #             print("here2", elements)
+                #         res.register_advancement()
+                #         self.advance()
+                # return res.success(ListNode(elements, pos_start, self.current_token.pos_end.copy()))
         else:
             while self.current_token.type == tokenList.TT_NEWLINE:
                     res.register_advancement()
@@ -3131,7 +3309,7 @@ class Parser:
                         }))
                     res.register_advancement()
                     self.advance()
-                    return res.success(PairNode(elements, pos_start, self.current_token.pos_end.copy()))
+                    return res.success(ListNode(elements, pos_start, self.current_token.pos_end.copy()))
                 element = res.register(self.expr())
                 if res.error:
                     return res
@@ -3153,12 +3331,14 @@ class Parser:
                     self.advance()
                     return res.success(ListNode(elements, pos_start, self.current_token.pos_start.copy()))
             
+            
+            
             if self.current_token.type != tokenList.TT_RSQBRACKET:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
                     'pos_start': start_token.pos_start,
                     'pos_end': start_token.pos_end,
-                    'message': "Expected ',', or ']'",
+                    'message': "Expected an expression, ',', or ']'",
                     'exit': False
                 }))
 
@@ -3173,6 +3353,8 @@ class Parser:
                         'message': "Invalid syntax",
                         'exit': False
                     }))
+        
+        
         return res.success(ListNode(elements, pos_start, self.current_token.pos_end.copy()))
 
     def pair_expr(self):
@@ -3262,7 +3444,7 @@ class Parser:
                 return res.failure(self.error['Syntax']({
                     'pos_start': start_token.pos_start,
                     'pos_end': start_token.pos_end,
-                    'message': "Expected ',', or ')'",
+                    'message': "Expected an expression, ',', or ')'",
                     'exit': False
                 }))
 
@@ -3880,3 +4062,7 @@ LETTERS_SYMBOLS = LETTERS + SYMBOLS
 #                 count += 1
 #                 print(f"{i} * {j} * {k} = {i*j*k}")
 # print(count)
+li = [1,2,3]
+li2 = [4,5,6]
+new_li = [*li, *li2, 7, 8, 9]
+print(len(new_li))

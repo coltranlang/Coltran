@@ -125,8 +125,7 @@ class Lexer:
             elif self.current_char == '%':
                 tokens.append(self.make_mod_or_mod_equal())
             elif self.current_char == '^':
-                tokens.append(Token(tokenList.TT_POWER, pos_start=self.pos))
-                self.advance()
+                tokens.append(self.make_power_or_power_equal())
             elif self.current_char == ':':
                 tokens.append(Token(tokenList.TT_COLON, pos_start=self.pos))
                 self.advance()
@@ -285,6 +284,9 @@ class Lexer:
         if self.current_char == '=':
             self.advance()
             tok_type = tokenList.TT_MUL_EQ
+        elif self.current_char == '*':
+            self.advance()
+            tok_type = tokenList.TT_SPREAD
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
     
     def make_div_or_div_equal(self):
@@ -305,6 +307,15 @@ class Lexer:
             tok_type = tokenList.TT_MOD_EQ
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
 
+    def make_power_or_power_equal(self):
+        tok_type = tokenList.TT_POWER
+        pos_start = self.pos.copy()
+        self.advance()
+        if self.current_char == '=':
+            self.advance()
+            tok_type = tokenList.TT_POWER_EQ
+        return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
+    
     def make_not_equals(self):
         pos_start = self.pos.copy()
         self.advance()
