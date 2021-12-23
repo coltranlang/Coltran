@@ -139,13 +139,13 @@ class TypeOf:
             elif isinstance(self.type, bool) or isinstance(self.type, Boolean):
                 result = 'boolean'
             elif isinstance(self.type, NoneType):
-                result = 'none'
+                result = 'NoneType'
             elif isinstance(self.type, list) or isinstance(self.type, List):
                 result = 'list'
             elif isinstance(self.type, Class):
                 result = 'class'
             elif isinstance(self.type, Def):
-                result = 'task'
+                result = 'function'
             elif isinstance(self.type, BuiltInFunction):
                 result = 'builtin_function'
             elif isinstance(self.type, BuiltInMethod):
@@ -1983,9 +1983,11 @@ class Pair(Value):
         
         
 class Dict(Value):
-    def __init__(self, properties):
+    def __init__(self, properties, keys=None, values=None):
         super().__init__()
         self.properties = properties
+        self.keys = keys
+        self.values = values
         self.value = self.properties
         
         
@@ -2395,8 +2397,7 @@ class Class(BaseFunction):
         self.value = self.methods_properties
         self.context = context
         self.body_node = None
-       
-    
+        
         
     def execute(self, args):
         res = RuntimeResult()
@@ -2406,7 +2407,6 @@ class Class(BaseFunction):
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
         if res.should_return(): return res
-        
         for method_name, method in self.methods_properties.items():
             method.context = new_context
             method = method.copy()
@@ -2457,7 +2457,9 @@ class Class(BaseFunction):
     
     def isSame(self, other):
         if isinstance(other, Class):
-            return self.methods_properties == other.methods_properties and self.constructor_args == other.constructor_args and self.inherit_class_name == other.inherit_class_name and self.inherit_class == other.inherit_class
+            _new_class = f"{{{', '.join([f'{k}: {v}' for k, v in self.methods_properties.items()])}}}"
+            other_class = f"{{{', '.join([f'{k}: {v}' for k, v in other.methods_properties.items()])}}}"
+            return _new_class == other_class
         return False
 
    
@@ -2661,7 +2663,7 @@ class BuiltInFunction(BaseFunction):
         return res.failure(Program.error()['Runtime']({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"{self.name} is not a supported built-in task",
+            'message': f"{self.name} is not a supported built-in function",
             'context': self.context,
             'exit': False
         }))
@@ -2758,10 +2760,10 @@ class BuiltInFunction(BaseFunction):
         return copy
 
     def __repr__(self):
-        return f"<{str(self.name)}()>, [ built-in task ]"
+        return f"<{str(self.name)}()>, [ built-in function ]"
 
 
-# Built-in tasks
+# Built-in functions
 
 def BuiltInFunction_Print(args, node):
     res = RuntimeResult()
@@ -4410,12 +4412,19 @@ class Interpreter:
     def visit_VarAssignNode(self, node, context):
         res = RuntimeResult()
         var_name = node.variable_name_token.value if type(
-            node.variable_name_token).__name__ != 'tuple' else ''
+            node.variable_name_token).__name__ != 'tuple' and type(
+            node.variable_name_token).__name__ != 'list' else ''
         if type(node.variable_name_token).__name__ == 'tuple':
             if type(node.variable_name_token[0]).__name__ == 'Token':
                 var_name = node.variable_name_token[0].value
             elif type(node.variable_name_token[0]).__name__ == 'VarAccessNode':
                 var_name = node.variable_name_token[0].id.value
+        if type(node.variable_name_token).__name__ == 'list':
+            for element in node.variable_name_token:
+                if type(element).__name__ == 'Token':
+                    var_name = var_name + element.value
+                elif type(element).__name__ == 'VarAccessNode':
+                    var_name = var_name + element.id.value
         value = res.register(self.visit(node.value_node, context))
         
         if node.variable_keyword_token == "module":
@@ -4430,7 +4439,7 @@ class Interpreter:
                     'exit': False
                 }))
         
-        if type(node.variable_name_token).__name__ == "tuple":
+        if type(node.variable_name_token).__name__ == "tuple" or type(node.variable_name_token).__name__ == "list":
             var_name = node.variable_name_token
             if isinstance(var_name, Pair):
                 if len(var_name) != len(value.elements):
@@ -4446,7 +4455,12 @@ class Interpreter:
                         context.symbolTable.set(
                             var_name[i].name.value, value.elements[i])
 
-            elif isinstance(value, Object):
+            elif isinstance(value, Object) or isinstance(value, Dict):
+                if isinstance(value, Dict):
+                    for key in list(value.properties.keys()):
+                        if key == '__properties':
+                            del value.properties[key]
+
                 if len(var_name) != len(value.properties):
                     var = []
                     for v in var_name:
@@ -4575,6 +4589,8 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
+        
+       
         else:
             if res.should_return():
                 return res
@@ -5290,7 +5306,8 @@ class Interpreter:
                             args.append(res.register(
                                 self.visit(arg, context)))
                             if res.should_return(): return res
-                        _type = object_name.properties.properties[object_key.node_to_call.value].properties.properties['__type'].value
+                        _type = object_name.properties.properties[
+                            object_key.node_to_call.value].properties.properties['__properties'].properties['__type'].value
                         if _type == "method":
                             return_value = res.register(value.run(args, object_name))
                         else:
@@ -5496,8 +5513,12 @@ class Interpreter:
         elif object_type == "object":
             if index_type == "string":
                 try:
-                    get_value = index_value.properties[index.value]
-                    return res.success(get_value)
+                    if (type(index_value).__name__ == "dict"):
+                        get_value = index_value[index.value]
+                        return res.success(get_value)
+                    else:
+                        get_value = index_value.properties[index.value]
+                        return res.success(get_value)
                 except KeyError:
                     return res.failure(Program.error()['KeyError']({
                         'pos_start': node.pos_start,
@@ -6289,50 +6310,59 @@ class Interpreter:
         expression = res.register(self.visit(node.expression, context))
         cases = node.cases
         default_case = node.default_case
+        if res.should_return(): return res
+        
         for case in cases:
             condition = res.register(self.visit(case['case'], context))
             if res.should_return(): return res
-            if isinstance(expression, String) and isinstance(condition, String):
-                if condition.value == expression.value:
-                        value_expression = res.register(self.visit(case['body'], context))
-                        return res.success(value_expression)
-                else:
-                    if default_case != None:
-                        default_expression = res.register(self.visit(default_case['body'], context))
-                        return res.success(default_expression)
-                    else:
-                        return res.success(None)
-                    
-                
+            if hasattr(condition, "value") and hasattr(expression, "value") and condition.value == expression.value:
+                value = res.register(self.visit(case['body'], context))
+                if res.should_return(): return res
+                return res.success(value)
+            elif hasattr(condition, "elements") and hasattr(expression, "elements") and condition.isSame(expression):
+                value = res.register(self.visit(case['body'], context))
+                if res.should_return(): return res
+                return res.success(value)
+            elif hasattr(condition, "properties") and hasattr(expression, "properties") and condition.isSame(expression):
+                value = res.register(self.visit(case['body'], context))
+                if res.should_return(): return res
+                return res.success(value)
+            elif hasattr(condition, "methods_properties") and hasattr(expression, "methods_properties") and condition.isSame(expression):
+                value = res.register(self.visit(case['body'], context))
+                if res.should_return(): return res
+                return res.success(value)
+        if default_case:
+            value = res.register(self.visit(default_case['body'], context))
+            if res.should_return(): return res
+            return res.success(value)
+            
+       
 
-    
     def visit_DefNode(self, node, context):
         res = RuntimeResult()
-        task_name = node.task_name_token.value if node.task_name_token else "none"
+        def_name = node.def_name_token.value if node.def_name_token else "none"
         body_node = node.body_node
         arg_names = [arg_name.value for arg_name in node.args_name_tokens]
         defualt_values = node.default_values
         __type = node.type
         if __type == None:
-            __type = "task"
+            __type = "function"
         set_properties = {
-            '__name': String(task_name),
-            '__type': String(__type),
             '__properties': Dict({
-                '__name': String(task_name),
+                '__name': String(def_name),
                 '__type': String(__type),
             })
         }
-        #_properties = set_properties
+        
         properties = Dict(set_properties)
-        task_value = Def(task_name, body_node, arg_names, node.implicit_return, defualt_values, properties, context).setContext(
+        def_value = Def(def_name, body_node, arg_names, node.implicit_return, defualt_values, properties, context).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.type != 'method':
-            if node.task_name_token:
-                context.symbolTable.set(task_name, task_value)
+            if node.def_name_token:
+                context.symbolTable.set(def_name, def_value)
 
 
-        return res.success(task_value)
+        return res.success(def_value)
 
     
     def visit_ObjectDefNode(self, node, context):
@@ -6384,12 +6414,20 @@ class Interpreter:
     def visit_DictNode(self, node, context):
         res = RuntimeResult()
         properties = {}
+        keys = List([ String(key.value).setContext(context).setPosition(key.pos_start, key.pos_end) for key in node.keys ])
+        values = List( [res.register(self.visit(value, context)) for value in node.values] )
         for prop in node.properties:
             key = prop['key'].value
             value = res.register(self.visit(prop['value'], context))
             if res.should_return(): return res
-            properties = dict(properties, **{str(key): value})
-        return res.success(Dict(properties).setContext(context).setPosition(node.pos_start, node.pos_end))
+            #_object = dict(properties, **{str(key): value})
+            set_properties = {
+                    '__keys': keys,
+                    '__values': values,
+            }
+        
+            properties = dict(properties, **{str(key): value}, **{str("__properties"): Dict(set_properties)})
+        return res.success(Dict(properties, keys, values).setContext(context).setPosition(node.pos_start, node.pos_end))
     
     
     def visit_ModuleObject(self, node, context):
@@ -6443,9 +6481,18 @@ class Interpreter:
                 method_name = method['name'].value
                 method_value = res.register(
                     self.visit(method['value'], context))
-                if res.should_return():
-                    return res
-                methods = dict(methods, **{str(method_name): method_value})
+                _object = dict(methods, **{str(method_name): method_value})
+                if res.should_return(): return res
+                set_properties = {
+                    '__name': String(class_name),
+                    '__type': String('class'),
+                    '__methods': Dict(_object),
+                }
+                
+                
+                properties = Dict(set_properties).setContext(context).setPosition(node.pos_start, node.pos_end)
+                
+                methods = dict(methods, **{str(method_name): method_value}, **{str("__properties"): properties})
                 class_value = Class(class_name, constructor_args, inherits_class_name, inherits_class,
                                     methods, context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)

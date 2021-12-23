@@ -15,7 +15,7 @@ class Program:
 
         def Runtime(options):
             error = ""
-            error += f'\nFile:{options["fileName"]},  line {options["line"]} \n\nRuntimeError: {options["originator"]}\n'
+            error += f'\nFile:{options["fileName"]},  \n\nRuntimeError: {options["originator"]}\n'
             Program.printError(error)
         methods = {
             'IllegalCharacter': IllegalCharacter,
@@ -44,25 +44,31 @@ class Program:
 
         # Generate AST
         parser = Parser(tokens, fileName)
-        ast = parser.parse()
-        interpreter = Interpreter()
-        context = Context('<module>')
-        parser_error_detected = parser.error_detected
-        if parser_error_detected == False:
-            if ast:
-                if ast.error:
-                    return "", ast.error
-                context.symbolTable = symbolTable_
-                result = interpreter.visit(ast.node, context)
-                interpreter_error_detected = interpreter.error_detected
-                if hasattr(result, 'value') and hasattr(result, 'error'):
-                    return result.value, ""
+        try:
+            ast = parser.parse()
+            interpreter = Interpreter()
+            context = Context('<module>')
+            parser_error_detected = parser.error_detected
+            if parser_error_detected == False:
+                if ast:
+                    if ast.error:
+                        return "", ast.error
+                    context.symbolTable = symbolTable_
+                    result = interpreter.visit(ast.node, context)
+                    interpreter_error_detected = interpreter.error_detected
+                    if hasattr(result, 'value') and hasattr(result, 'error'):
+                        return result.value, ""
 
-                return result, "none"
+                    return result, "none"
+                else:
+                    return "none"
             else:
-                return "none"
-        else:
-            return "", ''
+                return "", ''
+        except:
+            Program.error()['Runtime']({
+                'originator': 'RuntimeError',
+                'fileName': fileName,
+            })
 
     def runFile(fileName):
         try:

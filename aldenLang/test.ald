@@ -485,6 +485,268 @@ println(fm"True or False8: %{pair <= (1,2,3,4,5)}") # true
 println(fm"True or False9: %{[1,2,3,4,5,6] > list}") # true
 println(fm"True or False10: %{(1,2,3,4,5,6) > pair}") # true
 println(fm"For List: %{list}, For Pair: %{pair}") # For List: [1, 2, 3, 4, 5], For Pair: (1, 2, 3, 4, 5)
+
+
+line(51)
+if a + b > 10:
+    println("a + b > 10")
+else:
+    println("a + b <= 10")
+end
+
+
+let a = 20
+let b = 30
+let c = a++
+let d = ++b
+let e = a--
+let f = int("40")
+def setnum() ->  2
+a += setnum() + 1 # expecting to 23
+b -= setnum() - 1 # expecting to 29
+c /= setnum() / 2 # expecting to 21.0
+d *= setnum() * 2 # expecting to 124
+e %= setnum() % 3 # expecting to 1
+line(52)
+println(fm"a = %{a}, b = %{b}, c = %{c}, d = %{d}, e = %{e}")
+let hello = "Hello"
+let world = "World"
+hello += " " + world
+println(hello)
+
+let count = 0
+for i = 0 to 10:
+    for j = 0 to 10:
+        for k = 0 to 10:
+            if i != j and i != k and j != k:
+                count += 1
+            end
+        end
+    end
+end
+line(53)
+println(fm"Count = %{count}") 
+
+let number = 0
+let sum = 0
+
+while number <= 50:
+    sum += number
+    number += 1
+end
+line(54)
+println(fm"Sum = %{sum}") # Sum = 1275
+
+
+let david = def () -> "david"
+let name = "Kenny"
+# match name -> String
+line(55)
+match name:
+    case "Bob":
+        println("Hello David")   
+    end
+    case [1,2]:
+        println("It's a list")  
+    end
+    case david():
+        println("Hello Kenny")
+    end
+    default:
+        println("This is string default")
+    end  
+end
+
+let num = def () -> 1
+# match num -> Int
+line(56)
+match num():
+    case [1,2]:
+        println("It's a list")   
+    end
+    case 1:
+        println("It's a number")  
+    end
+    case "Kenny":
+        println("Hello Kenny")   
+    end
+    default:
+        println("This is num default")
+    end  
+end
+
+let list = [1,2,3]
+# match list -> List
+line(57)
+match list:
+    case "string":
+        println("It's a string")   
+    end
+    case [1,2,3]:
+        println("It's a list")  
+    end
+    case "Kenny":
+        println("Hello Kenny")   
+    end
+    default:
+        println("This is list default")
+    end  
+end
+
+let pair = (1,2)
+# match pair -> Pair
+line(58)
+match pair:
+    case (1,2,3):
+        println("It's not a pair")
+    end
+    case (1,2):
+        println("It's a pair")  
+    end
+    case "Kenny":
+        println("Hello Kenny")   
+    end
+    default:
+        println("This is pair default")
+    end  
+end
+
+let dict = {name:"Bob", age:40, hobby: "Playing soccer"}
+# match dict -> Dict
+line(59)
+match dict:
+    default:
+        println("This is dict default")
+    end
+    case "string":
+        println("It's a string")   
+    end
+    case "Kenny":
+        println("Hello Kenny")   
+    end
+    
+    case {name:"Bob", age:40, hobby: "Playing soccer"}:
+        println("It's a dict")  
+    end  
+end
+
+object TestObject
+    name: "Bob"    
+end
+println(fm"TestObject.name: %{TestObject}")
+# match TestObject -> Object
+line(60)
+match TestObject:
+    case "string":
+        println("It's a string")   
+    end
+    case "Kenny":
+        println("Hello Kenny")   
+    end
+    default:
+        println("This is object default")
+    end
+    case TestObject:
+        println("It's an object")  
+    end    
+end
+
+let bool = true
+# match bool -> Boolean
+line(61)
+match bool:
+    case true:
+        println("It's true")   
+    end
+    case false:
+        println("It's false")  
+    end
+    case "Kenny":
+        println("Hello Kenny")   
+    end
+    default:
+        println("This is boolean default")
+    end  
+end
+
+
+class TestMatch()
+    def test()
+    end
+end
+
+let test = TestMatch()
+# match test -> TestMatch
+line(62)
+match test:
+    case TestMatch():
+        println("It's a TestMatch")   
+    end
+    case "Kenny":
+        println("Hello Kenny")   
+    end
+    default:
+        println("This is class default")
+    end  
+end
+
+
+# match none -> none
+line(63)
+match none:
+    case true:
+        println("It's true")   
+    end
+    case false:
+        println("It's false")  
+    end
+    case none:
+        println("It's none")
+    end
+    default:
+        println("This is Nonetype default")
+    end  
+end
+
+
+# match default -> no match
+line(64)
+match none:
+    case true:
+        println("It's true")   
+    end
+    default:
+        println("This is Nonetype default")
+    end  
+end
+
+line(65)
+let age = 20
+let score = def () -> 22
+
+if age == 20 and score() == 22:
+    println("You are 20 years old and your score is 22")
+else:
+    println("You are not 20 years old or your score is not 22")
+end
+
+line(66)
+let verfied = true
+let eligible = false 
+if verfied and eligible:
+    println("You are eligible")
+else:
+    println("You are not eligible")
+end
+
+match verfied or eligible:
+    case true:
+        println("You are eligible because you are verified")
+    end
+    case false:
+        println("You are not eligible because you are not verified")
+    end
+end
 # def @makeList(item, list=[])
 #     list.append(item)
 #     return list
