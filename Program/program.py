@@ -1,7 +1,7 @@
 import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
-from Interpreter.interpreter import Context, Interpreter, symbolTable_
+from Interpreter.interpreter import Context, Interpreter, symbolTable_, exception_
 
 class Program:
     def error():

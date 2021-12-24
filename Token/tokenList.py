@@ -112,6 +112,8 @@ NOT_ALLOWED_OBJECTS_KEYS = [
     'end',
     'match',
     'case',
+    'attempt',
+    'catch',
     'default',
     'return',
     'continue',
@@ -144,6 +146,8 @@ NOT_ALLOWED_OBJECTS_VALUES = [
     'match',
     'case',
     'default',
+    'attempt',
+    'catch',
     'return',
     'continue',
     'break',
@@ -185,6 +189,8 @@ KEYWORDS = [
     'match',
     'case',
     'default',
+    'attempt',
+    'catch',
     'return',
     'continue',
     'break',
@@ -235,6 +241,8 @@ DEF= 'def'
 END= 'end'
 MATCH= 'match'
 CASE= 'case'
+ATTEMPT= 'attempt'
+CATCH= 'catch'
 DEFAULT= 'default'
 RETURN= 'return'
 CONTINUE= 'continue'

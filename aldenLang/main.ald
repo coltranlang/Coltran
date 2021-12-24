@@ -87,59 +87,85 @@
 # @greet("David", 23)
 # @greet("Kenny", 25, "Eating Rice")
 # @greet2({name:"Bob", age:40, hobby: "Playing soccer"}) # can be used to simulate named arguments
-line(67)
-let list = [1,2,3]
-let list2 = [4,5,6]
-let pair = (1,2,3)
-let pair2 = (4,5,6)
-let dict = {name: 'Kenny'}
-let dict2 = {age: 23}
-object Address
-    street: '123 Main St'
-end
-class Employee(title, id)
-end
-let emp = Employee('Manager', '123')
-let [a,*rest] = list
-let (c,*rest2) = pair
-println(fm"a: %{a}, rest: %{rest}")
-println(fm"c: %{c}, rest2: %{rest2}")
-let new_list = **[list,pair2,7,8,9] # spread operator, syntax sugar for + operator and list.extend(list2)
-let new_pair = **(pair,pair2,7,8,9) # spread operator, syntax sugar for + operator and pair.extend(pair2)
-let new_dict = dict |= dict2 |= Address |= emp # spread operator, syntax sugar for + operator and dict.update(dict2)
-println(new_dict.street, new_dict.age, new_dict.name)
-println(fm"new_list: %{new_list}, typeof new_list: %{typeof(new_list)}, length: %{len(new_list)}")
-println(fm"new_pair: %{new_pair}, typeof new_pair: %{typeof(new_pair)}, length: %{len(new_pair)}")
-println(fm"new_dict: %{new_dict}, typeof new_dict: %{typeof(new_dict)}, length: %{len(new_dict)}")
 
-line(68)
-# instance check
-let _int = 1
-let _float = 1.0
-let _str = "1"
-let _bool = true
-let _bool2 = false
-let _none = none
-let _list = [1,2,3]
-let _pair = (1,2,3)
-let _dict = {name: 'Kenny'}
-let _emp = Employee('Manager', '123')
-let _address = Address
-def @test() -> "testing"
-let _builtin_func = print
-let _builtin_method = _str.upperCase
-println(fm"_int is int: %{isinstanceof(_int, Number)}")
-println(fm"_float is float: %{isinstanceof(_float, Number)}")
-println(fm"_str is string: %{isinstanceof(_str, String)}")
-println(fm"_bool is bool: %{isinstanceof(_bool, Boolean)}")
-println(fm"_bool2 is bool: %{isinstanceof(_bool2, Boolean)}")
-println(fm"_none is none: %{isinstanceof(_none, NoneType)}")
-println(fm"_list is list: %{isinstanceof(_list, List)}")
-println(fm"_pair is pair: %{isinstanceof(_pair, Pair)}")
-println(fm"_dict is dict: %{isinstanceof(_dict, Dict)}")
-println(fm"_address is Address: %{isinstanceof(_address, Object)}")
-println(fm"_emp is Employee: %{isinstanceof(_emp, Class)}")
-println(fm"_builtin_func is function: %{isinstanceof(@test, Function)}")
-println(fm"_builtin_method is method: %{isinstanceof(_builtin_func, BuiltInFunction)}")
-println(fm"_builtin_method is method: %{isinstanceof(_builtin_method, BuiltInMethod)}")
 
+# line(67)
+# let list = [1,2,3]
+# let list2 = [4,5,6]
+# let pair = (1,2,3)
+# let pair2 = (4,5,6)
+# let dict = {name: 'Kenny'}
+# let dict2 = {age: 23}
+# object Address
+#     street: '123 Main St'
+# end
+# class Employee(title, id)
+# end
+# let emp = Employee('Manager', '123')
+# let [a,*rest] = list
+# let (c,*rest2) = pair
+# println(fm"a: %{a}, rest: %{rest}")
+# println(fm"c: %{c}, rest2: %{rest2}")
+# let new_list = **[list,pair2,7,8,9] # spread operator, syntax sugar for + operator and list.extend(list2)
+# let new_pair = **(pair,pair2,7,8,9) # spread operator, syntax sugar for + operator and pair.extend(pair2)
+# let new_dict = dict |= dict2 |= Address |= emp # spread operator, syntax sugar for + operator and dict.update(dict2)
+# println(new_dict.street, new_dict.age, new_dict.name)
+# println(fm"new_list: %{new_list}, typeof new_list: %{typeof(new_list)}, length: %{len(new_list)}")
+# println(fm"new_pair: %{new_pair}, typeof new_pair: %{typeof(new_pair)}, length: %{len(new_pair)}")
+# println(fm"new_dict: %{new_dict}, typeof new_dict: %{typeof(new_dict)}, length: %{len(new_dict)}")
+
+# line(68)
+# # instance check
+# let _int = 1
+# let _float = 1.0
+# let _str = "1"
+# let _bool = true
+# let _bool2 = false
+# let _none = none
+# let _list = [1,2,3]
+# let _pair = (1,2,3)
+# let _dict = {name: 'Kenny'}
+# let _emp = Employee('Manager', '123')
+# let _address = Address
+# def @test() -> "testing"
+# let _builtin_func = print
+# let _builtin_method = _str.upperCase
+# println(fm"_int is int: %{isinstanceof(_int, Number)}")
+# println(fm"_float is float: %{isinstanceof(_float, Number)}")
+# println(fm"_str is string: %{isinstanceof(_str, String)}")
+# println(fm"_bool is bool: %{isinstanceof(_bool, Boolean)}")
+# println(fm"_bool2 is bool: %{isinstanceof(_bool2, Boolean)}")
+# println(fm"_none is none: %{isinstanceof(_none, NoneType)}")
+# println(fm"_list is list: %{isinstanceof(_list, List)}")
+# println(fm"_pair is pair: %{isinstanceof(_pair, Pair)}")
+# println(fm"_dict is dict: %{isinstanceof(_dict, Dict)}")
+# println(fm"_address is Address: %{isinstanceof(_address, Object)}")
+# println(fm"_emp is Employee: %{isinstanceof(_emp, Class)}")
+# println(fm"@test is function: %{isinstanceof(@test, Function)}")
+# println(fm"_builtin_function is builtin_function: %{isinstanceof(_builtin_func, BuiltInFunction)}")
+# println(fm"_builtin_method is builtin_method: %{isinstanceof(_builtin_method, BuiltInMethod)}")
+# # type check
+# println(fm"typeof _int: %{typeof(_int)} is int")
+# println(fm"typeof _float: %{typeof(_float) }is float")
+# println(fm"typeof _str: %{typeof(_str) } is string")
+# println(fm"typeof _bool: %{typeof(_bool) } is boolean")
+# println(fm"typeof _bool2: %{typeof(_bool2) } is boolean")
+# println(fm"typeof _none: %{typeof(_none) } is none")
+# println(fm"typeof _list: %{typeof(_list) } is list")
+# println(fm"typeof _pair: %{typeof(_pair) } is pair")
+# println(fm"typeof _dict: %{typeof(_dict) } is dict")
+# println(fm"typeof _emp: %{typeof(_emp) } is class")
+# println(fm"typeof _address: %{typeof(_address) } is object")
+# println(fm"typeof @test: %{typeof(@test) } is function")
+# println(fm"typeof _builtin_func: %{typeof(_builtin_func) } is builtin_function")
+# println(fm"typeof _builtin_method: %{typeof(_builtin_method) }is builtin_method")
+
+
+
+
+
+attempt:
+    println(fm"Hello, %{name} you are %{age} years old and you like %{hobby}")
+catch Exception as e:
+    println(e)
+end

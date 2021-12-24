@@ -183,6 +183,7 @@ class Module:
         return output
     
     
+    
 class SymbolTable:
    
     def __init__(self, parent=None):
@@ -196,7 +197,6 @@ class SymbolTable:
         for key, val in self.symbols.items():
                 return key
         return None
-    
     
    
     def set(self, name, value, type=None):
@@ -219,8 +219,6 @@ class SymbolTable:
         #print(f"{name} is {value}")
         return value
     
-    
-
     
     def set_object(self, obj_name, object):
         self.symbols[obj_name] = object
@@ -269,7 +267,20 @@ class SymbolTable:
         return str(result)
 
 
-
+class Exception:
+    def __init__(self):
+        self.name = None
+        self.message = None
+        self.error = {}
+        
+    def get(self, name):
+        return self.error[name]
+    
+    def set(self, error):
+        self.error = error
+        
+    def __repr__(self):
+        return f"{self.name}: {self.message}"
 
 # hash = HashTable(1000)
 # hash.set("key", "value")

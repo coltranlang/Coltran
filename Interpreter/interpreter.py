@@ -1,11 +1,10 @@
 import os
-from types import BuiltinMethodType, new_class
 from Parser.parser import Parser
 from Parser.stringsWithArrows import *
 from Token.token import Token
 import Token.tokenList as tokenList
 from Lexer.lexer import Lexer
-from Memory.memory import SymbolTable
+from Memory.memory import SymbolTable, Exception
 
 
 import sys
@@ -164,6 +163,7 @@ class Context:
         self.parent = parent
         self.parent_entry_pos = parent_entry_pos
         self.symbolTable = None
+        self.exception = None
 
 
 def setNumber(token):
@@ -448,8 +448,9 @@ class Program:
 
 
 class RuntimeResult:
-    def __init__(self):
+    def __init__(self, exception_details=None):
         self.reset()
+        
         
     def reset(self, error=None):
         self.value = None
@@ -457,6 +458,7 @@ class RuntimeResult:
         self.func_return_value = None
         self.loop_continue = False
         self.loop_break = False
+        
 
     def register(self, res):
         if hasattr(res, 'value' and 'error' and 'func_return_value' and 'loop_break' and 'loop_continue'):
@@ -4495,16 +4497,34 @@ def BuiltInModule_Http(context):
     return Module("http", module_path, context)
  
  
- 
+
+exception_ = Exception() 
 class Interpreter:
     
-    def __init__(self):
+    def __init__(self, exception_=None):
         self.error_detected = False
+        self.exception = False
+        self.exception_ = exception_
+        self.exception_details = {}
     
+    def getException(self):
+        return self.exception
     
+    def setException(self):
+        self.exception = True
+        return self.exception
+        
+    def getExceptionDetails(self):
+        return self.exception_details
+    
+    def setExceptionDetails(self, details=None):
+        self.exception_details = details
+        return self.exception_details
+        
     def visit(self, node, context):
         method_name = f'visit_{type(node).__name__}'
         method = getattr(self, method_name, self.no_visit)
+        self.context = context
         return method(node, context)
 
     
@@ -4821,13 +4841,23 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
-            return res.failure(Program.error()['NameError']({
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'message': f"name '{var_name}' is not defined",
-                'context': context,
-                'exit': False
-            }))
+            
+            exception_details = {
+                    'name': 'NameError',
+                    'message': f"name '{var_name}' is not defined",
+                }
+            
+            exception = self.getException()
+            if exception == False:
+                return res.failure(Program.error()['NameError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"name '{var_name}' is not defined",
+                    'context': context,
+                    'exit': False
+                }))
+            else:
+                self.context.symbolTable.set('exception', exception_details)
             return res.noreturn()
         value = value.copy().setContext(context).setPosition(
             node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
@@ -6577,6 +6607,51 @@ class Interpreter:
             return res.success(value)
                  
 
+    def visit_AttemptNode(self,node,context):
+        res = RuntimeResult()
+        exception = node.exception
+        attempt_statement = node.attempt_statement
+        catch_statement = node.catch_statement
+        else_statement = node.else_statement
+        
+        if catch_statement != {}:
+            if exception != None:
+                exception = self.setException()
+                if exception:
+                    # exception_details = {
+                    #     'name': self.exception_details['name'],
+                    #     'message': self.exception_details['message']
+                    # }
+                    print(exception.__ne__, "is ex")
+                   # context.symbolTable.set(exception) 
+                    value = res.register(self.visit(catch_statement['body'], context))
+                    if isinstance(value, List):
+                        if value.elements[0] == None:
+                            # then a new exception occured while handling an exception
+                            return res.failure(
+                                Program.error()['Syntax']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'context': context,
+                                    'message': f'another exception occured while handling exception',
+                                    'exit': False
+                                })
+                            )
+                    return res.success(value)
+                else:
+                    value = res.register(self.visit(attempt_statement['body'], context))
+                    print(value)
+                    return res.success(value)
+            else:
+                print('No exception')
+                    
+                        
+                
+                
+        
+    
+    
+
     def visit_FunctionNode(self, node, context):
         res = RuntimeResult()
         def_name = node.def_name_token.value if node.def_name_token else "none"
@@ -6891,6 +6966,7 @@ Types.BuiltInFunction = Types("BuiltInFunction")
 Types.BuiltInMethod = Types("BuiltInMethod")
 
 symbolTable_ = SymbolTable()
+
 symbolTable_.set('print', BuiltInFunction.print)
 symbolTable_.set('println', BuiltInFunction.println)
 symbolTable_.set('exit', BuiltInFunction.exit)

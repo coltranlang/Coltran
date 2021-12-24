@@ -747,6 +747,7 @@ match verfied or eligible:
         println("You are not eligible because you are not verified")
     end
 end
+
 # def @makeList(item, list=[])
 #     list.append(item)
 #     return list
