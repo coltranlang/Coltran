@@ -252,9 +252,9 @@ class SymbolTable:
 
    
     def setSymbol(self):
-        self.set("Nonetype", "none")
-        self.set("Boolean",  "true")
-        self.set("Boolean", "false")
+        self.set("none", "none")
+        self.set("true",  "true")
+        self.set("true", "false")
 
     
     def remove(self, name):

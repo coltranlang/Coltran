@@ -1,4 +1,5 @@
 import os
+from types import BuiltinMethodType, new_class
 from Parser.parser import Parser
 from Parser.stringsWithArrows import *
 from Token.token import Token
@@ -114,13 +115,7 @@ class TypeOf:
 
     def getType(self):
         result = ''
-        if self.type == 'true':
-            result = 'boolean'
-        elif self.type == 'false':
-            result = 'boolean'
-        elif self.type == 'none':
-            result = 'none'
-        elif self.type == 'str':
+        if self.type == 'str':
             result = 'string'
         elif self.type == 'tuple':
             result = 'pair'
@@ -134,7 +129,7 @@ class TypeOf:
                 result = 'string'
             elif isinstance(self.type, tuple) or isinstance(self.type, Pair):
                 result = 'pair'
-            elif isinstance(self.type, dict) or isinstance(self.type, Object):
+            elif isinstance(self.type, Object):
                 result = 'object'
             elif isinstance(self.type, bool) or isinstance(self.type, Boolean):
                 result = 'boolean'
@@ -144,7 +139,9 @@ class TypeOf:
                 result = 'list'
             elif isinstance(self.type, Class):
                 result = 'class'
-            elif isinstance(self.type, Def):
+            elif isinstance(self.type, Types):
+                result = 'type'
+            elif isinstance(self.type, Function):
                 result = 'function'
             elif isinstance(self.type, BuiltInFunction):
                 result = 'builtin_function'
@@ -154,7 +151,7 @@ class TypeOf:
                 result = 'builtin_method_string'
             elif isinstance(self.type, BuiltInMethod_List):
                 result = 'builtin_method_list'
-            elif isinstance(self.type, Dict):
+            elif isinstance(self.type, Dict) or isinstance(self.type, dict):
                 result = 'dict'
             else:
                 result = type(self.type).__name__
@@ -259,6 +256,19 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
+        def NameError(detail):
+            isDetail = {
+                'name': 'NameError',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+
         def TypeError(detail):
             isDetail = {
                 'name': 'TypeError',
@@ -350,6 +360,7 @@ class Program:
             'Syntax': Syntax,
             'Runtime': Runtime,
             'ZeroDivisionError': ZeroDivisionError,
+            'NameError': NameError,
             'TypeError': TypeError,
             'KeyError': KeyError,
             'ValueError': ValueError,
@@ -517,7 +528,6 @@ class Value:
         else:
             return Boolean(False)
 
-
     def added_to(self, other):
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
@@ -526,6 +536,14 @@ class Value:
             'context': self.context
         })
 
+    def merge(self, other):
+        return None, self.illegal_operation_typerror({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'|=' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
+            'context': self.context
+        })
+    
     def increment(self):
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
@@ -1617,28 +1635,7 @@ class List(Value):
             }
             return None, self.illegal_operation(error, other)
 
-    def spread(self, other):
-        if isinstance(other, List):
-            return List(self.elements + other.elements), None
-        if isinstance(other, Pair):
-            for i in range(len(other.elements)):
-                self.elements.append(other.elements[i])
-            return List(self.elements), None
-        elif isinstance(other, String):
-            new_list = []
-            for char in other.value:
-                new_list.append(String(char).setContext(
-                    self.context).setPosition(self.pos_start, self.pos_end))
-            return List(self.elements + new_list), None
-        else:
-            error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't add '{TypeOf(other.value).getType()}' to '{TypeOf(self.value).getType()}'",
-                'context': self.context,
-                'exit': False
-            }
-            return None, self.illegal_operation(error, other)
+    
     def subtracted_by(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -2035,8 +2032,7 @@ class Dict(Value):
         self.keys = keys
         self.values = values
         self.value = self.properties
-        
-        
+               
     def copy(self):
         copy = Dict(self.properties)
         copy.setContext(self.context)
@@ -2050,6 +2046,30 @@ class Dict(Value):
             return new_dict == other_dict
         return False
    
+    def merge(self, other):
+        if isinstance(other, Dict) or isinstance(other, Object):
+            for key, value in other.properties.items():
+                if key.startswith("__"):
+                    continue
+                else:
+                    self.properties[key] = value
+            return Dict(self.properties), None
+        elif isinstance(other, Class):
+            for key, value in other.methods_properties.items():
+                if key.startswith("__"):
+                    continue
+                else:
+                    self.properties[key] = value
+            return Dict(self.properties), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't merge '{TypeOf(self.value).getType()}' with '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
         
     def get_comparison_eq(self, other):
         value = self.isSame(other)
@@ -2058,9 +2078,7 @@ class Dict(Value):
     def get_comparison_ne(self, other):
         value = self.isSame(other)
         return self.setTrueorFalse(False if value else True), None
-        
-    
-    
+               
     def __repr__(self):
         try:
             return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
@@ -2152,6 +2170,30 @@ class Object(Value):
             return new_dict == other_dict
         return False
 
+    def merge(self, other):
+        if isinstance(other, Dict) or isinstance(other, Object):
+            for key, value in other.properties.items():
+                if key.startswith("__"):
+                    continue
+                else:
+                    self.properties[key] = value
+            return Dict(self.properties), None
+        elif isinstance(other, Class):
+            for key, value in other.methods_properties.items():
+                if key.startswith("__"):
+                    continue
+                else:
+                    self.properties[key] = value
+            return Dict(self.properties), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't merge '{TypeOf(self.value).getType()}' with '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
     
     def copy(self):
         copy = Object(self.name, self.properties)
@@ -2301,7 +2343,7 @@ class BaseFunction(Value):
         return False
    
         
-class Def(BaseFunction):
+class Function(BaseFunction):
     def __init__(self, name, body_node, arg_names, implicit_return, default_values, properties,context):
         super().__init__(name)
         self.id = name
@@ -2347,7 +2389,7 @@ class Def(BaseFunction):
         #         return_value.value = NoneType.none
         return res.success(return_value)
 
-    # only class Def calls this method
+    # only class Function calls this method
     def run(self, args, class_name, context=None):
         res = RuntimeResult()
         interpreter = Interpreter()
@@ -2413,7 +2455,7 @@ class Def(BaseFunction):
                      
                       
     def copy(self):
-        copy = Def(self.name, self.body_node,
+        copy = Function(self.name, self.body_node,
                     self.arg_names, self.implicit_return, self.default_values,self.properties,self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
@@ -2439,6 +2481,7 @@ class Class(BaseFunction):
         self.constructor_args = constructor_args
         self.inherit_class_name = inherit_class_name
         self.inherit_class = inherit_class
+        self.methods = methods
         self.methods_properties = methods if methods else {}
         self.value = self.methods_properties
         self.context = context
@@ -2453,26 +2496,30 @@ class Class(BaseFunction):
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
         if res.should_return(): return res
-        for method_name, method in self.methods_properties.items():
-            method.context = new_context
-            method = method.copy()
-            self.methods_properties[method_name] = method
+        if  self.methods_properties == {}:
             self.methods_properties = class_args
-            # run init method if it exists
-            if method_name == 'init':
-                method_args = method.arg_names
-                if len(method_args) == 1:
-                    method_args = method_args[1:]
-                else:
-                    return res.failure(Program.error()['Runtime']({
-                        'pos_start': self.pos_start,
-                        'pos_end': self.pos_end,
-                        'message': f"{method_name} method cannot have any arguments",
-                        'context': self.context,
-                        'exit': False
-                    }))
-                res.register(method.run(method_args, self, new_context))
-                if res.should_return(): return res
+        else:
+            for method_name, method in self.methods_properties.items():
+                method.context = new_context
+                method = method.copy()
+                self.methods_properties[method_name] = method
+                self.methods_properties = class_args
+                
+                # run init method if it exists
+                if method_name == 'init':
+                    method_args = method.arg_names
+                    if len(method_args) == 1:
+                        method_args = method_args[1:]
+                    else:
+                        return res.failure(Program.error()['Runtime']({
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"{method_name} method cannot have any arguments",
+                            'context': self.context,
+                            'exit': False
+                        }))
+                    res.register(method.run(method_args, self, new_context))
+                    if res.should_return(): return res
         return res.success(self)
         
         
@@ -2508,6 +2555,30 @@ class Class(BaseFunction):
             return _new_class == other_class
         return False
 
+    def merge(self, other):
+        if isinstance(other, Dict) or isinstance(other, Object):
+            for key, value in other.properties.items():
+                if key.startswith("__"):
+                    continue
+                else:
+                    self.properties[key] = value
+            return Dict(self.properties), None
+        elif isinstance(other, Class):
+            for key, value in other.methods_properties.items():
+                if key.startswith("__"):
+                    continue
+                else:
+                    self.properties[key] = value
+            return Dict(self.properties), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't merge '{TypeOf(self.value).getType()}' with '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
    
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
@@ -2515,9 +2586,6 @@ class Class(BaseFunction):
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
-
-
-
 
     def __repr__(self):
         return f"<Class {str(self.class_name)}>"
@@ -3423,6 +3491,69 @@ def BuiltInFunction_Typeof(args, node, context):
     return res.success(String(TypeOf(args[0]).getType()).setPosition(node.pos_start, node.pos_end).setContext(context))
 
 
+def BuiltInFunction_IsinstanceOf(args, node, context):
+    res = RuntimeResult()
+    if len(args) > 2:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but isinstance() takes 2 arguments",
+            "context": context,
+            'exit': False
+        }))
+        
+    if len(args) == 0:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"isinstance() takes 2 arguments",
+            "context": context,
+            'exit': False
+        }))
+        
+        
+    def  getInstance(type1, type2):
+            getType = type2.getType()
+            
+            if isinstance(type1, Number) and getType == "Number":
+                     return True
+            if isinstance(type1, String) and getType == "String":
+                    return True
+            if isinstance(type1, Boolean) and getType == "Boolean":
+                    return True
+            if isinstance(type1, NoneType) and getType == "NoneType":
+                    return True
+            if isinstance(type1, List) and getType == "List":
+                    return True
+            if isinstance(type1, Pair) and getType == "Pair":
+                    return True
+            if isinstance(type1, Dict) and getType == "Dict":
+                    return True
+            if isinstance(type1, Object) and getType == "Object":
+                    return True
+            if isinstance(type1, Class) and getType == "Class":
+                    return True
+            if isinstance(type1, Function) and getType == "Function":
+                    return True
+            if isinstance(type1, BuiltInFunction) and getType == "BuiltInFunction":
+                    return True
+            if isinstance(type1, BuiltInMethod) and getType == "BuiltInMethod":
+                    return True
+            else:
+                    return False
+   
+    if not isinstance(args[1], Types):
+        return res.failure(Program.error()["TypeError"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"isisnstance() argument 2 must be a type",
+            "context": context,
+            'exit': False
+        }))
+    else:
+        return res.success(Boolean(getInstance(args[0], args[1])).setPosition(node.pos_start, node.pos_end).setContext(context))
+
+
 def BuiltInFunction_Line(args, node, context):
     res = RuntimeResult()
     if len(args) == 0:
@@ -4298,7 +4429,40 @@ class BuiltInMethod_List(Value):
             }))
 
 
+class Types(Value):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.getType()
+        
+    def getType(self):
+        res = RuntimeResult()
+        data_types = {
+            'Number': Number,
+            'String': String,
+            'Boolean': Boolean,
+            'NoneType': NoneType,
+            'List': List,
+            'Pair': Pair,
+            'Dict': Dict,
+            'Object': Object,
+            'Class': Class,
+            'Function': Function,
+            'BuiltInFunction': BuiltInFunction,
+            'BuiltInMethod': BuiltInMethod
+        }
+        self.type = data_types[self.name]
+        return self.type.__name__
     
+    
+    def copy(self):
+        copy = Types(self.name)
+        copy.setContext(self.context)
+        copy.setPosition(self.pos_start, self.pos_end)
+        return copy
+    
+    def __repr__(self):
+        return f"<Class {self.name}>"
 
 
 class BuiltInMethod_Number(Value):
@@ -4477,11 +4641,10 @@ class Interpreter:
         if node.variable_keyword_token == "module":
             value = context.symbolTable.get(node.value_node.value)
             if value == None:
-               return res.failure(Program.error()['Error']({
-                    'name': 'NameError',
+               return res.failure(Program.error()['NameError']({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f'{node.value_node.value} is not defined',
+                    'message': f"name '{node.value_node.value}' is not defined",
                     'context': context,
                     'exit': False
                 }))
@@ -4658,11 +4821,10 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 }))
-            return res.failure(Program.error()['Error']({
-                'name': 'NameError',
+            return res.failure(Program.error()['NameError']({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': f'{var_name} is not defined',
+                'message': f"name '{var_name}' is not defined",
                 'context': context,
                 'exit': False
             }))
@@ -4682,11 +4844,10 @@ class Interpreter:
             if type(v) is dict:
                 var_type = v['type']
                 if var_type == "final":
-                    return res.failure(Program.error()['Error']({
-                        'name': 'NameError',
+                    return res.failure(Program.error()['NameError']({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
-                        'message': f"'{var_name}' cannot be reassigned",
+                        'message': f"name '{var_name}' cannot be reassigned",
                         'context': context,
                         'exit': False
                     }))
@@ -4897,44 +5058,16 @@ class Interpreter:
                                 }))
                     else:
                         context.symbolTable.set(var_name, value, "let")
-            # else:
-            #     if operation == "+=":
-            #         if isinstance(v, Number):
-            #             if isinstance(value, Number):
-            #                 new_value = Number(v.value + value.value)
-            #                 context.symbolTable.set(var_name, new_value)
-            #             else:
-            #                 return res.failure(Program.error()['TypeError']({
-            #                     'pos_start': node.pos_start,
-            #                     'pos_end': node.pos_end,
-            #                     'message': f"unsupported '+=' operation for '{TypeOf(v).getType()}' and '{TypeOf(value).getType()}'",
-            #                     'context': context,
-            #                     'exit': False
-            #                 }))
-            #         elif isinstance(v, String):
-            #             if isinstance(value, String):
-            #                 new_value = String(v.value + value.value)
-            #                 context.symbolTable.set(var_name, new_value)
-            #             else:
-            #                 return res.failure(Program.error()['TypeError']({
-            #                     'pos_start': node.pos_start,
-            #                     'pos_end': node.pos_end,
-            #                     'message': f"reassignment of {TypeOf(v).getType()} to {TypeOf(value).getType()} is not allowed",
-            #                     'context': context,
-            #                     'exit': False
-            #                 }))
-            #     else:
-            #         context.symbolTable.set(var_name, value)
+            
         
         else:
-            return res.failure(Program.error()['Error']({
-                        'name': 'NameError',
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"'{var_name}' is not defined",
-                        'context': context,
-                        'exit': False
-                    }))
+            return res.failure(Program.error()['NameError']({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"name '{var_name}' is not defined",
+                'context': context,
+                'exit': False
+            }))
         value = value.copy().setContext(context).setPosition(
             node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
         return res.success(value)
@@ -5327,7 +5460,7 @@ class Interpreter:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
                     return res.failure(Program.error()["PropertyError"](error)) 
                
-        elif isinstance(object_name, Def):
+        elif isinstance(object_name, Function):
             if type(object_key).__name__ == "Token":
                 if object_key.value in object_name.properties.properties:
                     if object_key.value in object_name.properties.properties:
@@ -5500,7 +5633,7 @@ class Interpreter:
                if hasattr(object_name, "properties"):
                    object_name.properties[property.value] = value
                    
-        if isinstance(object_name, Def):
+        if isinstance(object_name, Function):
             if type(property).__name__ == "Token":
                 if hasattr(object_name, "properties"):
                     object_name.properties.properties[property.value] = value
@@ -5895,8 +6028,56 @@ class Interpreter:
                 'context': context,
                 'exit': False  
             }))  
-           
+        
     
+    def visit_SpreadNode(self, node, context):
+        res = RuntimeResult()
+        assign_token = node.assign_token
+        var_name = node.name.value
+        value = res.register(self.visit(node.value,context))
+        value_type = type(value).__name__
+        _type = node._type
+        if  isinstance(value, List):
+            new_list = []
+            for element in value.elements:
+                if hasattr(element, 'elements'):
+                    new_list += element.elements
+                elif hasattr(element, 'value'):
+                    new_list.append(element.value)
+                elif hasattr(element, 'properties'):
+                    new_list.append(element.properties)
+                elif hasattr(element, 'methods_properties'):
+                    new_list.append(element.methods_properties)
+                else:
+                    new_list.append(element)
+                    
+            context.symbolTable.set(var_name, List(new_list), assign_token)
+                
+            return res.success(None)
+        
+        elif isinstance(value, Pair):
+            new_list = ()
+            for element in value.elements:
+                if hasattr(element, 'elements'):
+                    new_list += element.elements
+                elif hasattr(element, 'value'):
+                    new_list += (element.value,)
+                elif hasattr(element, 'properties'):
+                    new_list += (element.properties,)
+                elif hasattr(element, 'methods_properties'):
+                    new_list += (element.methods_properties,)
+                else:
+                    new_list += (element,)
+            
+            context.symbolTable.set(var_name, List(new_list), assign_token)
+        
+        elif isinstance(value, String):
+            new_string = ""
+            for element in value.value:
+                new_string += element
+            context.symbolTable.set(var_name, String(new_string), assign_token)
+            
+        
     def visit_ExportModuleNode(self, node, context):
         res = RuntimeResult()
         modules = node.modules
@@ -5906,11 +6087,10 @@ class Interpreter:
                 name = module.value
                 value = context.symbolTable.get(name)
                 if value == None:
-                    res.failure(Program.error()['Error']({
-                        'name': 'NameError',
+                    res.failure(Program.error()['NameError']({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
-                        'message': f'{name} is not defined',
+                        'message': f"name '{name}' is not defined",
                         'context': context,
                         'exit': False
                     }))
@@ -5928,11 +6108,10 @@ class Interpreter:
         var_name = node.name.value
         value = context.symbolTable.get(node.value.value)
         if value == None:
-           return res.failure(Program.error()['Error']({
-                'name': 'NameError',
+           return res.failure(Program.error()['NameError']({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': f'{node.value.value} is not defined',
+                'message': f"name '{node.value.value}' is not defined",
                 'context': context,
                 'exit': False
             }))
@@ -6025,8 +6204,8 @@ class Interpreter:
                 result, error = left.get_comparison_lte(right)
             elif node.op_tok.type == tokenList.TT_GTE:
                 result, error = left.get_comparison_gte(right)
-            elif node.op_tok.type == tokenList.TT_SPREAD:
-                result, error = left.spread(right)
+            elif node.op_tok.type == tokenList.TT_MERGE:
+                result, error = left.merge(right)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'in'):
                 result, error = right.get_comparison_in(left)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'notin'):
@@ -6047,13 +6226,20 @@ class Interpreter:
     def visit_UnaryOpNode(self, node, context):
         res = RuntimeResult()
         number = res.register(self.visit(node.node, context))
+        unary_node = res.register(self.visit(node.node, context))
         if res.should_return():
             return res
         error = None
-        if node.op_tok.type == tokenList.TT_PLUS_PLUS:
-            number, error = number.increment()
-        elif node.op_tok.type == tokenList.TT_MINUS_MINUS:
-            number, error = number.decrement()
+        # if node.op_tok.type == tokenList.TT_SPREAD:
+        #     elements = unary_node.elements
+        #     # spread unpacks the elements of an iterable into individual items e.g [1,2,3] returns 1,2,3
+        #     # iterate over the elements and add them to the current scope
+        #     for element in elements:
+        #         context.symbolTable.set(element.name, element.value)
+        #     return res.success(unary_node)
+        #     expanded_value = ''
+        #     for element in elements:
+        #         expanded_value += f"[i for i in {element}]"
         if node.op_tok.type == tokenList.TT_MINUS:
             number, error = number.multiplied_by(Number(-1))
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
@@ -6172,14 +6358,14 @@ class Interpreter:
         elements = []
         if type(iterable_node).__name__ == "NoneType":
             return res.failure(
-                Program.error()['Error']({
-                'name': 'NameError',
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'message': f'{node.iterable_node.value} is not defined',
-                'context': context,
-                'exit': False
-            }))
+                Program.error()['NameError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'message': f"name '{node.iterable_node.value}' is not defined",
+                    'exit': False
+                })
+            )
         
  
         if isinstance(iterable_node, Object):
@@ -6391,7 +6577,7 @@ class Interpreter:
             return res.success(value)
                  
 
-    def visit_DefNode(self, node, context):
+    def visit_FunctionNode(self, node, context):
         res = RuntimeResult()
         def_name = node.def_name_token.value if node.def_name_token else "none"
         body_node = node.body_node
@@ -6408,7 +6594,7 @@ class Interpreter:
         }
         
         properties = Dict(set_properties)
-        def_value = Def(def_name, body_node, arg_names, node.implicit_return, defualt_values, properties, context).setContext(
+        def_value = Function(def_name, body_node, arg_names, node.implicit_return, defualt_values, properties, context).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.type != 'method':
             if node.def_name_token:
@@ -6418,7 +6604,7 @@ class Interpreter:
         return res.success(def_value)
 
     
-    def visit_ObjectDefNode(self, node, context):
+    def visit_ObjectNode(self, node, context):
         res = RuntimeResult()
         object_name = node.object_name.value
         object_value = ""
@@ -6550,7 +6736,7 @@ class Interpreter:
                                     methods, context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
-            class_value = Class(class_name, [], inherits_class_name, inherits_class,
+            class_value = Class(class_name, constructor_args, inherits_class_name, inherits_class,
                                 {}, context).setContext(context).setPosition(node.pos_start, node.pos_end)
             context.symbolTable.set_object(class_name, class_value)
         return res.success(class_value)
@@ -6565,7 +6751,7 @@ class Interpreter:
             return res
         value_to_call = value_to_call.copy().setPosition(
             node.pos_start, node.pos_end) if hasattr(value_to_call, 'copy') else value_to_call
-        if not isinstance(value_to_call, Def) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInFunction):
+        if not isinstance(value_to_call, Function) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInFunction):
             return res.failure(Program.error()["Runtime"](
                 {
                     "pos_start": node.pos_start,
@@ -6611,6 +6797,7 @@ class Interpreter:
             'line': BuiltInFunction_Line,
             'clear': BuiltInFunction_Clear,
             'typeof': BuiltInFunction_Typeof,
+            'isinstanceof': BuiltInFunction_IsinstanceOf,
             'delay': BuiltInFunction_Delay,
             'exit': BuiltInFunction_Exit
         }
@@ -6686,8 +6873,22 @@ BuiltInFunction.substr = BuiltInFunction("substr")
 BuiltInFunction.reverse = BuiltInFunction("reverse")
 BuiltInFunction.format = BuiltInFunction("format")
 BuiltInFunction.typeof = BuiltInFunction("typeof")
+BuiltInFunction.isinstanceof = BuiltInFunction("isinstanceof")
 BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
+
+Types.Number = Types("Number")
+Types.String = Types("String")
+Types.Boolean = Types("Boolean")
+Types.NoneType = Types("NoneType")
+Types.List = Types("List")
+Types.Pair = Types("Pair")
+Types.Dict = Types("Dict")
+Types.Object = Types("Object")
+Types.Class = Types("Class")
+Types.Function = Types("Function")
+Types.BuiltInFunction = Types("BuiltInFunction")
+Types.BuiltInMethod = Types("BuiltInMethod")
 
 symbolTable_ = SymbolTable()
 symbolTable_.set('print', BuiltInFunction.print)
@@ -6720,6 +6921,19 @@ symbolTable_.set('substr', BuiltInFunction.substr)
 symbolTable_.set('reverse', BuiltInFunction.reverse)
 symbolTable_.set('format', BuiltInFunction.format)
 symbolTable_.set('typeof', BuiltInFunction.typeof)
+symbolTable_.set('isinstanceof', BuiltInFunction.isinstanceof)
 symbolTable_.set('max', BuiltInFunction.max)
 symbolTable_.set('min', BuiltInFunction.min)
+symbolTable_.set('Number', Types.Number)
+symbolTable_.set('String', Types.String)
+symbolTable_.set('Boolean', Types.Boolean)
+symbolTable_.set('NoneType', Types.NoneType)
+symbolTable_.set('List', Types.List)
+symbolTable_.set('Pair', Types.Pair)
+symbolTable_.set('Dict', Types.Dict)
+symbolTable_.set('Object', Types.Object)
+symbolTable_.set('Class', Types.Class)
+symbolTable_.set('Function', Types.Function)    
+symbolTable_.set('BuiltInFunction', Types.BuiltInFunction)
+symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
 symbolTable_.setSymbol()

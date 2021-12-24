@@ -130,8 +130,7 @@ class Lexer:
                 tokens.append(Token(tokenList.TT_COLON, pos_start=self.pos))
                 self.advance()
             elif self.current_char == '|':
-                tokens.append(Token(tokenList.TT_PIPE, pos_start=self.pos))
-                self.advance()
+                tokens.append(self.make_pipe_merge())
             elif self.current_char == '.':
                 tokens.append(Token(tokenList.TT_DOT, pos_start=self.pos))
                 self.advance()
@@ -154,7 +153,8 @@ class Lexer:
                 tokens.append(Token(tokenList.TT_RBRACE, pos_start=self.pos))
                 self.advance()
             elif self.current_char == '$':
-                tokens.append(self.make_getter())
+                tokens.append(Token(tokenList.TT_DOLLAR, pos_start=self.pos))
+                self.advance()
             elif self.current_char == '&':
                 tokens.append(self.make_and())
             elif self.current_char == '!':
@@ -236,8 +236,10 @@ class Lexer:
         while self.current_char != None and self.current_char in tokenList.LETTERS_DIGITS_SYMBOLS:
             identifier_str += self.current_char
             self.advance()
-            #check if dot is in the identifier and if it is, create a new token
-        token_type = tokenList.TT_KEYWORD if identifier_str in tokenList.KEYWORDS else tokenList.TT_IDENTIFIER
+        if identifier_str in tokenList.KEYWORDS:
+            token_type = tokenList.TT_KEYWORD
+        else:
+            token_type = tokenList.TT_IDENTIFIER
         return Token(token_type, identifier_str, pos_start, self.pos)
 
     def make_dot(self):
@@ -543,13 +545,13 @@ class Lexer:
         self.advance()
         return Token(tokenList.TT_BACKTICK_STRING, string, pos_start, self.pos)    
       
-    def make_getter(self):
-        tok_type = tokenList.TT_GETTER
+    def make_pipe_merge(self):
+        tok_type = tokenList.TT_PIPE
         pos_start = self.pos.copy()
         self.advance()
-        if self.current_char == '$':
+        if self.current_char == '=':
             self.advance()
-            tok_type = tokenList.TT_GETTER
+            tok_type = tokenList.TT_MERGE
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
     
     def make_comment(self):
