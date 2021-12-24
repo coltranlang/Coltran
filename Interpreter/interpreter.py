@@ -4497,7 +4497,7 @@ def BuiltInModule_Http(context):
     return Module("http", module_path, context)
  
  
-
+error = []
 exception_ = Exception() 
 class Interpreter:
     
@@ -4819,50 +4819,54 @@ class Interpreter:
         return res.success(value)
 
 
-    def visit_VarAccessNode(self, node, context):
+    def visit_VarAccessNode(self, node=None, context=None):
         res = RuntimeResult()
-        var_name = node.name.value
-        value = context.symbolTable.get(var_name)
-        if type(value) is dict:
-            try:
-                value = value['value']
+        if node != None and context != None:
+            var_name = node.name.value
+            value = context.symbolTable.get(var_name)
+            if type(value) is dict:
+                try:
+                    value = value['value']
+                    
+                except:
+                    value = value
+                    
+            if var_name in context.symbolTable.symbols and value is None:
+                value = context.symbolTable.get(NoneType.none)
+            elif value is None:
+                if var_name == "@":
+                    return res.failure(Program.error()['Runtime']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"Expected '@' to be followed by an identifier",
+                        'context': context,
+                        'exit': False
+                    }))
                 
-            except:
-                value = value
-                
-        if var_name in context.symbolTable.symbols and value is None:
-            value = context.symbolTable.get(NoneType.none)
-        elif value is None:
-            if var_name == "@":
-                return res.failure(Program.error()['Runtime']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"Expected '@' to be followed by an identifier",
-                    'context': context,
-                    'exit': False
-                }))
-            
+                exception_details = {
+                        'name': 'NameError',
+                        'message': f"name '{var_name}' is not defined",
+                    }
+                error.append(exception_details)
+                exception = self.getException()
+                if exception == False:
+                    return res.failure(Program.error()['NameError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"name '{var_name}' is not defined",
+                        'context': context,
+                        'exit': False
+                    }))
+                return res.noreturn()
+            value = value.copy().setContext(context).setPosition(
+                node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
+            return res.success(value)
+        else:
             exception_details = {
-                    'name': 'NameError',
-                    'message': f"name '{var_name}' is not defined",
-                }
-            
-            exception = self.getException()
-            if exception == False:
-                return res.failure(Program.error()['NameError']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"name '{var_name}' is not defined",
-                    'context': context,
-                    'exit': False
-                }))
-            else:
-                self.context.symbolTable.set('exception', exception_details)
-            return res.noreturn()
-        value = value.copy().setContext(context).setPosition(
-            node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
-        return res.success(value)
- 
+                'name': 'NameError',
+                        'message': f" is not defined",
+            }
+            return exception_details
    
     def visit_VarReassignNode(self, node, context):
         res = RuntimeResult()
@@ -6622,7 +6626,7 @@ class Interpreter:
                     #     'name': self.exception_details['name'],
                     #     'message': self.exception_details['message']
                     # }
-                    print(exception.__ne__, "is ex")
+                    print(self.visit_VarAccessNode(), "is ex")
                    # context.symbolTable.set(exception) 
                     value = res.register(self.visit(catch_statement['body'], context))
                     if isinstance(value, List):
