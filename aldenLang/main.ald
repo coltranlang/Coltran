@@ -167,6 +167,6 @@
 
 attempt:
     println(fm"Hello, %{name} you are %{age} years old and you like %{hobby}")
-catch Exception as e:
+catch NameError as e:
     println(fm"Exception: %{e}")
 end

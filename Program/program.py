@@ -55,7 +55,7 @@ class Program:
                     return "", ast.error
                 context.symbolTable = symbolTable_
                 result = interpreter.visit(ast.node, context)
-                interpreter_error_detected = interpreter.error_detected
+                interpreter_error_detected = result.error
                 if hasattr(result, 'value') and hasattr(result, 'error'):
                     return result.value, ""
 

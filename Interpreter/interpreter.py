@@ -452,13 +452,6 @@ class Program:
 class RuntimeResult:
     def __init__(self, exception_details=None):
         self.reset()
-        self.exception_details = exception_details
-        
-    def setExceptionDetails(self, exception_details):
-        self.exception_details = exception_details
-        
-    def getExceptionDetails(self):
-        return self.exception_details
         
     def reset(self, error=None):
         self.value = None
@@ -476,6 +469,7 @@ class RuntimeResult:
             self.loop_break = res.loop_break
             return res.value
         else:
+           
             return res
    
     def success(self, value):
@@ -4459,7 +4453,8 @@ class Types(Value):
             'Class': Class,
             'Function': Function,
             'BuiltInFunction': BuiltInFunction,
-            'BuiltInMethod': BuiltInMethod
+            'BuiltInMethod': BuiltInMethod,
+            'Exception': Exception,
         }
         self.type = data_types[self.name]
         return self.type.__name__
@@ -4540,8 +4535,8 @@ class Interpreter:
     def getException(self):
         return self.exception
     
-    def setException(self):
-        self.exception = True
+    def setException(self, exception):
+        self.exception = exception
         return self.exception
         
     def visit(self, node, context):
@@ -4866,14 +4861,26 @@ class Interpreter:
                 }))
             
             
-            
-           
-            return res.failure(Program.error()['NameError']({
+            exception =  {
+                'name': 'NameError',
+                'message': f"Name '{var_name}' is not defined",
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': f"name '{var_name}' is not defined",
-                'context': context,
-                'exit': False
+            } 
+            # check if we in a try block and if so, check if the variable is in the try block
+            scope = context.symbolTable.get_current_scope()
+            #context.symbolTable.set_exception(exception)
+            if scope == "attempt":
+                context.symbolTable.set_exception(exception)
+            #if context.symbolTable.get_current_scope() == "try":
+            else:
+                self.setException(exception)
+                return res.failure(Program.error()['NameError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"name '{var_name}' is not defined",
+                    'context': context,
+                    'exit': False
             })) 
             return res.noreturn()
         value = value.copy().setContext(context).setPosition(node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
@@ -6630,27 +6637,36 @@ class Interpreter:
         catch_statement = node.catch_statement
         else_statement = node.else_statement
         
-        if catch_statement != {}:
-            if exception != None:
-                value = res.register(self.visit(attempt_statement['body'], context))
-                return res.success(value)
-                # exception_ = self.setException()
-                # exception_details = res.getExceptionDetails()
-                # if exception_:
-                #     exception_details = {
-                #         'name': 'Exception',
-                #         'message': 'an exception occured',
-                #     }
-                #     context.symbolTable.set(exception.value, Dict(exception_details).setContext(context).setPosition(exception.pos_start, exception.pos_end)) 
-                #     value = res.register(self.visit(catch_statement['body'], context))
-                #     if res.should_return(): return res
-                #     return res.success(value)
-                # else:
-                #     print('Exception not handled', exception)
-                #     value = res.register(self.visit(attempt_statement['body'], context))
-                #     return res.success(value)
-            else:
-                print('No exception')
+        
+        # attempt_statement
+        #context.symbolTable.set_current_scope('attempt')
+        print(self.getException(), "is the exception")
+        value = res.register(self.visit(attempt_statement['body'], context))
+        print(value, "is the value")
+        if res.should_return(): return res
+        return res.success(value)
+    # if catch_statement != {}:
+        #     if exception != None:
+        #         # context.symbolTable.set_current_scope('catch')
+        #         # value = res.register(self.visit(attempt_statement['body'], context))
+        #         # return res.success(value)
+        #         # exception_ = self.setException()
+        #         # exception_details = res.getExceptionDetails()
+        #         # if exception_:
+        #         #     exception_details = {
+        #         #         'name': 'Exception',
+        #         #         'message': 'an exception occured',
+        #         #     }
+        #         #     context.symbolTable.set(exception.value, Dict(exception_details).setContext(context).setPosition(exception.pos_start, exception.pos_end)) 
+        #         #     value = res.register(self.visit(catch_statement['body'], context))
+        #         #     if res.should_return(): return res
+        #         #     return res.success(value)
+        #         # else:
+        #         #     print('Exception not handled', exception)
+        #         #     value = res.register(self.visit(attempt_statement['body'], context))
+        #         #     return res.success(value)
+        #     else:
+        #         print('No exception')
                     
                         
                 
@@ -6971,7 +6987,7 @@ Types.Class = Types("Class")
 Types.Function = Types("Function")
 Types.BuiltInFunction = Types("BuiltInFunction")
 Types.BuiltInMethod = Types("BuiltInMethod")
-
+Types.Exception = Types("Exception")
 symbolTable_ = SymbolTable()
 
 symbolTable_.set('print', BuiltInFunction.print)
@@ -7019,4 +7035,5 @@ symbolTable_.set('Class', Types.Class)
 symbolTable_.set('Function', Types.Function)    
 symbolTable_.set('BuiltInFunction', Types.BuiltInFunction)
 symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
+symbolTable_.set('Exception', Types.Exception)
 symbolTable_.setSymbol()

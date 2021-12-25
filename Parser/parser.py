@@ -3265,6 +3265,7 @@ class Parser:
         self.skipLines()   
         attempt_node = AttemptNode(attempt_statement, exception, catch_statement, else_statement)
         return res.success(attempt_node)
+    
     def spread_expr(self, name, assign_token):
         res = ParseResult()
         res.register_advancement()

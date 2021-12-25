@@ -182,7 +182,19 @@ class Module:
             output += str(item) + '\n'
         return output
     
+class Exception:
+    def __init__(self,parent=None):
+        self.parent = parent
+        self.error = {}
+        
+    def get(self):
+        return self.error
     
+    def set(self, error):
+        self.error = error
+        
+    def __repr__(self):
+        return f"Exception: {self.error}"
     
 class SymbolTable:
    
@@ -191,7 +203,8 @@ class SymbolTable:
         self.modules = Module()
         self.id = 0
         self.parent = parent
-
+        self.scope = Environment(self.parent)
+        self.exception = Exception(self.scope)
     
     def get_by_value(self, value):
         for key, val in self.symbols.items():
@@ -243,7 +256,18 @@ class SymbolTable:
             else:
                 self.symbols[name] = value
             
+    def set_current_scope(self, scope):
+        self.scope = scope
+
+    def get_current_scope(self):
+        return self.scope
    
+    def set_exception(self, error):
+        self.exception = error
+        
+    def get_exception(self):
+        return self.exception
+    
     def set_module(self, name, module):
         self.modules.set(name, module)
 
@@ -266,20 +290,7 @@ class SymbolTable:
         return str(result)
 
 
-class Exception:
-    def __init__(self):
-        self.name = None
-        self.message = None
-        self.error = {}
-        
-    def get(self, name):
-        return self.error[name]
-    
-    def set(self, error):
-        self.error = error
-        
-    def __repr__(self):
-        return f"{self.name}: {self.message}"
+
 
 # hash = HashTable(1000)
 # hash.set("key", "value")
