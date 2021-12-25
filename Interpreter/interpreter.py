@@ -268,7 +268,7 @@ class Program:
                 Program.printErrorExit(Program.asStringTraceBack(isDetail))
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
-
+                
         def TypeError(detail):
             isDetail = {
                 'name': 'TypeError',
@@ -446,11 +446,19 @@ class Program:
                             tok.context.symbolTable.set(module_name, value)
         return res.success(value)
 
+    def exception(error):
+        return RuntimeResult().failure(error)
 
 class RuntimeResult:
     def __init__(self, exception_details=None):
         self.reset()
+        self.exception_details = exception_details
         
+    def setExceptionDetails(self, exception_details):
+        self.exception_details = exception_details
+        
+    def getExceptionDetails(self):
+        return self.exception_details
         
     def reset(self, error=None):
         self.value = None
@@ -797,6 +805,7 @@ class Statement(Value):
     def __init__(self, elements=None):
         super().__init__()
         self.elements = elements if elements is not None else []
+        print(self.elements)
         self.value = self.elements
 
     def copy(self):
@@ -1636,7 +1645,6 @@ class List(Value):
                 'exit': False
             }
             return None, self.illegal_operation(error, other)
-
     
     def subtracted_by(self, other):
         error = {
@@ -4497,14 +4505,36 @@ def BuiltInModule_Http(context):
     return Module("http", module_path, context)
  
  
-error = []
-exception_ = Exception() 
+class Exception:
+    def __init__(self, name, message):
+        self.name = name
+        self.message = message
+        
+    def __repr__(self):
+        return f"<Exception {self.name}: {self.message}>"
+    
+    
+class Exception_Runtime(Exception):
+    def __init__(self, name, message):
+        super().__init__(name, message)
+
+        
+    def __repr__(self):
+        return f"<Exception_Runtime {self.message}>"
+    
+class NameError(Exception):
+    def __init__(self, name, message):
+        super().__init__(name, message)
+        
+    def __repr__(self):
+        return f"<NameError {self.message}>"
+
+
 class Interpreter:
     
-    def __init__(self, exception_=None):
+    def __init__(self):
         self.error_detected = False
         self.exception = False
-        self.exception_ = exception_
         self.exception_details = {}
     
     def getException(self):
@@ -4513,13 +4543,6 @@ class Interpreter:
     def setException(self):
         self.exception = True
         return self.exception
-        
-    def getExceptionDetails(self):
-        return self.exception_details
-    
-    def setExceptionDetails(self, details=None):
-        self.exception_details = details
-        return self.exception_details
         
     def visit(self, node, context):
         method_name = f'visit_{type(node).__name__}'
@@ -4819,54 +4842,43 @@ class Interpreter:
         return res.success(value)
 
 
-    def visit_VarAccessNode(self, node=None, context=None):
+    def visit_VarAccessNode(self, node, context):
         res = RuntimeResult()
-        if node != None and context != None:
-            var_name = node.name.value
-            value = context.symbolTable.get(var_name)
-            if type(value) is dict:
-                try:
-                    value = value['value']
-                    
-                except:
-                    value = value
-                    
-            if var_name in context.symbolTable.symbols and value is None:
-                value = context.symbolTable.get(NoneType.none)
-            elif value is None:
-                if var_name == "@":
-                    return res.failure(Program.error()['Runtime']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"Expected '@' to be followed by an identifier",
-                        'context': context,
-                        'exit': False
-                    }))
+        var_name = node.name.value
+        value = context.symbolTable.get(var_name)
+        if type(value) is dict:
+            try:
+                value = value['value']
                 
-                exception_details = {
-                        'name': 'NameError',
-                        'message': f"name '{var_name}' is not defined",
-                    }
-                error.append(exception_details)
-                exception = self.getException()
-                if exception == False:
-                    return res.failure(Program.error()['NameError']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"name '{var_name}' is not defined",
-                        'context': context,
-                        'exit': False
-                    }))
-                return res.noreturn()
-            value = value.copy().setContext(context).setPosition(
-                node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
-            return res.success(value)
-        else:
-            exception_details = {
-                'name': 'NameError',
-                        'message': f" is not defined",
-            }
-            return exception_details
+            except:
+                value = value
+                
+        if var_name in context.symbolTable.symbols and value is None:
+            value = context.symbolTable.get(NoneType.none)
+        elif value is None:
+            if var_name == "@":
+                return res.failure(Program.error()['Runtime']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"Expected '@' to be followed by an identifier",
+                    'context': context,
+                    'exit': False
+                }))
+            
+            
+            
+           
+            return res.failure(Program.error()['NameError']({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"name '{var_name}' is not defined",
+                'context': context,
+                'exit': False
+            })) 
+            return res.noreturn()
+        value = value.copy().setContext(context).setPosition(node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
+        return res.success(value)
+        
    
     def visit_VarReassignNode(self, node, context):
         res = RuntimeResult()
@@ -6620,32 +6632,23 @@ class Interpreter:
         
         if catch_statement != {}:
             if exception != None:
-                exception = self.setException()
-                if exception:
-                    # exception_details = {
-                    #     'name': self.exception_details['name'],
-                    #     'message': self.exception_details['message']
-                    # }
-                    print(self.visit_VarAccessNode(), "is ex")
-                   # context.symbolTable.set(exception) 
-                    value = res.register(self.visit(catch_statement['body'], context))
-                    if isinstance(value, List):
-                        if value.elements[0] == None:
-                            # then a new exception occured while handling an exception
-                            return res.failure(
-                                Program.error()['Syntax']({
-                                    'pos_start': node.pos_start,
-                                    'pos_end': node.pos_end,
-                                    'context': context,
-                                    'message': f'another exception occured while handling exception',
-                                    'exit': False
-                                })
-                            )
-                    return res.success(value)
-                else:
-                    value = res.register(self.visit(attempt_statement['body'], context))
-                    print(value)
-                    return res.success(value)
+                value = res.register(self.visit(attempt_statement['body'], context))
+                return res.success(value)
+                # exception_ = self.setException()
+                # exception_details = res.getExceptionDetails()
+                # if exception_:
+                #     exception_details = {
+                #         'name': 'Exception',
+                #         'message': 'an exception occured',
+                #     }
+                #     context.symbolTable.set(exception.value, Dict(exception_details).setContext(context).setPosition(exception.pos_start, exception.pos_end)) 
+                #     value = res.register(self.visit(catch_statement['body'], context))
+                #     if res.should_return(): return res
+                #     return res.success(value)
+                # else:
+                #     print('Exception not handled', exception)
+                #     value = res.register(self.visit(attempt_statement['body'], context))
+                #     return res.success(value)
             else:
                 print('No exception')
                     

@@ -3209,7 +3209,7 @@ class Parser:
                             'pos_start': exception.pos_start,
                             'pos_end': exception.pos_end
                         }
-                        print(catch_statement['exception'], "from as")
+                       # print(catch_statement['exception'], "from as")
                     else:
                         if self.current_token.type != tokenList.TT_COLON:
                             self.error_detected = True
@@ -3229,8 +3229,7 @@ class Parser:
                             'pos_start': exception.pos_start,
                             'pos_end': exception.pos_end
                         }
-                        print(catch_statement['exception'],
-                              "from exception")
+                        #print(catch_statement['exception'], "from exception")
             else:   
                 if self.current_token.type != tokenList.TT_COLON:
                     self.error_detected = True
@@ -3250,7 +3249,7 @@ class Parser:
                     'pos_start': start_token.pos_start,
                     'pos_end': start_token.pos_end
                 }
-                print(catch_statement['exception'], "from none", start_token)
+                #print(catch_statement['exception'], "from none", start_token)
                 
                 
         while self.current_token.type == tokenList.TT_NEWLINE:
