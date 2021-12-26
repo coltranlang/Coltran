@@ -3175,7 +3175,10 @@ class Parser:
         if self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
             self.skipLines()
             if self.current_token.type == tokenList.TT_IDENTIFIER:
-                    exception = self.current_token
+                    exception = {
+                        'name': self.current_token,
+                        'as': None,
+                    }
                     self.skipLines()
                     if self.current_token.matches(tokenList.TT_KEYWORD, "as"):
                         self.skipLines()
@@ -3189,7 +3192,7 @@ class Parser:
                                     'exit': False
                                 }
                             ))
-                        exception = self.current_token
+                        exception['as'] = self.current_token
                         self.skipLines()
                         if self.current_token.type != tokenList.TT_COLON:
                             self.error_detected = True
@@ -3206,8 +3209,8 @@ class Parser:
                         catch_statement = {
                             'exception': exception,
                             'body': statements,
-                            'pos_start': exception.pos_start,
-                            'pos_end': exception.pos_end
+                            'pos_start': exception['name'].pos_start,
+                            'pos_end': exception['name'].pos_end
                         }
                        # print(catch_statement['exception'], "from as")
                     else:
@@ -3226,8 +3229,8 @@ class Parser:
                         catch_statement = {
                             'exception': exception,
                             'body': statements,
-                            'pos_start': exception.pos_start,
-                            'pos_end': exception.pos_end
+                            'pos_start': exception['name'].pos_start,
+                            'pos_end': exception['name'].pos_end
                         }
                         #print(catch_statement['exception'], "from exception")
             else:   

@@ -161,12 +161,12 @@
 # println(fm"typeof _builtin_method: %{typeof(_builtin_method) }is builtin_method")
 
 
-# let name = "Kenny"
+let name = "Kenny"
 # let age = 23
 # let hobby = "Playing soccer"
 
 attempt:
-    println(fm"Hello, %{name} you are %{age} years old and you like %{hobby}")
+    println(fm"Hello, %{name.g}")
 catch NameError as e:
     println(fm"Exception: %{e}")
 end

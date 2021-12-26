@@ -4532,17 +4532,47 @@ class Interpreter:
         self.exception = False
         self.exception_details = {}
     
-    def getException(self):
-        return self.exception
     
-    def setException(self, exception):
-        self.exception = exception
-        return self.exception
+    
+    def setAttempt(self, attempt_details,exception_details):
+        res = RuntimeResult()
+        exception = attempt_details["exception"]
+        context = attempt_details["context"]
+        catch_statement = attempt_details["catch_statement"]
+        else_statement = attempt_details["else_statement"]
+        exception_name = exception["name"]
+        exception_name_as = exception["as"]
+        exception_error = Dict(exception_details)
+        if exception_name_as != None:
+            context.symbolTable.set(exception_name_as.value, exception_error)
+        else:
+            context.symbolTable.set(exception_name.value, exception_error)
+        context.symbolTable.set_current_scope("catch")
+        catch_value = res.register(self.visit(catch_statement['body'], context))
+        if res.should_return():
+            return res
+        if self.error_detected:
+            return res.success(None)
+        else:
+            res.success(catch_value)
         
-    def visit(self, node, context):
+        
+    def setCatch(self,exception_details):
+        res = RuntimeResult()
+        return res.failure(Program.error()[exception_details['name']]({
+                    'pos_start': exception_details['pos_start'],
+                    'pos_end': exception_details['pos_end'],
+                    'message': f"{exception_details['message']}",
+                    'context': exception_details["context"],
+                    'exit': False
+                }))
+        
+    def visit(self, node, context, exception=None, attempt_details=None):
         method_name = f'visit_{type(node).__name__}'
         method = getattr(self, method_name, self.no_visit)
         self.context = context
+        if attempt_details:
+            self.attempt_details = attempt_details
         return method(node, context)
 
     
@@ -4861,31 +4891,46 @@ class Interpreter:
                 }))
             
             
-            exception =  {
-                'name': 'NameError',
-                'message': f"Name '{var_name}' is not defined",
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
+            exception_details =  {
+                'name': String('NameError'),
+                'message': String(str(var_name) + " is not defined"),
             } 
             # check if we in a try block and if so, check if the variable is in the try block
             scope = context.symbolTable.get_current_scope()
-            #context.symbolTable.set_exception(exception)
+            self.error_detected = True
             if scope == "attempt":
-                context.symbolTable.set_exception(exception)
-            #if context.symbolTable.get_current_scope() == "try":
-            else:
-                self.setException(exception)
+                attempt_details = self.attempt_details
+                self.setAttempt(attempt_details, exception_details)
+            elif scope == "catch":
+                Program.printError("another exception occured during handling of the above exception:")
                 return res.failure(Program.error()['NameError']({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"name '{var_name}' is not defined",
                     'context': context,
                     'exit': False
-            })) 
+                }))
+            else:
+                return res.failure(Program.error()['NameError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"name '{var_name}' is not defined",
+                    'context': context,
+                    'exit': False
+                })) 
             return res.noreturn()
         value = value.copy().setContext(context).setPosition(node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
-        return res.success(value)
-        
+        scope = context.symbolTable.get_current_scope()
+        if scope == "none":
+            return res.failure(Program.error()['Runtime']({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"an exception occured during handling of the above exception:",
+                'context': context,
+                'exit': False
+            }))
+        else:
+            return res.success(value)
    
     def visit_VarReassignNode(self, node, context):
         res = RuntimeResult()
@@ -5140,6 +5185,10 @@ class Interpreter:
             "context": context,
             "exit": False
         }
+        exception_details =  {
+                'name': String('PropertyError'),
+                'message': '',
+        } 
         
         if isinstance(object_name, Class):
             if type(object_key).__name__ == "VarAccessNode":
@@ -5367,9 +5416,19 @@ class Interpreter:
                         value = object_name.properties[object_key.value]
                         return res.success(value)
                     else:
+                        scope = context.symbolTable.get_current_scope()
                         self.error_detected = True
-                        error["message"] = f"'{object_key.value}'"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        if  scope == "attempt":
+                                attempt_details = self.attempt_details
+                                exception_details['message'] = f"'{object_key.value}'"
+                                self.setAttempt(attempt_details, exception_details)
+                        elif scope == "catch":
+                                Program.printError("another exception occured during handling of the above exception:")
+                                error["message"] = f"'{object_key.value}'"
+                                return res.failure(Program.error()["PropertyError"](error))
+                        else:
+                            error["message"] = f"'{object_key.value}'"
+                            return res.failure(Program.error()["PropertyError"](error))
 
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -5417,8 +5476,21 @@ class Interpreter:
                     else:
                         return res.success(BuiltInMethod(value))
                 else:
-                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    scope = context.symbolTable.get_current_scope()
+                    
+                    self.error_detected = True
+                    if  scope == "attempt":
+                        attempt_details = self.attempt_details
+                        exception_details['message'] = f"no property '{object_key.value}'"
+                        self.setAttempt(attempt_details, exception_details)
+                    elif scope == "catch":
+                        Program.printError("another exception occured during handling of the above exception:")
+                        error["message"] = f"no property '{object_key.value}'"
+                        return res.failure(Program.error()["PropertyError"](error))
+                    else:
+                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
+                        return res.failure(Program.error()["PropertyError"](error))
+                    
                 
                 
             elif type(object_key).__name__ == "VarAccessNode":
@@ -5664,8 +5736,19 @@ class Interpreter:
                         return res.success(value)
        
         else:
-            error["message"] = f"'{object_key.value}'"
-            return res.failure(Program.error()["PropertyError"](error))
+            scope = context.symbolTable.get_current_scope()
+            if  scope == "attempt":
+                attempt_details = self.attempt_details
+                exception_details['message'] = f"'{object_key.value}'"
+                self.setAttempt(attempt_details, exception_details)
+            elif scope == "catch":
+                Program.printError("another exception occured during handling of the above exception:")
+                error["message"] = f"'{object_key.value}'"
+                return res.failure(Program.error()["PropertyError"](error))
+            else:
+                self.error_detected = True
+                error["message"] = f"'{object_key.value}'"
+                return res.failure(Program.error()["PropertyError"](error))
 
     
     def visit_PropertySetNode(self, node, context):
@@ -6637,12 +6720,16 @@ class Interpreter:
         catch_statement = node.catch_statement
         else_statement = node.else_statement
         
+        attempt_properties = {
+            'exception': exception,
+            'context': context,
+            'attempt_statement': attempt_statement,
+            'catch_statement': catch_statement,
+            'else_statement': else_statement
+        }
         
-        # attempt_statement
-        #context.symbolTable.set_current_scope('attempt')
-        print(self.getException(), "is the exception")
-        value = res.register(self.visit(attempt_statement['body'], context))
-        print(value, "is the value")
+        context.symbolTable.set_current_scope("attempt")
+        value = res.register(self.visit(attempt_statement['body'], context, True, attempt_properties))
         if res.should_return(): return res
         return res.success(value)
     # if catch_statement != {}:
@@ -7037,3 +7124,8 @@ symbolTable_.set('BuiltInFunction', Types.BuiltInFunction)
 symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
 symbolTable_.set('Exception', Types.Exception)
 symbolTable_.setSymbol()
+name = "Kenny"
+try:
+    print(f"Hello {name['g']}!")
+except:
+    print('ty!')
