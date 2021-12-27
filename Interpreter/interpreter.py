@@ -4,7 +4,7 @@ from Parser.stringsWithArrows import *
 from Token.token import Token
 import Token.tokenList as tokenList
 from Lexer.lexer import Lexer
-from Memory.memory import SymbolTable, Exception
+from Memory.memory import SymbolTable
 
 
 import sys
@@ -144,6 +144,8 @@ class TypeOf:
                 result = 'function'
             elif isinstance(self.type, BuiltInFunction):
                 result = 'builtin_function'
+            elif isinstance(self.type, BuiltInClass):
+                result = 'builtin_class'
             elif isinstance(self.type, BuiltInMethod):
                 result = 'builtin_method'
             elif isinstance(self.type, BuiltInMethod_String):
@@ -449,6 +451,7 @@ class Program:
     def exception(error):
         return RuntimeResult().failure(error)
 
+
 class RuntimeResult:
     def __init__(self, exception_details=None):
         self.reset()
@@ -510,8 +513,6 @@ class RuntimeResult:
         )
 
     
-
-
 class Value:
     def __init__(self):
         self.setPosition()
@@ -1611,9 +1612,6 @@ Boolean.false = Boolean("false")
 NoneType.none = NoneType("none")
 
 
-
-
-
 class List(Value):
     def __init__(self, elements=None, type=None):
         super().__init__()
@@ -2345,8 +2343,55 @@ class BaseFunction(Value):
         if isinstance(other, BuiltInFunction):
             return self.name == other.name
         return False
-   
-        
+
+
+class BaseClass(Value):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.value = self.name
+
+    def generate_new_context(self):
+        new_context = Context(self.name, self.context, self.pos_start)
+        new_context.symbolTable = SymbolTable(new_context.parent.symbolTable)
+        return new_context
+
+    def check_args(self, constructor_args, args):
+        res = RuntimeResult()
+        if len(args) > len(constructor_args):
+            return res.failure(Program.error()['Runtime']({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"{len(args)} argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(constructor_args)}",
+                'context': self.context,
+                'exit': False
+            }))
+
+        if len(args) < len(constructor_args):
+            return res.failure(Program.error()['Runtime']({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"{len(args)} few argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(constructor_args)}",
+                'context': self.context,
+                'exit': False
+            }))
+        return res.success(None)
+
+    def populate_args(self, constructor_args, args, exec_context):
+        for i in range(len(args)):
+            arg_name = constructor_args[i]
+            arg_value = args[i]
+            exec_context.symbolTable.set(arg_name, arg_value)
+
+    def check_and_populate_args(self, constructor_args, args, exec_ctx):
+        res = RuntimeResult()
+        res.register(self.check_args(constructor_args, args))
+        if res.should_return():
+            return res
+        self.populate_args(constructor_args, args, exec_ctx)
+        return res.success(None)
+    
+         
 class Function(BaseFunction):
     def __init__(self, name, body_node, arg_names, implicit_return, default_values, properties,context):
         super().__init__(name)
@@ -2477,7 +2522,7 @@ class ClassInstance:
         return f"<ClassInstance {str(self.klass.class_name)}>"
 
 
-class Class(BaseFunction):
+class Class(BaseClass):
     def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods, context):
         super().__init__(class_name)
         self.id = class_name
@@ -2525,8 +2570,7 @@ class Class(BaseFunction):
                     res.register(method.run(method_args, self, new_context))
                     if res.should_return(): return res
         return res.success(self)
-        
-        
+              
         
     def set_method(self, key, value):
         self.methods_properties[key] = value
@@ -2807,10 +2851,7 @@ class BuiltInFunction(BaseFunction):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
         if isinstance(value, NoneType):
             return res.success(Number(0).setPosition(self.pos_start, self.pos_end).setContext(self.context))
-    execute_len.arg_names = ["value"]
-    
-    
-    
+    execute_len.arg_names = ["value"]   
 
     def execute_append(self, exec_context):
         res = RuntimeResult()
@@ -2880,6 +2921,47 @@ class BuiltInFunction(BaseFunction):
     def __repr__(self):
         return f"<{str(self.name)}()>, [ built-in function ]"
 
+
+class BuiltInClass(BaseClass):
+    def __init__(self, name, properties):
+        super().__init__(name)
+        self.properties = properties
+
+    def execute(self, args):
+        res = RuntimeResult()
+        exec_context = self.generate_new_context()
+        method_name = f'execute_{self.name}'
+        method = getattr(self, method_name, self.no_visit)
+        print(method)
+        res.register(self.check_and_populate_args(
+            method.constructor_args, args, exec_context))
+        if res.should_return():
+            return res
+
+        return_value = res.register(method(exec_context))
+        if res.should_return():
+            return res
+        return res.success(return_value)
+    
+    def no_visit(self, node, exec_context):
+        res = RuntimeResult()
+        return res.failure(Program.error()['Runtime']({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"{self.name} is not a supported built-in function",
+            'context': self.context,
+            'exit': False
+        }))
+
+    def copy(self):
+        copy = BuiltInClass(self.name, self.properties)
+        copy.setContext(self.context)
+        copy.setPosition(self.pos_start, self.pos_end)
+        return copy
+
+    def __repr__(self):
+        return f"<{str(self.name)}()>, [ built-in class ]"
+        
 
 # Built-in functions
 
@@ -3667,6 +3749,11 @@ def BuiltInFunction_Exit(args, node, context):
         }))
 
 
+# Built-in class
+
+def BuiltInClass_Exception(args, node, context):
+    res = RuntimeResult()
+    print(args)
 
 def BuiltInFunction_Http_Get():
     print(f"I got")
@@ -4453,8 +4540,7 @@ class Types(Value):
             'Class': Class,
             'Function': Function,
             'BuiltInFunction': BuiltInFunction,
-            'BuiltInMethod': BuiltInMethod,
-            'Exception': Exception,
+            'BuiltInMethod': BuiltInMethod
         }
         self.type = data_types[self.name]
         return self.type.__name__
@@ -4500,16 +4586,21 @@ def BuiltInModule_Http(context):
     return Module("http", module_path, context)
  
  
-class Exception:
+class Al_Exception:
     def __init__(self, name, message):
         self.name = name
         self.message = message
+        properties = {
+            'name': String(name),
+            'message': String(message)
+        }
+        self.proproties = Dict(properties)
         
     def __repr__(self):
         return f"<Exception {self.name}: {self.message}>"
     
     
-class Exception_Runtime(Exception):
+class Exception_Runtime(Al_Exception):
     def __init__(self, name, message):
         super().__init__(name, message)
 
@@ -4517,7 +4608,7 @@ class Exception_Runtime(Exception):
     def __repr__(self):
         return f"<Exception_Runtime {self.message}>"
     
-class NameError(Exception):
+class NameError(Al_Exception):
     def __init__(self, name, message):
         super().__init__(name, message)
         
@@ -4526,7 +4617,6 @@ class NameError(Exception):
 
 
 class Interpreter:
-    
     def __init__(self):
         self.error_detected = False
         self.exception = False
@@ -4549,12 +4639,11 @@ class Interpreter:
             context.symbolTable.set(exception_name.value, exception_error)
         context.symbolTable.set_current_scope("catch")
         catch_value = res.register(self.visit(catch_statement['body'], context))
-        if res.should_return():
-            return res
+        if res.should_return(): return res
         if self.error_detected:
             return res.success(None)
         else:
-            res.success(catch_value)
+            return res.success(catch_value)
         
         
     def setCatch(self,exception_details):
@@ -4900,7 +4989,8 @@ class Interpreter:
             self.error_detected = True
             if scope == "attempt":
                 attempt_details = self.attempt_details
-                self.setAttempt(attempt_details, exception_details)
+                attempt_scope = self.setAttempt(attempt_details, exception_details)
+                return res.success(attempt_scope)
             elif scope == "catch":
                 Program.printError("another exception occured during handling of the above exception:")
                 return res.failure(Program.error()['NameError']({
@@ -4918,19 +5008,12 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 })) 
-            return res.noreturn()
-        value = value.copy().setContext(context).setPosition(node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
-        scope = context.symbolTable.get_current_scope()
-        if scope == "none":
-            return res.failure(Program.error()['Runtime']({
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'message': f"an exception occured during handling of the above exception:",
-                'context': context,
-                'exit': False
-            }))
+           
+        
         else:
+            value = value.copy().setContext(context).setPosition(node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
             return res.success(value)
+        
    
     def visit_VarReassignNode(self, node, context):
         res = RuntimeResult()
@@ -5246,6 +5329,20 @@ class Interpreter:
                     # else:
                     #     return res.failure(Program.error()["PropertyError"](error))
         
+        elif isinstance(object_name, BuiltInClass):
+            if type(object_key).__name__ == "Token":
+                if object_key.value in object_name.properties.properties:
+                    value = object_name.properties.properties[object_key.value]
+                    return res.success(value)
+            # builtin_class_props = {
+            #     'Exception': {
+            #         'name': String('RuntimeError'),
+            #         'message': String(''),
+            #     },
+            # }
+            # builtin_class_props[object_name.name] = Dict(builtin_class_props[object_name.name])
+            
+        
         elif isinstance(object_name, Object):
             builtin_properties = {
                 'get': 'get',
@@ -5421,7 +5518,8 @@ class Interpreter:
                         if  scope == "attempt":
                                 attempt_details = self.attempt_details
                                 exception_details['message'] = f"'{object_key.value}'"
-                                self.setAttempt(attempt_details, exception_details)
+                                attempt_scope = self.setAttempt(attempt_details, exception_details)
+                                return res.failure(attempt_scope)
                         elif scope == "catch":
                                 Program.printError("another exception occured during handling of the above exception:")
                                 error["message"] = f"'{object_key.value}'"
@@ -5477,12 +5575,12 @@ class Interpreter:
                         return res.success(BuiltInMethod(value))
                 else:
                     scope = context.symbolTable.get_current_scope()
-                    
                     self.error_detected = True
                     if  scope == "attempt":
                         attempt_details = self.attempt_details
                         exception_details['message'] = f"no property '{object_key.value}'"
-                        self.setAttempt(attempt_details, exception_details)
+                        attempt_scope = self.setAttempt(attempt_details, exception_details)
+                        return res.failure(attempt_scope)
                     elif scope == "catch":
                         Program.printError("another exception occured during handling of the above exception:")
                         error["message"] = f"no property '{object_key.value}'"
@@ -5740,7 +5838,8 @@ class Interpreter:
             if  scope == "attempt":
                 attempt_details = self.attempt_details
                 exception_details['message'] = f"'{object_key.value}'"
-                self.setAttempt(attempt_details, exception_details)
+                attempt_scope = self.setAttempt(attempt_details, exception_details)
+                return res.failure(attempt_scope)
             elif scope == "catch":
                 Program.printError("another exception occured during handling of the above exception:")
                 error["message"] = f"'{object_key.value}'"
@@ -5760,6 +5859,9 @@ class Interpreter:
             if type(property).__name__ == "Token":
                if hasattr(object_name, "methods_properties"):
                    object_name.methods_properties[property.value] = value
+        if isinstance(object_name, BuiltInClass):
+            if type(property).__name__ == "Token":
+                object_name.properties.properties[property.value] = value
         if isinstance(object_name, Dict):
             if type(property).__name__ == "Token":
                if hasattr(object_name, "properties"):
@@ -6754,12 +6856,7 @@ class Interpreter:
         #         #     return res.success(value)
         #     else:
         #         print('No exception')
-                    
-                        
-                
-                
-        
-    
+                       
     
 
     def visit_FunctionNode(self, node, context):
@@ -6936,8 +7033,27 @@ class Interpreter:
             return res
         value_to_call = value_to_call.copy().setPosition(
             node.pos_start, node.pos_end) if hasattr(value_to_call, 'copy') else value_to_call
-        if not isinstance(value_to_call, Function) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInFunction):
-            return res.failure(Program.error()["Runtime"](
+        if not isinstance(value_to_call, Function) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInFunction) and not isinstance(value_to_call, BuiltInClass):
+            scope = context.symbolTable.get_current_scope()
+            exception_details = {
+                'name': 'Runtime',
+                'message': "'{}' is not callable".format(node.node_to_call.name.value),
+            }
+            if scope == "attempt":
+                attempt_details = self.attempt_details
+                attempt_scope = self.setAttempt(attempt_details, exception_details)
+                return res.success(attempt_scope)
+            elif scope == "catch":
+                Program.printError("another exception occured during handling of the above exception:")
+                return res.failure(Program.error()['NameError']({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': "'{}' is not callable".format(node.node_to_call.name.value),
+                    'context': context,
+                    'exit': False
+                }))
+            else:
+                return res.failure(Program.error()["Runtime"](
                 {
                     "pos_start": node.pos_start,
                     "pos_end": node.pos_end,
@@ -6984,6 +7100,7 @@ class Interpreter:
             'typeof': BuiltInFunction_Typeof,
             'isinstanceof': BuiltInFunction_IsinstanceOf,
             'delay': BuiltInFunction_Delay,
+            'Exception': BuiltInClass_Exception,
             'exit': BuiltInFunction_Exit
         }
         
@@ -7061,6 +7178,7 @@ BuiltInFunction.typeof = BuiltInFunction("typeof")
 BuiltInFunction.isinstanceof = BuiltInFunction("isinstanceof")
 BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
+BuiltInClass.Exception = BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String("")}))
 
 Types.Number = Types("Number")
 Types.String = Types("String")
@@ -7074,7 +7192,7 @@ Types.Class = Types("Class")
 Types.Function = Types("Function")
 Types.BuiltInFunction = Types("BuiltInFunction")
 Types.BuiltInMethod = Types("BuiltInMethod")
-Types.Exception = Types("Exception")
+
 symbolTable_ = SymbolTable()
 
 symbolTable_.set('print', BuiltInFunction.print)
@@ -7122,7 +7240,7 @@ symbolTable_.set('Class', Types.Class)
 symbolTable_.set('Function', Types.Function)    
 symbolTable_.set('BuiltInFunction', Types.BuiltInFunction)
 symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
-symbolTable_.set('Exception', Types.Exception)
+symbolTable_.set('Exception', BuiltInClass.Exception)
 symbolTable_.setSymbol()
 name = "Kenny"
 try:

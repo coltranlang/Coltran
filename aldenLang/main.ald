@@ -162,11 +162,18 @@
 
 
 let name = "Kenny"
+def @greet(name)
+    return fm"Hello, %{name}"
+end
 # let age = 23
 # let hobby = "Playing soccer"
 
-attempt:
-    println(fm"Hello, %{name.g}")
-catch NameError as e:
-    println(fm"Exception: %{e}")
-end
+# attempt:
+#     println(fm"Hello, %{@dgreet(name)}")
+# catch Exception as e:
+#     println(fm"Exception: %{e}")
+# end
+#Exception.attempt(@greet(name))
+Exception.name = "NameError"
+Exception.message = fm"%{Exception.name}: %{name} is not defined"
+println(Exception.message)
