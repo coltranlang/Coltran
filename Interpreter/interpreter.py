@@ -1631,7 +1631,8 @@ class NoneType(Value):
             return String(other.value).setContext(self.context), None
         
     def notted(self):
-        return Boolean("true").setContext(self.context), None
+        value = self.value
+        return self.setTrueorFalse(False if value == "true" else True), None
     
     def is_true(self):
         return self.value == "true" if self.value else "false"
@@ -2138,8 +2139,9 @@ class Dict(Value):
         value = self.isSame(other)
         return self.setTrueorFalse(False if value else True), None
    
-    def notted(self, other):
-        pass
+    def notted(self):
+        value = self.value
+        return self.setTrueorFalse(False if value == "true" else True), None
    
     def copy(self):
         copy = Dict(self.properties)
@@ -2665,6 +2667,18 @@ class Class(BaseClass):
                     return value, None
             return "none", self.key_error(error, method_name)
 
+    def get_comparison_eq(self, other):
+        value = self.isSame(other)
+        return self.setTrueorFalse(True if value else False), None
+    
+    def get_comparison_ne(self, other):
+        value = self.isSame(other)
+        return self.setTrueorFalse(False if value else True), None
+   
+    def notted(self):
+        value = self.value
+        return self.setTrueorFalse(False if value == "true" else True), None
+    
     
     def isSame(self, other):
         if isinstance(other, Class):
@@ -3041,11 +3055,12 @@ def BuiltInFunction_Print(args, node):
         value = str(arg)
         if isinstance(arg, String):
             value = arg.value
-        try:
-            if value[0] == "'":
-                value = value[1:-1]
-        except:
-            pass
+        else:
+            try:
+                if value[0] == "'":
+                    value = value[1:-1]
+            except:
+                pass
         sys.stdout.write(value)
     return res.noreturn()
 
@@ -3056,11 +3071,12 @@ def BuiltInFunction_PrintLn(args, node):
         value = str(arg)
         if isinstance(arg, String):
             value = arg.value
-        try:
-            if value[0] == "'":
-                value = value[1:-1]
-        except:
-            pass
+        else:
+            try:
+                if value[0] == "'":
+                    value = value[1:-1]
+            except:
+                pass
         sys.stdout.write(value + "\n")
     return res.success(None) 
 
@@ -4954,6 +4970,7 @@ class Types(Value):
     def __init__(self, name):
         super().__init__()
         self.name = name
+        self.value = name
         self.getType()
         
     def getType(self):
@@ -4971,11 +4988,25 @@ class Types(Value):
             'Function': Function,
             'BuiltInFunction': BuiltInFunction,
             'BuiltInMethod': BuiltInMethod,
-            'Exception': Exception,
         }
         self.type = data_types[self.name]
         return self.type.__name__
     
+    def get_comparison_eq(self, other):
+        if self.value == other.value:
+            return Boolean(True), None
+        else:
+            return Boolean(False), None
+    
+    def get_comparison_ne(self, other):
+        return self.setTrueorFalse(other.value != "none"), None
+    
+    def and_by(self, other):
+        return self.setTrueorFalse(other.value == "none"), None
+    
+    def notted(self):
+        value = self.value
+        return self.setTrueorFalse(False if value == "true" else True), None
     
     def copy(self):
         copy = Types(self.name)
@@ -7686,7 +7717,6 @@ Types.Class = Types("Class")
 Types.Function = Types("Function")
 Types.BuiltInFunction = Types("BuiltInFunction")
 Types.BuiltInMethod = Types("BuiltInMethod")
-Types.Exception = BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String("")}))
 symbolTable_ = SymbolTable()
 
 symbolTable_.set('print', BuiltInFunction.print)
@@ -7734,10 +7764,10 @@ symbolTable_.set('Class', Types.Class)
 symbolTable_.set('Function', Types.Function)    
 symbolTable_.set('BuiltInFunction', Types.BuiltInFunction)
 symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
-symbolTable_.set('Exception', Types.Exception)
+symbolTable_.set('Exception', BuiltInClass.Exception)
 symbolTable_.setSymbol()
 name = "Kenny"
 try:
     print(f"Hello {name['g']}!")
 except:
-    print('ty!')
+    print('Except!')
