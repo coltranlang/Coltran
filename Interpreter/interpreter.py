@@ -5920,6 +5920,9 @@ class Interpreter:
    
         elif isinstance(object_name, Dict):
             if type(object_key).__name__ == "VarAccessNode":
+                if object_key.id.value in dict_methods:
+                        value = f"<{str(object_key.id.value)}()>, [ built-in dict method ]"
+                        return res.success(BuiltInMethod(value))
                 if hasattr(object_name, "properties"):
                     if object_key.id.value in object_name.properties:
                         value = object_name.properties[object_key.id.value]
@@ -6006,7 +6009,10 @@ class Interpreter:
                     #     return res.failure(Program.error()["PropertyError"](error))
 
             elif type(object_key).__name__ == "Token":
-                if hasattr(object_name, "properties"):
+                if object_key.value in dict_methods:
+                        value = f"<{str(object_key.value)}()>, [ built-in dict method ]"
+                        return res.success(BuiltInMethod(value))
+                elif hasattr(object_name, "properties"):
                     if object_key.value in object_name.properties:
                         value = object_name.properties[object_key.value]
                         return res.success(value)

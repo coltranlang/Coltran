@@ -56,7 +56,7 @@ while-expr  : KEYWORD:WHILE expr KEYWORD:THEN
               statement
             | (NEWLINE statements KEYWORD:END)
 
-task-def    : KEYWORD:task IDENTIFIER?
+func-def    : KEYWORD:task IDENTIFIER?
               LPAREN (IDENTIFIER (COMMA IDENTIFIER)*)? RPAREN
               (ARROW expr)
             | (NEWLINE statements KEYWORD:endTask)
