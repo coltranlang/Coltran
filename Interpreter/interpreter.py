@@ -7673,7 +7673,7 @@ BuiltInFunction.isinstanceof = BuiltInFunction("isinstanceof")
 BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
 BuiltInClass.Exception = BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String("")}))
-
+ 
 Types.Number = Types("Number")
 Types.String = Types("String")
 Types.Boolean = Types("Boolean")
