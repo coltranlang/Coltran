@@ -2,14 +2,14 @@ let sum = 20
 sum = sum + 5
 println(sum)
 let list = [1,2,3,4,5]
-let v = 0
-v = v + 37
+let v = 3
+v += 37
 println(v)
-def @sum(message)
+def @greet(message)
     if message == "hello" :
         let greeting = "Hello"
         println(greeting)
     end
-    println(greeting) # error if message is not "hello"
+    println(fm"Greet: '%{greeting}'") # error if message is not "hello"
 end
-@sum("test")
+@greet("test")

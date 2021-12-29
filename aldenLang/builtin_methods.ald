@@ -1,0 +1,74 @@
+let string_methods = {
+            'upperCase': 'upperCase', # String.upperCase()
+            'lowerCase': 'lowerCase', # String.lowerCase()
+            'capitalize': {}, # String.capitalize()
+            'split': 'split', # String.split(delimiter)
+            'join': 'join', # String.join(delimiter)
+            'substr': 'substr', # String.substr(start, end)
+            'replace': 'replace', # String.replace(old, new, Optional: count)
+            'slice': 'slice', # String.slice(start, end)
+            'strip': 'strip', # String.strip()
+            'length': 'length', # String.length
+            'charAt': 'charAt', # String.charAt(index)
+            'includes': 'includes', # String.includes(substring)
+            'startsWith': 'startsWith', # String.startsWith(substring)
+            'find': 'find', # String.find(value, Optional: start, Optional: end)
+            'findIndex': 'findIndex' # String.findIndex(value, Optional: start, Optional: end)
+}
+
+
+let number_methods = {
+    'toInt': 'toInt', # Number.toInt()
+    'toFloat': 'toFloat', # Number.toFloat()
+    'toString': 'toString' # Number.toString()
+}
+
+let list_methods = {
+                'length': 'length', # List.length
+                'append': 'append', # List.append(value)
+                'pop': 'pop', # List.pop(Optional: index)
+                'remove': 'remove', # List.remove(value)
+                'insert': 'insert', # List.insert(index, value)
+                'empty': 'empty', # List.empty()
+                'reverse': 'reverse',  # List.reverse()
+                'getItem': 'getItem', # List.getItem(index)
+                'setItem': 'setItem', # List.setItem(value, Optional: index)
+                'slice': 'slice', # List.slice(start, end)
+                'sort': 'sort', # List.sort(Optional: compare)
+                'contains': 'contains', # List.contains(value)
+                'includes': 'includes', # List.includes(value)
+                'count': 'count', # List.count(value)
+                'indexOf': 'indexOf' # List.indexOf(value)
+}
+
+let pair_methods = {
+                'count': 'count',
+                'indexOf': 'indexOf'
+}
+
+let dict_object_methods = {
+        'length': 'length',
+        'has_key': 'has_key',
+        'keys': 'keys',
+        'values': 'values',
+        'items': 'items',
+        'get': 'get',
+        'set': 'set',
+        'update': 'update',
+        'remove': 'remove',
+        'empty': 'empty'
+}
+
+
+let pair = ("a", "e", "i", "o", "u", 'e')
+let list = [1,2,3,4,5,6,7,8,9,10]
+let str = "Hello, World!"
+
+line(1)
+in string_methods as method_name, method_value:
+   
+end
+# println(fm'The index of "e" is %{pair.indexOf("e")}')
+# println(fm'Pair count: %{pair.count("e")}')
+# println(fm'List count: %{list.indexOf(5)}')
+# println(fm'List count: %{list.count(5)}')
