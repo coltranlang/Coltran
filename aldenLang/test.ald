@@ -155,7 +155,7 @@ println(carInventory.lookupCarByName("Ford").name + " is " + carInventory.lookup
 line(18)
 println(carInventory.size())
 
-# test for in operator
+# test for in operator in object, dict, list, pair and string
 object User
     name: "John"
     age: 21
@@ -164,12 +164,41 @@ object User
     username: "john123"
     password: "john123"
 end
+let dict_user = {
+    "name": "John",
+    "age": 21,
+    "email": "",
+}
 
+let list_user = [
+    "John",
+    21
+]
+
+let pair_user = (
+    "John",
+    21
+)
+
+let str_user = "John"
 
 line(19)
-in User as (key,value)  :
+in User as (key,value):
     #println(fm`Key: %{key[0]}, Value: %{key[1]}`) # getting key and value from People object by just using the key 
-    println(fm`Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
+    println(fm`(Object) Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
+end
+in dict_user as (key,value):
+    #println(fm`Key: %{key[0]}, Value: %{key[1]}`) # getting key and value from People object by just using the key 
+    println(fm`(Dict) Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
+end
+in list_user as (key):
+    println(fm`(List) Key: %{key}`) # list object does not have value so we can only get the key
+end
+in pair_user as (key):
+    println(fm`(Pair) Key: %{key}`) # pair object does not have value so we can only get the key
+end
+in str_user as (key):
+    println(fm`(String) Key: %{key}`) # string object does not have value so we can only get the key
 end
 
 
@@ -234,9 +263,9 @@ println(value)
 
 # reverse string
 
-# reverse string with built-in def
+# reverse string with built-in function
 def @reverseString(s)
-    return list(s).reverse().join("")
+    return list(s).reverse().join
 end
 
 
@@ -417,7 +446,6 @@ println(fm"a = %{a} b = %{b} list = %{list} pair = %{pair}")
 let a = 20
 let b = 30
 final e = a * b
-
 a *= b # expected result is 600
 let hello = "Hello"
 let world = " World"
@@ -428,6 +456,7 @@ let pair = (1,2,3)
 list *= 2 # expected result is error
 pair *= 2 # expected result is error
 line(47)
+println(fm"num1 = %{num1}")
 println(fm"e = %{e}")
 println(fm"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
 
@@ -469,25 +498,33 @@ line(49)
 println(fm"g = %{g}")
 println(fm"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
 
+# floor division assignment operator
+let num1 = 15
+let num2 = 2
+num1 //= num2
+line(50)
+println(fm"num1 = %{num1}")
+
+# equality operator
 let list = [1,2,3,4]
 let pair = (1,2,3,4)
 list += [5]
 pair += (5)
-line(50)
-println(fm"True or False1: %{list == [1,2,3,4,5]}") # true
-println(fm"True or False2: %{pair == (1,2,3,4,5)}") # true
-println(fm"True or False3: %{list == pair}") # false
-println(fm"True or False4: %{pair == list}") # false
-println(fm"True or False5: %{list < [1,2,3,4,5]}") # false
-println(fm"True or False6: %{pair < (1,2,3,4,5)}") # false
-println(fm"True or False7: %{list <= [1,2,3,4,5]}") # true
-println(fm"True or False8: %{pair <= (1,2,3,4,5)}") # true
-println(fm"True or False9: %{[1,2,3,4,5,6] > list}") # true
-println(fm"True or False10: %{(1,2,3,4,5,6) > pair}") # true
+line(51)
+println(fm"true or false1: %{list == [1,2,3,4,5]}") # true
+println(fm"true or false2: %{pair == (1,2,3,4,5)}") # true
+println(fm"true or false3: %{list == pair}") # false
+println(fm"true or false4: %{pair == list}") # false
+println(fm"true or false5: %{list < [1,2,3,4,5]}") # false
+println(fm"true or false6: %{pair < (1,2,3,4,5)}") # false
+println(fm"true or false7: %{list <= [1,2,3,4,5]}") # true
+println(fm"true or false8: %{pair <= (1,2,3,4,5)}") # true
+println(fm"true or false9: %{[1,2,3,4,5,6] > list}") # true
+println(fm"true or false10: %{(1,2,3,4,5,6) > pair}") # true
 println(fm"For List: %{list}, For Pair: %{pair}") # For List: [1, 2, 3, 4, 5], For Pair: (1, 2, 3, 4, 5)
 
 
-line(51)
+line(52)
 if a + b > 10:
     println("a + b > 10")
 else:
@@ -507,7 +544,7 @@ b -= setnum() - 1 # expecting to 29
 c /= setnum() / 2 # expecting to 21.0
 d *= setnum() * 2 # expecting to 124
 e %= setnum() % 3 # expecting to 1
-line(52)
+line(53)
 println(fm"a = %{a}, b = %{b}, c = %{c}, d = %{d}, e = %{e}")
 let hello = "Hello"
 let world = "World"
@@ -524,7 +561,7 @@ for i = 0 to 10:
         end
     end
 end
-line(53)
+line(54)
 println(fm"Count = %{count}") 
 
 let number = 0
@@ -534,14 +571,14 @@ while number <= 50:
     sum += number
     number += 1
 end
-line(54)
+line(55)
 println(fm"Sum = %{sum}") # Sum = 1275
 
 
 let david = def () -> "david"
 let name = "Kenny"
 # match name -> String
-line(55)
+line(56)
 match name:
     case "Bob":
         println("Hello David")   
@@ -559,7 +596,7 @@ end
 
 let num = def () -> 1
 # match num -> Int
-line(56)
+line(57)
 match num():
     case [1,2]:
         println("It's a list")   
@@ -577,7 +614,7 @@ end
 
 let list = [1,2,3]
 # match list -> List
-line(57)
+line(58)
 match list:
     case "string":
         println("It's a string")   
@@ -595,7 +632,7 @@ end
 
 let pair = (1,2)
 # match pair -> Pair
-line(58)
+line(59)
 match pair:
     case (1,2,3):
         println("It's not a pair")
@@ -613,7 +650,7 @@ end
 
 let dict = {name:"Bob", age:40, hobby: "Playing soccer"}
 # match dict -> Dict
-line(59)
+line(60)
 match dict:
     default:
         println("This is dict default")
@@ -635,7 +672,7 @@ object TestObject
 end
 println(fm"TestObject.name: %{TestObject}")
 # match TestObject -> Object
-line(60)
+line(61)
 match TestObject:
     case "string":
         println("It's a string")   
@@ -653,7 +690,7 @@ end
 
 let bool = true
 # match bool -> Boolean
-line(61)
+line(62)
 match bool:
     case true:
         println("It's true")   
@@ -677,7 +714,7 @@ end
 
 let test = TestMatch()
 # match test -> TestMatch
-line(62)
+line(63)
 match test:
     case TestMatch():
         println("It's a TestMatch")   
@@ -692,7 +729,7 @@ end
 
 
 # match none -> none
-line(63)
+line(64)
 match none:
     case true:
         println("It's true")   
@@ -710,7 +747,7 @@ end
 
 
 # match default -> no match
-line(64)
+line(65)
 match none:
     case true:
         println("It's true")   
@@ -720,7 +757,7 @@ match none:
     end  
 end
 
-line(65)
+line(66)
 let age = 20
 let score = def () -> 22
 
@@ -730,7 +767,7 @@ else:
     println("You are not 20 years old or your score is not 22")
 end
 
-line(66)
+line(67)
 let verfied = true
 let eligible = false 
 if verfied and eligible:
@@ -747,7 +784,21 @@ match verfied or eligible:
         println("You are not eligible because you are not verified")
     end
 end
-
+line(68)
+# hasproperty check
+let dict_user = {"name": "John","age": 21, "email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
+println("hasProperty for dict")
+println(hasProperty(dict_user, "name"))  # true
+println(hasProperty(dict_user, "age")) # true
+println(hasProperty(dict_user, "email")) # true
+println(hasProperty(dict_user, "hobby")) # true
+println(hasProperty(dict_user, "verfied")) # true
+println(hasProperty(dict_user, "has_key")) # true # check if dict has built-in method has_key
+println(hasProperty(dict_user, "2")) # false
+println(hasProperty(dict_user, "address")) # false
+println("hasProperty for list")
+let list_user = ["John", 21, "", "Playing soccer", true, 2]
+#println(hasProperty(list_user, "name"))  # false
 # def @makeList(item, list=[])
 #     list.append(item)
 #     return list

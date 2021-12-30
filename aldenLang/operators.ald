@@ -1,0 +1,56 @@
+# Operators
+let headers = ["Name", "Operator", "Description"]
+let operators = [
+    ["Plus", "+", "\tAdds two numbers"],
+    ["Minus", "-",  "\tSubtracts two numbers"],
+    ["MUL", "*", "\tMultiplies two numbers"],
+    ["DIV", "/", "\tDivides two numbers"],
+    ["MOD", "%",  "\tDivides two numbers and returns the remainder"],
+    ["INCRE", "++",  "\tAdds one to a number"],
+    ["DECRE", "--", "\tSubtracts one from a number"],
+    ["EXP", "^", "\tRaises a number to the power of another number"],
+    ["FLOOR", "//",  "\tRounds the number to nearest whole number"],
+    ["EQ", "==", "\tChecks if two values are equal"],
+    ["NOTEQ", "!=", "\tChecks if two values are not equal"],
+    ["GT", ">", "\tChecks if one value is greater than another"],
+    ["LT", "<", "\tChecks if one value is less than another"],
+    ["GTE", ">=", "\tChecks if one value is greater than or equal to another"],
+    ["LTE", "<=",  "\tChecks if one value is less than or equal to another"],
+    ["AND", "and",  "\tChecks if both values are true"],
+    ["OR", "or",  "\tChecks if either value is true"],
+    ["NOT", "not",  "\tChecks if the value is false"],
+    ["RSHIFT", ">>", "\tShifts the bits of a number to the right"],
+    ["LSHIFT", "<<", "\tShifts the bits of a number to the left"], 
+    ["BitAND", "&",  "\tPerforms a bitwise AND operation on two numbers"], # to be supported
+    ["BitOR", "|",  "\tPerforms a bitwise OR operation on two numbers"], # to be supported
+    ["BitNOT", "~",  "\tPerforms a bitwise NOT operation on a number"], # to be supported
+    ["Ternary", "?",  "\tChecks if the first value is true, and returns the second value if it is, or the third value if it is not"], # to be supported
+    ["Assign", "=",  "\tAssigns a value to a variable"],
+    ["AADD", "+=", "\tAdds a value to a variable"],
+    ["ASUB", "-=", "\tSubtracts a value from a variable"],
+    ["AMUL", "*=", "\tMultiplies a value to a variable"],
+    ["ADIV", "/=", "\tDivides a value from a variable"],
+    ["AMOD", "%=", "\tDivides a value from a variable and returns the remainder"],
+    ["AEXP", "^=", "\tRaises a value to the power of another value and assigns the result to a variable"],
+    ["M-IN", "in", "\tReturns true if a value is in a list, string, or pair"],
+    ["M-NOTIN", "not in", "\tReturns true if a value is not in a list, string, or pair"],
+]
+
+
+def encodeQuotedString(value, seperator)
+    return value
+end
+
+def writeRow(row, separator)
+    let encoded = row.map(def (item) -> encodeQuotedString(item, separator)).join(separator)
+    println('\n' + encoded)
+end
+
+def writeRows(rows, header, separator)
+    if header: writeRow(header, separator)
+    in rows as row:
+        writeRow(row, separator)
+    end
+end
+
+writeRows(operators, headers, '\t\t')

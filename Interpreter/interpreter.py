@@ -30,8 +30,30 @@ string_methods = {
             'includes': 'includes', # String.includes(substring)
             'startsWith': 'startsWith', # String.startsWith(substring)
             'find': 'find', # String.find(value, Optional: start, Optional: end)
+            'count': 'count', # String.count(value)
+            'format': 'format', # String.format(value)
+            'isDigit': 'isDigit', # String.isDigit()
+            'isAlpha': 'isAlpha', # String.isAlpha()
+            'isAscii': 'isAscii', # String.isAscii()
+            'isLower': 'isLower', # String.isLower()
+            'isUpper': 'isUpper', # String.isUpper()
+            'title': 'title', # String.title()
+            'translate': 'translate', # String.translate(table)
+            'zfill': 'zfill', # String.zfill(width)
+            'splitlines': 'splitlines', # String.splitlines()
+            'isSpace': 'isSpace', # String.isSpace()
+            'isTitle': 'isTitle', # String.isTitle()
+            'isNumeric': 'isNumeric', # String.isNumeric()
+            'lstrip': 'lstrip', # String.lstrip()
+            'rstrip': 'rstrip', # String.rstrip()
+            'partition': 'partition', # String.partition(sep)
+            'rpartition': 'rpartition', # String.rpartition(sep)
+            'startswith': 'startswith', # String.startswith(prefix, Optional: start, Optional: end)
+            'endswith': 'endswith', # String.endswith(suffix, Optional: start, Optional: end)
+            'encode': 'encode', # String.encode(encoding, Optional: errors)
             'findIndex': 'findIndex', # String.findIndex(value, Optional: start, Optional: end)
             '__getproperty': '__getproperty', # String.__getproperty__(property)
+            '__methods__': '__methods__', # String.__methods__()
 }
 
 
@@ -39,6 +61,7 @@ number_methods = {
     'toInt': 'toInt', # Number.toInt()
     'toFloat': 'toFloat', # Number.toFloat()
     'toString': 'toString', # Number.toString()
+    '__methods__': '__methods__', # Number.__methods__()
 }
 
 list_methods = {
@@ -48,20 +71,32 @@ list_methods = {
                 'remove': 'remove', # List.remove(value)
                 'insert': 'insert', # List.insert(index, value)
                 'empty': 'empty', # List.empty()
+                'isEmpty': 'isEmpty', # List.isEmpty()
                 'reverse': 'reverse',  # List.reverse()
                 'getItem': 'getItem', # List.getItem(index)
                 'setItem': 'setItem', # List.setItem(value, Optional: index)
                 'slice': 'slice', # List.slice(start, end)
+                'join': 'join', # List.join(delimiter)
                 'sort': 'sort', # List.sort(Optional: compare)
                 'contains': 'contains', # List.contains(value)
                 'includes': 'includes', # List.includes(value)
                 'count': 'count', # List.count(value)
                 'indexOf': 'indexOf', # List.indexOf(value)
+                'map': 'map', # List.map(function)
+                'filter': 'filter', # List.filter(function)
+                'reduce': 'reduce', # List.reduce(function)
+                'some': 'some', # List.some(function)
+                'each': 'each', # List.each(function)
+                'every': 'every', # List.every(function)
+                'toString': 'toString', # List.toString()
+                '__methods__': '__methods__',  # List.__methods__()
+                
 }
 
 pair_methods = {
-                'count': 'count',
-                'indexOf': 'indexOf',
+                'count': 'count', # Pair.count()
+                'indexOf': 'indexOf', # Pair.indexOf(value)
+                '__methods__': '__methods__', # Pair.__methods__()
 }
 
 dict_methods = {
@@ -74,10 +109,18 @@ dict_methods = {
         'set': 'set',
         'update': 'update',
         'remove': 'remove',
-        'empty': 'empty'
+        'empty': 'empty',
+        '__methods__': '__methods__',
+        '__properties__': '__properties__',
 }
 
+function_methods = {
+    '__methods__': '__methods__', # Function.__methods__()
+}
 
+class_methods = {
+    '__methods__': '__methods__', # Class.__methods__()
+}
 
 def string_split(string, delimiter):
     res = []
@@ -105,7 +148,13 @@ def string_strip(text):
             new_text += ' ' + split_text[i].strip()
     return new_text
 
-
+def string_count(string, value):
+    # return how many times value appears in string
+    count = 0
+    for i in range(len(string)):
+        if string[i] == value:
+            count += 1
+    return count 
 
 class Regex:
         def __init__(self):
@@ -628,6 +677,14 @@ class Value:
             'context': self.context
         })
 
+    def floordivided_by(self, other):
+        return None, self.illegal_operation_typerror({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'//' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
+            'context': self.context
+        })
+
     def powred_by(self, other):
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
@@ -955,6 +1012,30 @@ class Number(Value):
         else:
             return None, self.illegal_operation_typerror(error)
 
+    def floordivided_by(self, other):
+        if other.value == 0:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"division by zero",
+                'context': self.context,
+                'exit': False
+            }
+            return None, Program.error()['ZeroDivisionError'](error)
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't divide {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Number):
+            return Number(setNumber(self.value) // setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            return Number(setNumber(self.value) // setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation_typerror(error)
+
     def powred_by(self, other):
         error = {
                     'pos_start': self.pos_start,
@@ -1187,18 +1268,8 @@ class Number(Value):
             return None, self.illegal_operation_typerror(error, other)
 
     def notted(self):
-        error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't perform not on {TypeOf(self.value).getType()}",
-                'context': self.context
-        }
-        if isinstance(self, Number):
-            return Number(self.setTrueorFalse(not setNumber(self.value))).setContext(self.context), None
-        elif isinstance(self, Boolean):
-            return Boolean(self.setTrueorFalse(not setNumber(self.value))).setContext(self.context), None
-        else:
-            return None, self.illegal_operation_typerror(error)
+        value = self.value
+        return self.setTrueorFalse(value), None
     
     def copy(self):
         copy = Number(self.value)
@@ -1207,7 +1278,7 @@ class Number(Value):
         return copy
 
     def is_true(self):
-        return self.value == "true" if self.value else "false"
+        return self.value != 0
 
     def __repr__(self):
         return str(self.value)
@@ -1299,7 +1370,11 @@ class String(Value):
             'context': self.context
         }
         if isinstance(other, String):
-            return self.setTrueorFalse(other.value in self.value).setContext(self.context), None
+            try:
+                return self.setTrueorFalse(other.value in self.value).setContext(self.context), None
+            except:
+                error['message'] = f"invaid operation on 'in'"
+                return None, self.illegal_operation_typerror(error, other)
         else:
             return None, self.illegal_operation_typerror(error, other)
         
@@ -1340,7 +1415,7 @@ class String(Value):
         return copy
     
     def is_true(self):
-        return "true" if len(self.value) > 0 else "false"
+        return self.value != ''
 
     def __str__(self):
         return f"'{self.value}'"
@@ -1437,7 +1512,31 @@ class Boolean(Value):
             return Number(setNumber(self.value) / setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(error, other)
-            
+        
+    def floordivided_by(self, other):
+        if other.value == 0:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"division by zero",
+                'context': self.context,
+                'exit': False
+            }
+            return None, Program.error()['ZeroDivisionError'](error)
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"can't divide {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(other, Number):
+            return Number(setNumber(self.value) // setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            return Number(setNumber(self.value) // setNumber(other.value)).setContext(self.context), None
+        else:
+            return None, self.illegal_operation_typerror(error)
+           
     def modulo_by(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1521,6 +1620,7 @@ class Boolean(Value):
         else:
             return None, self.illegal_operation(error, other)
         
+    
     def and_by(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1562,9 +1662,11 @@ class Boolean(Value):
         
         
     def notted(self):
-        if self.value == "true":
-            return Boolean("false").setContext(self.context), None
-        return Boolean("true").setContext(self.context), None
+        value = self.value
+        return self.setTrueorFalse(False if value == "true" else True), None
+    
+    def is_true(self):
+        return True if self.value == "true" else False
     
     def copy(self):
             copy = Boolean(self.value)
@@ -1650,12 +1752,13 @@ NoneType.none = NoneType("none")
 
 
 class List(Value):
-    def __init__(self, elements=None, type=None):
+    def __init__(self, elements=None, properties=None):
         super().__init__()
         self.elements = elements if elements is not None else []
         self.value = self.elements
         self.type = type
         self.id = self.elements
+        self.properties = properties if properties is not None else {}
         
     def added_to(self, other):
         if isinstance(other, List):
@@ -1824,11 +1927,18 @@ class List(Value):
     def length(self):
         return len(self.elements)
 
+
+    def is_true(self):
+        if len(self.elements) == 0:
+                return False
+        else:
+            return True
+        
     def join(self, other):
         return List(self.elements + other.elements), None
    
     def copy(self):
-        copy = List(self.elements)
+        copy = List(self.elements, self.properties)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -2051,6 +2161,12 @@ class Pair(Value):
         else:
             return False
 
+    def is_true(self):
+        if len(self.elements) == 0:
+            return False
+        else:
+            return True
+
     def copy(self):
         copy = Pair(self.elements)
         copy.setPosition(self.pos_start, self.pos_end)
@@ -2143,6 +2259,12 @@ class Dict(Value):
         value = self.value
         return self.setTrueorFalse(False if value == "true" else True), None
    
+    def is_true(self):
+        if len(self.properties) == 0:
+            return False
+        else:
+            return True
+   
     def copy(self):
         copy = Dict(self.properties)
         copy.setContext(self.context)
@@ -2201,11 +2323,9 @@ class Object(Value):
     
     def get_values(self):
         values = []
-        for key, value in self.properties.items():
-            if key.startswith("__"):
-                continue
-            else:
-                values.append(value)
+        for value in self.properties:
+            values.append(value)
+        return values
     
     def get_length(self):
         return len(self.properties)
@@ -2267,6 +2387,12 @@ class Object(Value):
             }
             return None, self.illegal_operation_typerror(error, other)
     
+    def is_true(self):
+        if len(self.properties) == 0:
+            return False
+        else:
+            return True
+    
     def copy(self):
         copy = Object(self.name, self.properties)
         copy.setPosition(self.pos_start, self.pos_end)
@@ -2284,84 +2410,6 @@ class Object(Value):
     def __repr__(self):
         return "<Object {}>".format(self.name)
         
-        
-class ObjectGet(Value):
-    def __init__(self, obj, key):
-        super().__init__()
-        self.obj = obj
-        self.key = key
-        self.get_property = self.get_property
-        self.value = self.get_property
-        self.get_type = "ObjectGetNode"
-        
-    def get_property(self, obj, key):
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"Property '{key}' does not exist on object '{obj}'",
-            'context': self.context,
-            'exit': False
-        }
-        value  = ""
-        if type(key).__name__ == "String":
-            if hasattr(obj, "properties"):
-                if key.value in obj.properties:
-                    value = obj.properties[key.value]
-                    return value
-                else:
-                    return NoneType.none
-            else:
-                return NoneType.none
-            
-        elif type(key).__name__ == "Number":
-            if hasattr(obj, "properties"):
-                if str(key.value) in obj.properties:
-                    value = obj.properties[str(key.value)]
-                    return value
-                else:
-                    return NoneType.none
-            else:
-                return NoneType.none
-        else:
-            return None, self.illegal_operation(error, key)
-  
-    
-class ObjectRefNode(Value):
-    def __init__(self, value, arg=None):
-        super().__init__()
-        self.id = value
-        self.value = value
-        if arg:
-            self.value = value + str(arg)
-
-    def setPosition(self, pos_start=None, pos_end=None):
-        self.pos_start = pos_start
-        self.pos_end = pos_end
-        return self
-
-    def setContext(self, context=None):
-        self.context = context
-        return self
-
-    def setTrueorFalse(self, value):
-        if value:
-            return Boolean(True)
-        else:
-            return Boolean(False)
-    
-    def copy(self):
-        copy = ObjectRefNode(self.value)
-        copy.setPosition(self.pos_start, self.pos_end)
-        copy.setContext(self.context)
-        return copy
-    
-    
-    def __str__(self):
-        return self.value
-
-    def __repr__(self):
-        return f"'{self.value}'"
-
 
 class BaseFunction(Value):
     def __init__(self, name):
@@ -2413,6 +2461,9 @@ class BaseFunction(Value):
         if isinstance(other, BuiltInFunction):
             return self.name == other.name
         return False
+    
+    def is_true(self):
+        return True
 
 
 class BaseClass(Value):
@@ -2460,6 +2511,9 @@ class BaseClass(Value):
             return res
         self.populate_args(constructor_args, args, exec_ctx)
         return res.success(None)
+    
+    def is_true(self):
+        return True
     
          
 class Function(BaseFunction):
@@ -2594,7 +2648,7 @@ class ClassInstance:
 
 
 class Class(BaseClass):
-    def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods, context,__properties):
+    def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods, context,_properties):
         super().__init__(class_name)
         self.id = class_name
         self.class_name = class_name
@@ -2605,7 +2659,7 @@ class Class(BaseClass):
         self.methods_properties = methods if methods else {}
         self.value = self.methods_properties
         self.context = context
-        self.__properties = __properties if __properties else {}
+        self._properties = _properties if _properties else {}
         self.body_node = None
         
         
@@ -2714,7 +2768,7 @@ class Class(BaseClass):
    
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
-                     self.inherit_class_name, self.inherit_class, self.methods_properties, self.context)
+                     self.inherit_class_name, self.inherit_class, self.methods_properties, self.context, self._properties)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -3046,7 +3100,19 @@ class BuiltInClass(BaseClass):
     def __repr__(self):
         return f"<{str(self.name)}()>, [ built-in class ]"
         
-
+def getproperty(object, property, type_):
+    value = False
+    if isinstance(object, Dict):
+        if type(property).__name__ == "String":
+            if property.value in dict_methods:
+                if type_ == "check":
+                    value = True
+            if hasattr(object, "properties"):
+                if property.value in object.properties:
+                    if type_ == "check":
+                        value = True
+                        
+    return value
 # Built-in functions
 
 def BuiltInFunction_Print(args, node):
@@ -3062,7 +3128,7 @@ def BuiltInFunction_Print(args, node):
             except:
                 pass
         sys.stdout.write(value)
-    return res.noreturn()
+    return res.success(NoneType.none)
 
 
 def BuiltInFunction_PrintLn(args, node):
@@ -3078,7 +3144,7 @@ def BuiltInFunction_PrintLn(args, node):
             except:
                 pass
         sys.stdout.write(value + "\n")
-    return res.success(None) 
+    return res.success(NoneType.none)
 
 
 def BuiltInFunction_Input(args, node, context):
@@ -3108,7 +3174,7 @@ def BuiltInFunction_Input(args, node, context):
             return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"{args[0]} is not a valid argument for input()",
+                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for input()",
                 "context": context,
                 'exit': False
             }))
@@ -3146,7 +3212,7 @@ def BuiltInFunction_InputInt(args, node, context):
             return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"{args[0].value} is not a valid argument for inputInt()",
+                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for inputInt()",
                 "context": context,
                 'exit': False
             }))
@@ -3184,7 +3250,7 @@ def BuiltInFunction_InputFloat(args, node, context):
             return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"{args[0].value} is not a valid argument for inputFloat()",
+                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for inputFloat()",
                 "context": context,
                 'exit': False
             }))
@@ -3219,7 +3285,7 @@ def BuiltInFunction_InputBool(args, node, context):
             return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"{args[0].value} is not a valid argument for inputBool()",
+                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for inputBool()",
                 "context": context,
                 'exit': False
             }))
@@ -3256,7 +3322,7 @@ def BuiltInFunction_Range(args, node, context):
         return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{args[0].value} is not a valid argument for range()",
+            'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for range()",
             "context": context,
             'exit': False
         }))
@@ -3281,7 +3347,7 @@ def BuiltInFunction_Int(args, node, context):
             return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"{args[0].value} is not a valid argument for int()",
+                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for int()",
                 "context": context,
                 'exit': False
             }))
@@ -3315,7 +3381,7 @@ def BuiltInFunction_Float(args, node, context):
             return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"{args[0].value} is not a valid argument for float()",
+                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for float()",
                 "context": context,
                 'exit': False
             }))
@@ -3352,7 +3418,7 @@ def BuiltInFunction_Bool(args, node, context):
             return res.failure(Program.error()["TypeError"]({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"{args[0].value} is not a valid argument for bool()",
+                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for bool()",
                 "context": context,
                 'exit': False
             }))
@@ -3418,7 +3484,7 @@ def BuiltInFunction_List(args, node, context):
 
 def BuiltInFunction_Pair(args, node, context):
     res = RuntimeResult()
-    if len(args) > 1:
+    if len(args) != 1:
         return res.failure(Program.error()["Runtime"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -3726,6 +3792,52 @@ def BuiltInFunction_IsinstanceOf(args, node, context):
         return res.success(Boolean(getInstance(args[0], args[1])).setPosition(node.pos_start, node.pos_end).setContext(context))
 
 
+def BuiltInFunction_HasProperty(args, node, context):
+    res = RuntimeResult()
+    
+    if len(args) == 0:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"hasProperty() takes 2 arguments",
+            "context": context,
+            'exit': False
+        }))
+    
+    elif len(args) == 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"hasProperty() takes 2 arguments",
+            "context": context,
+            'exit': False
+        }))
+    
+    elif len(args) > 2:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but hasProperty() takes 2 arguments",
+            "context": context,
+            'exit': False
+        }))
+    
+    else:
+        if not isinstance(args[1], String):
+            return res.failure(Program.error()["TypeError"]({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"hasProperty() property name must be string",
+                "context": context,
+                'exit': False
+            }))
+        object_ = args[0]
+        object_type = TypeOf(object_).getType()
+        property_to_check = args[1]
+        value = getproperty(object_, property_to_check, "check")
+        return res.success(Boolean(value).setPosition(node.pos_start, node.pos_end).setContext(context))
+
+
 def BuiltInFunction_Line(args, node, context):
     res = RuntimeResult()
     if len(args) == 0:
@@ -3752,10 +3864,10 @@ def BuiltInFunction_Line(args, node, context):
         print(f"{args[0].value}:-> ")
     
     else:
-        return res.failure(Program.error()["Runtime"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{args[0].value} is not a valid argument for line()",
+            'message': f"line() argument must be number",
             "context": context,
             'exit': False
         }))
@@ -3791,10 +3903,10 @@ def BuiltInFunction_Delay(args, node, context):
         time.sleep(args[0].value)
         return res.success(None)
     else:
-        return res.failure(Program.error()["Runtime"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{args[0].value} is not a valid argument for delay()",
+            'message': f"delay() argument must be number",
             "context": context,
             'exit': False
         }))
@@ -3826,10 +3938,10 @@ def BuiltInFunction_Exit(args, node, context):
                 'exit': False
             }))
     else:
-        return res.failure(Program.error()["Runtime"]({
+        return res.failure(Program.error()["TypeError"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{args[0]} is not a valid argument for exit()",
+            'message': f"exit() argument must be number",
             "context": context,
             'exit': False
         }))
@@ -3938,6 +4050,9 @@ class BuiltInMethod_String(Value):
         }))
     
    
+    def is_true(self):
+        return True if self.name else False
+   
     def BuiltInMethod_upperCase(self):
         res = RuntimeResult()
         if len(self.args) != 0:
@@ -4023,7 +4138,7 @@ class BuiltInMethod_String(Value):
                         value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
                     return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for split()",
@@ -4047,7 +4162,7 @@ class BuiltInMethod_String(Value):
                         value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
                     return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for split()",
@@ -4137,7 +4252,7 @@ class BuiltInMethod_String(Value):
             if isinstance(self.args[0], String) and isinstance(self.args[1], String) and isinstance(self.args[2], Number):
                 return String(self.name.value.replace(self.args[0].value, self.args[1].value, self.args[2].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}', '{TypeOf(self.args[1]).getType()}' and '{TypeOf(self.args[2]).getType()}' are not a valid arguments for replace()",
@@ -4297,6 +4412,29 @@ class BuiltInMethod_String(Value):
             }))
     
     
+    def BuiltInMethod_count(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], String):
+                count = string_count(self.name.value, self.args[0].value)
+                return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for count()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but count() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
+        
     # def BuiltInMethod___getproperty(self):
     #     res = RuntimeResult()
     #     print(self.args)
@@ -4372,7 +4510,10 @@ class BuiltInMethod_List(Value):
         'exit': False
     }))
             
-    
+    def is_true(self):
+        return True if self.name else False
+        
+        
     def BuiltInMethod_length(self):
         res = RuntimeResult()
         return res.failure(Program.error()["Runtime"]({
@@ -4407,7 +4548,7 @@ class BuiltInMethod_List(Value):
             if isinstance(self.args[0], Number):
                     return List(self.name.elements.pop(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for pop()",
@@ -4500,7 +4641,7 @@ class BuiltInMethod_List(Value):
             if isinstance(self.args[0], Number):
                     return List(self.name.elements[self.args[0].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for getItem()",
@@ -4527,7 +4668,7 @@ class BuiltInMethod_List(Value):
                     self.name.elements[self.args[0].value] = new_value
                     return List(self.name.elements).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for setItem()",
@@ -4554,7 +4695,7 @@ class BuiltInMethod_List(Value):
             if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
                     return List(self.name.elements[self.args[0].value:self.args[1].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for slice()",
@@ -4597,7 +4738,7 @@ class BuiltInMethod_List(Value):
                             new_string += self.args[0].value
                     return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for join()",
@@ -4729,7 +4870,119 @@ class BuiltInMethod_List(Value):
                 'exit': False
             }))
 
+    
+    def BuiltInMethod_isEmpty(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            if len(self.name.elements) == 0:
+                return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but isEmpty() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+    
+    
+    def BuiltInMethod_toString(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            new_string = ""
+            for element in self.name.elements:
+                if isinstance(element, String) or isinstance(element, Number):
+                    new_string += str(element.value)
+                    new_string += ", " if element != self.name.elements[-1] else ""
+                else:
+                    new_string += str(element)
+                    new_string += ", " if element != self.name.elements[-1] else ""
+            return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but toString() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))    
+    
+    
+    def BuiltInMethod___methods__(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            new_list = []
+            for element in self.name.properties.properties:
+                if element.value != "__methods__":
+                    new_list.append(element)
+            return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but __properies__() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+    
 
+    def BuiltInMethod_map(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], Function):
+                func = self.args[0]
+                new_list = []
+                for element in self.name.elements:
+                    new_list.append(res.register(func.execute([element])))
+                return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for map()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but map() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
+    
+    
+    def BuiltInMethod_filter(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], Function):
+                func = self.args[0]
+                new_list = []
+                for element in self.name.elements:
+                    if res.register(func.execute([element])).isTruthy():
+                        new_list.append(element)
+                return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for filter()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but filter() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
+
+    
     def copy(self):
         copy = BuiltInMethod_List(
             self.type, self.name, self.args, self.node, self.context)
@@ -4778,6 +5031,9 @@ class BuiltInMethod_Pair(Value):
             "context": self.context,
             'exit': False
         })) 
+    
+    def is_true(self):
+        return True if self.name else False
     
     def BuiltInMethod_count(self):
         res = RuntimeResult()
@@ -4887,6 +5143,9 @@ class BuiltInMethod_Dict(Value):
             "context": self.context,
             'exit': False
         }))
+    
+    def is_true(self):
+        return True if self.name else False
     
     def BuiltInMethod_has_key(self):
         res = RuntimeResult()
@@ -5207,12 +5466,13 @@ class Interpreter:
     def visit_ListNode(self, node, context):
         res = RuntimeResult()
         elements = []
+        properties = Dict({String(k) : String(v) for k, v in list_methods.items()})
         for element_node in node.elements:
             element_value = res.register(self.visit(element_node, context))
             if res.should_return():
                 return res
             elements.append(element_value)
-        return res.success(List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
+        return res.success(List(elements, properties).setContext(context).setPosition(node.pos_start, node.pos_end))
 
 
     def visit_BooleanNode(self, node, context):
@@ -5493,9 +5753,9 @@ class Interpreter:
                     }))
                 else:
                     if operation == "add":
-                        if isinstance(v['value'], Number):
-                            if isinstance(value, Number):  
-                                new_value = Number(v['value'].value + value.value)
+                        if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
+                            if isinstance(value, Number) or isinstance(value, Boolean):  
+                                new_value = Number(setNumber(v['value'].value) + setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
                                 return res.failure(Program.error()['TypeError']({
@@ -5556,9 +5816,9 @@ class Interpreter:
                                     'exit': False
                                 })) 
                     elif operation == "sub":
-                        if isinstance(v['value'], Number):
-                            if isinstance(value, Number):
-                                new_value = Number(v['value'].value - value.value)
+                        if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
+                            if isinstance(value, Number) or isinstance(value, Boolean):
+                                new_value = Number(setNumber(v['value'].value) - setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
                                 return res.failure(Program.error()['TypeError']({
@@ -5577,9 +5837,9 @@ class Interpreter:
                                     'exit': False
                                 }))
                     elif operation == "mul":
-                        if isinstance(v['value'], Number):
-                            if isinstance(value, Number):
-                                new_value = Number(v['value'].value * value.value)
+                        if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
+                            if isinstance(value, Number) or isinstance(value, Boolean):
+                                new_value = Number(setNumber(v['value'].value) * setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
                                 return res.failure(Program.error()['TypeError']({
@@ -5634,9 +5894,9 @@ class Interpreter:
                                     'exit': False
                                 }))
                     elif operation == "div":
-                        if isinstance(v['value'], Number):
-                            if isinstance(value, Number):
-                                new_value = Number(v['value'].value / value.value)
+                        if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
+                            if isinstance(value, Number) or isinstance(value, Boolean):
+                                new_value = Number(setNumber(v['value'].value) / setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
                                 return res.failure(Program.error()['TypeError']({
@@ -5654,10 +5914,31 @@ class Interpreter:
                                     'context': context,
                                     'exit': False
                                 }))    
+                    elif operation == "floor_div":
+                        if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
+                            if isinstance(value, Number) or isinstance(value, Boolean):
+                                new_value = Number(setNumber(v['value'].value) // setNumber(value.value))
+                                context.symbolTable.set(var_name, new_value, "let")
+                            else:
+                                return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
+                        else:
+                            return res.failure(Program.error()['TypeError']({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }))
                     elif operation == "mod":
-                        if isinstance(v['value'], Number):
-                            if isinstance(value, Number):
-                                new_value = Number(v['value'].value % value.value)
+                        if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
+                            if isinstance(value, Number) or isinstance(value, Boolean):
+                                new_value = Number(setNumber(v['value'].value) % setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
                                 return res.failure(Program.error()['TypeError']({
@@ -5676,9 +5957,9 @@ class Interpreter:
                                     'exit': False
                                 }))
                     elif operation == "pow":
-                        if isinstance(v['value'], Number):
-                            if isinstance(value, Number):
-                                new_value = Number(v['value'].value ** value.value)
+                        if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
+                            if isinstance(value, Number) or isinstance(value, Boolean):
+                                new_value = Number(setNumber(v['value'].value) ** setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
                                 return res.failure(Program.error()['TypeError']({
@@ -6042,14 +6323,25 @@ class Interpreter:
                         return res.failure(Program.error()["PropertyError"](error))
                 
         elif isinstance(object_name, List):
+            if type(object_key).__name__ == "VarAccessNode":
+                if object_key.id.value in list_methods:
+                    value = f"<{str(object_key.id.value)}()>, [ built-in list method ]"
+                    if object_key.id.value == "length":
+                        return res.success(Number(len(object_name.elements)))
+                    else:
+                        value = f"<{str(object_key.id.value)}()>, [ built-in list method ]"
+                        return res.success(BuiltInMethod(value))
             if type(object_key).__name__ == "Token":
                 if object_key.value in list_methods:
-                    value = value = f"<{str(object_key.value)}()>, [ built-in list method ]"
+                    value = f"<{str(object_key.value)}()>, [ built-in list method ]"
                     if object_key.value == "length":
                         return res.success(Number(len(object_name.elements)))
                     else:
                         value = f"<{str(object_key.value)}()>, [ built-in list method ]"
                         return res.success(BuiltInMethod(value))
+                if object_key.value in object_name.properties.properties:
+                     value = object_name.properties.properties[object_key.value]
+                     return res.success(value)
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
                     return res.failure(Program.error()["PropertyError"](error))
@@ -6065,6 +6357,21 @@ class Interpreter:
                         value = BuiltInMethod_List(
                             object_key.node_to_call.value, object_name, args, node, context)
                         return res.success(value.name)
+                    if  object_key.node_to_call.value in object_name.properties.properties:
+                            value = object_name.properties.properties[object_key.node_to_call.value]
+                            args = []
+                            for arg in object_key.args_nodes:
+                                args.append(res.register(
+                                self.visit(arg, context)))
+                            if res.should_return(): return res
+                            return_value = res.register(value.execute(args))
+                            #print(type(return_value).__name__, return_value)
+                            if res.should_return():
+                                    return res
+                            if return_value == None or isinstance(return_value, NoneType):
+                                return res.success(None)
+                            else:
+                                return res.success(return_value)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
                         return res.failure(Program.error()["PropertyError"](error))
@@ -6377,7 +6684,22 @@ class Interpreter:
                 return res.failure(Program.error()["PropertyError"](error))
             else:
                 self.error_detected = True
-                error["message"] = f"'{object_key.value}'"
+                key = ''
+                message = ''
+                if hasattr(object_key, "value"):
+                    key = object_key.value
+                elif hasattr(object_key, "id"):
+                    key = object_key.id.value
+                elif hasattr(object_key, "node_to_call"):
+                    if hasattr(object_key.node_to_call, "value"):
+                        key = object_key.node_to_call.value
+                    elif hasattr(object_key.node_to_call, "id"):
+                        key = object_key.node_to_call.id.value
+                if hasattr(object_name, "name"):
+                    message = f"'{object_name.name}' has no property {key}"
+                else:
+                    message = f"'{key}'"
+                error["message"] = message
                 return res.failure(Program.error()["PropertyError"](error))
 
     
@@ -6395,38 +6717,57 @@ class Interpreter:
         }
         if isinstance(object_name, Class):
             if type(property).__name__ == "Token":
-               if hasattr(object_name, "methods_properties"):
+                if hasattr(object_name, "methods_properties"):
                    object_name.methods_properties[property.value] = value
-        if isinstance(object_name, BuiltInClass):
+                if property.value in class_methods:
+                    error["message"] = f"'class' object property '{property.value}' is read-only"
+                    return res.failure(Program.error()["PropertyError"](error))
+        
+        elif isinstance(object_name, BuiltInClass):
             if property.value in object_name.properties.properties:
                 object_name.properties.properties[property.value] = value
             else:
                 error["message"] = f"cannot set '{property.value}' on immutable type '{object_name.name}'"
                 return res.failure(Program.error()["TypeError"](error))
-        if isinstance(object_name, Dict):
+        
+        elif isinstance(object_name, Dict):
             if type(property).__name__ == "Token":
-               if hasattr(object_name, "properties"):
+                if hasattr(object_name, "properties"):
                    object_name.properties[property.value] = value
                    #object_name._properties['__properties'].properties[property.value] = value
-        if isinstance(object_name, Object):
-            if type(property).__name__ == "Token":
-                error["message"] = f"cannot set '{property.value}' on immutable type '{object_name.name}'"
-                return res.failure(Program.error()["TypeError"](error))
-            #    if hasattr(object_name, "properties"):
-            #        object_name.properties[property.value] = value
-                   #object_name.properties['__properties'].properties[property.value] = value
-                   
-        if isinstance(object_name, Function):
+                if property.value in dict_methods:
+                    error["message"] = f"'dict' object property '{property.value}' is read-only"
+                    return res.failure(Program.error()["PropertyError"](error))
+        
+        elif isinstance(object_name, Function):
             if type(property).__name__ == "Token":
                 if hasattr(object_name, "_properties"):
                     object_name._properties.properties[property.value] = value
                     #object_name._properties.properties['__properties'].properties[property.value] = value
+                if property.value in function_methods:
+                    error["message"] = f"'function' object property '{property.value}' is read-only"
+                    return res.failure(Program.error()["PropertyError"](error))
                     
+        elif isinstance(object_name, List):
+            if type(property).__name__ == "Token":
+                if hasattr(object_name, "properties"):
+                    object_name.properties.properties[property.value] = value
+                    #object_name._properties['__properties'].properties[property.value] = value
+                if property.value in list_methods:
+                    error["message"] = f"'list' object property '{property.value}' is read-only"
+                    return res.failure(Program.error()["PropertyError"](error))
+        else:
+            if type(property).__name__ == "Token":
+                error["message"] = f"cannot set '{property.value}' on immutable type '{TypeOf(object_name).getType()}'"
+                return res.failure(Program.error()["TypeError"](error))
  
+    
     def visit_IndexNode(self, node, context):
         res = RuntimeResult()
         index_value = res.register(self.visit(node.name, context))
         index  = res.register(self.visit(node.index, context))
+        type_ = node.type
+        value_ = res.register(self.visit(node.value, context))
         if res.should_return(): return res
         object_type = TypeOf(index_value).getType()
         index_type = TypeOf(index).getType()
@@ -6434,6 +6775,8 @@ class Interpreter:
             if index_type == "int":
                 try:
                     get_value = index_value.elements[index.value]
+                    if type_ == "=":
+                        index_value.elements[index.value] = value_
                     return res.success(get_value)
                 except IndexError:
                     return res.failure(Program.error()['IndexError']({
@@ -6458,6 +6801,8 @@ class Interpreter:
             if index_type == "int":
                 try:
                     get_value = index_value.elements[index.value]
+                    if type_ == "=":
+                        index_value.elements[index.value] = value_
                     return res.success(get_value)
                 except IndexError:
                     return res.failure(Program.error()['IndexError']({
@@ -6481,8 +6826,10 @@ class Interpreter:
         elif object_type == "object":
             if index_type == "string":
                 try:
-                    if (type(index_value).__name__ == "dict"):
+                    if type(index_value).__name__ == "dict":
                         get_value = index_value[index.value]
+                        if type_ == "=":
+                            index_value[index.value] = value_
                         return res.success(get_value)
                     else:
                         get_value = index_value.properties[index.value]
@@ -6510,6 +6857,8 @@ class Interpreter:
             if index_type == "string":
                 try:
                     get_value = index_value.properties[index.value]
+                    if type_ == "=":
+                        index_value.properties[index.value] = value_
                     return res.success(get_value)
                 except KeyError:
                     return res.failure(Program.error()['KeyError']({
@@ -6533,6 +6882,8 @@ class Interpreter:
         elif object_type == "string":
             try:
                 get_value = index_value.value[index.value]
+                if type_ == "=":
+                    index_value.value[index.value] = value_
                 return res.success(String(get_value))
             except IndexError:
                 return res.failure(Program.error()['IndexError']({
@@ -6965,6 +7316,8 @@ class Interpreter:
                 result, error = left.multiplied_by(right)
             elif node.op_tok.type == tokenList.TT_DIV:
                 result, error = left.divided_by(right)
+            elif node.op_tok.type == tokenList.TT_FLOOR_DIV:
+                result, error = left.floordivided_by(right)
             elif node.op_tok.type == tokenList.TT_POWER:
                 result, error = left.powred_by(right)
             elif node.op_tok.type == tokenList.TT_MOD:
@@ -7033,9 +7386,13 @@ class Interpreter:
                 return res
             if hasattr(condition_value, "value") and condition_value.value == "true":
                 expr_value = res.register(self.visit(expr, context))
-                if res.should_return():
-                    return res
+                if res.should_return(): return res
                 return res.success(NoneType.none if return_null else expr_value)
+            else:
+                if  hasattr(condition_value, 'is_true') and condition_value.is_true():
+                    expr_value = res.register(self.visit(expr, context))
+                    if res.should_return(): return res
+                    return res.success(NoneType.none if return_null else expr_value)
         if node.else_case:
             expr, return_null = node.else_case
             else_value = res.register(self.visit(expr, context))
@@ -7403,20 +7760,20 @@ class Interpreter:
         def_name = node.def_name_token.value if node.def_name_token else "none"
         body_node = node.body_node
         arg_names = [arg_name.value for arg_name in node.args_name_tokens]
-        __properties = {}
+        _properties = {}
         defualt_values = node.default_values
-        __type = node.type
-        if __type == None:
-            __type = "function"
+        _type = node.type
+        if _type == None:
+            _type = "function"
         set_properties = {
             '__properties': Dict({
                 '__name': String(def_name),
-                '__type': String(__type),
+                '__type': String(_type),
             })
         }
         
-        __properties = Dict(set_properties)
-        def_value = Function(def_name, body_node, arg_names, node.implicit_return, defualt_values, __properties, __type, context).setContext(
+        _properties = Dict(set_properties)
+        def_value = Function(def_name, body_node, arg_names, node.implicit_return, defualt_values, _properties, _type, context).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.type != 'method':
             if node.def_name_token:
@@ -7525,7 +7882,7 @@ class Interpreter:
         constructor_args = node.class_constuctor_args
         inherits_class_name = node.inherits_class_name
         inherits_class = node.inherits_class
-        __properties = {}
+        _properties = {}
         class_value = {}
         methods = {}
         if node.methods != '' and node.methods != None:
@@ -7543,10 +7900,10 @@ class Interpreter:
                 
                 
                 properties = Dict(set_properties).setContext(context).setPosition(node.pos_start, node.pos_end)
-                __properties = dict(__properties, **properties)
+                _properties = {**_properties, **{class_name: properties}}
                 methods = dict(methods, **{str(method_name): method_value})
                 class_value = Class(class_name, constructor_args, inherits_class_name, inherits_class,
-                                    methods, context,__properties).setContext(context).setPosition(node.pos_start, node.pos_end)
+                                    methods, context,_properties).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
             class_value = Class(class_name, constructor_args, inherits_class_name, inherits_class,
@@ -7630,6 +7987,7 @@ class Interpreter:
             'clear': BuiltInFunction_Clear,
             'typeof': BuiltInFunction_Typeof,
             'isinstanceof': BuiltInFunction_IsinstanceOf,
+            'hasProperty': BuiltInFunction_HasProperty,
             'delay': BuiltInFunction_Delay,
             'Exception': BuiltInClass_Exception,
             'exit': BuiltInFunction_Exit
@@ -7707,6 +8065,7 @@ BuiltInFunction.reverse = BuiltInFunction("reverse")
 BuiltInFunction.format = BuiltInFunction("format")
 BuiltInFunction.typeof = BuiltInFunction("typeof")
 BuiltInFunction.isinstanceof = BuiltInFunction("isinstanceof")
+BuiltInFunction.hasProperty = BuiltInFunction("hasProperty")
 BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
 BuiltInClass.Exception = BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String("")}))
@@ -7756,6 +8115,7 @@ symbolTable_.set('reverse', BuiltInFunction.reverse)
 symbolTable_.set('format', BuiltInFunction.format)
 symbolTable_.set('typeof', BuiltInFunction.typeof)
 symbolTable_.set('isinstanceof', BuiltInFunction.isinstanceof)
+symbolTable_.set('hasProperty', BuiltInFunction.hasProperty)
 symbolTable_.set('max', BuiltInFunction.max)
 symbolTable_.set('min', BuiltInFunction.min)
 symbolTable_.set('Number', Types.Number)

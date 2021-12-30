@@ -19,8 +19,9 @@ while number <= 50:
 end
 
 println(fm"Sum = %{sum}") # Sum = 1275
+println(fm"Number = %{number}") # Number = 51
 
-while true :
+while true:
     println("Hello World")
     break
 end

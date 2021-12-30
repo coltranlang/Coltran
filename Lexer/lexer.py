@@ -298,6 +298,13 @@ class Lexer:
         if self.current_char == '=':
             self.advance()
             tok_type = tokenList.TT_DIV_EQ
+        elif self.current_char == '/':
+            self.advance()
+            if self.current_char == '=':
+                self.advance()
+                tok_type = tokenList.TT_FLOOR_DIV_EQ
+            else:
+                tok_type = tokenList.TT_FLOOR_DIV
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
     
     def make_mod_or_mod_equal(self):
@@ -461,12 +468,10 @@ class Lexer:
                     string += escape_characters[self.current_char]
                 else:
                     character = False
-                    Program.error()['Syntax']({
-                        'pos_start': pos_start,
-                        'pos_end': self.pos,
-                        'message': 'Invalid escape character',
-                        'exit': False
-                    })
+                    if self.current_char == '"':
+                        string += '"'
+                    else:
+                        string += self.current_char
 
             else:
                 if character:
@@ -511,13 +516,10 @@ class Lexer:
                 if self.current_char in escape_characters:
                     string += escape_characters[self.current_char]
                 else:
-                    character = False
-                    Program.error()['Syntax']({
-                        'pos_start': pos_start,
-                        'pos_end': self.pos,
-                        'message': 'Invalid escape character',
-                        'exit': False
-                    })
+                    if self.current_char == '"':
+                        string += '"'
+                    else:
+                        string += self.current_char
 
             else:
                 if character:

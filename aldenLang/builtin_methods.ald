@@ -1,7 +1,7 @@
 let string_methods = {
             'upperCase': 'upperCase', # String.upperCase()
             'lowerCase': 'lowerCase', # String.lowerCase()
-            'capitalize': {}, # String.capitalize()
+            'capitalize': 'capitalize', # String.capitalize()
             'split': 'split', # String.split(delimiter)
             'join': 'join', # String.join(delimiter)
             'substr': 'substr', # String.substr(start, end)
@@ -13,8 +13,32 @@ let string_methods = {
             'includes': 'includes', # String.includes(substring)
             'startsWith': 'startsWith', # String.startsWith(substring)
             'find': 'find', # String.find(value, Optional: start, Optional: end)
-            'findIndex': 'findIndex' # String.findIndex(value, Optional: start, Optional: end)
+            'count': 'count', # String.count(value)
+            'format': 'format', # String.format(value)
+            'isDigit': 'isDigit', # String.isDigit()
+            'isAlpha': 'isAlpha', # String.isAlpha()
+            'isAscii': 'isAscii', # String.isAscii()
+            'isLower': 'isLower', # String.isLower()
+            'isUpper': 'isUpper', # String.isUpper()
+            'title': 'title', # String.title()
+            'translate': 'translate', # String.translate(table)
+            'zfill': 'zfill', # String.zfill(width)
+            'splitlines': 'splitlines', # String.splitlines()
+            'isSpace': 'isSpace', # String.isSpace()
+            'isTitle': 'isTitle', # String.isTitle()
+            'isNumeric': 'isNumeric', # String.isNumeric()
+            'lstrip': 'lstrip', # String.lstrip()
+            'rstrip': 'rstrip', # String.rstrip()
+            'partition': 'partition', # String.partition(sep)
+            'rpartition': 'rpartition', # String.rpartition(sep)
+            'startswith': 'startswith', # String.startswith(prefix, Optional: start, Optional: end)
+            'endswith': 'endswith', # String.endswith(suffix, Optional: start, Optional: end)
+            'encode': 'encode', # String.encode(encoding, Optional: errors)
+            'findIndex': 'findIndex', # String.findIndex(value, Optional: start, Optional: end)
+            '__getproperty': '__getproperty', # String.__getproperty__(property)
+            '__methods__': '__methods__', # String.__methods__()
 }
+
 
 
 let number_methods = {

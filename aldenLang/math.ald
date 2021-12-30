@@ -31,24 +31,24 @@ def @filter(arr, tsk)
 end
 
 
-# Map and Filter
-# let arr = [1,2,4,9]
+#Map and Filter
+let arr = [1,2,4,9]
 
-# # Map
-# let map = @map(arr, def (x) -> x * 2)
-# println(map)
+# Map
+let map = @map(arr, def (x) -> x * 2)
+println(map)
 
-# # Filter
-# let filter = @filter(arr, def (x) -> x % 2 == 0)
-# println(filter)
-# let a = 20
-# let b = 30
+# Filter
+let filter = @filter(arr, def (x) -> x % 2 == 0)
+println(filter)
+let a = 20
+let b = 30
 
-# println(a + b > 10)
-# if a + b > 10:
-#     println("a + b > 10")
-# else:
-#     println("a + b <= 10")
-# end
-# println(str("Hello") + str("World"))
-# a++
+println(a + b > 10)
+if a + b > 10:
+    println("a + b > 10")
+else:
+    println("a + b <= 10")
+end
+println(str("Hello") + str("World"))
+a++

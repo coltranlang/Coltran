@@ -195,19 +195,101 @@ end
 #println(fm'The index of "o" is %{str.findIndex("o")}')
 #println(fm'The index of "o" is %{str.find("o")}')
 
-
+#println(not String == String)
 # Operator check
-println(fm"'not' on true operator: %{not(true)}")
-println(fm"'not' on false operator: %{not(false)}")
-println(fm"'not' on none operator: %{not(none)}")
-println(fm"'not' on int operator: %{not(1)}")
-println(fm"'not' on float operator: %{not(1.0)}")
-println(fm"'not' on string operator: %{not('')}")
-println(fm"'not' on list operator: %{not([])}")
-println(fm"'not' on pair operator: %{not((1,2))}")
-println(fm"'not' on dict operator: %{not(dict)}")
-println(fm"'not' on class operator: %{not(Employee)}")
-println(fm"'not' on function operator: %{not(@greet)}")
-println(fm"'not' on builtin_function operator: %{not(print)}")
-println(fm"'not' on builtin_method operator: %{not(dict.has_key)}")
-println(fm"'not' on none operator: %{not(none)}")
+println(fm"'not' operator on true: %{not(true)}")
+println(fm"'not' operator on false: %{not(false)}")
+println(fm"'not' operator on none: %{not(none)}")
+println(fm"'not' operator on int: %{not(1)}")
+println(fm"'not' operator on float: %{not(1.0)}")
+println(fm"'not' operator on string: %{not('')}")
+println(fm"'not' operator on list: %{not([])}")
+println(fm"'not' operator on pair: %{not(pair)}")
+println(fm"'not' operator on dict: %{not(dict)}")
+println(fm"'not' operator on class: %{not(Employee)}")
+println(fm"'not' operator on function: %{not(@greet)}")
+println(fm"'not' operator on builtin_function: %{not(print)}")
+println(fm"'not' operator on builtin_class: %{not(Exception)}")
+println(fm"'not' operator on builtin_method: %{not(str.upperCase)}")
+println(fm"'not' operator on builtin_type: %{not(String)}")
+println(fm"'not' operator on none: %{not(none)}")
+println(not "" == "")
+let dict_user = {"name": "John","age": 21,"email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
+let list_dict = [{
+    firstname: "John",
+    lastname: "Doe",
+    age: 21,
+    email: "john21@email.com",
+    hobby: "Playing soccer",
+    verfied: true
+},{
+    firstname: "Kenny",
+    lastname: "Akinsanya",
+    age: 23,
+    email: "kenny23@email.com",
+    hobby: "Coding",
+    verfied: true
+},
+{
+    firstname: "David",
+    lastname: "Reynolds",
+    age: 22,
+    email: "david22@gmail.com",
+    hobby: "Cooking",
+    verfied: false,
+}]
+# list.map = def @map(list, func)
+#     if not isinstanceof(list, List):
+#         raise Exception(fm"Expected List, got '%{typeof(list)}'")
+#     end
+#     if not isinstanceof(func, Function):
+#         raise Exception(fm"Expected Function, got '%{typeof(func)}'")
+#     end
+#     let result = []
+#     in list as item:
+#         result.append(func(item))
+#     end
+#     return result
+# end
+
+# list.filter = def @filter(list, func)
+#     if not isinstanceof(list, List):
+#         raise Exception(fm"Expected List, got '%{typeof(list)}'")
+#     end
+#     if not isinstanceof(func, Function):
+#         raise Exception(fm"Expected Function, got '%{typeof(func)}'")
+#     end
+#     let result = []
+#     in list as item:
+#         if func(item):
+#             result.append(item)
+#         end
+#     end
+#     return result
+# end
+
+def @sum(a)
+    return a * 10
+end
+def @getFullName(item)
+    return [item.firstname, item.lastname].join(" ")
+end
+def @isverified(user)
+    return user.verfied
+end
+println(list.map(def (x) -> x * 20))
+println(list_dict.map(@getFullName))
+# hasproperty check # still working on this
+println(hasProperty(dict_user, "name"))
+println(hasProperty(dict_user, "age"))
+println(hasProperty(dict_user, "email"))
+println(hasProperty(dict_user, "hobby"))
+println(hasProperty(dict_user, "verfied"))
+println(hasProperty(dict_user, "has_key"))
+#println(list_dict.filter(def (user) -> user.verfied))
+# println(list.map(list, @sum))
+# let verfied_list = list.filter(list_dict, @isverified)
+# in verfied_list as user:
+#     println(fm"%{user.name} is verified")
+# end
+
