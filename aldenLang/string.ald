@@ -54,3 +54,4 @@ println("hello".isAlpha()) # true
 println("123".isDigit()) # true
 println("5903".isNumeric()) # true
 println("{0} {1} Plays for Barca".format(("Lionel", "Messi"))) # Lionel Messi Plays for Barca
+

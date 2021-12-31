@@ -1766,11 +1766,11 @@ NoneType.none = NoneType("none")
 class List(Value):
     def __init__(self, elements=None, properties=None):
         super().__init__()
-        self.elements = elements if elements is not None else []
+        self.elements = elements
         self.value = self.elements
         self.type = type
         self.id = self.elements
-        self.properties = properties if properties is not None else {}
+        self.properties = properties
         
     def added_to(self, other):
         if isinstance(other, List):
@@ -2291,13 +2291,12 @@ class Dict(Value):
     
    
 class Object(Value):
-    def __init__(self, name, properties, __properties=None):
+    def __init__(self, name, properties):
         super().__init__()
         self.id = name
         self.name = name
-        self.properties = properties if properties else {}
+        self.properties = properties
         self.value = self.properties
-        self.__properties = __properties if __properties else {}
         self.get_property = self.get_property
        
     def set_property(self, key, value):
@@ -2658,7 +2657,7 @@ class ClassInstance:
 
 
 class Class(BaseClass):
-    def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods, context,_properties):
+    def __init__(self, class_name, constructor_args, inherit_class_name, inherit_class, methods, context):
         super().__init__(class_name)
         self.id = class_name
         self.class_name = class_name
@@ -2666,10 +2665,9 @@ class Class(BaseClass):
         self.inherit_class_name = inherit_class_name
         self.inherit_class = inherit_class
         self.methods = methods
-        self.methods_properties = methods if methods else {}
+        self.methods_properties = methods
         self.value = self.methods_properties
         self.context = context
-        self._properties = _properties if _properties else {}
         self.body_node = None
         
         
@@ -2731,14 +2729,17 @@ class Class(BaseClass):
                     return value, None
             return "none", self.key_error(error, method_name)
 
+   
     def get_comparison_eq(self, other):
         value = self.isSame(other)
         return self.setTrueorFalse(True if value else False), None
+    
     
     def get_comparison_ne(self, other):
         value = self.isSame(other)
         return self.setTrueorFalse(False if value else True), None
    
+    
     def notted(self):
         value = self.value
         return self.setTrueorFalse(False if value == "true" else True), None
@@ -2778,7 +2779,7 @@ class Class(BaseClass):
    
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
-                     self.inherit_class_name, self.inherit_class, self.methods_properties, self.context, self._properties)
+                     self.inherit_class_name, self.inherit_class, self.methods_properties, self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -3445,8 +3446,7 @@ def BuiltInFunction_Bool(args, node, context):
         bool_ = Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(bool_)
     
-
-
+    
 def BuiltInFunction_List(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
@@ -3496,6 +3496,7 @@ def BuiltInFunction_List(args, node, context):
             "context": context,
             'exit': False
         }))
+
 
 def BuiltInFunction_Pair(args, node, context):
     res = RuntimeResult()
@@ -6410,7 +6411,7 @@ class Interpreter:
                                 error['message'] = f"Export has no member '{object_key.node_to_call.value}'"
                             else:
                                 self.error_detected = True
-                                error["message"] = f"{object_name.name} has no method {object_key.node_to_call.value}"
+                                error["message"] = f"'{object_name.name}' has no method '{object_key.node_to_call.value}'"
                             return res.failure(Program.error()["PropertyError"](error))
                     # else:
                     #     return res.failure(Program.error()["PropertyError"](error))
@@ -7064,7 +7065,7 @@ class Interpreter:
         if isinstance(object_name, Class):
             if type(property).__name__ == "Token":
                 if hasattr(object_name, "methods_properties"):
-                   object_name.methods_properties[property.value] = value
+                    object_name.methods_properties[property.value] = value
                 if property.value in class_methods:
                     error["message"] = f"'class' object property '{property.value}' is read-only"
                     return res.failure(Program.error()["PropertyError"](error))
@@ -8273,24 +8274,16 @@ class Interpreter:
                 method_name = method['name'].value
                 method_value = res.register(
                     self.visit(method['value'], context))
-                _object = dict(methods, **{str(method_name): method_value})
+                
                 if res.should_return(): return res
-                set_properties = {
-                    '__name': String(class_name),
-                    '__type': String('class'),
-                    '__methods': Dict(_object),
-                }
                 
-                
-                properties = Dict(set_properties).setContext(context).setPosition(node.pos_start, node.pos_end)
-                _properties = {**_properties, **{class_name: properties}}
                 methods = dict(methods, **{str(method_name): method_value})
                 class_value = Class(class_name, constructor_args, inherits_class_name, inherits_class,
-                                    methods, context,_properties).setContext(context).setPosition(node.pos_start, node.pos_end)
+                                    methods, context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
             class_value = Class(class_name, constructor_args, inherits_class_name, inherits_class,
-                                {}, context, {}).setContext(context).setPosition(node.pos_start, node.pos_end)
+                                {}, context).setContext(context).setPosition(node.pos_start, node.pos_end)
             context.symbolTable.set_object(class_name, class_value)
         return res.success(class_value)
 

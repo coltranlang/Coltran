@@ -56,6 +56,7 @@ def isOnlyLetters(text):
 def isFirstLetterUpper(text):
     return text[0].isupper()               
 
+    
 
 
 class Program:
