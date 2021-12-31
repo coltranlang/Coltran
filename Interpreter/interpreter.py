@@ -16,44 +16,44 @@ import json
 
 regex = '[+-]?[0-9]+\.[0-9]+'
 string_methods = {
-            'upperCase': 'upperCase', # String.upperCase()
-            'lowerCase': 'lowerCase', # String.lowerCase()
-            'capitalize': 'capitalize', # String.capitalize()
-            'split': 'split', # String.split(delimiter)
-            'join': 'join', # String.join(delimiter)
-            'substr': 'substr', # String.substr(start, end)
-            'replace': 'replace', # String.replace(old, new, Optional: count)
-            'slice': 'slice', # String.slice(start, end)
-            'strip': 'strip', # String.strip()
-            'length': 'length', # String.length
-            'charAt': 'charAt', # String.charAt(index)
-            'includes': 'includes', # String.includes(substring)
-            'startsWith': 'startsWith', # String.startsWith(substring)
-            'find': 'find', # String.find(value, Optional: start, Optional: end)
-            'count': 'count', # String.count(value)
-            'format': 'format', # String.format(value)
-            'isDigit': 'isDigit', # String.isDigit()
-            'isAlpha': 'isAlpha', # String.isAlpha()
-            'isAscii': 'isAscii', # String.isAscii()
-            'isLower': 'isLower', # String.isLower()
-            'isUpper': 'isUpper', # String.isUpper()
-            'title': 'title', # String.title()
-            'translate': 'translate', # String.translate(table)
-            'zfill': 'zfill', # String.zfill(width)
-            'splitlines': 'splitlines', # String.splitlines()
-            'isSpace': 'isSpace', # String.isSpace()
-            'isTitle': 'isTitle', # String.isTitle()
-            'isNumeric': 'isNumeric', # String.isNumeric()
-            'lstrip': 'lstrip', # String.lstrip()
-            'rstrip': 'rstrip', # String.rstrip()
-            'partition': 'partition', # String.partition(sep)
-            'rpartition': 'rpartition', # String.rpartition(sep)
-            'startswith': 'startswith', # String.startswith(prefix, Optional: start, Optional: end)
-            'endswith': 'endswith', # String.endswith(suffix, Optional: start, Optional: end)
-            'encode': 'encode', # String.encode(encoding, Optional: errors)
-            'findIndex': 'findIndex', # String.findIndex(value, Optional: start, Optional: end)
-            '__getproperty': '__getproperty', # String.__getproperty__(property)
-            '__methods__': '__methods__', # String.__methods__()
+    'upperCase': 'upperCase', # String.upperCase()
+    'lowerCase': 'lowerCase', # String.lowerCase()
+    'capitalize': 'capitalize', # String.capitalize()
+    'split': 'split', # String.split(delimiter)
+    'join': 'join', # String.join(delimiter)
+    'substr': 'substr', # String.substr(start, end)
+    'replace': 'replace', # String.replace(old, new, Optional: count)
+    'slice': 'slice', # String.slice(start, end)
+    'strip': 'strip', # String.strip()
+    'length': 'length', # String.length
+    'charAt': 'charAt', # String.charAt(index)
+    'includes': 'includes', # String.includes(substring)
+    'startsWith': 'startsWith', # String.startsWith(substring)
+    'find': 'find', # String.find(value, Optional: start, Optional: end)
+    'count': 'count', # String.count(value)
+    'format': 'format', # String.format(value)
+    'isDigit': 'isDigit', # String.isDigit()
+    'isAlpha': 'isAlpha', # String.isAlpha()
+    'isAscii': 'isAscii', # String.isAscii()
+    'isLower': 'isLower', # String.isLower()
+    'isUpper': 'isUpper', # String.isUpper()
+    'title': 'title', # String.title()
+    'translate': 'translate', # String.translate(table)
+    'zfill': 'zfill', # String.zfill(width)
+    'splitlines': 'splitlines', # String.splitlines()
+    'isSpace': 'isSpace', # String.isSpace()
+    'isTitle': 'isTitle', # String.isTitle()
+    'isNumeric': 'isNumeric', # String.isNumeric()
+    'lstrip': 'lstrip', # String.lstrip()
+    'rstrip': 'rstrip', # String.rstrip()
+    'partition': 'partition', # String.partition(sep)
+    'rpartition': 'rpartition', # String.rpartition(sep)
+    'startsWith': 'startsWith', # String.startswith(prefix, Optional: start, Optional: end)
+    'endsWith': 'endsWith', # String.endswith(suffix, Optional: start, Optional: end)
+    'encode': 'encode', # String.encode(encoding, Optional: errors)
+    'findIndex': 'findIndex', # String.findIndex(value, Optional: start, Optional: end)
+    '__getproperty': '__getproperty', # String.__getproperty__(property)
+    '__methods__': '__methods__', # String.__methods__()
 }
 
 
@@ -100,26 +100,33 @@ pair_methods = {
 }
 
 dict_methods = {
-        'length': 'length',
-        'has_key': 'has_key',
-        'keys': 'keys',
-        'values': 'values',
-        'items': 'items',
-        'get': 'get',
-        'set': 'set',
-        'update': 'update',
-        'remove': 'remove',
-        'empty': 'empty',
-        '__methods__': '__methods__',
-        '__properties__': '__properties__',
+        'length': 'length', # Dict.length
+        'has_key': 'has_key', # Dict.has_key(key)
+        'keys': 'keys', # Dict.keys()
+        'values': 'values', # Dict.values()
+        'items': 'items', # Dict.items()
+        'get': 'get', # Dict.get(key)
+        'set': 'set', # Dict.set(key, value)
+        'update': 'update', # Dict.update(dict)
+        'remove': 'remove', # Dict.remove(key)
+        'empty': 'empty', # Dict.empty()
+        '__methods__': '__methods__', # Dict.__methods__()
+        '__properties__': '__properties__', # Dict.__properties__()
+}
+
+object_methods = {
+    '__properties__': '__properties__', # Object.__properties__()
+    '__properties__': '__properties__', # Object.__properties__()
 }
 
 function_methods = {
     '__methods__': '__methods__', # Function.__methods__()
+    '__properties__': '__properties__', # Function.__properties__()
 }
 
 class_methods = {
     '__methods__': '__methods__', # Class.__methods__()
+    '__properties__': '__properties__', # Class.__properties__()
 }
 
 def string_split(string, delimiter):
@@ -148,13 +155,18 @@ def string_strip(text):
             new_text += ' ' + split_text[i].strip()
     return new_text
 
-def string_count(string, value):
+def string_count(string, value, start=0, end=None):
     # return how many times value appears in string
     count = 0
-    for i in range(len(string)):
+    if end is None:
+        end = len(string)
+    for i in range(start, end):
         if string[i] == value:
             count += 1
-    return count 
+    return count
+            
+
+
 
 class Regex:
         def __init__(self):
@@ -2415,7 +2427,6 @@ class BaseFunction(Value):
     def __init__(self, name):
         super().__init__()
         self.name = name or "<anonymous>"
-        self.value = self.name
         
   
     def generate_new_context(self):
@@ -2470,7 +2481,6 @@ class BaseClass(Value):
     def __init__(self, name):
         super().__init__()
         self.name = name
-        self.value = self.name
 
     def generate_new_context(self):
         new_context = Context(self.name, self.context, self.pos_start)
@@ -2515,7 +2525,7 @@ class BaseClass(Value):
     def is_true(self):
         return True
     
-         
+
 class Function(BaseFunction):
     def __init__(self, name, body_node, arg_names, implicit_return, default_values, properties, type,context):
         super().__init__(name)
@@ -2528,7 +2538,7 @@ class Function(BaseFunction):
         self.properties = properties
         self.type = type
         self.context = context
-        
+        self.value = f"<Function {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
         
     def execute(self, args):
         res = RuntimeResult()
@@ -3099,6 +3109,8 @@ class BuiltInClass(BaseClass):
 
     def __repr__(self):
         return f"<{str(self.name)}()>, [ built-in class ]"
+ 
+ 
         
 def getproperty(object, property, type_):
     value = False
@@ -3113,6 +3125,8 @@ def getproperty(object, property, type_):
                         value = True
                         
     return value
+
+
 # Built-in functions
 
 def BuiltInFunction_Print(args, node):
@@ -3301,7 +3315,13 @@ def BuiltInFunction_Str(args, node, context):
             "context": context,
             'exit': False
         }))
-    return res.success(String(str(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    if hasattr(args[0], "value"):
+        return res.success(String(str(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    else:
+        new_string = String(str(args[0]))
+        new_string.setPosition(node.pos_start, node.pos_end).setContext(context)
+        return res.success(new_string)
+
     
     
 def BuiltInFunction_Range(args, node, context):
@@ -3353,10 +3373,10 @@ def BuiltInFunction_Int(args, node, context):
             }))
     if isinstance(args[0], Boolean):
         return res.success(Number(int(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    return res.failure(Program.error()["Runtime"]({
+    return res.failure(Program.error()["TypeError"]({
         "pos_start": node.pos_start,
         "pos_end": node.pos_end,
-        'message': f"{args[0].value} is not a valid argument for int()",
+        'message': f"int() argument must be of type number, string or boolean, not {TypeOf(args[0]).getType()}",
         "context": context,
         'exit': False
     }))
@@ -3390,7 +3410,7 @@ def BuiltInFunction_Float(args, node, context):
     return res.failure(Program.error()["TypeError"]({
         "pos_start": node.pos_start,
         "pos_end": node.pos_end,
-        'message': f"{args[0].value} is not a valid argument for float()",
+        'message': f"float() argument must be of type number, string or boolean, not {TypeOf(args[0]).getType()}",
         "context": context,
         'exit': False
     }))
@@ -3407,7 +3427,6 @@ def BuiltInFunction_Bool(args, node, context):
             'exit': False
         }))
     if isinstance(args[0], Boolean):
-        print(args[0])
         return res.success(args[0])
     if isinstance(args[0], Number):
         return res.success(Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
@@ -3422,13 +3441,10 @@ def BuiltInFunction_Bool(args, node, context):
                 "context": context,
                 'exit': False
             }))
-    return res.failure(Program.error()["Runtime"]({
-        "pos_start": node.pos_start,
-        "pos_end": node.pos_end,
-        'message': f"{args[0].value} is not a valid argument for bool()",
-        "context": context,
-        'exit': False
-    }))
+    else:
+        bool_ = Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context)
+        return res.success(bool_)
+    
 
 
 def BuiltInFunction_List(args, node, context):
@@ -3480,7 +3496,6 @@ def BuiltInFunction_List(args, node, context):
             "context": context,
             'exit': False
         }))
-   
 
 def BuiltInFunction_Pair(args, node, context):
     res = RuntimeResult()
@@ -3603,6 +3618,33 @@ def BuiltInFunction_Min(args, node, context):
             'exit': False
         }))  
 
+
+def BuiltInFunction_isFinite(args, node, context):
+    res = RuntimeResult()
+    if len(args) != 1:
+        return res.failure(Program.error()["Runtime"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but isFinite() takes 1 argument",
+            "context": context,
+            'exit': False
+        }))
+
+
+    if isinstance(args[0], Number):
+        # custom implementation of isFinite()
+        def isFinite(num):
+            return num == num and num != float('inf') and num != float('-inf')
+        return res.success(Boolean(isFinite(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    else:
+        return res.failure(Program.error()["TypeError"]({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            "context": context,
+            'exit': False
+        }))
+    
 
 def BuiltInFunction_Sorted(args, node, context):
     res = RuntimeResult()
@@ -4053,6 +4095,7 @@ class BuiltInMethod_String(Value):
     def is_true(self):
         return True if self.name else False
    
+    
     def BuiltInMethod_upperCase(self):
         res = RuntimeResult()
         if len(self.args) != 0:
@@ -4215,8 +4258,10 @@ class BuiltInMethod_String(Value):
                         "context": self.context,
                         'exit': False
                     }))
+            elif isinstance(self.args[0], String):
+                return String(self.name.value.join(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for join()",
@@ -4416,8 +4461,7 @@ class BuiltInMethod_String(Value):
         res = RuntimeResult()
         if len(self.args) == 1:
             if isinstance(self.args[0], String):
-                count = string_count(self.name.value, self.args[0].value)
-                return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return Number(self.name.value.count(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
                 return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
@@ -4426,15 +4470,312 @@ class BuiltInMethod_String(Value):
                     "context": self.context,
                     'exit': False
                 }))
+        elif len(self.args) == 2:
+            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
+                return Number(self.name.value.count(self.args[0].value, self.args[1].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for count()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        elif len(self.args) == 3:
+            if isinstance(self.args[0], String) and isinstance(self.args[1], Number) and isinstance(self.args[2], Number):
+                return Number(self.name.value.count(self.args[0].value, self.args[1].value, self.args[2].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' and '{TypeOf(self.args[2]).getType()}' are not a valid arguments for count()",
+                    "context": self.context,
+                    'exit': False
+                }))
         else:
             return res.failure(Program.error()["Runtime"]({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but count() takes 1 argument",
+                'message': f"{len(self.args)} arguments given, but count() takes 1 argument and 2 optional arguments",
                 "context": self.context,
                 'exit': False
             }))
         
+       
+    def BuiltInMethod_startsWith(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], String):
+                string = self.name.value.replace(" ", "")
+                substring = self.args[0].value.replace(" ", "")
+                return Boolean(string.startswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for startsWith()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        elif len(self.args) == 2:
+            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
+                string = self.name.value.replace(" ", "")
+                substring = self.args[0].value.replace(" ", "")
+                start = self.args[1].value
+                end = start + 1
+                return Boolean(getsubstr(string, start, end).startswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for startsWith()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but startsWith() takes 1 or 2 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+      
+      
+    def BuiltInMethod_endsWith(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], String):
+                string = self.name.value.replace(" ", "")
+                substring = self.args[0].value.replace(" ", "")
+                return Boolean(string.endswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for endsWith()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        elif len(self.args) == 2:
+            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
+                string = self.name.value.replace(" ", "")
+                substring = self.args[0].value.replace(" ", "")
+                start = self.args[1].value
+                end = start + 1
+                return Boolean(getsubstr(string, start, end).endswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for endsWith()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but endsWith() takes 1 or 2 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+    
+    
+    def BuiltInMethod_find(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], String):
+                return Number(self.name.value.find(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for find()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        elif len(self.args) == 2:
+            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
+                start = self.args[1].value
+                return Number(self.name.value.find(self.args[0].value, start)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for find()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        elif len(self.args) == 3:
+            if isinstance(self.args[0], String) and isinstance(self.args[1], Number) and isinstance(self.args[2], Number):
+                start = self.args[1].value
+                end = self.args[2].value
+                return Number(self.name.value.find(self.args[0].value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}', '{TypeOf(self.args[1]).getType()}' and '{TypeOf(self.args[2]).getType()}' are not valid arguments for find()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but find() takes 1, 2 or 3 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+    
+    
+    def BuiltInMethod_findIndex(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], String):
+                return Number(self.name.value.find(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for findIndex()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        elif len(self.args) == 2:
+            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
+                start = self.args[1].value
+                return Number(self.name.value.find(self.args[0].value, start)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for findIndex()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but findIndex() takes 1 or 2 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+
+
+    def BuiltInMethod_isUpper(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            return Boolean(self.name.value.isupper()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but isUpper() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+    
+    
+    def BuiltInMethod_isLower(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            return Boolean(self.name.value.islower()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but isLower() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+        
+        
+    def BuiltInMethod_isAlpha(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            return Boolean(self.name.value.isalpha()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but isAlpha() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))  
+    
+    
+    def BuiltInMethod_isDigit(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            return Boolean(self.name.value.isdigit()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but isDigit() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+            
+    
+    def BuiltInMethod_isNumeric(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            return Boolean(self.name.value.isnumeric()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but isNumeric() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+            
+            
+    def BuiltInMethod_isEmpty(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            return Boolean(self.name.value == '').setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but isNumeric() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))       
+            
+    
+    def BuiltInMethod_format(self):
+        res = RuntimeResult()
+        args = self.args
+        if len(args) == 1:
+            if isinstance(args[0], List) or isinstance(args[0], Pair):
+                string = self.name.value
+                values = args[0].elements
+                for i in range(len(values)):
+                    string = string.replace('{' + str(i) + '}', str(values[i].value))
+                return String(string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' is not valid argument for format()",
+                    "context": self.context,
+                    'exit': False
+                }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but format() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))
+    
     # def BuiltInMethod___getproperty(self):
     #     res = RuntimeResult()
     #     print(self.args)
@@ -4962,9 +5303,12 @@ class BuiltInMethod_List(Value):
                 func = self.args[0]
                 new_list = []
                 for element in self.name.elements:
-                    if res.register(func.execute([element])).isTruthy():
-                        new_list.append(element)
+                    new_res = res.register(func.execute([element]))
+                    if isinstance(new_res, Boolean):
+                        if new_res.value == "true":
+                            new_list.append(element)
                 return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    
             else:
                 return res.failure(Program.error()["TypeError"]({
                     "pos_start": self.node.pos_start,
@@ -5328,6 +5672,8 @@ class Exception_Runtime(Al_Exception):
         
     def __repr__(self):
         return f"<Exception_Runtime {self.message}>"
+  
+  
     
 class NameError(Al_Exception):
     def __init__(self, name, message):
@@ -6734,31 +7080,68 @@ class Interpreter:
             if type(property).__name__ == "Token":
                 if hasattr(object_name, "properties"):
                    object_name.properties[property.value] = value
-                   #object_name._properties['__properties'].properties[property.value] = value
+                   
                 if property.value in dict_methods:
                     error["message"] = f"'dict' object property '{property.value}' is read-only"
+                    return res.failure(Program.error()["PropertyError"](error))
+       
+        elif isinstance(object_name, Object):
+            if type(property).__name__ == "Token":
+                if hasattr(object_name, "properties"):
+                   object_name.properties[property.value] = value
+                   
+                if property.value in object_methods:
+                    error["message"] = f"'object' object property '{property.value}' is read-only"
                     return res.failure(Program.error()["PropertyError"](error))
         
         elif isinstance(object_name, Function):
             if type(property).__name__ == "Token":
-                if hasattr(object_name, "_properties"):
-                    object_name._properties.properties[property.value] = value
-                    #object_name._properties.properties['__properties'].properties[property.value] = value
+                if hasattr(object_name, "properties"):
+                    object_name.properties.properties[property.value] = value
                 if property.value in function_methods:
                     error["message"] = f"'function' object property '{property.value}' is read-only"
                     return res.failure(Program.error()["PropertyError"](error))
-                    
+                      
         elif isinstance(object_name, List):
             if type(property).__name__ == "Token":
-                if hasattr(object_name, "properties"):
-                    object_name.properties.properties[property.value] = value
-                    #object_name._properties['__properties'].properties[property.value] = value
                 if property.value in list_methods:
                     error["message"] = f"'list' object property '{property.value}' is read-only"
                     return res.failure(Program.error()["PropertyError"](error))
+                else:
+                    error["message"] = f"'list' object has no property '{property.value}'"
+                    return res.failure(Program.error()["PropertyError"](error))
+                   
+        elif isinstance(object_name, Pair):
+            if type(property).__name__ == "Token":
+                if property.value in pair_methods:
+                    error["message"] = f"'pair' object property '{property.value}' is read-only"
+                    return res.failure(Program.error()["PropertyError"](error))
+                else:
+                    error["message"] = f"cannot set '{property.value}' on immutable type '{object_name.name}'"
+                    return res.failure(Program.error()["TypeError"](error))
+        
+        elif isinstance(object_name, String):
+            if type(property).__name__ == "Token":
+                if property.value in string_methods:
+                    error["message"] = f"'string' object property '{property.value}' is read-only"
+                    return res.failure(Program.error()["PropertyError"](error))
+                else:
+                    error["message"] = f"'string' object has no property '{property.value}'"
+                    return res.failure(Program.error()["PropertyError"](error))
+        
+        elif isinstance(object_name, Number):
+            if type(property).__name__ == "Token":
+                if property.value in number_methods:
+                    error["message"] = f"'number' object property '{property.value}' is read-only"
+                    return res.failure(Program.error()["PropertyError"](error))
+                else:
+                    error["message"] = f"'number' object has no property '{property.value}'"
+                    return res.failure(Program.error()["PropertyError"](error))
+        
+        
         else:
             if type(property).__name__ == "Token":
-                error["message"] = f"cannot set '{property.value}' on immutable type '{TypeOf(object_name).getType()}'"
+                error["message"] = f"'{TypeOf(object_name).getType()}' object has no property '{property.value}'"
                 return res.failure(Program.error()["TypeError"](error))
  
     
@@ -7979,6 +8362,7 @@ class Interpreter:
             'Object': BuiltInFunction_Object,
             'max': BuiltInFunction_Max,
             'min': BuiltInFunction_Min,
+            'isFinite': BuiltInFunction_isFinite,
             'sorted': BuiltInFunction_Sorted,
             'substr': BuiltInFunction_Substr,
             'reverse': BuiltInFunction_Reverse,
@@ -8068,6 +8452,7 @@ BuiltInFunction.isinstanceof = BuiltInFunction("isinstanceof")
 BuiltInFunction.hasProperty = BuiltInFunction("hasProperty")
 BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
+BuiltInFunction.isFinite = BuiltInFunction("isFinite")
 BuiltInClass.Exception = BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String("")}))
  
 Types.Number = Types("Number")
@@ -8118,6 +8503,7 @@ symbolTable_.set('isinstanceof', BuiltInFunction.isinstanceof)
 symbolTable_.set('hasProperty', BuiltInFunction.hasProperty)
 symbolTable_.set('max', BuiltInFunction.max)
 symbolTable_.set('min', BuiltInFunction.min)
+symbolTable_.set('isFinite', BuiltInFunction.isFinite)
 symbolTable_.set('Number', Types.Number)
 symbolTable_.set('String', Types.String)
 symbolTable_.set('Boolean', Types.Boolean)

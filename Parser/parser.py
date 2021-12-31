@@ -57,6 +57,7 @@ def isFirstLetterUpper(text):
     return text[0].isupper()               
 
 
+
 class Program:
     def error():
         def Default(detail):

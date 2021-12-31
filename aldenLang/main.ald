@@ -215,29 +215,7 @@ println(fm"'not' operator on builtin_type: %{not(String)}")
 println(fm"'not' operator on none: %{not(none)}")
 println(not "" == "")
 let dict_user = {"name": "John","age": 21,"email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
-let list_dict = [{
-    firstname: "John",
-    lastname: "Doe",
-    age: 21,
-    email: "john21@email.com",
-    hobby: "Playing soccer",
-    verfied: true
-},{
-    firstname: "Kenny",
-    lastname: "Akinsanya",
-    age: 23,
-    email: "kenny23@email.com",
-    hobby: "Coding",
-    verfied: true
-},
-{
-    firstname: "David",
-    lastname: "Reynolds",
-    age: 22,
-    email: "david22@gmail.com",
-    hobby: "Cooking",
-    verfied: false,
-}]
+
 # list.map = def @map(list, func)
 #     if not isinstanceof(list, List):
 #         raise Exception(fm"Expected List, got '%{typeof(list)}'")
@@ -268,25 +246,100 @@ let list_dict = [{
 #     return result
 # end
 
+
+line(69)
+# Multiplying all numbers in a list by 20
 def @sum(a)
     return a * 10
 end
+println(list.map(def (x) -> x * 20))
+
+line(70)
+# Joining firstname and lastname of all users
+let list_dict = [{
+    firstname: "John",
+    lastname: "Doe",
+    age: 21,
+    email: "john21@email.com",
+    hobby: "Playing soccer",
+    verfied: true
+},{
+    firstname: "Kenny",
+    lastname: "Akinsanya",
+    age: 23,
+    email: "kenny23@email.com",
+    hobby: "Coding",
+    verfied: true
+},
+{
+    firstname: "David",
+    lastname: "Reynolds",
+    age: 22,
+    email: "david22@gmail.com",
+    hobby: "Cooking",
+    verfied: false,
+}]
 def @getFullName(item)
     return [item.firstname, item.lastname].join(" ")
 end
-def @isverified(user)
-    return user.verfied
-end
-println(list.map(def (x) -> x * 20))
 println(list_dict.map(@getFullName))
+
+
+line(71)
+# Filtering only verified users
+def @isverified(user)
+    return  user.verfied
+end
+println(list_dict.filter(@isverified))
+
+
+line(72)
+# Filtering only words that have a length greater than 6
+final words = ['spray', 'limit', 'elite', 'exuberant', 'destruction', 'present']
+final result = words.filter(def (word) -> word.length > 6) # ['exuberant', 'destruction', 'present']
+println(result)
+
+line(73)
+# Filtering out all small values
+def @isBigEnough(value)
+   return value >= 10
+end
+let filtered = [12, 5, 8, 130, 44].filter(@isBigEnough) # [12, 130, 44]
+println(filtered)
+
+
+line(74)
+# Filtering out all prime numbers
+def @isPrime(num) 
+   for i = 2 to num:
+        if num % i == 0:
+            return false
+        end
+    end
+    return num > 1
+end
+let array = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] 
+println(array.filter(@isPrime)) # [2, 3, 5, 7, 11, 13]
+
+
+line(75)
+# Searching for a value in a list
+let fruits = ['apple', 'banana', 'grapes', 'mango', 'orange']
+
+#println(fruits.find(def (fruit) -> fruit == 'mango')) # mango
+println('Saturday night plans'.startsWith('Sat', 3)) # true
+println('Saturday night plans'.endsWith('Sat')) # true
+
+
+
+
 # hasproperty check # still working on this
-println(hasProperty(dict_user, "name"))
-println(hasProperty(dict_user, "age"))
-println(hasProperty(dict_user, "email"))
-println(hasProperty(dict_user, "hobby"))
-println(hasProperty(dict_user, "verfied"))
-println(hasProperty(dict_user, "has_key"))
-#println(list_dict.filter(def (user) -> user.verfied))
+# println(hasProperty(dict_user, "name"))
+# println(hasProperty(dict_user, "age"))
+# println(hasProperty(dict_user, "email"))
+# println(hasProperty(dict_user, "hobby"))
+# println(hasProperty(dict_user, "verfied"))
+# println(hasProperty(dict_user, "has_key"))
 # println(list.map(list, @sum))
 # let verfied_list = list.filter(list_dict, @isverified)
 # in verfied_list as user:

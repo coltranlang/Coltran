@@ -2,15 +2,55 @@ let name = "Kehinde Akinsanya"
 let occupation = "Software Engineer"
 let id = "123456789"
 
-# String interpolation
-# To interpolate a string, use the fm backtick string literal  and placeholders inside the string using %{} e.g. fm"Hello, %{name}!"
-let description = fm`Hello World, my name is %{name} and I am a %{occupation} with id %{id}` # to escape the placeholder, use double % to escape the % and double {} to escape the {}
-#let description2 = format("Hello World, my name is %s and I am a %s with id %s", name, occupation, id)
-#let description3 = "Hello World, my name is {0} and I am a {1} with id {2}".format(name, occupation, id) 
-
-println(description)
+line(1)
+# String concatenation and interpolation
+#let description4 = "Hello World " + name + " and I am a " + occupation + " with id " + id
+let description = fm'Hello World, my name is %{name} and I am a %{occupation} with id %{id}'
+let description3 = "Hello World, my name is {0} and I am a {1} with id {2}".format([name, occupation, id])
+println(description) 
+println(description3)
 def @greet(name)
     return fm`Hello %{name}!`
 end
-
 println(@greet(name))
+
+# String methods
+let  str = "Hello World"
+let text = "Hello, welcome to my world"
+let text2 = "I love apples, apple are my favorite fruit"
+println(str.length) # 11
+println(str.upperCase()) # HELLO WORLD
+println(str.lowerCase()) # hello world
+println(str.capitalize()) # Hello world
+println(str.includes("Hello")) # true
+println(str.startsWith("Hello")) # true
+println(str.endsWith("World")) # true
+println(str.findIndex("World")) # 6
+println(str.findIndex("World", 5)) # 6
+println(str.find("World")) # 6
+println(str.find("World", 5)) # 6
+println(str.replace("World", "Universe")) # Hello Universe
+println(str.replace("World", "Universe", 1)) # Hello Universe
+println(str.join("-")) # Hello-World
+println(str.strip()) # Hello World
+println(str.split(" ")) # ['Hello', 'World']
+println(str.split(" ").join("-")) # Hello-World
+println(str.substr(0, 5)) # Hello
+println(str.substr(5)) # World
+println(str.charAt(0)) # H
+println(str.charAt(5)) # W
+println(str.count("l")) # 3
+println(str.count("l", 5)) # 1
+println(str.count("l", 5, 10)) # 1
+println(text2.count("apple", 10, 24)) # 1
+println(str[::-1]) # dlroW olleH
+println(str.slice(0, 5)) # Hello
+println(text.find("e", 5, 10)) # 8
+println("hello".isUpper()) # false
+println("HELLO".isUpper()) # true
+println("hello".isLower()) # true
+println("HELLO".isLower()) # false
+println("hello".isAlpha()) # true
+println("123".isDigit()) # true
+println("5903".isNumeric()) # true
+println("{0} {1} Plays for Barca".format(("Lionel", "Messi"))) # Lionel Messi Plays for Barca
