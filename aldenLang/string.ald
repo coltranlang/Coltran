@@ -55,3 +55,8 @@ println("123".isDigit()) # true
 println("5903".isNumeric()) # true
 println("{0} {1} Plays for Barca".format(("Lionel", "Messi"))) # Lionel Messi Plays for Barca
 
+# String slicing with for-to-loop
+let str = "Hello, World!"
+for i = 0 to str.length - 1:
+    println(str[i:i+2])
+end
