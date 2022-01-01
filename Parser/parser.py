@@ -1002,13 +1002,71 @@ class Parser:
                     'message': "Identifier too long",
                     'exit': False
                 }))
-            if self.current_token.type == tokenList.TT_COMMA:
-                return res.failure(self.error['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "Assignments on multiple variables are not supported",
-                    'exit': False
-                }))
+           
+           
+            while self.current_token.type == tokenList.TT_COMMA:
+                identifiers = [VarAccessNode(var_name)]
+                values = []
+                res.register_advancement()
+                self.advance()
+                comma_token = self.current_token
+                if self.current_token.type == tokenList.TT_IDENTIFIER:
+                    identifiers.append(VarAccessNode(self.current_token))
+                    res.register_advancement()
+                    self.advance()
+                    while self.current_token.type == tokenList.TT_COMMA:
+                        comma_token = self.current_token
+                        res.register_advancement()
+                        self.advance()
+                        if self.current_token.type != tokenList.TT_IDENTIFIER:
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax']({
+                                'pos_start':comma_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "Expected an identifier after ','",
+                                'exit': False
+                            }))
+                        while self.current_token.type == tokenList.TT_IDENTIFIER:
+                            identifiers.append(VarAccessNode(self.current_token))
+                            res.register_advancement()
+                            self.advance()
+                    if self.current_token.type == tokenList.TT_EQ:
+                        res.register_advancement()
+                        self.advance()
+                        new_values = []
+                        expr = res.register(self.expr())
+                        values.append(expr)
+                        if isinstance(expr, PairNode) or isinstance(expr, ListNode):
+                            for val in expr.elements:
+                                new_values.append(val)
+                                values = new_values
+                        while self.current_token.type == tokenList.TT_COMMA:
+                            res.register_advancement()
+                            self.advance()
+                            comma_token = self.current_token
+                            values.append(res.register(self.expr()))
+                            for v in values:
+                                if v == '':
+                                    values.remove(v)
+                        values_list = ListNode(values, comma_token.pos_start, comma_token.pos_end)
+                        if isinstance(expr, DictNode) or isinstance(expr, ObjectNode):
+                           values_list = expr
+                        return res.success(VarAssignNode(identifiers, values_list, variable_keyword_token))
+                else:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': comma_token.pos_start,
+                        'pos_end': comma_token.pos_end,
+                        'message': "Expected an identifier after ','",
+                        'exit': False
+                    }))
+                # res.register_advancement()
+                # self.advance()
+                if res.error:
+                    return res
+               # return res.success(VarAssignNode(var_name, expr, variable_keyword_token))
+            
+            
             if self.current_token.type == tokenList.TT_RSHIFT:
                 res.register_advancement()
                 self.advance()
@@ -1130,16 +1188,33 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 name = self.current_token
-                atom = res.register(self.access_property(atom))
-                if res.error: return res
-                if name.type != tokenList.TT_IDENTIFIER and name.type != tokenList.TT_KEYWORD:
-                    self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': name.pos_start,
-                        'pos_end': name.pos_end,
-                        'message': "Expected an identifier",
-                        'exit': False
-                    }))
+                if atom == '':
+                    # then we want to make it a floating point number e.g. .5 == 0.5
+                    if name != '' and isinstance(name.value, int):
+                        tok = Token(tokenList.TT_FLOAT, float(
+                            '0.' + str(name.value)), name.pos_start, name.pos_end)
+                        res.register_advancement()
+                        self.advance()
+                        return res.success(NumberNode(tok))
+                    else:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Invalid syntax or unknown token",
+                            'exit': False
+                        }))
+                else:
+                    atom = res.register(self.access_property(atom))
+                    if res.error: return res
+                    if name.type != tokenList.TT_IDENTIFIER and name.type != tokenList.TT_KEYWORD:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': name.pos_start,
+                            'pos_end': name.pos_end,
+                            'message': "Expected an identifier",
+                            'exit': False
+                        }))
             elif self.current_token.type == tokenList.TT_LSQBRACKET:
                 atom = res.register(self.index_get(atom))
             elif self.current_token.type == tokenList.TT_PLUS_PLUS:
@@ -4163,7 +4238,8 @@ num = 123
 num2 = 123.456
 LETTERS_SYMBOLS = LETTERS + SYMBOLS
 
-
+a,b = 1,2,
+print(a,b)  
 # class Test:
 #     def test(a, b):
 #         return a + b
@@ -4219,3 +4295,4 @@ print(hasattr(d, "2"))
 num1 = 0
 class Test:
     pass
+

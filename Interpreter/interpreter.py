@@ -84,11 +84,14 @@ list_methods = {
                 'indexOf': 'indexOf', # List.indexOf(value)
                 'map': 'map', # List.map(function)
                 'filter': 'filter', # List.filter(function)
+                'find': 'find', # List.find(function)
                 'reduce': 'reduce', # List.reduce(function)
                 'some': 'some', # List.some(function)
                 'each': 'each', # List.each(function)
                 'every': 'every', # List.every(function)
                 'toString': 'toString', # List.toString()
+                'isNumber': 'isNumber', # List.isNumber()
+                'isString': 'isString', # List.isString()
                 '__methods__': '__methods__',  # List.__methods__()
                 
 }
@@ -877,7 +880,7 @@ class Value:
             other = self
         if not 'message' in error:
             if hasattr(other, 'value'):
-                errorDetail['message'] = f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}'
+                errorDetail['message'] = f"Illegal operation for type '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'"
                 return Program.error()['Syntax'](errorDetail)
             else:
                 errorDetail['message'] = f"illegal operation"
@@ -952,7 +955,7 @@ class Number(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't add {TypeOf(self.value).getType()} to {TypeOf(other.value).getType()}",
+            'message': f"can't add type '{TypeOf(self.value).getType()}' to type '{TypeOf(other.value).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -960,6 +963,16 @@ class Number(Value):
             return Number(setNumber(self.value) + setNumber(other.value)).setContext(self.context), None
         if isinstance(other, Boolean):
             return Number(setNumber(self.value) + setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Pair):
+            value = 0
+            if len(other.elements) > 1:
+                return self.illegal_operation_typerror(error, other), None
+            for element in other.elements:
+                if not isinstance(element, Number):
+                    return None, self.illegal_operation_typerror(error)
+                else:
+                    value += setNumber(element.value)
+            return Number(setNumber(self.value) + value).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
 
@@ -973,7 +986,7 @@ class Number(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't subtract {TypeOf(self.value).getType()} from {TypeOf(other.value).getType()}",
+            'message': f"can't subtract type '{TypeOf(self.value).getType()}' from type '{TypeOf(other.value).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -981,6 +994,16 @@ class Number(Value):
             return Number(setNumber(self.value) - setNumber(other.value)).setContext(self.context), None
         elif isinstance(other, Boolean):
             return Number(setNumber(self.value) - setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Pair):
+            value = 0
+            if len(other.elements) > 1:
+                return self.illegal_operation_typerror(error, other), None
+            for element in other.elements:
+                if not isinstance(element, Number):
+                    return None, self.illegal_operation_typerror(error)
+                else:
+                    value += setNumber(element.value)
+            return Number(setNumber(self.value) - value).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
 
@@ -997,6 +1020,17 @@ class Number(Value):
             return Number(setNumber(self.value) * setNumber(other.value)).setContext(self.context), None
         elif isinstance(other, Boolean):
             return Number(setNumber(self.value) * setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Pair):
+            value = 0
+            if len(other.value) > 1:
+                return self.illegal_operation_typerror(error, other), None
+            for element in other.elements:
+                if not isinstance(element, Number):
+                    return None, self.illegal_operation_typerror(error)
+                else:
+                    value += setNumber(element.value)
+            return Number(setNumber(self.value) * value).setContext(self.context), None
+            
         else:
             return None, self.illegal_operation_typerror(error)
 
@@ -1013,7 +1047,7 @@ class Number(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't divide {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
+            'message': f"can't divide type '{TypeOf(self.value).getType()}' by type '{TypeOf(other.value).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -1021,6 +1055,25 @@ class Number(Value):
             return Number(setNumber(self.value) / setNumber(other.value)).setContext(self.context), None
         elif isinstance(other, Boolean):
             return Number(setNumber(self.value) / setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Pair):
+            value = 0
+            if len(other.value) > 1:
+                return self.illegal_operation_typerror(error, other), None
+            for element in other.elements:
+                if not isinstance(element, Number):
+                    return None, self.illegal_operation_typerror(error)
+                else:
+                    if element.value == 0:
+                        error = {
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"division by zero",
+                            'context': self.context,
+                            'exit': False
+                        }
+                        return None, Program.error()['ZeroDivisionError'](error)
+                    value += setNumber(element.value)
+            return Number(setNumber(self.value) / value).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
 
@@ -1037,7 +1090,7 @@ class Number(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't divide {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
+            'message': f"can't divide type '{TypeOf(self.value).getType()}' by type '{TypeOf(other.value).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -1045,6 +1098,25 @@ class Number(Value):
             return Number(setNumber(self.value) // setNumber(other.value)).setContext(self.context), None
         elif isinstance(other, Boolean):
             return Number(setNumber(self.value) // setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Pair):
+            value = 0
+            if len(other.value) > 1:
+                return self.illegal_operation_typerror(error, other), None
+            for element in other.elements:
+                if not isinstance(element, Number):
+                    return None, self.illegal_operation_typerror(error)
+                else:
+                    if element.value == 0:
+                        error = {
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"division by zero",
+                            'context': self.context,
+                            'exit': False
+                        }
+                        return None, Program.error()['ZeroDivisionError'](error)
+                    value += setNumber(element.value)
+            return Number(setNumber(self.value) // value).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
 
@@ -1052,7 +1124,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"can't power {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
+                    'message': f"can't raise type '{TypeOf(self.value).getType()}' to type '{TypeOf(other.value).getType()}'",
                     'context': self.context,
                     'exit': False
                 }
@@ -1060,6 +1132,16 @@ class Number(Value):
             return Number(setNumber(self.value) ** setNumber(other.value)).setContext(self.context), None
         elif isinstance(other, Boolean):
             return Number(setNumber(self.value) ** setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Pair):
+            value = 0
+            if len(other.value) > 1:
+                return self.illegal_operation_typerror(error, other), None
+            for element in other.elements:
+                if not isinstance(element, Number):
+                    return None, self.illegal_operation_typerror(error)
+                else:
+                    value += setNumber(element.value)
+            return Number(setNumber(self.value) ** value).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
 
@@ -1067,7 +1149,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"can't perform modulo on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'message': f"can't perform modulo on type '{TypeOf(self.value).getType()}' and type '{TypeOf(other.value).getType()}'",
                     'context': self.context,
                     'exit': False
                 }
@@ -1095,6 +1177,26 @@ class Number(Value):
                 return None, Program.error()['ZeroDivisionError'](error)
             else:
                 return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
+        elif isinstance(other, Pair):
+            value = 0
+            if len(other.value) > 1:
+                return self.illegal_operation_typerror(error, other), None
+            for element in other.elements:
+                if not isinstance(element, Number):
+                    return None, self.illegal_operation_typerror(error)
+                else:
+                    if element.value == 0 or setNumber(element.value) == 0:
+                        error = {
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"modulo by zero",
+                            'context': self.context,
+                            'exit': False
+                        }
+                        return None, Program.error()['ZeroDivisionError'](error)
+                    else:
+                        value += setNumber(element.value)
+            return Number(setNumber(self.value) % value).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error)
 
@@ -5230,6 +5332,41 @@ class BuiltInMethod_List(Value):
             }))
     
     
+    def BuiltInMethod_isNumber(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            # check if all elements are numbers
+            for element in self.name.elements:
+                if not isinstance(element, Number):
+                    return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but isNumber() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+    
+    
+    def BuiltInMethod_isString(self):
+        res = RuntimeResult()
+        if len(self.args) == 0:
+            for element in self.name.elements:
+                if not isinstance(element, String):
+                    return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but isString() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            }))
+    
+    
     def BuiltInMethod_toString(self):
         res = RuntimeResult()
         if len(self.args) == 0:
@@ -5327,7 +5464,51 @@ class BuiltInMethod_List(Value):
                 'exit': False
             }))
 
-    
+
+    def BuiltInMethod_find(self):
+        res = RuntimeResult()
+        if len(self.args) == 1:
+            if isinstance(self.args[0], Function):
+                func = self.args[0]
+                if len(func.arg_names) == 1:
+                    for element in self.name.elements:
+                        new_res = res.register(func.execute([element]))
+                        if isinstance(new_res, Boolean):
+                            if new_res.value == "true":
+                                return element
+                    return NoneType.none
+                else:
+                    if len(func.arg_names) == 2:
+                        for i in range(len(self.name.elements)):
+                            new_res = res.register(func.execute([self.name.elements[i], Number(i)]))
+                            if isinstance(new_res, Boolean):
+                                if new_res.value == "true":
+                                    return self.name.elements[i]
+                    elif len(func.arg_names) == 3:
+                        for i in range(len(self.name.elements)):
+                            new_res = res.register(func.execute([self.name.elements[i], Number(i), self.name]))
+                            if isinstance(new_res, Boolean):
+                                if new_res.value == "true":
+                                    return self.name.elements[i]                    
+            else:
+                return res.failure(Program.error()["TypeError"]({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for find()",
+                    "context": self.context,
+                    'exit': False
+                }))
+            
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"{len(self.args)} arguments given, but find() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            }))      
+
+   
     def copy(self):
         copy = BuiltInMethod_List(
             self.type, self.name, self.args, self.node, self.context)
@@ -5864,7 +6045,6 @@ class Interpreter:
                 elif type(element).__name__ == 'VarAccessNode':
                     var_name = var_name + element.id.value
         value = res.register(self.visit(node.value_node, context))
-        
         if node.variable_keyword_token == "module":
             value = context.symbolTable.get(node.value_node.value)
             if value == None:
@@ -5901,7 +6081,7 @@ class Interpreter:
                             return res.failure(Program.error()['ValueError']({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
-                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
+                                'message': f"Cannot pair '{TypeOf(value).getType()}' with '{TypeOf(v).getType()}'",
                                 'context': context,
                                 'exit': False
                             }))
@@ -5922,7 +6102,7 @@ class Interpreter:
                         return res.failure(Program.error()['ValueError']({
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
-                            'message': f"Expected {len(value.properties)} values, unable to pair {len(var_name)} value(s)",
+                            'message': f"Expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
                             'context': context,
                             'exit': False
                         }))
@@ -5954,7 +6134,7 @@ class Interpreter:
                             return res.failure(Program.error()['ValueError']({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
-                                'message': f"Cannot pair {TypeOf(value).getType()} with {TypeOf(v).getType()}",
+                                'message': f"Cannot pair '{TypeOf(value).getType()}' with '{TypeOf(v).getType()}'",
                                 'context': context,
                                 'exit': False
                             }))
@@ -5974,7 +6154,7 @@ class Interpreter:
                         return res.failure(Program.error()['ValueError']({
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
-                            'message': f"Expected {len(value.elements)} values, unable to pair {len(var_name)} value(s)",
+                            'message': f"Expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
                             'context': context,
                             'exit': False
                         }))
@@ -6002,7 +6182,7 @@ class Interpreter:
                 return res.failure(Program.error()['Runtime']({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"Cannot assign {type(value).__name__} to Pair",
+                    'message': f"Cannot pair '{TypeOf(value).getType()}' with '{TypeOf(var_name).getType()}'",
                     'context': context,
                     'exit': False
                 }))

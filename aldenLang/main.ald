@@ -326,12 +326,27 @@ line(75)
 # Searching for a value in a list
 let fruits = ['apple', 'banana', 'grapes', 'mango', 'orange']
 
-#println(fruits.find(def (fruit) -> fruit == 'mango')) # mango
-println('Saturday night plans'.startsWith('Sat', 3)) # true
-println('Saturday night plans'.endsWith('Sat')) # true
+println(fruits.find(def (fruit) -> fruit == 'mango')) # mango
 
+let list_nums = [5,12,8,130,44]
+let found = list_nums.find(def (num) -> num > 6)
+println(found) # 12
 
+final invetory = [
+    {name: 'apples', quantity: 2},
+    {name: 'bananas', quantity: 0},
+    {name: 'oranges', quantity: 5},
+    {name: 'cherries', quantity: 10},
+    {name: 'grapes', quantity: 20}
+]
 
+def @isCherries(fruit)
+    return fruit.name == 'cherries'
+end
+
+println(invetory.find(@isCherries)) # {name: 'cherries', quantity: 10}
+
+# find all prime numbers
 
 # hasproperty check # still working on this
 # println(hasProperty(dict_user, "name"))

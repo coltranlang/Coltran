@@ -1,0 +1,59 @@
+line(1)
+# Fibonacci series
+def @fibonacci(num)
+    for i 
+    if num <= 1 :
+        return num
+    else:
+        return @fibonacci(num - 1) + @fibonacci(num - 2)
+    end
+end
+
+def @fibonacci(num)
+    if num <= 1 :
+        return num
+    else:
+        return @fibonacci(num - 1) + @fibonacci(num - 2)
+    end
+end
+
+final num = @fibonacci(10)
+
+println(num)
+
+
+line(2)
+# Bubble Sort
+def @checkList(list)
+    if  not list and list.isEmpty():
+        return false
+    end
+    return true
+end
+
+def @bubblesort(list=[])
+    # Check if the list is empty or the list are numbers
+    if not @checkList(list):
+        raise Exception(fm"Expected List, got '%{typeof(list)}'")
+    else:
+        if list.isNumber():
+            for i = 0 to list.length:
+                for j = 0 to list.length - 1:
+                    if list[j] > list[j + 1]:
+                        let temp = list[j]
+                        list[j] = list[j + 1]
+                        list[j + 1] = temp
+                    end
+                end
+            end
+        else:
+            raise Exception(fm"Expected List of numbers")
+        end
+    end
+    return list
+end
+
+let list = [5, 3, 8, 6, 2, 1, 4, 7]
+
+println(list)
+println(@bubblesort(list)) # [1, 2, 3, 4, 5, 6, 7, 8]

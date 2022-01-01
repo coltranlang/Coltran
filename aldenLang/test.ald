@@ -799,6 +799,110 @@ println(hasProperty(dict_user, "address")) # false
 println("hasProperty for list")
 let list_user = ["John", 21, "", "Playing soccer", true, 2]
 #println(hasProperty(list_user, "name"))  # false
+
+
+line(69)
+# Multiplying all numbers in a list by 20
+def @sum(a)
+    return a * 10
+end
+println(list.map(def (x) -> x * 20))
+
+line(70)
+# Joining firstname and lastname of all users
+let list_dict = [{
+    firstname: "John",
+    lastname: "Doe",
+    age: 21,
+    email: "john21@email.com",
+    hobby: "Playing soccer",
+    verfied: true
+},{
+    firstname: "Kenny",
+    lastname: "Akinsanya",
+    age: 23,
+    email: "kenny23@email.com",
+    hobby: "Coding",
+    verfied: true
+},
+{
+    firstname: "David",
+    lastname: "Reynolds",
+    age: 22,
+    email: "david22@gmail.com",
+    hobby: "Cooking",
+    verfied: false,
+}]
+def @getFullName(item)
+    return [item.firstname, item.lastname].join(" ")
+end
+println(list_dict.map(@getFullName))
+
+
+line(71)
+# Filtering only verified users
+def @isverified(user)
+    return  user.verfied
+end
+println(list_dict.filter(@isverified))  # [{firstname: 'John', lastname: 'Doe', age: 21, email: 'john21@email.com', hobby: 'Playing soccer', verfied: true}, {firstname: 'Kenny', lastname: 'Akinsanya', age: 23, email: 'kenny23@email.com', hobby: 'Coding', verfied: true}]
+
+
+line(72)
+# Filtering only words that have a length greater than 6
+final words = ['spray', 'limit', 'elite', 'exuberant', 'destruction', 'present']
+final result = words.filter(def (word) -> word.length > 6) # ['exuberant', 'destruction', 'present']
+println(result)
+
+line(73)
+# Filtering out all small values
+def @isBigEnough(value)
+   return value >= 10
+end
+let filtered = [12, 5, 8, 130, 44].filter(@isBigEnough) # [12, 130, 44]
+println(filtered)
+
+
+line(74)
+# Filtering out all prime numbers
+def @isPrime(num) 
+   for i = 2 to num:
+        if num % i == 0:
+            return false
+        end
+    end
+    return num > 1
+end
+
+let array = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] 
+println(array.filter(@isPrime)) # [2, 3, 5, 7, 11, 13]
+
+line(75)
+# Searching for a value in a list
+let fruits = ['apple', 'banana', 'grapes', 'mango', 'orange']
+println(fruits.find(def (fruit) -> fruit == 'mango')) # mango
+
+line(76)
+# Find num > 6
+let list_nums = [5,12,8,130,44]
+let found = list_nums.find(def (num) -> num > 6)
+println(found) # 12
+
+line(77)
+# Find invetory item with name 'cherries'
+final invetory = [
+    {name: 'apples', quantity: 2},
+    {name: 'bananas', quantity: 0},
+    {name: 'oranges', quantity: 5},
+    {name: 'cherries', quantity: 10},
+    {name: 'grapes', quantity: 20}
+]
+
+def @isCherries(fruit)
+    return fruit.name == 'cherries'
+end
+
+println(invetory.find(@isCherries)) # {name: 'cherries', quantity: 10}
+
 # def @makeList(item, list=[])
 #     list.append(item)
 #     return list

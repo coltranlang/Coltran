@@ -187,16 +187,16 @@ class Lexer:
         num_str = ''
         dot_count = 0
         pos_start = self.pos.copy()
-        
-        
         while self.current_char != None and self.current_char in tokenList.DIGITS + '.':
             
                 
             if self.current_char == '.':
+                
                 if dot_count == 1:
                     break
                 dot_count += 1
                 num_str += '.'
+                
             else:
                 
                 num_str += self.current_char
@@ -596,3 +596,4 @@ class Position:
 
     def copy(self):
         return Position(self.index, self.line, self.column, self.fileName, self.fileText)
+
