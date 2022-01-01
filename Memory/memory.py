@@ -232,6 +232,7 @@ class SymbolTable:
         return value
     
     
+    
     def set_object(self, obj_name, object):
         self.symbols[obj_name] = object
         
@@ -255,6 +256,15 @@ class SymbolTable:
               }
             else:
                 self.symbols[name] = value
+    
+    
+    def del_object(self, name):
+        if name in self.symbols:
+            del self.symbols[name]
+        else:
+            Program.error()["Default"](
+                "SyntaxError", "Identifier '{name}' cannot be deleted".format(name=name))
+    
             
     def set_current_scope(self, scope):
         self.scope = scope

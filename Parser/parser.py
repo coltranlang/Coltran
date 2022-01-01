@@ -530,7 +530,15 @@ class RaiseNode:
         self.expression = expression
         self.pos_start = self.expression.pos_start
         self.pos_end = self.expression.pos_end
-        
+     
+
+class DelNode:
+    def __init__(self, identifier, expression):
+        self.identifier = identifier
+        self.expression = expression
+        self.pos_start = self.identifier.pos_start
+        self.pos_end = self.identifier.pos_end     
+   
 
 class AttemptNode:
     def __init__(self, attempt_statement, exception, catch_statement, else_statement):
@@ -1566,6 +1574,12 @@ class Parser:
             if res.error:
                 return res
             return res.success(string_interp)
+        
+        elif tok.matches(tokenList.TT_KEYWORD, 'del'):
+            del_expr = res.register(self.del_expr())
+            if res.error:
+                return res
+            return res.success(del_expr)
 
         elif tok.matches(tokenList.TT_KEYWORD, 'get'):
             get_expr = res.register(self.get_expr())
@@ -2262,9 +2276,18 @@ class Parser:
         
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             def_name_token = self.current_token
+            if def_name_token.value[0] != '@':
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': def_name_token.pos_start,
+                    'pos_end': def_name_token.pos_end,
+                    'message': "Expected '@' before function name",
+                    'exit': False
+                }))
             res.register_advancement()
             self.advance()
             if self.current_token.type != tokenList.TT_LPAREN:
+                self.error_detected = True
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
@@ -3610,6 +3633,7 @@ class Parser:
             self.advance()
             index = res.register(self.expr())
             if res.error: return res
+            
             if self.current_token.type == tokenList.TT_RSQBRACKET:
                 res.register_advancement()
                 self.advance()
@@ -3681,26 +3705,83 @@ class Parser:
                             'message': "Expected ']'",
                             'exit': False
                         }))
-     
-    def raise_expr(self):
-        res = ParseResult()
-        if self.current_token.matches(tokenList.TT_KEYWORD, 'raise'):
-            res.register_advancement()
-            self.advance()
-            if self.current_token.type == tokenList.TT_IDENTIFIER:
-                _Exception = res.register(self.expr())
-                if res.error: return res
-                res.register_advancement()
-                self.advance()
-                return res.success(RaiseNode(_Exception))
             else:
+                self.error_detected = True
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "Expected 'Exception'",
+                    'message': "invalid index expression",
                     'exit': False
                 }))
+        
+    def raise_expr(self):
+        res = ParseResult()
+        if not self.current_token.matches(tokenList.TT_KEYWORD, 'raise'):
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected 'raise'",
+                'exit': False
+            }))
+        res.register_advancement()
+        self.advance()
+        
+        if self.current_token.type == tokenList.TT_IDENTIFIER:
+            _Exception = res.register(self.expr())
+            if res.error: return res
+            return res.success(RaiseNode(_Exception))
+        else:
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected 'Exception'",
+                'exit': False
+            }))
      
+    def del_expr(self):
+        res = ParseResult()
+        if not self.current_token.matches(tokenList.TT_KEYWORD, 'del'):
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected 'del'",
+                'exit': False
+            }))
+        res.register_advancement()
+        self.advance()
+        identifier = self.current_token
+        if identifier == "":
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected an expression",
+                'exit': False
+            }))
+        res.register_advancement()
+        self.advance()
+        expression = None
+        if self.current_token.type == tokenList.TT_DOT:
+            res.register_advancement()
+            self.advance()
+            expression = res.register(self.access_property(identifier))
+            return res.success(DelNode(identifier, expression))
+        elif self.current_token.type == tokenList.TT_LSQBRACKET:
+            expression = res.register(self.expr())
+            return res.success(DelNode(identifier, expression))
+        else:
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "invalid del expression",
+                'exit': False
+            }))
+        if res.error: return res
+        return res.success(DelNode(identifier, expression))
+              
     def attempt_expr(self):
         res = ParseResult()
         is_exception = False
@@ -4295,4 +4376,9 @@ print(hasattr(d, "2"))
 num1 = 0
 class Test:
     pass
-
+# def greet(name):
+#     return f"Hello, {ndame}"
+# try:
+#     print(greet('name'))
+# except Exception as e:
+#     print(f"Error: {e}")

@@ -82,7 +82,7 @@ TT_PIPE = 'PIPE'
 TT_SLASH = 'SLASH'
 TT_SPREAD = 'SPREAD'
 TT_MERGE = 'MERGE'
-
+TT_DEL = 'DEL'
 NOT_ALLOWED_OBJECTS_KEYS = [
      'let',
     'final',
@@ -122,7 +122,8 @@ NOT_ALLOWED_OBJECTS_KEYS = [
     'return',
     'continue',
     'break',
-    'fm'
+    'fm',
+    'raise'
 ]
 
 NOT_ALLOWED_OBJECTS_VALUES = [
@@ -199,7 +200,8 @@ KEYWORDS = [
     'continue',
     'break',
     'fm',
-    'raise'
+    'raise',
+    'del'
 ]
 
 TYPES = [
@@ -260,6 +262,7 @@ PRINTLN= 'println'
 
 BUILTIN= [
     'print',
+    'println',
     'len',
     'append',
     'pop',
@@ -276,5 +279,5 @@ BUILTIN= [
     'bool',
     'list',
     'object',
-    'format'
+    'format',
 ]

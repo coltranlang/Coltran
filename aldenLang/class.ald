@@ -1,5 +1,5 @@
 class Animal(name, age, breed, color)
-   def initialize(self)
+   def __init(self)
    end  
 
    def bark(self)

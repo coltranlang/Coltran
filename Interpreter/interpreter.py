@@ -598,7 +598,8 @@ class RuntimeResult:
         self.loop_break = True
         return self
 
-    def failure(self, error):
+    def failure(self, error, value=None):
+        #print(f"value is {value}")
         self.reset(True)
         self.error = True
         self.value = ''
@@ -2345,7 +2346,7 @@ class Dict(Value):
                     self.properties[key] = value
             return Dict(self.properties), None
         elif isinstance(other, Class):
-            for key, value in other.methods_properties.items():
+            for key, value in other.properties.items():
                 if key.startswith("__"):
                     continue
                 else:
@@ -2484,7 +2485,7 @@ class Object(Value):
                     self.properties[key] = value
             return Dict(self.properties), None
         elif isinstance(other, Class):
-            for key, value in other.methods_properties.items():
+            for key, value in other.properties.items():
                 if key.startswith("__"):
                     continue
                 else:
@@ -2767,8 +2768,8 @@ class Class(BaseClass):
         self.inherit_class_name = inherit_class_name
         self.inherit_class = inherit_class
         self.methods = methods
-        self.methods_properties = methods
-        self.value = self.methods_properties
+        self.properties = methods
+        self.value = self.properties
         self.context = context
         self.body_node = None
         
@@ -2777,21 +2778,21 @@ class Class(BaseClass):
         res = RuntimeResult()
         instance = ClassInstance(self)
         new_context = self.generate_new_context()
-        class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.methods_properties)
+        class_args = dict({arg_name.value: arg_value for arg_name, arg_value in zip(self.constructor_args, args)}, **self.properties)
         self.check_args(self.constructor_args, args)
         self.populate_args(self.constructor_args, args, self.context)
         if res.should_return(): return res
-        if  self.methods_properties == {}:
-            self.methods_properties = class_args
+        if  self.properties == {}:
+            self.properties = class_args
         else:
-            for method_name, method in self.methods_properties.items():
+            for method_name, method in self.properties.items():
                 method.context = new_context
                 method = method.copy()
-                self.methods_properties[method_name] = method
-                self.methods_properties = class_args
+                self.properties[method_name] = method
+                self.properties = class_args
                 
                 # run init method if it exists
-                if method_name == 'init':
+                if method_name == '__init':
                     method_args = method.arg_names
                     if len(method_args) == 1:
                         method_args = method_args[1:]
@@ -2809,7 +2810,7 @@ class Class(BaseClass):
               
         
     def set_method(self, key, value):
-        self.methods_properties[key] = value
+        self.properties[key] = value
         return self
 
 
@@ -2849,8 +2850,8 @@ class Class(BaseClass):
     
     def isSame(self, other):
         if isinstance(other, Class):
-            _new_class = f"{{{', '.join([f'{k}: {v}' for k, v in self.methods_properties.items()])}}}"
-            other_class = f"{{{', '.join([f'{k}: {v}' for k, v in other.methods_properties.items()])}}}"
+            _new_class = f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
+            other_class = f"{{{', '.join([f'{k}: {v}' for k, v in other.properties.items()])}}}"
             return _new_class == other_class
         return False
 
@@ -2863,7 +2864,7 @@ class Class(BaseClass):
                     self.properties[key] = value
             return Dict(self.properties), None
         elif isinstance(other, Class):
-            for key, value in other.methods_properties.items():
+            for key, value in other.properties.items():
                 if key.startswith("__"):
                     continue
                 else:
@@ -2881,7 +2882,7 @@ class Class(BaseClass):
    
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
-                     self.inherit_class_name, self.inherit_class, self.methods_properties, self.context)
+                     self.inherit_class_name, self.inherit_class, self.properties, self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -3014,7 +3015,7 @@ class Module(Value):
         if isinstance(self.value, Object):
             self.properties = self.value.properties
             if isinstance(self.value.properties, Class):
-                self.properties = self.value.properties.methods_properties
+                self.properties = self.value.properties.properties
         else:
             self.properties = {}
         return self.value
@@ -4094,34 +4095,49 @@ def BuiltInFunction_Exit(args, node, context):
 
 # Built-in class
 
-def BuiltInClass_Exception(args, node, context):
+def BuiltInClass_Exception(args, node, context, type):
     res = RuntimeResult()
-    if len(args) == 1 and isinstance(args[0], String):
-        return res.success(Program.error()["Exception"]({
-            'name': 'Exception',
-            'message': args[0].value,
-            'pos_start': node.pos_start,
-            'pos_end': node.pos_end,
-            'context': context,
-            'exit': False
-        }))
-    elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-        return res.success(Program.error()["Exception"]({
-            'name': args[0].value,
-            'message': args[1].value,
-            'pos_start': node.pos_start,
-            'pos_end': node.pos_end,
-            'context': context,
-            'exit': False
-        }))
-    else:
+    if len(args) == 0 or len(args) > 2:
         return res.failure(Program.error()["Runtime"]({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but Exception takes 1 or 2 arguments",
+            'message': f"'Exception' takes 1 or 2 arguments",
             "context": context,
             'exit': False
         }))
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(Program.error()["Exception"]({
+                'name': 'Exception',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+        }))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(Program.error()["Exception"]({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else 'Exception',
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            }))
+        else:
+            return res.failure(Program.error()["Runtime"]({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but Exception takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            }))
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("Exception", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
 def BuiltInFunction_Http_Get():
@@ -5221,8 +5237,8 @@ class BuiltInMethod_List(Value):
                     new_list.append(element.elements)
                 elif hasattr(element, "name"):
                     new_list.append(element.name)
-                elif hasattr(element, "methods_properties"):
-                    new_list.append(element.methods_properties)
+                elif hasattr(element, "properties"):
+                    new_list.append(element.properties)
                 elif hasattr(element, "properties"):
                     new_list.append(element)
                 else:
@@ -5875,6 +5891,7 @@ class Interpreter:
     
     def setAttempt(self, attempt_details,exception_details):
         res = RuntimeResult()
+        node = exception_details['node']
         exception = attempt_details["exception"]
         context = attempt_details["context"]
         catch_statement = attempt_details["catch_statement"]
@@ -5886,15 +5903,12 @@ class Interpreter:
             context.symbolTable.set(exception_name_as.value, exception_error)
         else:
             context.symbolTable.set(exception_name.value, exception_error)
-        context.symbolTable.set_current_scope("catch")
-        catch_value = res.register(self.visit(catch_statement['body'], context))
-        if res.should_return(): return res
-        if self.error_detected:
-            return res.success(None)
-        else:
-            return res.success(catch_value)
+        if catch_statement != None:
+            res.register(self.visit(catch_statement['body'], context))
+        if else_statement != None:
+            res.register(self.visit(else_statement['body'], context))
         
-        
+  
     def setCatch(self,exception_details):
         res = RuntimeResult()
         return res.failure(Program.error()[exception_details['name']]({
@@ -5961,6 +5975,9 @@ class Interpreter:
             if isinstance(values_to_replace, list):
                 for pv in range(len(inter_pv)):
                     replace_value = res.register(self.visit(values_to_replace[pv], context))
+                    if replace_value == None:
+                        self.error_detected = True
+                        return res.noreturn()
                     value_replaced = str(replace_value)
                     if isinstance(replace_value, String):
                         value_replaced = str(replace_value.value)
@@ -6229,31 +6246,34 @@ class Interpreter:
             exception_details =  {
                 'name': String('NameError'),
                 'message': String(str(var_name) + " is not defined"),
+                'node': node,
             } 
             # check if we in a try block and if so, check if the variable is in the try block
             scope = context.symbolTable.get_current_scope()
             self.error_detected = True
-            if scope == "attempt":
-                attempt_details = self.attempt_details
-                attempt_scope = self.setAttempt(attempt_details, exception_details)
-                return res.success(attempt_scope)
-            elif scope == "catch":
-                Program.printError("another exception occured during handling of the above exception:")
-                return res.failure(Program.error()['NameError']({
+            # if scope == "attempt":
+            #     attempt_details = self.attempt_details
+            #     attempt_scope = self.setAttempt(attempt_details, exception_details)
+            #     return res.success(attempt_scope)
+                
+           
+            # elif scope == "catch":
+            #     Program.printError("another exception occured during handling of the above exception:")
+            #     return res.failure(Program.error()['NameError']({
+            #         'pos_start': node.pos_start,
+            #         'pos_end': node.pos_end,
+            #         'message': f"name '{var_name}' is not defined",
+            #         'context': context,
+            #         'exit': False
+            #     }))
+            # else:
+            return res.failure(Program.error()['NameError']({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"name '{var_name}' is not defined",
                     'context': context,
                     'exit': False
                 }))
-            else:
-                return res.failure(Program.error()['NameError']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"name '{var_name}' is not defined",
-                    'context': context,
-                    'exit': False
-                })) 
            
         
         else:
@@ -6527,7 +6547,6 @@ class Interpreter:
         object_name = res.register(self.visit(node.name, context)) 
         object_key = node.property
         #print(type(object_name).__name__, type(object_key).__name__, object_key)
-        #TODO: check if object_name is not callable
         error = {
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -6542,9 +6561,9 @@ class Interpreter:
         
         if isinstance(object_name, Class):
             if type(object_key).__name__ == "VarAccessNode":
-                if hasattr(object_name, "methods_properties"):
-                    if object_key.id.value in object_name.methods_properties:
-                        value = object_name.methods_properties[object_key.id.value]
+                if hasattr(object_name, "properties"):
+                    if object_key.id.value in object_name.properties:
+                        value = object_name.properties[object_key.id.value]
                         return res.success(value)
                     else:
                         if object_name.name == "Export":
@@ -6554,9 +6573,9 @@ class Interpreter:
                         return res.failure(Program.error()["PropertyError"](error))
             
             if type(object_key).__name__ == "Token":
-                if hasattr(object_name, "methods_properties"):
-                    if object_key.value in object_name.methods_properties:
-                        value = object_name.methods_properties[object_key.value]
+                if hasattr(object_name, "properties"):
+                    if object_key.value in object_name.properties:
+                        value = object_name.properties[object_key.value]
                         return res.success(value)
                     else:
                         if object_name.name == "Export":
@@ -6566,10 +6585,10 @@ class Interpreter:
                         return res.failure(Program.error()["PropertyError"](error))
             
             elif type(object_key).__name__ == "CallNode":
-                if hasattr(object_name, "methods_properties"):
+                if hasattr(object_name, "properties"):
                     if type(object_key.node_to_call).__name__ == "Token":
-                        if object_key.node_to_call.value in object_name.methods_properties:
-                            value = object_name.methods_properties[object_key.node_to_call.value]
+                        if object_key.node_to_call.value in object_name.properties:
+                            value = object_name.properties[object_key.node_to_call.value]
                             args_node = object_key.args_nodes
                             args = []
                             
@@ -7244,8 +7263,8 @@ class Interpreter:
         }
         if isinstance(object_name, Class):
             if type(property).__name__ == "Token":
-                if hasattr(object_name, "methods_properties"):
-                    object_name.methods_properties[property.value] = value
+                if hasattr(object_name, "properties"):
+                    object_name.properties[property.value] = value
                 if property.value in class_methods:
                     error["message"] = f"'class' object property '{property.value}' is read-only"
                     return res.failure(Program.error()["PropertyError"](error))
@@ -7744,8 +7763,8 @@ class Interpreter:
                     new_list.append(element.value)
                 elif hasattr(element, 'properties'):
                     new_list.append(element.properties)
-                elif hasattr(element, 'methods_properties'):
-                    new_list.append(element.methods_properties)
+                elif hasattr(element, 'properties'):
+                    new_list.append(element.properties)
                 else:
                     new_list.append(element)
                     
@@ -7762,8 +7781,8 @@ class Interpreter:
                     new_list += (element.value,)
                 elif hasattr(element, 'properties'):
                     new_list += (element.properties,)
-                elif hasattr(element, 'methods_properties'):
-                    new_list += (element.methods_properties,)
+                elif hasattr(element, 'properties'):
+                    new_list += (element.properties,)
                 else:
                     new_list += (element,)
             
@@ -8260,10 +8279,6 @@ class Interpreter:
                 value = res.register(self.visit(case['body'], context))
                 if res.should_return(): return res
                 return res.success(value)
-            elif hasattr(condition, "methods_properties") and hasattr(expression, "methods_properties") and condition.isSame(expression):
-                value = res.register(self.visit(case['body'], context))
-                if res.should_return(): return res
-                return res.success(value)
         if default_case:
             value = res.register(self.visit(default_case['body'], context))
             if res.should_return(): return res
@@ -8272,10 +8287,41 @@ class Interpreter:
     
     def visit_RaiseNode(self, node, context):
         res = RuntimeResult()
-        expression = res.register(self.visit(node.expression, context))
-        print(type(expression).__name__)
-                 
+        if type(node.expression).__name__ != "CallNode":
+            exception = res.register(self.visit(node.expression, context))
+            if res.should_return(): return res
+            if type (exception).__name__ == "BuiltInClass" and exception.name == "Exception":
+                args = [exception.properties.properties["name"],
+                        exception.properties.properties["message"]]
+                return BuiltInClass_Exception(args, node, context, "raise")
+            else:
+                return res.failure(Program.error()['TypeError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': f"exceptions must be of type Exception",
+                        'exit': False
+                    }))
+        else:
+            if type(node.expression.node_to_call).__name__ == "VarAccessNode":
+                name = node.expression.node_to_call.id.value
+                if name != "Exception":
+                    return res.failure(Program.error()['TypeError']({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': f"Expected 'raise' to be followed by 'Exception'",
+                        'exit': False
+                    }))
+                else:
+                    self.error_detected = True
+                    args_nodes = node.expression.args_nodes
+                    args = []
+                    for arg_node in args_nodes:
+                        args.append(res.register(self.visit(arg_node, context)))
+                    return BuiltInClass_Exception(args, node, context, "raise")
 
+    
     def visit_AttemptNode(self,node,context):
         res = RuntimeResult()
         exception = node.exception
@@ -8292,7 +8338,7 @@ class Interpreter:
         }
         
         context.symbolTable.set_current_scope("attempt")
-        value = res.register(self.visit(attempt_statement['body'], context, True, attempt_properties))
+        value = res.register(self.visit(attempt_statement['body'],  context, True, attempt_properties))
         if res.should_return(): return res
         return res.success(value)
     # if catch_statement != {}:
@@ -8555,6 +8601,8 @@ class Interpreter:
         if builtin in builtins:
             if builtin == 'print' or builtin == 'println':
                 return builtins[builtin](args,node)
+            elif builtin == 'Exception':
+                return builtins[builtin](args, node, context, None)
             return builtins[builtin](args, node, context)
         
         return_value = res.register(value_to_call.execute(args))
@@ -8568,6 +8616,90 @@ class Interpreter:
         return res.success(return_value)
          
     
+    def visit_DelNode(self, node, context):
+        res = RuntimeResult()
+        identifier = context.symbolTable.get(node.identifier.value)
+        if type(identifier).__name__ == 'dict':
+            identifier = identifier['value']
+        expression = node.expression
+        if type(expression).__name__ == 'ListNode':
+            expression = res.register(self.visit(expression, context))
+        if type(identifier).__name__ == 'Dict' or type(identifier).__name__ == 'Object' or type(identifier).__name__ == 'Class':
+            new_properties = {}
+            for key, value in identifier.properties.items():
+                if expression != None:
+                    if type(expression).__name__ == 'List':
+                        if len(expression.elements) == 0:
+                            return res.failure(Program.error()["IndexError"](
+                            {
+                                "pos_start": node.pos_start,
+                                "pos_end": node.pos_end,
+                                "message": "Property name cannot be empty",
+                                "context": context,
+                                "exit": False
+                            }))
+                        elif len(expression.elements) > 1:
+                            return res.failure(Program.error()["IndexError"](
+                            {
+                                "pos_start": node.pos_start,
+                                "pos_end": node.pos_end,
+                                "message": "invalid index expression",
+                                "context": context,
+                                "exit": False
+                            }))
+                        else:
+                            if not isinstance(expression.elements[0], String):
+                                return res.failure(Program.error()["TypeError"](
+                                {
+                                    "pos_start": node.pos_start,
+                                    "pos_end": node.pos_end,
+                                    "message": f"type '{TypeOf(expression.elements[0]).getType()}' must be of type 'string'",
+                                    "context": context,
+                                    "exit": False
+                                }))
+                            name = expression.elements[0].value
+                            if not name in identifier.properties:
+                                return res.failure(Program.error()["PropertyError"](
+                                    {
+                                        "pos_start": node.pos_start,
+                                        "pos_end": node.pos_end,
+                                        "message": f"{node.identifier.value} has no property '{name}'" if hasattr(node.identifier, 'value') else f"'{name}'",
+                                        "context": context,
+                                        "exit": False
+                                    }))
+                            identifier.properties = {key: value for key, value in identifier.properties.items() if key != name}
+                            new_properties = {**new_properties, **identifier.properties}
+                            context.symbolTable.set(node.identifier.value, Dict(new_properties))
+                            return res.success(None)
+                    else:
+                        if type(expression).__name__ == 'PropertyNode':
+                            name = expression.property.value
+                            if not name in identifier.properties:
+                                return res.failure(Program.error()["PropertyError"](
+                                    {
+                                        "pos_start": node.pos_start,
+                                        "pos_end": node.pos_end,
+                                        "message": f"{node.identifier.value} has no property '{name}'" if hasattr(node.identifier, 'value') else f"'{name}'",
+                                        "context": context,
+                                        "exit": False
+                                    }))
+                            identifier.properties = {key: value for key, value in identifier.properties.items() if key != name}
+                            new_properties = {**new_properties, **identifier.properties}
+                            context.symbolTable.set(node.identifier.value, Dict(new_properties))
+                            return res.success(None)
+                else:
+                    context.symbolTable.set(node.identifier.value, Dict(new_properties))
+                    return res.success(None)  
+        else:
+             return res.failure(Program.error()["TypeError"](
+                {
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    "message": f"del on type '{TypeOf(identifier).getType()}' is not supported",
+                    "context": context,
+                    "exit": False
+                }))           
+                                       
     def visit_ReturnNode(self, node, context):
         res = RuntimeResult()
         

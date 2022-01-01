@@ -336,11 +336,11 @@ let user = {
     ]
 }
 
-def testDict(name, userdata) 
+def @testDict(name, userdata) 
     println(userdata[name], userdata.name.upperCase(), userdata.cities[0]["name"], userdata.cities[2].population)
 end
 line(36)
-testDict("name", user)
+@testDict("name", user)
 let age = 18
 let verified = if age >= 18 : true else : false
 if verified:
@@ -376,22 +376,22 @@ line(41)
 println(fm"I love %{x}")
 
 # asssign property to def
-def test(a, b)
+def @test(a, b)
     println(fm"a = %{a} b = %{b}")
 end
-test.call = def () -> println("I was just called")
-test.call()
+@test.call = def () -> println("I was just called")
+@test.call()
 class Person(fname, lname)
     def getName(self)
         println(fm"My name is %{self.fname}")
     end
 end
-def getFullName(self)
+def @getFullName(self)
     println(fm"My full name is %{self.fname} %{self.lname}")
 end
 let person = Person("David", "Michael")
 # set getFullName as the def of person
-person.getFullName = getFullName
+person.getFullName = @getFullName
 line(42)
 person.getName()
 person.getFullName()
@@ -538,12 +538,12 @@ let c = a++
 let d = ++b
 let e = a--
 let f = int("40")
-def setnum() ->  2
-a += setnum() + 1 # expecting to 23
-b -= setnum() - 1 # expecting to 29
-c /= setnum() / 2 # expecting to 21.0
-d *= setnum() * 2 # expecting to 124
-e %= setnum() % 3 # expecting to 1
+def @setnum() ->  2
+a += @setnum() + 1 # expecting to 23
+b -= @setnum() - 1 # expecting to 29
+c /= @setnum() / 2 # expecting to 21.0
+d *= @setnum() * 2 # expecting to 124
+e %= @setnum() % 3 # expecting to 1
 line(53)
 println(fm"a = %{a}, b = %{b}, c = %{c}, d = %{d}, e = %{e}")
 let hello = "Hello"
@@ -903,6 +903,26 @@ end
 
 println(invetory.find(@isCherries)) # {name: 'cherries', quantity: 10}
 
+line(78)
+# delete operation
+let dic = {name: "John", age: 21, email: "john@email.com", hobby: "Playing soccer", verfied: true}
+object ObDic
+    name: "John"
+    age: 21
+    email: "john@email.com"
+    hobby: "Playing soccer"
+    verfied: true
+    type: "object"
+end
+class Dic(name, age, email, hobby, verfied)
+    def __init(self)
+        self.name = "ken"
+    end
+end
+let dic_user = Dic("Matt", 21, "matt@email.com", "Playing soccer", true)
+println(dic_user.name)
+del dic_user
+#println(dic_user["name"]) # error
 # def @makeList(item, list=[])
 #     list.append(item)
 #     return list

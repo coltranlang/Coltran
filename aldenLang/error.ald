@@ -1,0 +1,20 @@
+def @arguementError()
+    final error_name, error_message = "ARGUEMENT_ERROR", "Missing arguement, '{0}' is required".format(['name'])
+    let error = Exception(error_name, error_message)
+    raise error
+end
+
+def @illegalCharacterError()
+    final error_name, error_message = fm"ILLEGAL_PARAMETER", "Illegal parameter, '{0}' is not allowed".format(['#'])
+    let error = Exception(error_name, error_message)
+    raise error
+end
+
+def @syntaxError()
+    final error_name, error_message = "SYNTAX_ERROR", "Unexpected token '{0}'".format(['rs'])
+    let error = Exception(error_name, error_message)
+    raise error
+end
+
+
+@illegalCharacterError()

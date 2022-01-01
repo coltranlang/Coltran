@@ -37,20 +37,20 @@ let operators = [
 ]
 
 
-def encodeQuotedString(value, seperator)
+def @encodeQuotedString(value, seperator)
     return value
 end
 
-def writeRow(row, separator)
-    let encoded = row.map(def (item) -> encodeQuotedString(item, separator)).join(separator)
+def @writeRow(row, separator)
+    let encoded = row.map(def (item) -> @encodeQuotedString(item, separator)).join(separator)
     println('\n' + encoded)
 end
 
-def writeRows(rows, header, separator)
-    if header: writeRow(header, separator)
+def @writeRows(rows, header, separator)
+    if header: @writeRow(header, separator)
     in rows as row:
-        writeRow(row, separator)
+        @writeRow(row, separator)
     end
 end
 
-writeRows(operators, headers, '\t\t')
+@writeRows(operators, headers, '\t\t')
