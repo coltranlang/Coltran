@@ -5849,7 +5849,7 @@ def BuiltInModule_Http(context):
     return Module("http", module_path, context)
  
  
-class Al_Exception:
+class Al_Exception(Exception):
     def __init__(self, name, message):
         self.name = name
         self.message = message
@@ -5857,31 +5857,115 @@ class Al_Exception:
             'name': String(name),
             'message': String(message)
         }
-        self.proproties = Dict(properties)
+        self.properties = Dict(properties)
+            
         
     def __repr__(self):
         return f"<Exception {self.name}: {self.message}>"
     
-    
-class Exception_Runtime(Al_Exception):
-    def __init__(self, name, message):
-        super().__init__(name, message)
 
+    
+
+class Exception_Runtime(Al_Exception):
+    def __init__(self, message, scope):
+        super().__init__("Runtime", message)
+        self.scope = scope
+        self.setError()
+
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            return Program.error()[self.name](self.message)
         
     def __repr__(self):
-        return f"<Exception_Runtime {self.message}>"
-  
+        return f"<RuntimeError {self.message}>"
   
     
 class NameError(Al_Exception):
-    def __init__(self, name, message):
-        super().__init__(name, message)
+    def __init__(self,message,scope):
+        super().__init__("NameError", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            return Program.error()[self.name](self.message)
         
     def __repr__(self):
         return f"<NameError {self.message}>"
 
 
+class KeyError(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("KeyError", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<KeyError {self.message}>"
+
+
+class TypeError(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("TypeError", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<TypeError {self.message}>"
+    
+
+class PropertyError(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("PropertyError", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<PropertyError {self.message}>"
+
+
+
+
+
 class Interpreter:
+    
     def __init__(self):
         self.error_detected = False
         self.exception = False
@@ -6245,35 +6329,17 @@ class Interpreter:
             
             exception_details =  {
                 'name': String('NameError'),
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
                 'message': String(str(var_name) + " is not defined"),
                 'node': node,
+                'context': context,
+                'exit': False
             } 
-            # check if we in a try block and if so, check if the variable is in the try block
             scope = context.symbolTable.get_current_scope()
             self.error_detected = True
-            # if scope == "attempt":
-            #     attempt_details = self.attempt_details
-            #     attempt_scope = self.setAttempt(attempt_details, exception_details)
-            #     return res.success(attempt_scope)
-                
-           
-            # elif scope == "catch":
-            #     Program.printError("another exception occured during handling of the above exception:")
-            #     return res.failure(Program.error()['NameError']({
-            #         'pos_start': node.pos_start,
-            #         'pos_end': node.pos_end,
-            #         'message': f"name '{var_name}' is not defined",
-            #         'context': context,
-            #         'exit': False
-            #     }))
-            # else:
-            return res.failure(Program.error()['NameError']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"name '{var_name}' is not defined",
-                    'context': context,
-                    'exit': False
-                }))
+            
+            raise NameError(exception_details, scope)
            
         
         else:
@@ -6287,17 +6353,18 @@ class Interpreter:
         operation = node.operation
         v = context.symbolTable.get(var_name)
         value = res.register(self.visit(node.value, context))
+        scope = context.symbolTable.get_current_scope()
         if v != None:
             if type(v) is dict:
                 var_type = v['type']
                 if var_type == "final":
-                    return res.failure(Program.error()['NameError']({
+                    raise NameError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"name '{var_name}' cannot be reassigned",
                         'context': context,
                         'exit': False
-                    }))
+                    }, scope)
                 else:
                     if operation == "add":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
@@ -6546,8 +6613,10 @@ class Interpreter:
         value = ""
         object_name = res.register(self.visit(node.name, context)) 
         object_key = node.property
+        scope = context.symbolTable.get_current_scope()
         #print(type(object_name).__name__, type(object_key).__name__, object_key)
         error = {
+            'name': String('PropertyError'),
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             "message": "",
@@ -6570,7 +6639,7 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no method {object_key.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
             
             if type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -6582,7 +6651,7 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
             
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6611,9 +6680,9 @@ class Interpreter:
                             else:
                                 self.error_detected = True
                                 error["message"] = f"'{object_name.name}' has no method '{object_key.node_to_call.value}'"
-                            return res.failure(Program.error()["PropertyError"](error))
+                            raise PropertyError(error, scope)
                     # else:
-                    #     return res.failure(Program.error()["PropertyError"](error))
+                    #     raise PropertyError(error, scope)
         
         elif isinstance(object_name, BuiltInClass):
             if type(object_key).__name__ == "Token":
@@ -6622,7 +6691,7 @@ class Interpreter:
                     return res.success(value)
                 else:
                     error["message"] = f"{object_name.name} has no property {object_key.value}"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in object_name.properties.properties:
@@ -6644,13 +6713,13 @@ class Interpreter:
                             return res.success(return_value)
                     else:
                         error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                 else:
                     error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
             else:
                 error["message"] = f"'{object_key.node_to_call.value}'"
-                return res.failure(Program.error()["PropertyError"](error))
+                raise PropertyError(error, scope)
             
         
         elif isinstance(object_name, Object):
@@ -6664,7 +6733,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6673,7 +6742,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                return res.failure(Program.error()["PropertyError"](error))
+                                raise PropertyError(error, scope)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -6693,7 +6762,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            return res.failure(Program.error()["PropertyError"](error))
+                            raise PropertyError(error, scope)
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -6718,9 +6787,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                     # else:
-                    #     return res.failure(Program.error()["PropertyError"](error))
+                    #     raise PropertyError(error, scope)
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -6734,7 +6803,7 @@ class Interpreter:
                         #     error["message"] = f"{name} has no property {object_key.value}"
                         # else:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
             
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -6743,7 +6812,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
    
         elif isinstance(object_name, Dict):
             if type(object_key).__name__ == "VarAccessNode":
@@ -6756,7 +6825,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
 
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6774,7 +6843,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                return res.failure(Program.error()["PropertyError"](error))
+                                raise PropertyError(error, scope)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -6796,7 +6865,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            return res.failure(Program.error()["PropertyError"](error))
+                            raise PropertyError(error, scope)
                 else:
                     if object_key.id.node_to_call.id.value in dict_methods:
                         args = []
@@ -6831,9 +6900,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                     # else:
-                    #     return res.failure(Program.error()["PropertyError"](error))
+                    #     raise PropertyError(error, scope)
 
             elif type(object_key).__name__ == "Token":
                 if object_key.value in dict_methods:
@@ -6844,20 +6913,8 @@ class Interpreter:
                         value = object_name.properties[object_key.value]
                         return res.success(value)
                     else:
-                        scope = context.symbolTable.get_current_scope()
-                        self.error_detected = True
-                        if  scope == "attempt":
-                                attempt_details = self.attempt_details
-                                exception_details['message'] = f"'{object_key.value}'"
-                                attempt_scope = self.setAttempt(attempt_details, exception_details)
-                                return res.failure(attempt_scope)
-                        elif scope == "catch":
-                                Program.printError("another exception occured during handling of the above exception:")
-                                error["message"] = f"'{object_key.value}'"
-                                return res.failure(Program.error()["PropertyError"](error))
-                        else:
-                            error["message"] = f"'{object_key.value}'"
-                            return res.failure(Program.error()["PropertyError"](error))
+                        error["message"] = f"'{object_key.value}'"
+                        raise PropertyError(error, scope)
 
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -6866,7 +6923,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                 
         elif isinstance(object_name, List):
             if type(object_key).__name__ == "VarAccessNode":
@@ -6890,7 +6947,7 @@ class Interpreter:
                      return res.success(value)
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
                 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -6920,7 +6977,7 @@ class Interpreter:
                                 return res.success(return_value)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
         
         elif isinstance(object_name, Pair):
             if type(object_key).__name__ == "Token":
@@ -6933,7 +6990,7 @@ class Interpreter:
                         return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
                 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -6948,7 +7005,7 @@ class Interpreter:
                         return res.success(value.name)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
         
         elif isinstance(object_name, String):
             if type(object_key).__name__ == "Token":
@@ -6969,10 +7026,10 @@ class Interpreter:
                     elif scope == "catch":
                         Program.printError("another exception occured during handling of the above exception:")
                         error["message"] = f"no property '{object_key.value}'"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                     
                 
                 
@@ -6982,7 +7039,7 @@ class Interpreter:
                     return res.success(String(value))
                 else:
                     error["message"] = f"'string' has no property {object_key.id.value}"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
                
             elif type(object_key).__name__ == "PropertyNode":
                 if type(object_key.id).__name__ ==  "CallNode":
@@ -6997,14 +7054,14 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'string' has no property {object_key.id.node_to_call.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                 else:
                     if object_key.id.value in string_methods:
                         value = f"<{str(object_key.id.value)}()>, [ built-in string method ]"
                         return res.success(String(value))
                     else:
                         error["message"] = f"'string' has no property {object_key.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error)) 
+                        raise PropertyError(error, scope) 
                 
             
             elif type(object_key).__name__ == "CallNode":
@@ -7020,7 +7077,7 @@ class Interpreter:
                         return res.success(value.name)
                     else:
                         error["message"] = f"'string' has no property {object_key.node_to_call.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
         
         elif isinstance(object_name, BuiltInMethod_String):
             if type(object_key).__name__ == "CallNode":
@@ -7036,7 +7093,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'string' has no property {object_key.node_to_call.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                 
         elif isinstance(object_name, Number):
             if type(object_key).__name__ == "Token":
@@ -7045,7 +7102,7 @@ class Interpreter:
                     return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
                 
             elif type(object_key).__name__ == "VarAccessNode":
                 if object_key.id.value in number_methods:
@@ -7053,7 +7110,7 @@ class Interpreter:
                     return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.value}"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
             
             elif type(object_key).__name__ == "CallNode":
                 if object_key.node_to_call.value in number_methods:
@@ -7066,7 +7123,7 @@ class Interpreter:
                     return res.success(value)
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                    return res.failure(Program.error()["PropertyError"](error)) 
+                    raise PropertyError(error, scope) 
                
         elif isinstance(object_name, Function):
             if type(object_key).__name__ == "Token":
@@ -7079,7 +7136,7 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                 else:
                     return res.failure(Program.error()['Runtime']({
                         'pos_start': node.pos_start,
@@ -7139,7 +7196,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -7148,7 +7205,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                return res.failure(Program.error()["PropertyError"](error))
+                                raise PropertyError(error, scope)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -7167,7 +7224,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            return res.failure(Program.error()["PropertyError"](error))
+                            raise PropertyError(error, scope)
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -7192,9 +7249,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                     # else:
-                    #     return res.failure(Program.error()["PropertyError"](error))
+                    #     raise PropertyError(error, scope)
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -7208,7 +7265,7 @@ class Interpreter:
                         #     error["message"] = f"{name} has no property {object_key.value}"
                         # else:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        return res.failure(Program.error()["PropertyError"](error))
+                        raise PropertyError(error, scope)
                 
         elif isinstance(object_name, Module):
             if type(object_key).__name__ == "Token":
@@ -7227,7 +7284,7 @@ class Interpreter:
             elif scope == "catch":
                 Program.printError("another exception occured during handling of the above exception:")
                 error["message"] = f"'{object_key.value}'"
-                return res.failure(Program.error()["PropertyError"](error))
+                raise PropertyError(error, scope)
             else:
                 self.error_detected = True
                 key = ''
@@ -7246,7 +7303,7 @@ class Interpreter:
                 else:
                     message = f"'{key}'"
                 error["message"] = message
-                return res.failure(Program.error()["PropertyError"](error))
+                raise PropertyError(error, scope)
 
     
     def visit_PropertySetNode(self, node, context):
@@ -7267,7 +7324,7 @@ class Interpreter:
                     object_name.properties[property.value] = value
                 if property.value in class_methods:
                     error["message"] = f"'class' object property '{property.value}' is read-only"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
         
         elif isinstance(object_name, BuiltInClass):
             if property.value in object_name.properties.properties:
@@ -7283,7 +7340,7 @@ class Interpreter:
                    
                 if property.value in dict_methods:
                     error["message"] = f"'dict' object property '{property.value}' is read-only"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
        
         elif isinstance(object_name, Object):
             if type(property).__name__ == "Token":
@@ -7292,7 +7349,7 @@ class Interpreter:
                    
                 if property.value in object_methods:
                     error["message"] = f"'object' object property '{property.value}' is read-only"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
         
         elif isinstance(object_name, Function):
             if type(property).__name__ == "Token":
@@ -7300,22 +7357,22 @@ class Interpreter:
                     object_name.properties.properties[property.value] = value
                 if property.value in function_methods:
                     error["message"] = f"'function' object property '{property.value}' is read-only"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
                       
         elif isinstance(object_name, List):
             if type(property).__name__ == "Token":
                 if property.value in list_methods:
                     error["message"] = f"'list' object property '{property.value}' is read-only"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
                 else:
                     error["message"] = f"'list' object has no property '{property.value}'"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
                    
         elif isinstance(object_name, Pair):
             if type(property).__name__ == "Token":
                 if property.value in pair_methods:
                     error["message"] = f"'pair' object property '{property.value}' is read-only"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
                 else:
                     error["message"] = f"cannot set '{property.value}' on immutable type '{object_name.name}'"
                     return res.failure(Program.error()["TypeError"](error))
@@ -7324,19 +7381,19 @@ class Interpreter:
             if type(property).__name__ == "Token":
                 if property.value in string_methods:
                     error["message"] = f"'string' object property '{property.value}' is read-only"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
                 else:
                     error["message"] = f"'string' object has no property '{property.value}'"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
         
         elif isinstance(object_name, Number):
             if type(property).__name__ == "Token":
                 if property.value in number_methods:
                     error["message"] = f"'number' object property '{property.value}' is read-only"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
                 else:
                     error["message"] = f"'number' object has no property '{property.value}'"
-                    return res.failure(Program.error()["PropertyError"](error))
+                    raise PropertyError(error, scope)
         
         
         else:
@@ -8325,6 +8382,8 @@ class Interpreter:
     def visit_AttemptNode(self,node,context):
         res = RuntimeResult()
         exception = node.exception
+        exception_name = exception["name"]
+        exception_name_as = exception["as"]
         attempt_statement = node.attempt_statement
         catch_statement = node.catch_statement
         else_statement = node.else_statement
@@ -8336,33 +8395,31 @@ class Interpreter:
             'catch_statement': catch_statement,
             'else_statement': else_statement
         }
-        
         context.symbolTable.set_current_scope("attempt")
-        value = res.register(self.visit(attempt_statement['body'],  context, True, attempt_properties))
-        if res.should_return(): return res
-        return res.success(value)
-    # if catch_statement != {}:
-        #     if exception != None:
-        #         # context.symbolTable.set_current_scope('catch')
-        #         # value = res.register(self.visit(attempt_statement['body'], context))
-        #         # return res.success(value)
-        #         # exception_ = self.setException()
-        #         # exception_details = res.getExceptionDetails()
-        #         # if exception_:
-        #         #     exception_details = {
-        #         #         'name': 'Exception',
-        #         #         'message': 'an exception occured',
-        #         #     }
-        #         #     context.symbolTable.set(exception.value, Dict(exception_details).setContext(context).setPosition(exception.pos_start, exception.pos_end)) 
-        #         #     value = res.register(self.visit(catch_statement['body'], context))
-        #         #     if res.should_return(): return res
-        #         #     return res.success(value)
-        #         # else:
-        #         #     print('Exception not handled', exception)
-        #         #     value = res.register(self.visit(attempt_statement['body'], context))
-        #         #     return res.success(value)
-        #     else:
-        #         print('No exception')
+        self.context.symbolTable.set_current_scope("attempt")
+            
+        try:
+            value = res.register(self.visit(attempt_statement['body'], context))
+            if res.should_return(): return res
+            return res.success(value)
+        except Exception as attempt_exception:
+            context.symbolTable.set_current_scope("catch")
+            exception_error = Dict({
+                'name': attempt_exception.name,
+                'message': attempt_exception.message['message'],
+            })
+            
+            if exception_name_as != None:
+                context.symbolTable.set(exception_name_as.value, exception_error)
+            else:
+                context.symbolTable.set(exception_name.value, exception_error)
+            value = res.register(self.visit(catch_statement['body'], context))
+            if res.should_return(): return res
+            return res.success(value)
+        
+        
+
+    
                        
     
     def visit_FunctionNode(self, node, context):
@@ -8700,6 +8757,7 @@ class Interpreter:
                     "exit": False
                 }))           
                                        
+    
     def visit_ReturnNode(self, node, context):
         res = RuntimeResult()
         

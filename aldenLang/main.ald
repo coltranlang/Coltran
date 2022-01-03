@@ -163,7 +163,7 @@
 
 let name = "Kenny"
 def @greet(name)
-    return fm"Hello, %{ndame}"
+    return fm"Hello, %{name}"
 end
 # let age = 23
 # let hobby = "Playing soccer"
@@ -361,12 +361,20 @@ println(invetory.find(@isCherries)) # {name: 'cherries', quantity: 10}
 #     println(fm"%{user.name} is verified")
 # end
  #println(fm"Hello, %{dict_user.nadme}")
+let dic = {"name": "John","age": 21,"email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
+def @greet2(name)
+    return "Hello, " + nasme
+end
+attempt:
+    println(@greet2('nasme'))
+catch Exception as e:
+    println(fm"Exception: %{e}")
+end
+#println(fm"Hello, %{@greet(nasme)}")
+
+#println(dic.name)
 # attempt:
 #     println(fm"Hello, %{@greet('nasme')}")
 # catch Exception as e:
 #     println(fm"Exception: %{e}")
 # end
-#println(fm"Hello, %{@greet(nasme)}")
-
-#println(dic.name)
-del list_nums[0]

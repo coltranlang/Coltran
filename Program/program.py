@@ -96,13 +96,15 @@ class Program:
             with open(fileName, 'r') as file:
                 text = file.read()
                 if fileName[-4:] != ".ald":
-                    print("File is not an alden file")
+                    print(f"File '{fileName}' is not a valid alden file")
                     return
                 else:
-                    return Program.run(fileName, text)
+                    result  = Program.run(fileName, text)
+                    return result
         except FileNotFoundError:
-            print(f'File {fileName} not found')
-            
+            print(f"can't open file '{fileName}': No such file or directory")
+            return False
+    
     def repl():
         while True:
             text = input('>>> ')
