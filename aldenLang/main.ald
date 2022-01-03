@@ -369,12 +369,12 @@ end
 end
 let dic = {"name": "John","age": 21,"email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
 def @greet2(name)
-    @test()
+    raise Exception("Expected string")
 end
 #println(@greet2('nasme'))
 let fruits = ['apple', 'banana', 'grapes', 'mango', 'orange']
 attempt:
-    println(@greet2.k)
+    println(@greet2())
 catch Exception as e:
     println(fm"Exception: %{e}")
 end

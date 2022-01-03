@@ -642,55 +642,55 @@ class Al_NameError(Al_Exception):
 
 
 class Al_KeyError(Al_Exception):
-    def __init__(self,message,scope):
+    def __init__(self,message,scope=None):
         super().__init__("KeyError", message)
         self.scope = scope
-        self.setError()
+    #     self.setError()
         
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            context = self.message['context']
-            scope = context.symbolTable.parent.get_current_scope()
-            if scope == "attempt":
-                pass
-            elif scope == "catch":
-                Program.printError(
-                    "another exception occured during handling of the above exception:")
-                return Program.error()[self.name](self.message)
-            else:
-                return Program.error()[self.name](self.message)
+    # def setError(self):
+    #     if self.scope == "catch":
+    #         Program.printError("another exception occured during handling of the above exception:")
+    #         return Program.error()[self.name](self.message)
+    #     elif self.scope == "attempt":
+    #         pass
+    #     else:
+    #         context = self.message['context']
+    #         scope = context.symbolTable.parent.get_current_scope()
+    #         if scope == "attempt":
+    #             pass
+    #         elif scope == "catch":
+    #             Program.printError(
+    #                 "another exception occured during handling of the above exception:")
+    #             return Program.error()[self.name](self.message)
+    #         else:
+    #             return Program.error()[self.name](self.message)
         
     def __repr__(self):
         return f"<KeyError {self.message}>"
 
 
 class Al_TypeError(Al_Exception):
-    def __init__(self,message,scope):
+    def __init__(self,message,scope=None):
         super().__init__("TypeError", message)
         self.scope = scope
-        self.setError()
+    #     self.setError()
         
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            context = self.message['context']
-            scope = context.symbolTable.parent.get_current_scope()
-            if scope == "attempt":
-                pass
-            elif scope == "catch":
-                Program.printError("another exception occured during handling of the above exception:")
-                return Program.error()[self.name](self.message)
-            else:
-                return Program.error()[self.name](self.message)
+    # def setError(self):
+    #     if self.scope == "catch":
+    #         Program.printError("another exception occured during handling of the above exception:")
+    #         return Program.error()[self.name](self.message)
+    #     elif self.scope == "attempt":
+    #         pass
+    #     else:
+    #         context = self.message['context']
+    #         scope = context.symbolTable.parent.get_current_scope()
+    #         if scope == "attempt":
+    #             pass
+    #         elif scope == "catch":
+    #             Program.printError("another exception occured during handling of the above exception:")
+    #             return Program.error()[self.name](self.message)
+    #         else:
+    #             return Program.error()[self.name](self.message)
         
     def __repr__(self):
         return f"<TypeError {self.message}>"
@@ -706,81 +706,81 @@ class Al_PropertyError(Al_Exception):
 
 
 class Al_ValueError(Al_Exception):
-    def __init__(self,message,scope):
+    def __init__(self,message,scope=None):
         super().__init__("ValueError", message)
         self.scope = scope
-        self.setError()
+    #     self.setError()
         
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            context = self.message['context']
-            scope = context.symbolTable.parent.get_current_scope()
-            if scope == "attempt":
-                pass
-            elif scope == "catch":
-                Program.printError("another exception occured during handling of the above exception:")
-                return Program.error()[self.name](self.message)
-            else:
-                return Program.error()[self.name](self.message)
+    # def setError(self):
+    #     if self.scope == "catch":
+    #         Program.printError("another exception occured during handling of the above exception:")
+    #         return Program.error()[self.name](self.message)
+    #     elif self.scope == "attempt":
+    #         pass
+    #     else:
+    #         context = self.message['context']
+    #         scope = context.symbolTable.parent.get_current_scope()
+    #         if scope == "attempt":
+    #             pass
+    #         elif scope == "catch":
+    #             Program.printError("another exception occured during handling of the above exception:")
+    #             return Program.error()[self.name](self.message)
+    #         else:
+    #             return Program.error()[self.name](self.message)
         
     def __repr__(self):
         return f"<ValueError {self.message}>"
 
 
 class Al_IndexError(Al_Exception):
-    def __init__(self,message,scope):
+    def __init__(self,message,scope=None):
         super().__init__("IndexError", message)
         self.scope = scope
-        self.setError()
+       # self.setError()
         
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            context = self.message['context']
-            scope = context.symbolTable.parent.get_current_scope()
-            if scope == "attempt":
-                pass
-            elif scope == "catch":
-                Program.printError("another exception occured during handling of the above exception:")
-                return Program.error()[self.name](self.message)
-            else:
-                return Program.error()[self.name](self.message)
+    # def setError(self):
+    #     if self.scope == "catch":
+    #         Program.printError("another exception occured during handling of the above exception:")
+    #         return Program.error()[self.name](self.message)
+    #     elif self.scope == "attempt":
+    #         pass
+    #     else:
+    #         context = self.message['context']
+    #         scope = context.symbolTable.parent.get_current_scope()
+    #         if scope == "attempt":
+    #             pass
+    #         elif scope == "catch":
+    #             Program.printError("another exception occured during handling of the above exception:")
+    #             return Program.error()[self.name](self.message)
+    #         else:
+    #             return Program.error()[self.name](self.message)
         
     def __repr__(self):
         return f"<IndexError {self.message}>"
 
  
 class Al_RaiseException(Al_Exception):
-    def __init__(self,message,scope):
+    def __init__(self,message,scope=None):
         super().__init__("Exception", message)
         self.scope = scope
-        self.setError()
+    #     self.setError()
         
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            context = self.message['context']
-            scope = context.symbolTable.parent.get_current_scope()
-            if scope == "attempt":
-                pass
-            elif scope == "catch":
-                Program.printError("another exception occured during handling of the above exception:")
-                return Program.error()[self.name](self.message)
-            else:
-                return Program.error()[self.name](self.message)
+    # def setError(self):
+    #     if self.scope == "catch":
+    #         Program.printError("another exception occured during handling of the above exception:")
+    #         return Program.error()[self.name](self.message)
+    #     elif self.scope == "attempt":
+    #         pass
+    #     else:
+    #         context = self.message['context']
+    #         scope = context.symbolTable.parent.get_current_scope()
+    #         if scope == "attempt":
+    #             pass
+    #         elif scope == "catch":
+    #             Program.printError("another exception occured during handling of the above exception:")
+    #             return Program.error()[self.name](self.message)
+    #         else:
+    #             return Program.error()[self.name](self.message)
         
     def __repr__(self):
         return f"<Exception {self.message}>"
