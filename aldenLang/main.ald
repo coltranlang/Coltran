@@ -365,8 +365,9 @@ let dic = {"name": "John","age": 21,"email": "","hobby": "Playing soccer",verfie
 def @greet2(name)
     return "Hello, " + nasme
 end
+let fruits = ['apple', 'banana', 'grapes', 'mango', 'orange']
 attempt:
-    println(@greet2('nasme'))
+    println(fruits[6])
 catch Exception as e:
     println(fm"Exception: %{e}")
 end

@@ -5885,7 +5885,7 @@ class Exception_Runtime(Al_Exception):
         return f"<RuntimeError {self.message}>"
   
     
-class NameError(Al_Exception):
+class Al_NameError(Al_Exception):
     def __init__(self,message,scope):
         super().__init__("NameError", message)
         self.scope = scope
@@ -5904,7 +5904,7 @@ class NameError(Al_Exception):
         return f"<NameError {self.message}>"
 
 
-class KeyError(Al_Exception):
+class Al_KeyError(Al_Exception):
     def __init__(self,message,scope):
         super().__init__("KeyError", message)
         self.scope = scope
@@ -5923,7 +5923,7 @@ class KeyError(Al_Exception):
         return f"<KeyError {self.message}>"
 
 
-class TypeError(Al_Exception):
+class Al_TypeError(Al_Exception):
     def __init__(self,message,scope):
         super().__init__("TypeError", message)
         self.scope = scope
@@ -5942,7 +5942,7 @@ class TypeError(Al_Exception):
         return f"<TypeError {self.message}>"
     
 
-class PropertyError(Al_Exception):
+class Al_PropertyError(Al_Exception):
     def __init__(self,message,scope):
         super().__init__("PropertyError", message)
         self.scope = scope
@@ -5961,6 +5961,43 @@ class PropertyError(Al_Exception):
         return f"<PropertyError {self.message}>"
 
 
+class Al_ValueError(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("ValueError", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<ValueError {self.message}>"
+
+
+
+class Al_IndexError(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("IndexError", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<IndexError {self.message}>"
 
 
 
@@ -6149,13 +6186,14 @@ class Interpreter:
         if node.variable_keyword_token == "module":
             value = context.symbolTable.get(node.value_node.value)
             if value == None:
-               return res.failure(Program.error()['NameError']({
+               raise Al_NameError({
+                    'name': "NameError",
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"name '{node.value_node.value}' is not defined",
                     'context': context,
                     'exit': False
-                }))
+               })
         
         if type(node.variable_name_token).__name__ == "tuple" or type(node.variable_name_token).__name__ == "list":
             var_name = node.variable_name_token
@@ -6339,7 +6377,7 @@ class Interpreter:
             scope = context.symbolTable.get_current_scope()
             self.error_detected = True
             
-            raise NameError(exception_details, scope)
+            raise Al_NameError(exception_details, scope)
            
         
         else:
@@ -6358,7 +6396,7 @@ class Interpreter:
             if type(v) is dict:
                 var_type = v['type']
                 if var_type == "final":
-                    raise NameError({
+                    raise Al_NameError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"name '{var_name}' cannot be reassigned",
@@ -6372,25 +6410,27 @@ class Interpreter:
                                 new_value = Number(setNumber(v['value'].value) + setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         elif isinstance(v['value'], String):
                             if isinstance(value, String):
                                 new_value = String(v['value'].value + value.value)
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"reassignment of {TypeOf(v['value']).getType()} to {TypeOf(value).getType()} is not allowed",
+                                    'message': String(f"reassignment of {TypeOf(v['value']).getType()} to {TypeOf(value).getType()} is not allowed"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         elif isinstance(v['value'], List):
                             if isinstance(value, List):
                                 new_value = List(v['value'].elements + value.elements)
@@ -6402,25 +6442,27 @@ class Interpreter:
                                 new_value = List(v['value'].elements + new_list)
                                 context.symbolTable.set(var_name, new_value)
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed",
+                                    'message': String(f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         elif isinstance(v['value'], Pair):
                             if isinstance(value, Pair):
                                 new_value = Pair(v['value'].elements + value.elements)
                                 context.symbolTable.set(var_name, new_value)
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed",
+                                    'message': String(f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed"),
                                     'context': context,
                                     'exit': False
-                                }))    
+                                }, scope)    
                         else:
                             return res.failure(Program.error()['TypeError']({
                                     'pos_start': node.pos_start,
@@ -6435,174 +6477,189 @@ class Interpreter:
                                 new_value = Number(setNumber(v['value'].value) - setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         else:
-                            return res.failure(Program.error()['TypeError']({
-                                    'pos_start': node.pos_start,
-                                    'pos_end': node.pos_end,
-                                    'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
-                                    'context': context,
-                                    'exit': False
-                                }))
+                           raise Al_TypeError({
+                               'name': String('TypeError'),
+                               'pos_start': node.pos_start,
+                               'pos_end': node.pos_end,
+                               'message': String(f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                               'context': context,
+                               'exit': False
+                           }, scope)
                     elif operation == "mul":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) * setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         elif isinstance(v['value'], String):
                             if isinstance(value, Number):
                                 new_value = String(v['value'].value * value.value)
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         elif isinstance(v['value'], List):
                             if isinstance(value, Number):
                                 new_value = List(v['value'].elements * value.value)
                                 context.symbolTable.set(var_name, new_value)
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}",
+                                    'message': String(f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         elif isinstance(v['value'], Pair):
                             if isinstance(value, Number):
                                 new_value = Pair(v['value'].elements * value.value)
                                 context.symbolTable.set(var_name, new_value)
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}",
+                                    'message': String(f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                     elif operation == "div":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) / setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))    
+                                }, scope)    
                     elif operation == "floor_div":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) // setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                     elif operation == "mod":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) % setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                     elif operation == "pow":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) ** setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '**=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '^=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '**=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '^=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                }, scope)
                     else:
                         context.symbolTable.set(var_name, value, "let")
-            
-        
+                   
         else:
-            return res.failure(Program.error()['NameError']({
+            raise Al_NameError({
+                'name': String('NameError'),
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': f"name '{var_name}' is not defined",
+                'message': String(f"name '{var_name}' is not defined"),
                 'context': context,
                 'exit': False
-            }))
+            }, scope)
         value = value.copy().setContext(context).setPosition(
             node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
         return res.success(value)
@@ -6636,10 +6693,10 @@ class Interpreter:
                         return res.success(value)
                     else:
                         if object_name.name == "Export":
-                            error['message'] = f"Export has no member '{object_key.id.value}'"
+                            error['message'] = String(f"Export has no member '{object_key.id.value}'")
                         else:
-                            error["message"] = f"{object_name.name} has no method {object_key.id.value}"
-                        raise PropertyError(error, scope)
+                            error["message"] = String(f"{object_name.name} has no method {object_key.id.value}")
+                        raise Al_PropertyError(error, scope)
             
             if type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -6648,10 +6705,10 @@ class Interpreter:
                         return res.success(value)
                     else:
                         if object_name.name == "Export":
-                            error['message'] = f"Export has no member '{object_key.value}'"
+                            error['message'] = String(f"Export has no member '{object_key.value}'")
                         else:
-                            error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        raise PropertyError(error, scope)
+                            error["message"] = String(f"{object_name.name} has no property {object_key.value}")
+                        raise Al_PropertyError(error, scope)
             
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6676,13 +6733,14 @@ class Interpreter:
                             
                         else:
                             if object_name.name == "Export":
-                                error['message'] = f"Export has no member '{object_key.node_to_call.value}'"
+                                error['message'] = String(f"Export has no member '{object_key.node_to_call.value}'")
                             else:
                                 self.error_detected = True
-                                error["message"] = f"'{object_name.name}' has no method '{object_key.node_to_call.value}'"
-                            raise PropertyError(error, scope)
+                                error["message"] = String(
+                                    f"'{object_name.name}' has no method '{object_key.node_to_call.value}'")
+                            raise Al_PropertyError(error, scope)
                     # else:
-                    #     raise PropertyError(error, scope)
+                    #     raise Al_PropertyError(error, scope)
         
         elif isinstance(object_name, BuiltInClass):
             if type(object_key).__name__ == "Token":
@@ -6690,8 +6748,9 @@ class Interpreter:
                     value = object_name.properties.properties[object_key.value]
                     return res.success(value)
                 else:
-                    error["message"] = f"{object_name.name} has no property {object_key.value}"
-                    raise PropertyError(error, scope)
+                    error["message"] = String(
+                        f"{object_name.name} has no property {object_key.value}")
+                    raise Al_PropertyError(error, scope)
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in object_name.properties.properties:
@@ -6713,13 +6772,13 @@ class Interpreter:
                             return res.success(return_value)
                     else:
                         error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                 else:
                     error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
             else:
                 error["message"] = f"'{object_key.node_to_call.value}'"
-                raise PropertyError(error, scope)
+                raise Al_PropertyError(error, scope)
             
         
         elif isinstance(object_name, Object):
@@ -6733,7 +6792,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6742,7 +6801,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                raise PropertyError(error, scope)
+                                raise Al_PropertyError(error, scope)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -6762,7 +6821,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            raise PropertyError(error, scope)
+                            raise Al_PropertyError(error, scope)
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -6787,9 +6846,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                     # else:
-                    #     raise PropertyError(error, scope)
+                    #     raise Al_PropertyError(error, scope)
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -6803,7 +6862,7 @@ class Interpreter:
                         #     error["message"] = f"{name} has no property {object_key.value}"
                         # else:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
             
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -6812,7 +6871,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
    
         elif isinstance(object_name, Dict):
             if type(object_key).__name__ == "VarAccessNode":
@@ -6825,7 +6884,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
 
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6843,7 +6902,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                raise PropertyError(error, scope)
+                                raise Al_PropertyError(error, scope)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -6865,7 +6924,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            raise PropertyError(error, scope)
+                            raise Al_PropertyError(error, scope)
                 else:
                     if object_key.id.node_to_call.id.value in dict_methods:
                         args = []
@@ -6900,9 +6959,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                     # else:
-                    #     raise PropertyError(error, scope)
+                    #     raise Al_PropertyError(error, scope)
 
             elif type(object_key).__name__ == "Token":
                 if object_key.value in dict_methods:
@@ -6914,7 +6973,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'{object_key.value}'"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
 
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -6923,7 +6982,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                 
         elif isinstance(object_name, List):
             if type(object_key).__name__ == "VarAccessNode":
@@ -6947,7 +7006,7 @@ class Interpreter:
                      return res.success(value)
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
                 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -6977,7 +7036,7 @@ class Interpreter:
                                 return res.success(return_value)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
         
         elif isinstance(object_name, Pair):
             if type(object_key).__name__ == "Token":
@@ -6990,7 +7049,7 @@ class Interpreter:
                         return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
                 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -7005,7 +7064,7 @@ class Interpreter:
                         return res.success(value.name)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
         
         elif isinstance(object_name, String):
             if type(object_key).__name__ == "Token":
@@ -7026,10 +7085,10 @@ class Interpreter:
                     elif scope == "catch":
                         Program.printError("another exception occured during handling of the above exception:")
                         error["message"] = f"no property '{object_key.value}'"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                     
                 
                 
@@ -7039,7 +7098,7 @@ class Interpreter:
                     return res.success(String(value))
                 else:
                     error["message"] = f"'string' has no property {object_key.id.value}"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
                
             elif type(object_key).__name__ == "PropertyNode":
                 if type(object_key.id).__name__ ==  "CallNode":
@@ -7054,14 +7113,14 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'string' has no property {object_key.id.node_to_call.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                 else:
                     if object_key.id.value in string_methods:
                         value = f"<{str(object_key.id.value)}()>, [ built-in string method ]"
                         return res.success(String(value))
                     else:
                         error["message"] = f"'string' has no property {object_key.id.value}"
-                        raise PropertyError(error, scope) 
+                        raise Al_PropertyError(error, scope) 
                 
             
             elif type(object_key).__name__ == "CallNode":
@@ -7077,7 +7136,7 @@ class Interpreter:
                         return res.success(value.name)
                     else:
                         error["message"] = f"'string' has no property {object_key.node_to_call.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
         
         elif isinstance(object_name, BuiltInMethod_String):
             if type(object_key).__name__ == "CallNode":
@@ -7093,7 +7152,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'string' has no property {object_key.node_to_call.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                 
         elif isinstance(object_name, Number):
             if type(object_key).__name__ == "Token":
@@ -7102,7 +7161,7 @@ class Interpreter:
                     return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
                 
             elif type(object_key).__name__ == "VarAccessNode":
                 if object_key.id.value in number_methods:
@@ -7110,7 +7169,7 @@ class Interpreter:
                     return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.value}"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
             
             elif type(object_key).__name__ == "CallNode":
                 if object_key.node_to_call.value in number_methods:
@@ -7123,7 +7182,7 @@ class Interpreter:
                     return res.success(value)
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                    raise PropertyError(error, scope) 
+                    raise Al_PropertyError(error, scope) 
                
         elif isinstance(object_name, Function):
             if type(object_key).__name__ == "Token":
@@ -7136,7 +7195,7 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                 else:
                     return res.failure(Program.error()['Runtime']({
                         'pos_start': node.pos_start,
@@ -7196,7 +7255,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -7205,7 +7264,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                raise PropertyError(error, scope)
+                                raise Al_PropertyError(error, scope)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -7224,7 +7283,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            raise PropertyError(error, scope)
+                            raise Al_PropertyError(error, scope)
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -7249,9 +7308,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                     # else:
-                    #     raise PropertyError(error, scope)
+                    #     raise Al_PropertyError(error, scope)
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -7265,7 +7324,7 @@ class Interpreter:
                         #     error["message"] = f"{name} has no property {object_key.value}"
                         # else:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error, scope)
                 
         elif isinstance(object_name, Module):
             if type(object_key).__name__ == "Token":
@@ -7284,7 +7343,7 @@ class Interpreter:
             elif scope == "catch":
                 Program.printError("another exception occured during handling of the above exception:")
                 error["message"] = f"'{object_key.value}'"
-                raise PropertyError(error, scope)
+                raise Al_PropertyError(error, scope)
             else:
                 self.error_detected = True
                 key = ''
@@ -7303,7 +7362,7 @@ class Interpreter:
                 else:
                     message = f"'{key}'"
                 error["message"] = message
-                raise PropertyError(error, scope)
+                raise Al_PropertyError(error, scope)
 
     
     def visit_PropertySetNode(self, node, context):
@@ -7311,7 +7370,9 @@ class Interpreter:
         object_name = res.register(self.visit(node.name, context))
         property = node.property
         value = res.register(self.visit(node.value, context))
+        scope = context.symbolTable.get_current_scope()
         error = {
+            'name': String("PropertyError"),
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             "message": "",
@@ -7324,7 +7385,7 @@ class Interpreter:
                     object_name.properties[property.value] = value
                 if property.value in class_methods:
                     error["message"] = f"'class' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
         
         elif isinstance(object_name, BuiltInClass):
             if property.value in object_name.properties.properties:
@@ -7340,7 +7401,7 @@ class Interpreter:
                    
                 if property.value in dict_methods:
                     error["message"] = f"'dict' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
        
         elif isinstance(object_name, Object):
             if type(property).__name__ == "Token":
@@ -7349,7 +7410,7 @@ class Interpreter:
                    
                 if property.value in object_methods:
                     error["message"] = f"'object' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
         
         elif isinstance(object_name, Function):
             if type(property).__name__ == "Token":
@@ -7357,22 +7418,22 @@ class Interpreter:
                     object_name.properties.properties[property.value] = value
                 if property.value in function_methods:
                     error["message"] = f"'function' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
                       
         elif isinstance(object_name, List):
             if type(property).__name__ == "Token":
                 if property.value in list_methods:
                     error["message"] = f"'list' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
                 else:
                     error["message"] = f"'list' object has no property '{property.value}'"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
                    
         elif isinstance(object_name, Pair):
             if type(property).__name__ == "Token":
                 if property.value in pair_methods:
                     error["message"] = f"'pair' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
                 else:
                     error["message"] = f"cannot set '{property.value}' on immutable type '{object_name.name}'"
                     return res.failure(Program.error()["TypeError"](error))
@@ -7381,19 +7442,19 @@ class Interpreter:
             if type(property).__name__ == "Token":
                 if property.value in string_methods:
                     error["message"] = f"'string' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
                 else:
                     error["message"] = f"'string' object has no property '{property.value}'"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
         
         elif isinstance(object_name, Number):
             if type(property).__name__ == "Token":
                 if property.value in number_methods:
                     error["message"] = f"'number' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
                 else:
                     error["message"] = f"'number' object has no property '{property.value}'"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error, scope)
         
         
         else:
@@ -7411,6 +7472,7 @@ class Interpreter:
         if res.should_return(): return res
         object_type = TypeOf(index_value).getType()
         index_type = TypeOf(index).getType()
+        scope = context.symbolTable.get_current_scope()
         if object_type == "list":
             if index_type == "int":
                 try:
@@ -7419,13 +7481,13 @@ class Interpreter:
                         index_value.elements[index.value] = value_
                     return res.success(get_value)
                 except IndexError:
-                    return res.failure(Program.error()['IndexError']({
+                    raise Al_IndexError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"list index out of range",
                         'context': context,
                         'exit': False
-                    }))
+                    }, scope)
                 except AttributeError:
                      pass
             else:
@@ -8405,8 +8467,8 @@ class Interpreter:
         except Exception as attempt_exception:
             context.symbolTable.set_current_scope("catch")
             exception_error = Dict({
-                'name': attempt_exception.name,
-                'message': attempt_exception.message['message'],
+                'name': attempt_exception.name if isinstance(attempt_exception.name, String) else String(attempt_exception.name),
+                'message': attempt_exception.message['message'] if isinstance(attempt_exception.message['message'], String) else String(attempt_exception.message['message']),
             })
             
             if exception_name_as != None:
@@ -8416,11 +8478,7 @@ class Interpreter:
             value = res.register(self.visit(catch_statement['body'], context))
             if res.should_return(): return res
             return res.success(value)
-        
-        
-
-    
-                       
+                             
     
     def visit_FunctionNode(self, node, context):
         res = RuntimeResult()
