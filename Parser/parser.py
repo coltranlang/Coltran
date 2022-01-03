@@ -871,7 +871,7 @@ class Parser:
                 statements.append(statement)
             return res.success(ListNode(statements, pos_start, self.current_token.pos_end.copy()))
 
-        except KeyboardInterrupt:
+        except:
             pass
 
     def statement(self):

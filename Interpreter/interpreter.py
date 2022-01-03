@@ -305,23 +305,6 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
-        def IllegalCharacter(options):
-            error = f'\nIllegal character: {options["originator"]}\n\nin File: {options["pos_start"].fileName} at line {options["pos_start"].line + 1}\n'
-            Program.printErrorExit(error)
-
-        def Syntax(detail):
-            isDetail = {
-                'name': 'SyntaxError',
-                'message': detail['message'],
-                'pos_start': detail['pos_start'],
-                'pos_end': detail['pos_end'],
-                'context': detail['context']
-            }
-            if detail['exit']:
-                Program.printErrorExit(Program.asStringTraceBack(isDetail))
-            else:
-                Program.printError(Program.asStringTraceBack(isDetail))
-
         def Runtime(detail):
             isDetail = {
                 'name': 'RuntimeError',
@@ -446,21 +429,11 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
-        def Exception(detail):
-            isDetail = {
-                'name': detail['name'],
-                'message': detail['message'],
-                'pos_start': detail['pos_start'],
-                'pos_end': detail['pos_end'],
-                'context': detail['context']
-            }
-            Program.printErrorExit(Program.asStringTraceBack(isDetail))
+        
  
         methods = {
             'Default': Default,
             'Error': Error,
-            'IllegalCharacter': IllegalCharacter,
-            'Syntax': Syntax,
             'Runtime': Runtime,
             'ZeroDivisionError': ZeroDivisionError,
             'NameError': NameError,
@@ -469,8 +442,7 @@ class Program:
             'ValueError': ValueError,
             'PropertyError': PropertyError,
             'IndexError': IndexError,
-            'ModuleError': ModuleError,
-            'Exception': Exception
+            'ModuleError': ModuleError
         }
         
         return methods
@@ -518,7 +490,7 @@ class Program:
                 code = file_handle.read()
                 # check if file is ending with .alden
                 if file[-6:] != ".alden":
-                    print("File is not an alden file")
+                    print(f"File '{file}' is not a valid alden file")
                     return
                 else:
                     return code
@@ -616,6 +588,205 @@ class RuntimeResult:
             self.loop_break
         )
 
+
+
+class Al_Exception(Exception):
+    def __init__(self, name, message):
+        self.name = name
+        self.message = message
+        properties = {
+            'name': String(name),
+            'message': String(message)
+        }
+        self.properties = Dict(properties)
+            
+        
+    def __repr__(self):
+        return f"<Exception {self.name}: {self.message}>"
+      
+
+class Al_RuntimeError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("Runtime", message)
+        #self.scope = scope
+        #self.setError()
+
+    # def setError(self):
+    #     if self.scope == "catch":
+    #         Program.printError("another exception occured during handling of the above exception:")
+    #         return Program.error()[self.name](self.message)
+    #     elif self.scope == "attempt":
+    #         pass
+    #     else:
+    #         context = self.message['context']
+    #         scope = context.symbolTable.parent.get_current_scope()
+    #         if scope == "attempt":
+    #             pass
+    #         elif scope == "catch":
+    #             Program.printError("another exception occured during handling of the above exception:")
+    #             return Program.error()[self.name](self.message)
+    #         else:
+    #             return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<RuntimeError {self.message}>"
+  
+    
+class Al_NameError(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("NameError", message)
+        self.scope = scope
+        
+    def __repr__(self):
+        return f"<NameError {self.message}>"
+
+
+class Al_KeyError(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("KeyError", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            context = self.message['context']
+            scope = context.symbolTable.parent.get_current_scope()
+            if scope == "attempt":
+                pass
+            elif scope == "catch":
+                Program.printError(
+                    "another exception occured during handling of the above exception:")
+                return Program.error()[self.name](self.message)
+            else:
+                return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<KeyError {self.message}>"
+
+
+class Al_TypeError(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("TypeError", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            context = self.message['context']
+            scope = context.symbolTable.parent.get_current_scope()
+            if scope == "attempt":
+                pass
+            elif scope == "catch":
+                Program.printError("another exception occured during handling of the above exception:")
+                return Program.error()[self.name](self.message)
+            else:
+                return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<TypeError {self.message}>"
+    
+
+class Al_PropertyError(Al_Exception):
+    def __init__(self,message,scope=None):
+        super().__init__("PropertyError", message)
+        self.scope = scope
+        
+    def __repr__(self):
+        return f"<PropertyError {self.message}>"
+
+
+class Al_ValueError(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("ValueError", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            context = self.message['context']
+            scope = context.symbolTable.parent.get_current_scope()
+            if scope == "attempt":
+                pass
+            elif scope == "catch":
+                Program.printError("another exception occured during handling of the above exception:")
+                return Program.error()[self.name](self.message)
+            else:
+                return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<ValueError {self.message}>"
+
+
+class Al_IndexError(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("IndexError", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            context = self.message['context']
+            scope = context.symbolTable.parent.get_current_scope()
+            if scope == "attempt":
+                pass
+            elif scope == "catch":
+                Program.printError("another exception occured during handling of the above exception:")
+                return Program.error()[self.name](self.message)
+            else:
+                return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<IndexError {self.message}>"
+
+ 
+class Al_RaiseException(Al_Exception):
+    def __init__(self,message,scope):
+        super().__init__("Exception", message)
+        self.scope = scope
+        self.setError()
+        
+    def setError(self):
+        if self.scope == "catch":
+            Program.printError("another exception occured during handling of the above exception:")
+            return Program.error()[self.name](self.message)
+        elif self.scope == "attempt":
+            pass
+        else:
+            context = self.message['context']
+            scope = context.symbolTable.parent.get_current_scope()
+            if scope == "attempt":
+                pass
+            elif scope == "catch":
+                Program.printError("another exception occured during handling of the above exception:")
+                return Program.error()[self.name](self.message)
+            else:
+                return Program.error()[self.name](self.message)
+        
+    def __repr__(self):
+        return f"<Exception {self.message}>"
+ 
+ 
+ 
     
 class Value:
     def __init__(self):
@@ -840,36 +1011,39 @@ class Value:
     def illegal_operation(self, error, other=None):
         if not other:
             other = self
+        scope = error['context'].symbolTable.get_current_scope()
         if hasattr(other, 'value'):
-            return Program.error()["Syntax"]({
+            raise Al_TypeError({
                 'message': error['message'] if error['message'] else f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
                 'pos_start': error['pos_start'],
                 'pos_end': error['pos_end'],
                 'context': error['context'],
                 'exit': error['exit'] if 'exit' in error else True
-            })
+            }, scope)
         else:
-            return Program.error()["Syntax"]({
+            raise Al_TypeError({
                 'message': f"Illegal operation",
                 'pos_start': error['pos_start'],
                 'pos_end': error['pos_end'],
                 'context': error['context'],
                 'exit': error['exit']
-            })
+            }, scope)
             
     def key_error(self, error, property):
-            return Program.error()["Syntax"]({
+            scope = error['context'].symbolTable.get_current_scope()
+            raise Al_KeyError({
                 'message': error['message'],
                 'pos_start': error['pos_start'],
                 'pos_end': error['pos_end'],
                 'context': error['context'],
                 'exit': error['exit'] if 'exit' in error else True
-            })
+            }, scope)
 
     def none_value(self):
         return Program.NoneValue()
 
     def illegal_operation_typerror(self, error, other=None):
+        scope = error['context'].symbolTable.get_current_scope()
         errorDetail = {
             'pos_start': error['pos_start'],
             'pos_end': error['pos_end'],
@@ -882,13 +1056,14 @@ class Value:
         if not 'message' in error:
             if hasattr(other, 'value'):
                 errorDetail['message'] = f"Illegal operation for type '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'"
-                return Program.error()['Syntax'](errorDetail)
+                raise Al_TypeError(errorDetail, scope)
             else:
                 errorDetail['message'] = f"illegal operation"
-                return Program.error()['Syntax'](errorDetail)
-        return Program.error()['TypeError'](errorDetail)
+                raise Al_TypeError(errorDetail, scope)
+        raise Al_TypeError(errorDetail, scope)
 
     def illegal_operation_indexError(self, error, other=None):
+        scope = error['context'].symbolTable.get_current_scope()
         errorDetail = {
             'pos_start': error['pos_start'],
             'pos_end': error['pos_end'],
@@ -901,11 +1076,11 @@ class Value:
         if not 'message' in error:
             if hasattr(other, 'value'):
                 errorDetail['message'] = f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}'
-                return Program.error()['Syntax'](errorDetail)
+                raise Al_IndexError(errorDetail, scope)
             else:
                 errorDetail['message'] = f"illegal operation"
-                return Program.error()['Syntax'](errorDetail)
-        return Program.error()['IndexError'](errorDetail)
+                raise Al_IndexError(errorDetail, scope)
+        raise Al_IndexError(errorDetail, scope)
 
 
 class Statement(Value):
@@ -2539,22 +2714,22 @@ class BaseFunction(Value):
     def check_args(self, arg_names, args):
         res = RuntimeResult()
         if len(args) > len(arg_names):
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args)} argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names)}",
                 'context': self.context,
                 'exit': False
-            }))
+            })
 
         if len(args) < len(arg_names):
-            return res.failure(Program.error()['Runtime']({
-                'pos_start': self.pos_start,
+            raise Al_RuntimeError({
+                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args)} few argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names)}",
                 'context': self.context,
                 'exit': False
-            }))
+            })
         return res.success(None)
 
     def populate_args(self, arg_names, args, exec_context):
@@ -4097,41 +4272,42 @@ def BuiltInFunction_Exit(args, node, context):
 
 def BuiltInClass_Exception(args, node, context, type):
     res = RuntimeResult()
+    scope = context.symbolTable.get_current_scope()
     if len(args) == 0 or len(args) > 2:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RaiseException({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"'Exception' takes 1 or 2 arguments",
             "context": context,
             'exit': False
-        }))
+        }, scope)
     if type == "raise":
         if len(args) == 1 and isinstance(args[0], String):
-            return res.success(Program.error()["Exception"]({
+            raise Al_RaiseException({
                 'name': 'Exception',
                 'message': args[0].value,
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
-        }))
+            }, scope)
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            return res.success(Program.error()["Exception"]({
+            raise Al_RaiseException({
                 'name': args[0].value if hasattr(args[0], 'value') and args[0].value else 'Exception',
                 'message': args[1].value,
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
-            }))
+            }, scope)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            return Al_RuntimeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but Exception takes 1 or 2 arguments",
                 "context": context,
                 'exit': False
-            }))
+            }, scope)
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -5849,156 +6025,6 @@ def BuiltInModule_Http(context):
     return Module("http", module_path, context)
  
  
-class Al_Exception(Exception):
-    def __init__(self, name, message):
-        self.name = name
-        self.message = message
-        properties = {
-            'name': String(name),
-            'message': String(message)
-        }
-        self.properties = Dict(properties)
-            
-        
-    def __repr__(self):
-        return f"<Exception {self.name}: {self.message}>"
-    
-
-    
-
-class Exception_Runtime(Al_Exception):
-    def __init__(self, message, scope):
-        super().__init__("Runtime", message)
-        self.scope = scope
-        self.setError()
-
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<RuntimeError {self.message}>"
-  
-    
-class Al_NameError(Al_Exception):
-    def __init__(self,message,scope):
-        super().__init__("NameError", message)
-        self.scope = scope
-        self.setError()
-        
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<NameError {self.message}>"
-
-
-class Al_KeyError(Al_Exception):
-    def __init__(self,message,scope):
-        super().__init__("KeyError", message)
-        self.scope = scope
-        self.setError()
-        
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<KeyError {self.message}>"
-
-
-class Al_TypeError(Al_Exception):
-    def __init__(self,message,scope):
-        super().__init__("TypeError", message)
-        self.scope = scope
-        self.setError()
-        
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<TypeError {self.message}>"
-    
-
-class Al_PropertyError(Al_Exception):
-    def __init__(self,message,scope):
-        super().__init__("PropertyError", message)
-        self.scope = scope
-        self.setError()
-        
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<PropertyError {self.message}>"
-
-
-class Al_ValueError(Al_Exception):
-    def __init__(self,message,scope):
-        super().__init__("ValueError", message)
-        self.scope = scope
-        self.setError()
-        
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<ValueError {self.message}>"
-
-
-
-class Al_IndexError(Al_Exception):
-    def __init__(self,message,scope):
-        super().__init__("IndexError", message)
-        self.scope = scope
-        self.setError()
-        
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<IndexError {self.message}>"
-
 
 
 class Interpreter:
@@ -6369,14 +6395,13 @@ class Interpreter:
                 'name': String('NameError'),
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': String(str(var_name) + " is not defined"),
+                'message': f"name '{var_name}' is not defined",
                 'node': node,
                 'context': context,
                 'exit': False
             } 
             scope = context.symbolTable.get_current_scope()
             self.error_detected = True
-            
             raise Al_NameError(exception_details, scope)
            
         
@@ -6779,8 +6804,7 @@ class Interpreter:
             else:
                 error["message"] = f"'{object_key.node_to_call.value}'"
                 raise Al_PropertyError(error, scope)
-            
-        
+                    
         elif isinstance(object_name, Object):
             builtin_properties = {
                 'get': 'get',
@@ -7194,16 +7218,11 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.value}'"
                         else:
-                            error["message"] = f"{object_name.name} has no property {object_key.value}"
+                            error["message"] = f"{object_name.name} has no property '{object_key.value}'"
                         raise Al_PropertyError(error, scope)
                 else:
-                    return res.failure(Program.error()['Runtime']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"{object_name.name} has no property {object_key.value}",
-                        'context': context,
-                        'exit': False
-                    }))
+                    error["message"] = f"{object_name.name} has no property '{object_key.value}'"
+                    raise Al_PropertyError(error, scope)
             if type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in object_name.properties.properties:
@@ -7228,21 +7247,11 @@ class Interpreter:
                         else:
                             return res.success(return_value)
                 else:
-                    return res.failure(Program.error()['Runtime']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"{object_name.name} has no property {object_key.node_to_call.value}",
-                        'context': context,
-                        'exit': False
-                    }))
+                    error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
+                    raise Al_PropertyError(error, scope)
             else:
-                return res.failure(Program.error()['PropertyError']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"'{object_name.name}'",
-                    'context': context,
-                    'exit': False
-                }))
+                error["message"] = f"'{object_name.name}'"
+                raise Al_PropertyError(error, scope)
          
         elif type(object_name).__name__ == "PropertyNode":
             print(type(object_key))
@@ -7318,7 +7327,6 @@ class Interpreter:
                         value = object_name.properties[object_key.value]
                         return res.success(value)
                     else:
-                        print(object_name.properties)
                         # if object_name.properties['__name']:
                         #     name = object_name.properties['__name']
                         #     error["message"] = f"{name} has no property {object_key.value}"
@@ -7335,34 +7343,25 @@ class Interpreter:
        
         else:
             scope = context.symbolTable.get_current_scope()
-            if  scope == "attempt":
-                attempt_details = self.attempt_details
-                exception_details['message'] = f"'{object_key.value}'"
-                attempt_scope = self.setAttempt(attempt_details, exception_details)
-                return res.failure(attempt_scope)
-            elif scope == "catch":
-                Program.printError("another exception occured during handling of the above exception:")
-                error["message"] = f"'{object_key.value}'"
-                raise Al_PropertyError(error, scope)
+            self.error_detected = True
+            key = ''
+            message = ''
+            if hasattr(object_key, "value"):
+                key = object_key.value
+            elif hasattr(object_key, "id"):
+                key = object_key.id.value
+            elif hasattr(object_key, "node_to_call"):
+                if hasattr(object_key.node_to_call, "value"):
+                    key = object_key.node_to_call.value
+                elif hasattr(object_key.node_to_call, "id"):
+                    key = object_key.node_to_call.id.value
+            if hasattr(object_name, "name"):
+                message = f"'{object_name.name}' has no property {key}"
             else:
-                self.error_detected = True
-                key = ''
-                message = ''
-                if hasattr(object_key, "value"):
-                    key = object_key.value
-                elif hasattr(object_key, "id"):
-                    key = object_key.id.value
-                elif hasattr(object_key, "node_to_call"):
-                    if hasattr(object_key.node_to_call, "value"):
-                        key = object_key.node_to_call.value
-                    elif hasattr(object_key.node_to_call, "id"):
-                        key = object_key.node_to_call.id.value
-                if hasattr(object_name, "name"):
-                    message = f"'{object_name.name}' has no property {key}"
-                else:
-                    message = f"'{key}'"
-                error["message"] = message
-                raise Al_PropertyError(error, scope)
+                message = f"'{key}'"
+            error["message"] = message
+            raise Al_PropertyError(error, scope)
+                
 
     
     def visit_PropertySetNode(self, node, context):
@@ -8406,6 +8405,7 @@ class Interpreter:
     
     def visit_RaiseNode(self, node, context):
         res = RuntimeResult()
+        scope = context.symbolTable.get_current_scope()
         if type(node.expression).__name__ != "CallNode":
             exception = res.register(self.visit(node.expression, context))
             if res.should_return(): return res
@@ -8414,24 +8414,24 @@ class Interpreter:
                         exception.properties.properties["message"]]
                 return BuiltInClass_Exception(args, node, context, "raise")
             else:
-                return res.failure(Program.error()['TypeError']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'context': context,
-                        'message': f"exceptions must be of type Exception",
-                        'exit': False
-                    }))
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'message': f"exceptions must be of type Exception",
+                    'exit': False
+                }, scope)
         else:
             if type(node.expression.node_to_call).__name__ == "VarAccessNode":
                 name = node.expression.node_to_call.id.value
                 if name != "Exception":
-                    return res.failure(Program.error()['TypeError']({
-                        'pos_start': node.pos_start,
+                    raise Al_TypeError({
+                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'context': context,
                         'message': f"Expected 'raise' to be followed by 'Exception'",
                         'exit': False
-                    }))
+                    }, scope)
                 else:
                     self.error_detected = True
                     args_nodes = node.expression.args_nodes
@@ -8457,14 +8457,15 @@ class Interpreter:
             'catch_statement': catch_statement,
             'else_statement': else_statement
         }
+        
         context.symbolTable.set_current_scope("attempt")
-        self.context.symbolTable.set_current_scope("attempt")
             
         try:
             value = res.register(self.visit(attempt_statement['body'], context))
             if res.should_return(): return res
             return res.success(value)
         except Exception as attempt_exception:
+            scope = context.symbolTable.get_current_scope()
             context.symbolTable.set_current_scope("catch")
             exception_error = Dict({
                 'name': attempt_exception.name if isinstance(attempt_exception.name, String) else String(attempt_exception.name),
@@ -8476,9 +8477,10 @@ class Interpreter:
             else:
                 context.symbolTable.set(exception_name.value, exception_error)
             value = res.register(self.visit(catch_statement['body'], context))
+            
             if res.should_return(): return res
-            return res.success(value)
-                             
+            return res.success(value)             
+    
     
     def visit_FunctionNode(self, node, context):
         res = RuntimeResult()

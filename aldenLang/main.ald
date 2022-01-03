@@ -361,13 +361,20 @@ println(invetory.find(@isCherries)) # {name: 'cherries', quantity: 10}
 #     println(fm"%{user.name} is verified")
 # end
  #println(fm"Hello, %{dict_user.nadme}")
+ def @test2(a)
+    return b
+end
+ def @test()
+    @test2()
+end
 let dic = {"name": "John","age": 21,"email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
 def @greet2(name)
-    return "Hello, " + nasme
+    @test()
 end
+#println(@greet2('nasme'))
 let fruits = ['apple', 'banana', 'grapes', 'mango', 'orange']
 attempt:
-    println(fruits[6])
+    println(@greet2.k)
 catch Exception as e:
     println(fm"Exception: %{e}")
 end
