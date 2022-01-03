@@ -308,7 +308,6 @@ class Program:
         def Runtime(detail):
             isDetail = {
                 'name': 'RuntimeError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -348,7 +347,6 @@ class Program:
         def TypeError(detail):
             isDetail = {
                 'name': 'TypeError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -362,7 +360,6 @@ class Program:
         def KeyError(detail):
             isDetail = {
                 'name': 'KeyError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -376,7 +373,6 @@ class Program:
         def ValueError(detail):
             isDetail = {
                 'name': 'ValueError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -390,7 +386,6 @@ class Program:
         def PropertyError(detail):
             isDetail = {
                 'name': 'PropertyError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -404,7 +399,6 @@ class Program:
         def IndexError(detail):
             isDetail = {
                 'name': 'IndexError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -429,7 +423,18 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
-        
+        def Exception(detail):
+            isDetail = {
+                'name': 'Exception',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
  
         methods = {
             'Default': Default,
@@ -442,7 +447,8 @@ class Program:
             'ValueError': ValueError,
             'PropertyError': PropertyError,
             'IndexError': IndexError,
-            'ModuleError': ModuleError
+            'ModuleError': ModuleError,
+            'Exception': Exception
         }
         
         return methods
