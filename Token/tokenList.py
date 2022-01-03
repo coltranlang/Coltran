@@ -196,6 +196,7 @@ KEYWORDS = [
     'default',
     'attempt',
     'catch',
+    'finally',
     'return',
     'continue',
     'break',

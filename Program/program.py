@@ -88,7 +88,10 @@ class Al_Program:
             else:
                 return "", ''
         except Exception as e:
-            return I_Al_Program.error()[e.name](e.message)
+            try:
+                return I_Al_Program.error()[e.name](e.message)
+            except:
+                pass
 
     def runFile(fileName):
         try:

@@ -262,7 +262,7 @@ class Context:
 def setNumber(token):
     value = "none"
     if not token and token != 0:
-        value = 0
+        value = token
     if token == 'true':
         value = 1
     elif token == 'false':
@@ -305,7 +305,7 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
-        def Runtime(detail):
+        def RuntimeError(detail):
             isDetail = {
                 'name': 'RuntimeError',
                 'message': detail['message'],
@@ -439,7 +439,7 @@ class Program:
         methods = {
             'Default': Default,
             'Error': Error,
-            'Runtime': Runtime,
+            'RuntimeError': RuntimeError,
             'ZeroDivisionError': ZeroDivisionError,
             'NameError': NameError,
             'TypeError': TypeError,
@@ -611,9 +611,17 @@ class Al_Exception(Exception):
         return f"<Exception {self.name}: {self.message}>"
       
 
-class Al_RuntimeError(Al_Exception):
+class Al_ZeroDivisionError(Al_Exception):
     def __init__(self, message):
         super().__init__("Runtime", message)
+
+    def __repr__(self):
+        return f"<ZeroDivisionError {self.name}: {self.message}>"
+      
+
+class Al_RuntimeError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("RuntimeError", message)
         #self.scope = scope
         #self.setError()
 
@@ -792,7 +800,28 @@ class Al_RaiseException(Al_Exception):
         return f"<Exception {self.message}>"
  
  
+class Al_ModuleError(Al_Exception):
+    def __init__(self,message):
+        super().__init__("ModuleError", message)
+
+    def __repr__(self):
+        return f"<ModuleError {self.message}>"
  
+
+exceptions = {
+    'Al_Exception': Al_Exception,
+    'Al_RuntimeError': Al_RuntimeError,
+    'Al_NameError': Al_NameError,
+    'Al_TypeError': Al_TypeError,
+    'Al_IndexError': Al_IndexError,
+    'Al_ValueError': Al_ValueError,
+    'Al_PropertyError': Al_PropertyError,
+    'Al_KeyError': Al_KeyError,
+    'Al_ZeroDivisionError': Al_ZeroDivisionError,
+    'Al_RaiseException': Al_RaiseException,
+    'Al_ModuleError': Al_ModuleError,
+}
+
     
 class Value:
     def __init__(self):
@@ -959,20 +988,10 @@ class Value:
         })
 
     def and_by(self, other):
-        return None, self.illegal_operation_typerror({
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"'&&' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
-            'context': self.context
-        })
+        return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
 
     def or_by(self, other):
-        return None, self.illegal_operation_typerror({
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"'or' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
-            'context': self.context
-        })
+        return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
 
     def get_comparison_in(self, other):
         return None, self.illegal_operation_typerror({
@@ -990,14 +1009,9 @@ class Value:
             'context': self.context
         })
 
-    def notted(self, other):
-        return None, self.illegal_operation_typerror({
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
-            'context': self.context,
-            'exit': False
-        })
+    def notted(self):
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
 
     def execute(self, args):
         error = {
@@ -1017,7 +1031,6 @@ class Value:
     def illegal_operation(self, error, other=None):
         if not other:
             other = self
-        scope = error['context'].symbolTable.get_current_scope()
         if hasattr(other, 'value'):
             raise Al_TypeError({
                 'message': error['message'] if error['message'] else f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
@@ -1025,7 +1038,7 @@ class Value:
                 'pos_end': error['pos_end'],
                 'context': error['context'],
                 'exit': error['exit'] if 'exit' in error else True
-            }, scope)
+            })
         else:
             raise Al_TypeError({
                 'message': f"Illegal operation",
@@ -1033,7 +1046,7 @@ class Value:
                 'pos_end': error['pos_end'],
                 'context': error['context'],
                 'exit': error['exit']
-            }, scope)
+            })
             
     def key_error(self, error, property):
             scope = error['context'].symbolTable.get_current_scope()
@@ -1049,7 +1062,6 @@ class Value:
         return Program.NoneValue()
 
     def illegal_operation_typerror(self, error, other=None):
-        scope = error['context'].symbolTable.get_current_scope()
         errorDetail = {
             'pos_start': error['pos_start'],
             'pos_end': error['pos_end'],
@@ -1062,14 +1074,22 @@ class Value:
         if not 'message' in error:
             if hasattr(other, 'value'):
                 errorDetail['message'] = f"Illegal operation for type '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'"
-                raise Al_TypeError(errorDetail, scope)
+                raise Al_TypeError(errorDetail)
             else:
                 errorDetail['message'] = f"illegal operation"
-                raise Al_TypeError(errorDetail, scope)
-        raise Al_TypeError(errorDetail, scope)
+                raise Al_TypeError(errorDetail)
+        raise Al_TypeError(errorDetail)
+
+    def zero_division_error(self, error):
+        raise Al_ZeroDivisionError({
+            'pos_start': error['pos_start'],
+            'pos_end': error['pos_end'],
+            'message': error['message'],
+            'context': error['context'],
+            'exit': error['exit'] if 'exit' in error else False
+        })
 
     def illegal_operation_indexError(self, error, other=None):
-        scope = error['context'].symbolTable.get_current_scope()
         errorDetail = {
             'pos_start': error['pos_start'],
             'pos_end': error['pos_end'],
@@ -1082,11 +1102,11 @@ class Value:
         if not 'message' in error:
             if hasattr(other, 'value'):
                 errorDetail['message'] = f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}'
-                raise Al_IndexError(errorDetail, scope)
+                raise Al_IndexError(errorDetail)
             else:
                 errorDetail['message'] = f"illegal operation"
-                raise Al_IndexError(errorDetail, scope)
-        raise Al_IndexError(errorDetail, scope)
+                raise Al_IndexError(errorDetail)
+        raise Al_IndexError(errorDetail)
 
 
 class Statement(Value):
@@ -1225,7 +1245,7 @@ class Number(Value):
                 'context': self.context,
                 'exit': False
             }
-            return None, Program.error()['ZeroDivisionError'](error)
+            return None, self.zero_division_error(error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1253,7 +1273,7 @@ class Number(Value):
                             'context': self.context,
                             'exit': False
                         }
-                        return None, Program.error()['ZeroDivisionError'](error)
+                        return None, self.zero_division_error(error)
                     value += setNumber(element.value)
             return Number(setNumber(self.value) / value).setContext(self.context), None
         else:
@@ -1268,7 +1288,7 @@ class Number(Value):
                 'context': self.context,
                 'exit': False
             }
-            return None, Program.error()['ZeroDivisionError'](error)
+            return None, self.zero_division_error(error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1296,7 +1316,7 @@ class Number(Value):
                             'context': self.context,
                             'exit': False
                         }
-                        return None, Program.error()['ZeroDivisionError'](error)
+                        return None, self.zero_division_error(error)
                     value += setNumber(element.value)
             return Number(setNumber(self.value) // value).setContext(self.context), None
         else:
@@ -1344,7 +1364,7 @@ class Number(Value):
                     'context': self.context,
                     'exit': False
                 }
-                return None, Program.error()['ZeroDivisionError'](error)
+                return None, self.zero_division_error(error)
             else:
                 return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
         elif isinstance(other, Boolean):
@@ -1356,7 +1376,7 @@ class Number(Value):
                     'context': self.context,
                     'exit': False
                 }
-                return None, Program.error()['ZeroDivisionError'](error)
+                return None, self.zero_division_error(error)
             else:
                 return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
         elif isinstance(other, Pair):
@@ -1375,7 +1395,7 @@ class Number(Value):
                             'context': self.context,
                             'exit': False
                         }
-                        return None, Program.error()['ZeroDivisionError'](error)
+                        return None, self.zero_division_error(error)
                     else:
                         value += setNumber(element.value)
             return Number(setNumber(self.value) % value).setContext(self.context), None
@@ -1528,44 +1548,14 @@ class Number(Value):
             return None, self.illegal_operation_typerror(error, other)
 
     def and_by(self, other): 
-        error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't perform and on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-                'context': self.context
-        }
-        if isinstance(other, String):
-            return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            return Number(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Boolean):
-            return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, NoneType):
-            return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation_typerror(error, other)
+        return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
 
     def or_by(self, other):
-        error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't perform or on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-                'context': self.context
-        }
-        if isinstance(other, String):
-            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Boolean):
-            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, NoneType):
-            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation_typerror(error, other)
+        return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
 
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(value), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
     
     def copy(self):
         copy = Number(self.value)
@@ -1696,7 +1686,8 @@ class String(Value):
             return None, self.illegal_operation(error, other)
     
     def notted(self):
-        return self.setTrueorFalse(not setNumber(self.value)).setContext(self.context), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
 
     def and_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
@@ -1732,7 +1723,6 @@ class Boolean(Value):
         self.setPosition(0, 0)
         self.setContext(None)
 
-
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
         self.pos_end = pos_end
@@ -1741,8 +1731,7 @@ class Boolean(Value):
     def setContext(self, context=None):
         self.context = context
         return self
- 
-    
+     
     def added_to(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1795,6 +1784,15 @@ class Boolean(Value):
             return None, self.illegal_operation(error, other)
        
     def divided_by(self, other):
+        if other.value == 0:
+            error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"zero division error",
+                    'context': self.context,
+                    'exit': False
+                }
+            return None, self.zero_division_error(error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1818,7 +1816,7 @@ class Boolean(Value):
                 'context': self.context,
                 'exit': False
             }
-            return None, Program.error()['ZeroDivisionError'](error)
+            return None, self.zero_division_error(error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1834,6 +1832,15 @@ class Boolean(Value):
             return None, self.illegal_operation_typerror(error)
            
     def modulo_by(self, other):
+        if other.value == 0:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"modulo by zero",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.zero_division_error(error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1883,8 +1890,7 @@ class Boolean(Value):
             return Boolean(setNumber(self.value) < setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(error, other)
-    
-    
+      
     def get_comparison_gt(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1899,8 +1905,7 @@ class Boolean(Value):
             return Boolean(setNumber(self.value) > setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(error, other)
-        
-        
+                
     def get_comparison_lte(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1915,51 +1920,16 @@ class Boolean(Value):
             return Boolean(setNumber(self.value) <= setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(error, other)
-        
-    
+           
     def and_by(self, other):
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"can't perform and on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-            'context': self.context,
-            'exit': False
-        }
-        if isinstance(other, Boolean):
-            return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            if self.value == "false":
-                return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-            return Number(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, String):
-            return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation(error, other)
-        
-        
+        return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
+             
     def or_by(self, other):
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"can't perform or on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-            'context': self.context,
-            'exit': False
-        }
-        if isinstance(other, Boolean):
-            return Boolean(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            if self.value == "true":
-                return Boolean(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, String):
-            return String(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation(error, other)
-        
-        
+        return Boolean(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+              
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
     
     def is_true(self):
         return True if self.value == "true" else False
@@ -2010,27 +1980,11 @@ class NoneType(Value):
         return self.setTrueorFalse(other.value == "none"), None
     
     def or_by(self, other):
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"can't perform or on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-            'context': self.context,
-            'exit': False
-        }
-        if other.value == "none":
-            return None, None
-        if isinstance(other, Boolean):
-            return Boolean(setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            return Number(setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, String):
-            return String(setNumber(other.value)).setContext(self.context), None
-        else:
-            return String(other.value).setContext(self.context), None
+        return self.setTrueorFalse(other.value != "none"), None
         
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
     
     def is_true(self):
         return self.value == "true" if self.value else "false"
@@ -2193,8 +2147,8 @@ class List(Value):
         return self.setTrueorFalse(True if value == "false" else False), None
     
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
 
     def get_index(self, other):
         error = {
@@ -2223,12 +2177,8 @@ class List(Value):
     def length(self):
         return len(self.elements)
 
-
     def is_true(self):
-        if len(self.elements) == 0:
-                return False
-        else:
-            return True
+        return len(self.elements) > 0
         
     def join(self, other):
         return List(self.elements + other.elements), None
@@ -2426,8 +2376,8 @@ class Pair(Value):
         return self.setTrueorFalse(True if value == "false" else False), None
     
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
 
     def get_index(self, other):
         error = {
@@ -2458,10 +2408,7 @@ class Pair(Value):
             return False
 
     def is_true(self):
-        if len(self.elements) == 0:
-            return False
-        else:
-            return True
+        return len(self.elements) > 0
 
     def copy(self):
         copy = Pair(self.elements)
@@ -2552,14 +2499,11 @@ class Dict(Value):
         return self.setTrueorFalse(False if value else True), None
    
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
    
     def is_true(self):
-        if len(self.properties) == 0:
-            return False
-        else:
-            return True
+        return len(self.properties) > 0
    
     def copy(self):
         copy = Dict(self.properties)
@@ -2683,10 +2627,7 @@ class Object(Value):
             return None, self.illegal_operation_typerror(error, other)
     
     def is_true(self):
-        if len(self.properties) == 0:
-            return False
-        else:
-            return True
+        return len(self.properties) > 0
     
     def copy(self):
         copy = Object(self.name, self.properties)
@@ -2773,22 +2714,22 @@ class BaseClass(Value):
     def check_args(self, constructor_args, args):
         res = RuntimeResult()
         if len(args) > len(constructor_args):
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args)} argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(constructor_args)}",
                 'context': self.context,
                 'exit': False
-            }))
+            })
 
         if len(args) < len(constructor_args):
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args)} few argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(constructor_args)}",
                 'context': self.context,
                 'exit': False
-            }))
+            })
         return res.success(None)
 
     def populate_args(self, constructor_args, args, exec_context):
@@ -2808,6 +2749,7 @@ class BaseClass(Value):
     def is_true(self):
         return True
     
+     
 
 class Function(BaseFunction):
     def __init__(self, name, body_node, arg_names, implicit_return, default_values, properties, type,context):
@@ -2950,7 +2892,7 @@ class Class(BaseClass):
         self.inherit_class = inherit_class
         self.methods = methods
         self.properties = methods
-        self.value = self.properties
+        self.value = f"<Class {str(self.class_name)}>"
         self.context = context
         self.body_node = None
         
@@ -3022,11 +2964,12 @@ class Class(BaseClass):
     def get_comparison_ne(self, other):
         value = self.isSame(other)
         return self.setTrueorFalse(False if value else True), None
-   
+     
     
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
+    
     
     
     def isSame(self, other):
@@ -3036,6 +2979,7 @@ class Class(BaseClass):
             return _new_class == other_class
         return False
 
+    
     def merge(self, other):
         if isinstance(other, Dict) or isinstance(other, Object):
             for key, value in other.properties.items():
@@ -3061,6 +3005,7 @@ class Class(BaseClass):
             }
             return None, self.illegal_operation_typerror(error, other)
    
+    
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
                      self.inherit_class_name, self.inherit_class, self.properties, self.context)
@@ -3068,6 +3013,7 @@ class Class(BaseClass):
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
 
+    
     def __repr__(self):
         return f"<Class {str(self.class_name)}>"
         
@@ -3236,6 +3182,7 @@ class ModuleExportValue(Value):
 class BuiltInFunction(BaseFunction):
     def __init__(self, name):
         super().__init__(name)
+        self.value = name
 
     def execute(self, args):
         res = RuntimeResult()
@@ -3267,13 +3214,13 @@ class BuiltInFunction(BaseFunction):
         res = RuntimeResult()
         value = exec_context.symbolTable.get("value")
         if isinstance(value, Number):
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"type {TypeOf(value).getType()} is not supported",
+                'message': f"type '{TypeOf(value).getType()}' is not supported",
                 'context': self.context,
                 'exit': False
-            }))
+            })
         if isinstance(value, List):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
         if isinstance(value, String):
@@ -3282,8 +3229,16 @@ class BuiltInFunction(BaseFunction):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
         if isinstance(value, Object):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
-        if isinstance(value, NoneType):
-            return res.success(Number(0).setPosition(self.pos_start, self.pos_end).setContext(self.context))
+        if isinstance(value, Dict):
+            return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
+        else:
+            raise Al_TypeError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"type '{TypeOf(value).getType()}' has no len()",
+                'context': self.context,
+                'exit': False
+            })
     execute_len.arg_names = ["value"]   
 
     def execute_append(self, exec_context):
@@ -3359,6 +3314,7 @@ class BuiltInClass(BaseClass):
     def __init__(self, name, properties):
         super().__init__(name)
         self.properties = properties
+        self.value = name
 
     def execute(self, args):
         res = RuntimeResult()
@@ -3606,7 +3562,6 @@ def BuiltInFunction_Str(args, node, context):
         new_string = String(str(args[0]))
         new_string.setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(new_string)
-
     
     
 def BuiltInFunction_Range(args, node, context):
@@ -4286,7 +4241,7 @@ def BuiltInClass_Exception(args, node, context, type):
             'message': f"'Exception' takes 1 or 2 arguments",
             "context": context,
             'exit': False
-        }, scope)
+        })
     if type == "raise":
         if len(args) == 1 and isinstance(args[0], String):
             raise Al_RaiseException({
@@ -4296,24 +4251,24 @@ def BuiltInClass_Exception(args, node, context, type):
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
-            }, scope)
+            })
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
             raise Al_RaiseException({
                 'name': args[0].value if hasattr(args[0], 'value') and args[0].value else 'Exception',
-                'message': args[1].value,
+                'message': args[1].value, 
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
-            }, scope)
+            })
         else:
-            return Al_RuntimeError({
+            raise Al_RuntimeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but Exception takes 1 or 2 arguments",
                 "context": context,
                 'exit': False
-            }, scope)
+            })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -5988,8 +5943,8 @@ class Types(Value):
         return self.setTrueorFalse(other.value == "none"), None
     
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
     
     def copy(self):
         copy = Types(self.name)
@@ -6073,12 +6028,10 @@ class Interpreter:
                 }))
         
    
-    def visit(self, node, context, exception=None, attempt_details=None):
+    def visit(self, node, context):
         method_name = f'visit_{type(node).__name__}'
         method = getattr(self, method_name, self.no_visit)
         self.context = context
-        if attempt_details:
-            self.attempt_details = attempt_details
         return method(node, context)
 
     
@@ -6124,41 +6077,35 @@ class Interpreter:
         string_to_interp = res.register(self.visit(node.expr, context)).value
         inter_pv = node.inter_pv
         value = ""
-        try:
-            if isinstance(values_to_replace, list):
-                for pv in range(len(inter_pv)):
-                    replace_value = res.register(self.visit(values_to_replace[pv], context))
-                    if replace_value == None:
-                        self.error_detected = True
-                        return res.noreturn()
-                    value_replaced = str(replace_value)
-                    if isinstance(replace_value, String):
-                        value_replaced = str(replace_value.value)
-                    if value_replaced[0] == "'":
-                        value_replaced = str(value_replaced[1:-1])
-                    if value_replaced == "None":
-                        value_replaced = str(NoneType.none)
-                    # replace placeholder with value
+        if isinstance(values_to_replace, list):
+            for pv in range(len(inter_pv)):
+                replace_value = res.register(self.visit(values_to_replace[pv], context))
+                value_replaced = str(replace_value)
+                if isinstance(replace_value, String):
+                    value_replaced = str(replace_value.value)
+                if value_replaced[0] == "'":
+                    value_replaced = str(value_replaced[1:-1])
+                if value_replaced == "None":
+                    value_replaced = str(NoneType.none)
+                # replace placeholder with value
+                string_to_interp = string_to_interp.replace(
+                    '%{' + str(inter_pv[pv]) + '}', value_replaced)
+                if '%%{{' in string_to_interp and '}}' in string_to_interp:
                     string_to_interp = string_to_interp.replace(
-                        '%{' + str(inter_pv[pv]) + '}', value_replaced)
-                    if '%%{{' in string_to_interp and '}}' in string_to_interp:
-                        string_to_interp = string_to_interp.replace(
-                            '%%{{' + str(inter_pv[pv]) + '}}', '%{' + str(value_replaced) + '}')
-                    elif '{{' in string_to_interp and '}}' in string_to_interp:
-                        string_to_interp = string_to_interp.replace(
-                            '%{{' + str(inter_pv[pv]) + '}}', '{' + str(value_replaced) + '}')
-                    value = String(string_to_interp).setContext(
-                        context).setPosition(node.pos_start, node.pos_end)
-            else:
-                string = values_to_replace
-                value = String(string).setContext(context).setPosition(node.pos_start, node.pos_end)
-                
-            if value:
-                return res.success(value)
-            else:
-                res.noreturn()
-        except:
-            pass
+                        '%%{{' + str(inter_pv[pv]) + '}}', '%{' + str(value_replaced) + '}')
+                elif '{{' in string_to_interp and '}}' in string_to_interp:
+                    string_to_interp = string_to_interp.replace(
+                        '%{{' + str(inter_pv[pv]) + '}}', '{' + str(value_replaced) + '}')
+                value = String(string_to_interp).setContext(
+                    context).setPosition(node.pos_start, node.pos_end)
+        else:
+            string = values_to_replace
+            value = String(string).setContext(context).setPosition(node.pos_start, node.pos_end)
+            
+        if value:
+            return res.success(value)
+        else:
+            res.noreturn()
     
     
     def visit_ListNode(self, node, context):
@@ -6727,7 +6674,7 @@ class Interpreter:
                             error['message'] = String(f"Export has no member '{object_key.id.value}'")
                         else:
                             error["message"] = String(f"{object_name.name} has no method {object_key.id.value}")
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
             
             if type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -6739,7 +6686,7 @@ class Interpreter:
                             error['message'] = String(f"Export has no member '{object_key.value}'")
                         else:
                             error["message"] = String(f"{object_name.name} has no property {object_key.value}")
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
             
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6769,9 +6716,9 @@ class Interpreter:
                                 self.error_detected = True
                                 error["message"] = String(
                                     f"'{object_name.name}' has no method '{object_key.node_to_call.value}'")
-                            raise Al_PropertyError(error, scope)
+                            raise Al_PropertyError(error)
                     # else:
-                    #     raise Al_PropertyError(error, scope)
+                    #     raise Al_PropertyError(error)
         
         elif isinstance(object_name, BuiltInClass):
             if type(object_key).__name__ == "Token":
@@ -6781,7 +6728,7 @@ class Interpreter:
                 else:
                     error["message"] = String(
                         f"{object_name.name} has no property {object_key.value}")
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in object_name.properties.properties:
@@ -6803,13 +6750,13 @@ class Interpreter:
                             return res.success(return_value)
                     else:
                         error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                 else:
                     error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
             else:
                 error["message"] = f"'{object_key.node_to_call.value}'"
-                raise Al_PropertyError(error, scope)
+                raise Al_PropertyError(error)
                     
         elif isinstance(object_name, Object):
             builtin_properties = {
@@ -6822,7 +6769,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6831,7 +6778,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                raise Al_PropertyError(error, scope)
+                                raise Al_PropertyError(error)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -6851,7 +6798,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            raise Al_PropertyError(error, scope)
+                            raise Al_PropertyError(error)
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -6876,9 +6823,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                     # else:
-                    #     raise Al_PropertyError(error, scope)
+                    #     raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -6892,7 +6839,7 @@ class Interpreter:
                         #     error["message"] = f"{name} has no property {object_key.value}"
                         # else:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
             
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -6901,7 +6848,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
    
         elif isinstance(object_name, Dict):
             if type(object_key).__name__ == "VarAccessNode":
@@ -6914,7 +6861,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
 
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6932,7 +6879,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                raise Al_PropertyError(error, scope)
+                                raise Al_PropertyError(error)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -6954,7 +6901,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            raise Al_PropertyError(error, scope)
+                            raise Al_PropertyError(error)
                 else:
                     if object_key.id.node_to_call.id.value in dict_methods:
                         args = []
@@ -6989,9 +6936,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                     # else:
-                    #     raise Al_PropertyError(error, scope)
+                    #     raise Al_PropertyError(error)
 
             elif type(object_key).__name__ == "Token":
                 if object_key.value in dict_methods:
@@ -7003,7 +6950,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'{object_key.value}'"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
 
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -7012,7 +6959,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                 
         elif isinstance(object_name, List):
             if type(object_key).__name__ == "VarAccessNode":
@@ -7036,7 +6983,7 @@ class Interpreter:
                      return res.success(value)
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -7066,7 +7013,7 @@ class Interpreter:
                                 return res.success(return_value)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
         
         elif isinstance(object_name, Pair):
             if type(object_key).__name__ == "Token":
@@ -7079,7 +7026,7 @@ class Interpreter:
                         return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -7094,7 +7041,7 @@ class Interpreter:
                         return res.success(value.name)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
         
         elif isinstance(object_name, String):
             if type(object_key).__name__ == "Token":
@@ -7105,20 +7052,8 @@ class Interpreter:
                     else:
                         return res.success(BuiltInMethod(value))
                 else:
-                    scope = context.symbolTable.get_current_scope()
-                    self.error_detected = True
-                    if  scope == "attempt":
-                        attempt_details = self.attempt_details
-                        exception_details['message'] = f"no property '{object_key.value}'"
-                        attempt_scope = self.setAttempt(attempt_details, exception_details)
-                        return res.failure(attempt_scope)
-                    elif scope == "catch":
-                        Program.printError("another exception occured during handling of the above exception:")
-                        error["message"] = f"no property '{object_key.value}'"
-                        raise Al_PropertyError(error, scope)
-                    else:
-                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                        raise Al_PropertyError(error, scope)
+                    error["message"] = f"'string' has no property {object_key.value}"
+                    raise Al_PropertyError(error)
                     
                 
                 
@@ -7128,7 +7063,7 @@ class Interpreter:
                     return res.success(String(value))
                 else:
                     error["message"] = f"'string' has no property {object_key.id.value}"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                
             elif type(object_key).__name__ == "PropertyNode":
                 if type(object_key.id).__name__ ==  "CallNode":
@@ -7143,14 +7078,14 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'string' has no property {object_key.id.node_to_call.id.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                 else:
                     if object_key.id.value in string_methods:
                         value = f"<{str(object_key.id.value)}()>, [ built-in string method ]"
                         return res.success(String(value))
                     else:
                         error["message"] = f"'string' has no property {object_key.id.value}"
-                        raise Al_PropertyError(error, scope) 
+                        raise Al_PropertyError(error) 
                 
             
             elif type(object_key).__name__ == "CallNode":
@@ -7166,7 +7101,7 @@ class Interpreter:
                         return res.success(value.name)
                     else:
                         error["message"] = f"'string' has no property {object_key.node_to_call.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
         
         elif isinstance(object_name, BuiltInMethod_String):
             if type(object_key).__name__ == "CallNode":
@@ -7182,7 +7117,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'string' has no property {object_key.node_to_call.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                 
         elif isinstance(object_name, Number):
             if type(object_key).__name__ == "Token":
@@ -7191,7 +7126,7 @@ class Interpreter:
                     return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "VarAccessNode":
                 if object_key.id.value in number_methods:
@@ -7199,7 +7134,7 @@ class Interpreter:
                     return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.value}"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
             
             elif type(object_key).__name__ == "CallNode":
                 if object_key.node_to_call.value in number_methods:
@@ -7212,7 +7147,7 @@ class Interpreter:
                     return res.success(value)
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                    raise Al_PropertyError(error, scope) 
+                    raise Al_PropertyError(error) 
                
         elif isinstance(object_name, Function):
             if type(object_key).__name__ == "Token":
@@ -7225,10 +7160,10 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property '{object_key.value}'"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                 else:
                     error["message"] = f"{object_name.name} has no property '{object_key.value}'"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
             if type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in object_name.properties.properties:
@@ -7254,10 +7189,10 @@ class Interpreter:
                             return res.success(return_value)
                 else:
                     error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
             else:
                 error["message"] = f"'{object_name.name}'"
-                raise Al_PropertyError(error, scope)
+                raise Al_PropertyError(error)
          
         elif type(object_name).__name__ == "PropertyNode":
             print(type(object_key))
@@ -7270,7 +7205,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -7279,7 +7214,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                raise Al_PropertyError(error, scope)
+                                raise Al_PropertyError(error)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -7298,7 +7233,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            raise Al_PropertyError(error, scope)
+                            raise Al_PropertyError(error)
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -7323,9 +7258,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                     # else:
-                    #     raise Al_PropertyError(error, scope)
+                    #     raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -7338,7 +7273,7 @@ class Interpreter:
                         #     error["message"] = f"{name} has no property {object_key.value}"
                         # else:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        raise Al_PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                 
         elif isinstance(object_name, Module):
             if type(object_key).__name__ == "Token":
@@ -7366,9 +7301,8 @@ class Interpreter:
             else:
                 message = f"'{key}'"
             error["message"] = message
-            raise Al_PropertyError(error, scope)
+            raise Al_PropertyError(error)
                 
-
     
     def visit_PropertySetNode(self, node, context):
         res = RuntimeResult()
@@ -7390,7 +7324,7 @@ class Interpreter:
                     object_name.properties[property.value] = value
                 if property.value in class_methods:
                     error["message"] = f"'class' object property '{property.value}' is read-only"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
         
         elif isinstance(object_name, BuiltInClass):
             if property.value in object_name.properties.properties:
@@ -7406,7 +7340,7 @@ class Interpreter:
                    
                 if property.value in dict_methods:
                     error["message"] = f"'dict' object property '{property.value}' is read-only"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
        
         elif isinstance(object_name, Object):
             if type(property).__name__ == "Token":
@@ -7415,7 +7349,7 @@ class Interpreter:
                    
                 if property.value in object_methods:
                     error["message"] = f"'object' object property '{property.value}' is read-only"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
         
         elif isinstance(object_name, Function):
             if type(property).__name__ == "Token":
@@ -7423,22 +7357,22 @@ class Interpreter:
                     object_name.properties.properties[property.value] = value
                 if property.value in function_methods:
                     error["message"] = f"'function' object property '{property.value}' is read-only"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                       
         elif isinstance(object_name, List):
             if type(property).__name__ == "Token":
                 if property.value in list_methods:
                     error["message"] = f"'list' object property '{property.value}' is read-only"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 else:
                     error["message"] = f"'list' object has no property '{property.value}'"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                    
         elif isinstance(object_name, Pair):
             if type(property).__name__ == "Token":
                 if property.value in pair_methods:
                     error["message"] = f"'pair' object property '{property.value}' is read-only"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 else:
                     error["message"] = f"cannot set '{property.value}' on immutable type '{object_name.name}'"
                     return res.failure(Program.error()["TypeError"](error))
@@ -7447,19 +7381,19 @@ class Interpreter:
             if type(property).__name__ == "Token":
                 if property.value in string_methods:
                     error["message"] = f"'string' object property '{property.value}' is read-only"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 else:
                     error["message"] = f"'string' object has no property '{property.value}'"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
         
         elif isinstance(object_name, Number):
             if type(property).__name__ == "Token":
                 if property.value in number_methods:
                     error["message"] = f"'number' object property '{property.value}' is read-only"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 else:
                     error["message"] = f"'number' object has no property '{property.value}'"
-                    raise Al_PropertyError(error, scope)
+                    raise Al_PropertyError(error)
         
         
         else:
@@ -8077,7 +8011,7 @@ class Interpreter:
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
             if isinstance(number, Pair):
                 for i in range(len(number.elements)):
-                    number = Number(not number.elements[i].value)
+                    number = Number(number.elements[i].value)
             number, error = number.notted()
         if error:
             return res.failure(error)
@@ -8450,43 +8384,38 @@ class Interpreter:
     def visit_AttemptNode(self,node,context):
         res = RuntimeResult()
         exception = node.exception
-        exception_name = exception["name"]
-        exception_name_as = exception["as"]
         attempt_statement = node.attempt_statement
         catch_statement = node.catch_statement
-        else_statement = node.else_statement
-        
-        attempt_properties = {
-            'exception': exception,
-            'context': context,
-            'attempt_statement': attempt_statement,
-            'catch_statement': catch_statement,
-            'else_statement': else_statement
-        }
-        
-        context.symbolTable.set_current_scope("attempt")
-            
+        finally_statement = node.finally_statement
+        if finally_statement:
+            res.register(self.visit(finally_statement['body'], context))
         try:
             value = res.register(self.visit(attempt_statement['body'], context))
             if res.should_return(): return res
             return res.success(value)
         except Exception as attempt_exception:
-            scope = context.symbolTable.get_current_scope()
-            context.symbolTable.set_current_scope("catch")
-            exception_error = Dict({
-                'name': attempt_exception.name if isinstance(attempt_exception.name, String) else String(attempt_exception.name),
-                'message': attempt_exception.message['message'] if isinstance(attempt_exception.message['message'], String) else String(attempt_exception.message['message']),
-            })
-            
-            if exception_name_as != None:
-                context.symbolTable.set(exception_name_as.value, exception_error)
-            else:
-                context.symbolTable.set(exception_name.value, exception_error)
-            value = res.register(self.visit(catch_statement['body'], context))
-            
-            if res.should_return(): return res
-            return res.success(value)             
-    
+            if catch_statement != None and catch_statement != {}:
+                if exception:
+                    exception_name = exception["name"]
+                    exception_name_as = exception["as"]
+                    if attempt_exception.name == exception_name.value or exception_name.value == "Exception":
+                            exception_error = Dict({
+                                'name': attempt_exception.name if isinstance(attempt_exception.name, String) else String(attempt_exception.name),
+                                'message': attempt_exception.message['message'] if isinstance(attempt_exception.message['message'], String) else String(attempt_exception.message['message']),
+                            })
+                            if exception_name_as != None:
+                                context.symbolTable.set(exception_name_as.value, exception_error)
+                            else:
+                                context.symbolTable.set(exception_name.value, exception_error)
+                            value = res.register(self.visit(catch_statement['body'], context))
+                            
+                            if res.should_return(): return res
+                            return res.success(value)
+                    else:
+                        raise attempt_exception 
+                else:
+                    res.register(self.visit(catch_statement['body'], context))
+           
     
     def visit_FunctionNode(self, node, context):
         res = RuntimeResult()

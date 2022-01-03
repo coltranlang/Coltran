@@ -541,13 +541,20 @@ class DelNode:
    
 
 class AttemptNode:
-    def __init__(self, attempt_statement, exception, catch_statement, else_statement):
+    def __init__(self, attempt_statement, exception, catch_statement, finally_statement):
         self.attempt_statement = attempt_statement
         self.exception = exception
         self.catch_statement = catch_statement
-        self.else_statement = else_statement
-        self.pos_start = catch_statement['pos_start']
-        self.pos_end = else_statement['pos_end'] if hasattr(else_statement, 'pos_end') else self.catch_statement['pos_end']
+        self.finally_statement = finally_statement
+        if self.finally_statement and self.finally_statement != {}:
+            self.pos_start = self.attempt_statement['pos_start']
+            self.pos_end = self.finally_statement['pos_end']
+        elif self.catch_statement and self.catch_statement != {}:
+            self.pos_start = self.attempt_statement['pos_start']
+            self.pos_end = self.catch_statement['pos_end']
+        else:
+            self.pos_start = self.attempt_statement['pos_start']
+            self.pos_end = self.attempt_statement['pos_end']
         
 
 class FunctionNode:
@@ -3788,7 +3795,7 @@ class Parser:
         exception = None
         attempt_statement = {}
         catch_statement = {}
-        else_statement = {}
+        finally_statement = {}
         if not self.current_token.matches(tokenList.TT_KEYWORD, "attempt"):
             self.error_detected = True
             return res.failure(self.error['Syntax'](
@@ -3823,19 +3830,9 @@ class Parser:
             'pos_end': attempt_statements.pos_end
         }
         while self.current_token.type == tokenList.TT_NEWLINE:
-            self.skipLines()
-            
-        if not self.current_token.matches(tokenList.TT_KEYWORD, "catch") or self.current_token.matches(tokenList.TT_KEYWORD, "default"):
-            self.error_detected = True
-            return res.failure(self.error['Syntax'](
-                {
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': 'attempt statement must have a catch or default clause',
-                    'exit': False
-                }
-            ))
-            
+            self.skipLines() 
+        
+        
         if self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
             self.skipLines()
             if self.current_token.type == tokenList.TT_IDENTIFIER:
@@ -3917,20 +3914,59 @@ class Parser:
                     'pos_end': start_token.pos_end
                 }
                 #print(catch_statement['exception'], "from none", start_token)
-                
+        
+        
+        if self.current_token.matches(tokenList.TT_KEYWORD, "finally"):
+            self.skipLines()
+            if self.current_token.type != tokenList.TT_COLON:
+                self.error_detected = True
+                return res.failure(self.error['Syntax'](
+                    {
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': 'Expected ":"',
+                        'exit': False
+                    }
+                ))
+            self.skipLines()
+            statements = res.register(self.statements())
+            finally_statement = {
+                'body': statements,
+                'pos_start': start_token.pos_start,
+                'pos_end': statements.pos_end
+            }
+            
+          
+        
                 
         while self.current_token.type == tokenList.TT_NEWLINE:
             self.skipLines()
+        # if self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
+        #     self.error_detected = True
+        #     return res.failure(self.error['Syntax']({
+        #             'pos_start': self.current_token.pos_start,
+        #             'pos_end': self.current_token.pos_end,
+        #             'message': 'multiple catch clauses not supported' if self.current_token.matches(tokenList.TT_KEYWORD, "catch") else 'multiple default clauses not supported',
+        #             'exit': False
+        #         }))
         if  not self.current_token.matches(tokenList.TT_KEYWORD, "end"):
                 self.error_detected = True
-                return res.failure(self.error['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': 'Expected "end"',
-                    'exit': False
-                }))
-        self.skipLines()   
-        attempt_node = AttemptNode(attempt_statement, exception, catch_statement, else_statement)
+                if self.current_token.matches(tokenList.TT_KEYWORD, "finally") or self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
+                    return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': 'invalid syntax',
+                            'exit': False
+                    }))
+                else:
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': 'Expected "end"',
+                        'exit': False
+                    }))
+        self.skipLines()
+        attempt_node = AttemptNode(attempt_statement, exception, catch_statement, finally_statement)
         return res.success(attempt_node)        
     
     def get_expr(self):
@@ -4377,8 +4413,34 @@ num1 = 0
 class Test:
     pass
 # def greet(name):
-#     return f"Hello, {ndame}"
+#     raise Exception
 # try:
 #     print(greet('name'))
 # except Exception as e:
 #     print(f"Error: {e}")
+name = "Kenny"
+def greet(name):
+    return f"Hello, {name}"
+  
+pair = ("a", "e", "i", "o", "u", 'e')
+list = [1,2,3,4,5,6,7,8,9,10]
+dict = {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'}
+str = "Hello, World!"
+class Employee:
+    pass
+# print(f"'not' operator on true: %{not(True)}")  # false
+# print(f"'not' operator on false: %{not(False)}") # true
+# print(f"'not' operator on none: %{not(None)}")  # true
+# print(f"'not' operator on int: %{not(1)}")     # false
+# print(f"'not' operator on float: %{not(1.0)}") # false
+# print(f"'not' operator on string: %{not('')}") # true
+# print(f"'not' operator on list: %{not([])}")  # false
+# print(f"'not' operator on pair: %{not(pair)}") # false
+# print(f"'not' operator on dict: %{not(dict)}") # false
+# print(f"'not' operator on class: %{not(Employee)}") # false
+# print(f"'not' operator on function: %{not(greet)}") # false
+# print(f"'not' operator on builtin_function: %{not(print)}") # false
+# print(f"'not' operator on builtin_class: %{not(Exception)}") # false
+# print(f"'not' operator on builtin_method: %{not(str.upper)}") # false
+# print(f"'not' operator on builtin_type: %{not(str)}") # false
+# print(f"'not' operator on none: %{not(None)}") # false
