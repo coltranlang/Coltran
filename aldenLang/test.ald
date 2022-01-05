@@ -922,6 +922,14 @@ end
 let dic_user = Dic("Matt", 21, "matt@email.com", "Playing soccer", true)
 println(dic_user.name)
 del dic_user
+println(dic_user)
+line(79)
+# unpacking from function return
+def @status()
+    return "ok", "200", "Welcome to the API"
+end
+let type, status, message = @status()
+print(type + ' ' + status + ' ' + message + '\n')
 #println(dic_user["name"]) # error
 # def @makeList(item, list=[])
 #     list.append(item)

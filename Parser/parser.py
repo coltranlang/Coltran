@@ -1,3 +1,42 @@
+#  Copyright (c) 2021, Alden Authors.
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+
+# 3. Neither the name of Alden Org. nor the names of its
+#    contributors may be used to endorse or promote products derived from
+#    this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+# File:
+#   Parser/parser.py
+# Author: 
+#   Kehinde Akinsanya
+# Created:
+#   October 28, 2021
+# Description:
+#   This file contains the parser for the language.
+
+
 from os import access, error, path
 from re import split
 from types import NoneType
@@ -242,12 +281,6 @@ class VarAssignNode:
              for t in self.variable_name_token:
                 self.pos_start = t.pos_start
                 self.pos_end = t.pos_end
-        else:
-            self.pos_start = variable_name_token.pos_start
-            if  value_node == "none":
-                self.pos_end = variable_name_token.pos_end
-            else:
-                self.pos_end = value_node.pos_end
 
 
 class VarAccessNode:
@@ -541,13 +574,22 @@ class DelNode:
    
 
 class AttemptNode:
-    def __init__(self, attempt_statement, exception, catch_statement, else_statement):
+    def __init__(self, attempt_statement, catches, finally_statement):
         self.attempt_statement = attempt_statement
-        self.exception = exception
-        self.catch_statement = catch_statement
-        self.else_statement = else_statement
-        self.pos_start = catch_statement['pos_start']
-        self.pos_end = else_statement['pos_end'] if hasattr(else_statement, 'pos_end') else self.catch_statement['pos_end']
+        self.catches = catches
+        self.finally_statement = finally_statement
+        if self.finally_statement and self.finally_statement != {}:
+            self.pos_start = self.attempt_statement['pos_start']
+            self.pos_end = self.finally_statement['pos_end']
+        elif self.catches and len(self.catches) > 0:
+            self.pos_start = self.attempt_statement['pos_start']
+            for catch in self.catches:
+                if catch['pos_end']:
+                    self.pos_end = catch['pos_end']
+                    break
+        else:
+            self.pos_start = self.attempt_statement['pos_start']
+            self.pos_end = self.attempt_statement['pos_end']
         
 
 class FunctionNode:
@@ -877,12 +919,17 @@ class Parser:
     def statement(self):
         res = ParseResult()
         pos_start = self.current_token.pos_start.copy()
-
+        values = ()
         if self.current_token.matches(tokenList.TT_KEYWORD, 'return'):
             res.register_advancement()
             self.advance()
-
             expr = res.try_register(self.expr())
+            values = (expr,)
+            while self.current_token.type == tokenList.TT_COMMA:
+                res.register_advancement()
+                self.advance()
+                values += (res.try_register(self.expr()),)
+                expr = PairNode(values, pos_start, self.current_token.pos_end.copy())
             if not expr:
                 self.reverse(res.to_reverse_count)
             return res.success(ReturnNode(expr, pos_start, self.current_token.pos_end.copy()))
@@ -1048,17 +1095,32 @@ class Parser:
                             for val in expr.elements:
                                 new_values.append(val)
                                 values = new_values
-                        while self.current_token.type == tokenList.TT_COMMA:
-                            res.register_advancement()
-                            self.advance()
-                            comma_token = self.current_token
-                            values.append(res.register(self.expr()))
-                            for v in values:
-                                if v == '':
-                                    values.remove(v)
-                        values_list = ListNode(values, comma_token.pos_start, comma_token.pos_end)
-                        if isinstance(expr, DictNode) or isinstance(expr, ObjectNode):
-                           values_list = expr
+                        else:
+                            values = expr
+                            
+                        if  self.current_token.type == tokenList.TT_COMMA:
+                            while self.current_token.type == tokenList.TT_COMMA:
+                                res.register_advancement()
+                                self.advance()
+                                comma_token = self.current_token
+                                values = []
+                                values.append(res.register(self.expr()))
+                                for v in values:
+                                    if v == '':
+                                        values.remove(v)
+                            values_list = ListNode(values, comma_token.pos_start, comma_token.pos_end)
+                            if isinstance(expr, DictNode) or isinstance(expr, ObjectNode):
+                                values_list = expr
+                            return res.success(VarAssignNode(identifiers, values_list, variable_keyword_token))
+                        else:
+                            values = expr
+                            return res.success(VarAssignNode(identifiers, values, variable_keyword_token))
+                    else:
+                        none_values = []
+                        tok = Token(tokenList.TT_KEYWORD, 'none', None, None)
+                        for i in range(len(identifiers)):
+                            none_values.append(tok)
+                        values_list = ListNode(none_values, comma_token.pos_start, comma_token.pos_end)
                         return res.success(VarAssignNode(identifiers, values_list, variable_keyword_token))
                 else:
                     self.error_detected = True
@@ -1081,8 +1143,8 @@ class Parser:
             
             if self.current_token.type != tokenList.TT_EQ:
                 if variable_keyword_token == "let":
-                    expr = "none"
-                    return res.success(VarAssignNode(var_name, expr, variable_keyword_token))
+                    tok = Token(tokenList.TT_KEYWORD, 'none', None, None)
+                    return res.success(VarAssignNode(var_name, tok, variable_keyword_token))
                 else:
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -2005,8 +2067,9 @@ class Parser:
 
     def in_expr(self):
         res = ParseResult()
-    
+        iterable_name_token = None
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'in'):
+            self.error_detected = True
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
@@ -2016,19 +2079,19 @@ class Parser:
         res.register_advancement()
         self.advance()
         
-        if self.current_token.type != tokenList.TT_IDENTIFIER:
+        
+        
+        iterable_name_token = res.register(self.expr())
+        if iterable_name_token == None or iterable_name_token == '':
+            self.error_detected = True
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
                 'message': "Expected an identifier",
                 'exit': False
             }))
-        
-        iterable_name_token = self.current_token
-        res.register_advancement()
-        self.advance()
-        
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'as'):
+            self.error_detected = True
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
@@ -2113,6 +2176,7 @@ class Parser:
             
             
             if self.current_token.type != tokenList.TT_COLON:
+                self.error_detected = True
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
@@ -2130,6 +2194,7 @@ class Parser:
                     return res
 
                 if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                    self.error_detected = True
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
@@ -2143,10 +2208,11 @@ class Parser:
         else:
             expr = res.register(self.expr())
             if not isinstance(expr, PairNode):
+                self.error_detected = True
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "Expected a pair of values",
+                    'message': "Expected an identifier or a pair",
                     'exit': False
                 }))
                 
@@ -2154,6 +2220,7 @@ class Parser:
                 iterator_keys.append(el)
                 
             if len(iterator_keys) == 0:
+                self.error_detected = True
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
@@ -2162,6 +2229,7 @@ class Parser:
                 }))
                 
             elif len(iterator_keys) > 2:
+                self.error_detected = True
                 return res.failure(self.error['ValueError']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
@@ -2170,6 +2238,7 @@ class Parser:
                 }))
                 
             if self.current_token.type != tokenList.TT_COLON:
+                self.error_detected = True
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
@@ -2189,6 +2258,7 @@ class Parser:
                     return res
                 
                 if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                    self.error_detected = True
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
@@ -2538,7 +2608,7 @@ class Parser:
                 
                 obj_name = self.current_token
                 if hasattr(obj_name, 'value'):
-                    if type(obj_name.value) != str:
+                    if not isinstance(obj_name.value, str):
                         self.error_detected = True
                         return res.failure(self.error['NameError']({
                             'pos_start': self.current_token.pos_start,
@@ -2547,7 +2617,7 @@ class Parser:
                             'exit': False
                         }))
                 if res.error: return res
-                # obj_name cannot start with a @ or a symbol
+                # object property name cannot start with a @ or a symbol
                 if obj_name.value[0] == '@' or obj_name.value[0] in tokenList.SYMBOLS:
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -3736,12 +3806,13 @@ class Parser:
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
-                'message': "Expected 'Exception'",
+                'message': "Expected an identifier",
                 'exit': False
             }))
      
     def del_expr(self):
         res = ParseResult()
+        expression = None
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'del'):
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -3760,23 +3831,32 @@ class Parser:
                 'message': "Expected an expression",
                 'exit': False
             }))
-        res.register_advancement()
-        self.advance()
-        expression = None
-        if self.current_token.type == tokenList.TT_DOT:
+        if identifier.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
-            expression = res.register(self.access_property(identifier))
-            return res.success(DelNode(identifier, expression))
-        elif self.current_token.type == tokenList.TT_LSQBRACKET:
-            expression = res.register(self.expr())
-            return res.success(DelNode(identifier, expression))
+            if self.current_token.type == tokenList.TT_DOT:
+                res.register_advancement()
+                self.advance()
+                expression = res.register(self.access_property(identifier))
+                return res.success(DelNode(identifier, expression))
+            elif self.current_token.type == tokenList.TT_LSQBRACKET:
+                expression = res.register(self.expr())
+                return res.success(DelNode(identifier, expression))
+            else:
+                if self.current_token.type != tokenList.TT_NEWLINE and self.current_token.type != tokenList.TT_EOF:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "invalid del expression",
+                        'exit': False
+                    }))
         else:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
-                'message': "invalid del expression",
+                'message': "Expected an identifier",
                 'exit': False
             }))
         if res.error: return res
@@ -3784,11 +3864,11 @@ class Parser:
               
     def attempt_expr(self):
         res = ParseResult()
-        is_exception = False
         exception = None
         attempt_statement = {}
+        catches = []
         catch_statement = {}
-        else_statement = {}
+        finally_statement = {}
         if not self.current_token.matches(tokenList.TT_KEYWORD, "attempt"):
             self.error_detected = True
             return res.failure(self.error['Syntax'](
@@ -3823,20 +3903,10 @@ class Parser:
             'pos_end': attempt_statements.pos_end
         }
         while self.current_token.type == tokenList.TT_NEWLINE:
-            self.skipLines()
-            
-        if not self.current_token.matches(tokenList.TT_KEYWORD, "catch") or self.current_token.matches(tokenList.TT_KEYWORD, "default"):
-            self.error_detected = True
-            return res.failure(self.error['Syntax'](
-                {
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': 'attempt statement must have a catch or default clause',
-                    'exit': False
-                }
-            ))
-            
-        if self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
+            self.skipLines() 
+        
+        
+        while self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
             self.skipLines()
             if self.current_token.type == tokenList.TT_IDENTIFIER:
                     exception = {
@@ -3876,7 +3946,7 @@ class Parser:
                             'pos_start': exception['name'].pos_start,
                             'pos_end': exception['name'].pos_end
                         }
-                       # print(catch_statement['exception'], "from as")
+                        catches.append(catch_statement)
                     else:
                         if self.current_token.type != tokenList.TT_COLON:
                             self.error_detected = True
@@ -3896,7 +3966,7 @@ class Parser:
                             'pos_start': exception['name'].pos_start,
                             'pos_end': exception['name'].pos_end
                         }
-                        #print(catch_statement['exception'], "from exception")
+                        catches.append(catch_statement)
             else:   
                 if self.current_token.type != tokenList.TT_COLON:
                     self.error_detected = True
@@ -3911,26 +3981,75 @@ class Parser:
                 self.skipLines()
                 statements = res.register(self.statements())
                 catch_statement = {
-                    'exception': exception,
+                    'exception': None,
                     'body': statements,
                     'pos_start': start_token.pos_start,
                     'pos_end': start_token.pos_end
                 }
-                #print(catch_statement['exception'], "from none", start_token)
-                
+                catches.append(catch_statement)
+        
+        
+        if self.current_token.matches(tokenList.TT_KEYWORD, "finally"):
+            self.skipLines()
+            if self.current_token.type != tokenList.TT_COLON:
+                self.error_detected = True
+                return res.failure(self.error['Syntax'](
+                    {
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': 'Expected ":"',
+                        'exit': False
+                    }
+                ))
+            self.skipLines()
+            statements = res.register(self.statements())
+            finally_statement = {
+                'body': statements,
+                'pos_start': start_token.pos_start,
+                'pos_end': statements.pos_end
+            }
+            
+        # else:
+        #     print("no finally", self.current_token)
+        #     self.error_detected = True
+        #     return res.failure(self.error['Syntax'](
+        #         {
+        #             'pos_start': start_token.pos_start,
+        #             'pos_end': start_token.pos_end,
+        #             'message': 'attempt statement must have a catch or finally clause',
+        #             'exit': False
+        #         }
+        #     ))    
+        
                 
         while self.current_token.type == tokenList.TT_NEWLINE:
             self.skipLines()
+        # if self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
+        #     self.error_detected = True
+        #     return res.failure(self.error['Syntax']({
+        #             'pos_start': self.current_token.pos_start,
+        #             'pos_end': self.current_token.pos_end,
+        #             'message': 'multiple catch clauses not supported' if self.current_token.matches(tokenList.TT_KEYWORD, "catch") else 'multiple default clauses not supported',
+        #             'exit': False
+        #         }))
         if  not self.current_token.matches(tokenList.TT_KEYWORD, "end"):
                 self.error_detected = True
-                return res.failure(self.error['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': 'Expected "end"',
-                    'exit': False
-                }))
-        self.skipLines()   
-        attempt_node = AttemptNode(attempt_statement, exception, catch_statement, else_statement)
+                if self.current_token.matches(tokenList.TT_KEYWORD, "finally") or self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
+                    return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': 'invalid syntax',
+                            'exit': False
+                    }))
+                else:
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': 'Expected "end"',
+                        'exit': False
+                    }))
+        self.skipLines()
+        attempt_node = AttemptNode(attempt_statement, catches, finally_statement)
         return res.success(attempt_node)        
     
     def get_expr(self):
@@ -4376,9 +4495,44 @@ print(hasattr(d, "2"))
 num1 = 0
 class Test:
     pass
-# def greet(name):
-#     return f"Hello, {ndame}"
-# try:
-#     print(greet('name'))
-# except Exception as e:
-#     print(f"Error: {e}")
+def greet(name):
+    pass
+try:
+    print(greet())
+except NameError as e:
+    print(f"Error: {e}")
+except Exception as e:
+    print(f"Exception: {e}")
+except TypeError as TypeError:
+    print(f"TypeError: {TypeError}")
+finally:
+    print("Finally")
+name = "Kenny"
+def greet(name):
+    return f"Hello, {name}"
+  
+pair = ("a", "e", "i", "o", "u", 'e')
+list = [1,2,3,4,5,6,7,8,9,10]
+dict = {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'}
+strn = "Hello, World!"
+class Employee:
+    pass
+
+for i in {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'}:
+    print(i)
+# print(f"'not' operator on true: %{not(True)}")  # false
+# print(f"'not' operator on false: %{not(False)}") # true
+# print(f"'not' operator on none: %{not(None)}")  # true
+# print(f"'not' operator on int: %{not(1)}")     # false
+# print(f"'not' operator on float: %{not(1.0)}") # false
+# print(f"'not' operator on string: %{not('')}") # true
+# print(f"'not' operator on list: %{not([])}")  # false
+# print(f"'not' operator on pair: %{not(pair)}") # false
+# print(f"'not' operator on dict: %{not(dict)}") # false
+# print(f"'not' operator on class: %{not(Employee)}") # false
+# print(f"'not' operator on function: %{not(greet)}") # false
+# print(f"'not' operator on builtin_function: %{not(print)}") # false
+# print(f"'not' operator on builtin_class: %{not(Exception)}") # false
+# print(f"'not' operator on builtin_method: %{not(strn.upper)}") # false
+# print(f"'not' operator on builtin_type: %{not(strn)}") # false
+# print(f"'not' operator on none: %{not(None)}") # false

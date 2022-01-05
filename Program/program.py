@@ -1,23 +1,25 @@
 import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
-from Interpreter.interpreter import Context, Interpreter, symbolTable_
+from Interpreter.interpreter import Context, Interpreter, symbolTable_, Program
 
-class Program:
+I_Al_Program = Program
+
+class Al_Program:
     def error():
         def IllegalCharacter(options):
             error = f'\nFile: {options["pos_start"].fileName} at line {options["pos_start"].line + 1}\n\nSyntaxError: Illegal character unexpected  {options["originator"]}\n'
-            Program.printError(error)
+            Al_Program.printError(error)
 
         def Syntax(options):
             error = ""
             error += f'\nFile: {options["fileName"]}  \n\nSyntaxError: {options["originator"]}\n'
-            Program.printError(error)
+            Al_Program.printError(error)
 
         def Runtime(options):
             error = ""
             error += f'\nFile: {options["fileName"]}  \n\nRuntimeError: {options["originator"]}\n'
-            Program.printError(error)
+            Al_Program.printError(error)
         methods = {
             'IllegalCharacter': IllegalCharacter,
             'Syntax': Syntax,
@@ -49,47 +51,47 @@ class Program:
         interpreter = Interpreter()
         context = Context('<module>')
         parser_error_detected = parser.error_detected
-        if parser_error_detected == False:
-            if ast:
-                if ast.error:
-                    return "", ast.error
-                context.symbolTable = symbolTable_
-                result = interpreter.visit(ast.node, context)
-                interpreter_error_detected = interpreter.error_detected
-                #print(f"Error detected: {interpreter_error_detected}")
-                if hasattr(result, 'value') and hasattr(result, 'error'):
-                    return result.value, ""
+        # ast = parser.parse()
+        # interpreter = Interpreter()
+        # context = Context('<module>')
+        # parser_error_detected = parser.error_detected
+        # if parser_error_detected == False:
+        #     if ast:
+        #         if ast.error:
+        #             return "", ast.error
+        #         context.symbolTable = symbolTable_
+        #         result = interpreter.visit(ast.node, context)
+        #         interpreter_error_detected = interpreter.error_detected
+        #         #print(f"Error detected: {interpreter_error_detected}")
+        #         if hasattr(result, 'value') and hasattr(result, 'error'):
+        #             return result.value, ""
 
-                return result, "none"
-            else:
-                return "none"
-        else:
-            return "", ''
-        # try:
-        #     ast = parser.parse()
-        #     interpreter = Interpreter()
-        #     context = Context('<module>')
-        #     parser_error_detected = parser.error_detected
-        #     if parser_error_detected == False:
-        #         if ast:
-        #             if ast.error:
-        #                 return "", ast.error
-        #             context.symbolTable = symbolTable_
-        #             result = interpreter.visit(ast.node, context)
-        #             interpreter_error_detected = interpreter.error_detected
-        #             if hasattr(result, 'value') and hasattr(result, 'error'):
-        #                 return result.value, ""
-
-        #             return result, "none"
-        #         else:
-        #             return "none"
+        #         return result, "none"
         #     else:
-        #         return "", ''
-        # except:
-        #     Program.error()['Syntax']({
-        #         'originator': 'invalid syntax or unexpected error',
-        #         'fileName': fileName,
-        #     })
+        #         return "none"
+        # else:
+        #     return "", ''
+        try:
+            if parser_error_detected == False:
+                if ast:
+                    if ast.error:
+                        return "", ast.error
+                    context.symbolTable = symbolTable_
+                    result = interpreter.visit(ast.node, context)
+                    interpreter_error_detected = interpreter.error_detected
+                    if hasattr(result, 'value') and hasattr(result, 'error'):
+                        return result.value, ""
+
+                    return result, "none"
+                else:
+                    return "none"
+            else:
+                return "", ''
+        except Exception as e:
+            try:
+                return I_Al_Program.error()[e.name](e.message)
+            except Exception as e:
+                pass
 
     def runFile(fileName):
         try:
@@ -99,7 +101,7 @@ class Program:
                     print(f"File '{fileName}' is not a valid alden file")
                     return
                 else:
-                    result  = Program.run(fileName, text)
+                    result  = Al_Program.run(fileName, text)
                     return result
         except FileNotFoundError:
             print(f"can't open file '{fileName}': No such file or directory")
@@ -108,7 +110,7 @@ class Program:
     def repl():
         while True:
             text = input('>>> ')
-            result, error = Program.run("<stdin>", text)
+            result, error = Al_Program.run("<stdin>", text)
             if type(result).__name__ == "List":
                 if len(result.elements) == 1:
                     result = result.elements[0]
@@ -122,10 +124,10 @@ class Program:
    
     def runRepl():
         try:
-            Program.repl()
+            Al_Program.repl()
         except KeyboardInterrupt:
             print("\nExit?")
             print('Use exit() to exit')
-            Program.runRepl()
+            Al_Program.runRepl()
             
 

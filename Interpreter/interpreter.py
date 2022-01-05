@@ -1,3 +1,41 @@
+#  Copyright (c) 2021, Alden Authors.
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+
+# 3. Neither the name of Alden Org. nor the names of its
+#    contributors may be used to endorse or promote products derived from
+#    this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+# File:
+#   Interpreter/interpreter.py
+# Author: 
+#   Kehinde Akinsanya
+# Created:
+#   October 28, 2021
+# Description:
+#   This file contains the interpreter class which is responsible for interpreting the code
+
 import os
 from Parser.parser import Parser
 from Parser.stringsWithArrows import *
@@ -15,6 +53,7 @@ import json
 
 
 regex = '[+-]?[0-9]+\.[0-9]+'
+
 string_methods = {
     'upperCase': 'upperCase', # String.upperCase()
     'lowerCase': 'lowerCase', # String.lowerCase()
@@ -132,6 +171,12 @@ class_methods = {
     '__properties__': '__properties__', # Class.__properties__()
 }
 
+immutables = [
+    'NoneType',
+    'Boolean',
+    'Pair',
+]
+
 def string_split(string, delimiter):
     res = []
     start = 0
@@ -168,7 +213,6 @@ def string_count(string, value, start=0, end=None):
             count += 1
     return count
             
-
 
 
 class Regex:
@@ -262,7 +306,7 @@ class Context:
 def setNumber(token):
     value = "none"
     if not token and token != 0:
-        value = 0
+        value = token
     if token == 'true':
         value = 1
     elif token == 'false':
@@ -305,27 +349,9 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
-        def IllegalCharacter(options):
-            error = f'\nIllegal character: {options["originator"]}\n\nin File: {options["pos_start"].fileName} at line {options["pos_start"].line + 1}\n'
-            Program.printErrorExit(error)
-
-        def Syntax(detail):
-            isDetail = {
-                'name': 'SyntaxError',
-                'message': detail['message'],
-                'pos_start': detail['pos_start'],
-                'pos_end': detail['pos_end'],
-                'context': detail['context']
-            }
-            if detail['exit']:
-                Program.printErrorExit(Program.asStringTraceBack(isDetail))
-            else:
-                Program.printError(Program.asStringTraceBack(isDetail))
-
-        def Runtime(detail):
+        def RuntimeError(detail):
             isDetail = {
                 'name': 'RuntimeError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -365,7 +391,6 @@ class Program:
         def TypeError(detail):
             isDetail = {
                 'name': 'TypeError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -379,7 +404,6 @@ class Program:
         def KeyError(detail):
             isDetail = {
                 'name': 'KeyError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -393,7 +417,6 @@ class Program:
         def ValueError(detail):
             isDetail = {
                 'name': 'ValueError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -407,7 +430,6 @@ class Program:
         def PropertyError(detail):
             isDetail = {
                 'name': 'PropertyError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -421,7 +443,6 @@ class Program:
         def IndexError(detail):
             isDetail = {
                 'name': 'IndexError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -432,9 +453,9 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
                 
-        def ModuleError(detail):
+        def GetError(detail):
             isDetail = {
-                'name': 'ModuleError',
+                'name': 'GetError',
                 'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
@@ -445,23 +466,48 @@ class Program:
                 Program.printErrorExit(Program.asStringTraceBack(isDetail))
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
-
-        def Exception(detail):
+        
+        def ModuleNotFoundError(detail):
             isDetail = {
-                'name': detail['name'],
+                'name': 'ModuleNotFoundError',
+                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
                 'context': detail['context']
             }
-            Program.printErrorExit(Program.asStringTraceBack(isDetail))
- 
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+       
+        def KeyboardInterrupt(detail):
+            error = f'\nFile "{detail["pos_start"].fileName}", line {detail["pos_start"].line + 1} in {detail["context"].display_name if detail["context"].display_name != "none" or None else "<module>"}\n'
+            error += f"\nKeyboardInterrupt: {detail['message']}"
+            
+            if detail['exit']:
+                Program.printErrorExit(error)
+            else:
+                Program.printError(error)
+                                         
+        def Exception(detail):
+            isDetail = {
+                'name': 'Exception',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+
+                  
         methods = {
             'Default': Default,
             'Error': Error,
-            'IllegalCharacter': IllegalCharacter,
-            'Syntax': Syntax,
-            'Runtime': Runtime,
+            'RuntimeError': RuntimeError,
             'ZeroDivisionError': ZeroDivisionError,
             'NameError': NameError,
             'TypeError': TypeError,
@@ -469,7 +515,9 @@ class Program:
             'ValueError': ValueError,
             'PropertyError': PropertyError,
             'IndexError': IndexError,
-            'ModuleError': ModuleError,
+            'GetError': GetError,
+            'ModuleNotFoundError': ModuleNotFoundError,
+            'KeyboardInterrupt': KeyboardInterrupt,
             'Exception': Exception
         }
         
@@ -496,10 +544,10 @@ class Program:
 
     def asStringTraceBack(detail):
         result = Program.generateTraceBack(detail)
-        result += f'\n{detail["name"]}: {detail["message"]}\n'
-        result += '\n\n' + \
+        result += '\n' + \
             stringsWithArrows(
                 detail["pos_start"].fileText, detail["pos_start"], detail["pos_end"])
+        result += f'\n{detail["name"]}: {detail["message"]}\n'
         return result
 
     def generateTraceBack(detail):
@@ -507,7 +555,8 @@ class Program:
         pos = detail['pos_start']
         context = detail['context']
         while context:
-            result = f'\nFile {detail["pos_start"].fileName}, line {str(pos.line + 1)}, in {context.display_name if context.display_name != "none" else "anonymous"}\n' + result if hasattr(pos, 'line') else ''
+            result = f'\nFile "{detail["pos_start"].fileName}", line {detail["pos_start"].line + 1} in {detail["context"].display_name if detail["context"].display_name != "none" or None else "<module>"}\n' + \
+                result if hasattr(pos, 'line') else ''
             pos = context.parent_entry_pos
             context = context.parent
         return '\nStack trace (most recent call last):\n' + result
@@ -518,7 +567,7 @@ class Program:
                 code = file_handle.read()
                 # check if file is ending with .alden
                 if file[-6:] != ".alden":
-                    print("File is not an alden file")
+                    print(f"File '{file}' is not a valid alden file")
                     return
                 else:
                     return code
@@ -615,6 +664,131 @@ class RuntimeResult:
             self.loop_continue or
             self.loop_break
         )
+
+
+
+class Al_Exception(Exception):
+    def __init__(self, name, message):
+        self.name = name
+        self.message = message
+        properties = {
+            'name': String(name),
+            'message': String(message)
+        }
+        self.properties = Dict(properties)
+            
+        
+    def __repr__(self):
+        return f"<Exception {self.name}: {self.message}>"
+      
+
+class Al_ZeroDivisionError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("Runtime", message)
+
+    def __repr__(self):
+        return f"<ZeroDivisionError {self.name}: {self.message}>"
+      
+
+class Al_RuntimeError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("RuntimeError", message)
+        
+    def __repr__(self):
+        return f"<RuntimeError {self.message}>"
+  
+    
+class Al_NameError(Al_Exception):
+    def __init__(self,message):
+        super().__init__("NameError", message)
+        
+    def __repr__(self):
+        return f"<NameError {self.message}>"
+
+
+class Al_KeyError(Al_Exception):
+    def __init__(self,message):
+        super().__init__("KeyError", message)
+        
+    def __repr__(self):
+        return f"<KeyError {self.message}>"
+
+
+class Al_TypeError(Al_Exception):
+    def __init__(self,message):
+        super().__init__("TypeError", message)
+        
+    def __repr__(self):
+        return f"<TypeError {self.message}>"
+    
+
+class Al_PropertyError(Al_Exception):
+    def __init__(self,message):
+        super().__init__("PropertyError", message)
+        
+    def __repr__(self):
+        return f"<PropertyError {self.message}>"
+
+
+class Al_ValueError(Al_Exception):
+    def __init__(self,message):
+        super().__init__("ValueError", message)
+        
+    def __repr__(self):
+        return f"<ValueError {self.message}>"
+
+
+class Al_IndexError(Al_Exception):
+    def __init__(self,message):
+        super().__init__("IndexError", message)
+        
+    def __repr__(self):
+        return f"<IndexError {self.message}>"
+
+ 
+ 
+
+class Al_GetError(Al_Exception):
+    def __init__(self,message):
+        super().__init__("GetError", message)
+
+    def __repr__(self):
+        return f"<GetError {self.message}>"
+  
+    
+class Al_ModuleNotFoundError(Al_Exception):
+    def __init__(self,message):
+        super().__init__("ModuleNotFoundError", message)
+
+    def __repr__(self):
+        return f"<ModuleNotFoundError {self.message}>"
+ 
+
+class Al_KeyboardInterrupt(Al_Exception):
+    def __init__(self,message):
+        super().__init__("KeyboardInterrupt", message)
+
+        
+    def __repr__(self):
+        return f"<KeyboardInterrupt {self.message}>"
+
+
+builtin_exceptions = {
+    'Exception': Al_Exception,
+    'RuntimeError': Al_RuntimeError,
+    'NameError': Al_NameError,
+    'TypeError': Al_TypeError,
+    'IndexError': Al_IndexError,
+    'ValueError': Al_ValueError,
+    'PropertyError': Al_PropertyError,
+    'KeyError': Al_KeyError,
+    'ZeroDivisionError': Al_ZeroDivisionError,
+    'GetError': Al_GetError,
+    'ModuleNotFoundError': Al_ModuleNotFoundError,
+    'KeyboardInterrupt': Al_KeyboardInterrupt
+}
+
+
 
     
 class Value:
@@ -782,20 +956,10 @@ class Value:
         })
 
     def and_by(self, other):
-        return None, self.illegal_operation_typerror({
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"'&&' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
-            'context': self.context
-        })
+        return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
 
     def or_by(self, other):
-        return None, self.illegal_operation_typerror({
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"'or' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
-            'context': self.context
-        })
+        return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
 
     def get_comparison_in(self, other):
         return None, self.illegal_operation_typerror({
@@ -813,14 +977,9 @@ class Value:
             'context': self.context
         })
 
-    def notted(self, other):
-        return None, self.illegal_operation_typerror({
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
-            'context': self.context,
-            'exit': False
-        })
+    def notted(self):
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
 
     def execute(self, args):
         error = {
@@ -841,7 +1000,7 @@ class Value:
         if not other:
             other = self
         if hasattr(other, 'value'):
-            return Program.error()["Syntax"]({
+            raise Al_TypeError({
                 'message': error['message'] if error['message'] else f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(other).getType()}",
                 'pos_start': error['pos_start'],
                 'pos_end': error['pos_end'],
@@ -849,7 +1008,7 @@ class Value:
                 'exit': error['exit'] if 'exit' in error else True
             })
         else:
-            return Program.error()["Syntax"]({
+            raise Al_TypeError({
                 'message': f"Illegal operation",
                 'pos_start': error['pos_start'],
                 'pos_end': error['pos_end'],
@@ -858,7 +1017,7 @@ class Value:
             })
             
     def key_error(self, error, property):
-            return Program.error()["Syntax"]({
+            raise Al_KeyError({
                 'message': error['message'],
                 'pos_start': error['pos_start'],
                 'pos_end': error['pos_end'],
@@ -882,11 +1041,20 @@ class Value:
         if not 'message' in error:
             if hasattr(other, 'value'):
                 errorDetail['message'] = f"Illegal operation for type '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'"
-                return Program.error()['Syntax'](errorDetail)
+                raise Al_TypeError(errorDetail)
             else:
                 errorDetail['message'] = f"illegal operation"
-                return Program.error()['Syntax'](errorDetail)
-        return Program.error()['TypeError'](errorDetail)
+                raise Al_TypeError(errorDetail)
+        raise Al_TypeError(errorDetail)
+
+    def zero_division_error(self, error):
+        raise Al_ZeroDivisionError({
+            'pos_start': error['pos_start'],
+            'pos_end': error['pos_end'],
+            'message': error['message'],
+            'context': error['context'],
+            'exit': error['exit'] if 'exit' in error else False
+        })
 
     def illegal_operation_indexError(self, error, other=None):
         errorDetail = {
@@ -901,11 +1069,11 @@ class Value:
         if not 'message' in error:
             if hasattr(other, 'value'):
                 errorDetail['message'] = f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}'
-                return Program.error()['Syntax'](errorDetail)
+                raise Al_IndexError(errorDetail)
             else:
                 errorDetail['message'] = f"illegal operation"
-                return Program.error()['Syntax'](errorDetail)
-        return Program.error()['IndexError'](errorDetail)
+                raise Al_IndexError(errorDetail)
+        raise Al_IndexError(errorDetail)
 
 
 class Statement(Value):
@@ -1044,7 +1212,7 @@ class Number(Value):
                 'context': self.context,
                 'exit': False
             }
-            return None, Program.error()['ZeroDivisionError'](error)
+            return None, self.zero_division_error(error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1072,7 +1240,7 @@ class Number(Value):
                             'context': self.context,
                             'exit': False
                         }
-                        return None, Program.error()['ZeroDivisionError'](error)
+                        return None, self.zero_division_error(error)
                     value += setNumber(element.value)
             return Number(setNumber(self.value) / value).setContext(self.context), None
         else:
@@ -1087,7 +1255,7 @@ class Number(Value):
                 'context': self.context,
                 'exit': False
             }
-            return None, Program.error()['ZeroDivisionError'](error)
+            return None, self.zero_division_error(error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1115,7 +1283,7 @@ class Number(Value):
                             'context': self.context,
                             'exit': False
                         }
-                        return None, Program.error()['ZeroDivisionError'](error)
+                        return None, self.zero_division_error(error)
                     value += setNumber(element.value)
             return Number(setNumber(self.value) // value).setContext(self.context), None
         else:
@@ -1163,7 +1331,7 @@ class Number(Value):
                     'context': self.context,
                     'exit': False
                 }
-                return None, Program.error()['ZeroDivisionError'](error)
+                return None, self.zero_division_error(error)
             else:
                 return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
         elif isinstance(other, Boolean):
@@ -1175,7 +1343,7 @@ class Number(Value):
                     'context': self.context,
                     'exit': False
                 }
-                return None, Program.error()['ZeroDivisionError'](error)
+                return None, self.zero_division_error(error)
             else:
                 return Number(setNumber(self.value) % setNumber(other.value)).setContext(self.context), None
         elif isinstance(other, Pair):
@@ -1194,7 +1362,7 @@ class Number(Value):
                             'context': self.context,
                             'exit': False
                         }
-                        return None, Program.error()['ZeroDivisionError'](error)
+                        return None, self.zero_division_error(error)
                     else:
                         value += setNumber(element.value)
             return Number(setNumber(self.value) % value).setContext(self.context), None
@@ -1347,44 +1515,14 @@ class Number(Value):
             return None, self.illegal_operation_typerror(error, other)
 
     def and_by(self, other): 
-        error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't perform and on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-                'context': self.context
-        }
-        if isinstance(other, String):
-            return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            return Number(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Boolean):
-            return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, NoneType):
-            return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation_typerror(error, other)
+        return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
 
     def or_by(self, other):
-        error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't perform or on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-                'context': self.context
-        }
-        if isinstance(other, String):
-            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Boolean):
-            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, NoneType):
-            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation_typerror(error, other)
+        return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
 
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(value), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
     
     def copy(self):
         copy = Number(self.value)
@@ -1515,7 +1653,8 @@ class String(Value):
             return None, self.illegal_operation(error, other)
     
     def notted(self):
-        return self.setTrueorFalse(not setNumber(self.value)).setContext(self.context), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
 
     def and_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
@@ -1551,7 +1690,6 @@ class Boolean(Value):
         self.setPosition(0, 0)
         self.setContext(None)
 
-
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
         self.pos_end = pos_end
@@ -1560,8 +1698,7 @@ class Boolean(Value):
     def setContext(self, context=None):
         self.context = context
         return self
- 
-    
+     
     def added_to(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1614,6 +1751,15 @@ class Boolean(Value):
             return None, self.illegal_operation(error, other)
        
     def divided_by(self, other):
+        if other.value == 0:
+            error = {
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"zero division error",
+                    'context': self.context,
+                    'exit': False
+                }
+            return None, self.zero_division_error(error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1637,7 +1783,7 @@ class Boolean(Value):
                 'context': self.context,
                 'exit': False
             }
-            return None, Program.error()['ZeroDivisionError'](error)
+            return None, self.zero_division_error(error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1653,6 +1799,15 @@ class Boolean(Value):
             return None, self.illegal_operation_typerror(error)
            
     def modulo_by(self, other):
+        if other.value == 0:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"modulo by zero",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.zero_division_error(error)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1702,8 +1857,7 @@ class Boolean(Value):
             return Boolean(setNumber(self.value) < setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(error, other)
-    
-    
+      
     def get_comparison_gt(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1718,8 +1872,7 @@ class Boolean(Value):
             return Boolean(setNumber(self.value) > setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(error, other)
-        
-        
+                
     def get_comparison_lte(self, other):
         error = {
             'pos_start': self.pos_start,
@@ -1734,51 +1887,16 @@ class Boolean(Value):
             return Boolean(setNumber(self.value) <= setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(error, other)
-        
-    
+           
     def and_by(self, other):
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"can't perform and on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-            'context': self.context,
-            'exit': False
-        }
-        if isinstance(other, Boolean):
-            return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            if self.value == "false":
-                return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-            return Number(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, String):
-            return String(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation(error, other)
-        
-        
+        return Boolean(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
+             
     def or_by(self, other):
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"can't perform or on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-            'context': self.context,
-            'exit': False
-        }
-        if isinstance(other, Boolean):
-            return Boolean(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            if self.value == "true":
-                return Boolean(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-            return Number(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, String):
-            return String(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-        else:
-            return None, self.illegal_operation(error, other)
-        
-        
+        return Boolean(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+              
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
     
     def is_true(self):
         return True if self.value == "true" else False
@@ -1829,27 +1947,11 @@ class NoneType(Value):
         return self.setTrueorFalse(other.value == "none"), None
     
     def or_by(self, other):
-        error = {
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"can't perform or on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
-            'context': self.context,
-            'exit': False
-        }
-        if other.value == "none":
-            return None, None
-        if isinstance(other, Boolean):
-            return Boolean(setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, Number):
-            return Number(setNumber(other.value)).setContext(self.context), None
-        elif isinstance(other, String):
-            return String(setNumber(other.value)).setContext(self.context), None
-        else:
-            return String(other.value).setContext(self.context), None
+        return self.setTrueorFalse(other.value != "none"), None
         
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
     
     def is_true(self):
         return self.value == "true" if self.value else "false"
@@ -2012,8 +2114,8 @@ class List(Value):
         return self.setTrueorFalse(True if value == "false" else False), None
     
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
 
     def get_index(self, other):
         error = {
@@ -2042,12 +2144,8 @@ class List(Value):
     def length(self):
         return len(self.elements)
 
-
     def is_true(self):
-        if len(self.elements) == 0:
-                return False
-        else:
-            return True
+        return len(self.elements) > 0
         
     def join(self, other):
         return List(self.elements + other.elements), None
@@ -2245,8 +2343,8 @@ class Pair(Value):
         return self.setTrueorFalse(True if value == "false" else False), None
     
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
 
     def get_index(self, other):
         error = {
@@ -2277,10 +2375,7 @@ class Pair(Value):
             return False
 
     def is_true(self):
-        if len(self.elements) == 0:
-            return False
-        else:
-            return True
+        return len(self.elements) > 0
 
     def copy(self):
         copy = Pair(self.elements)
@@ -2371,14 +2466,11 @@ class Dict(Value):
         return self.setTrueorFalse(False if value else True), None
    
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
    
     def is_true(self):
-        if len(self.properties) == 0:
-            return False
-        else:
-            return True
+        return len(self.properties) > 0
    
     def copy(self):
         copy = Dict(self.properties)
@@ -2502,10 +2594,7 @@ class Object(Value):
             return None, self.illegal_operation_typerror(error, other)
     
     def is_true(self):
-        if len(self.properties) == 0:
-            return False
-        else:
-            return True
+        return len(self.properties) > 0
     
     def copy(self):
         copy = Object(self.name, self.properties)
@@ -2539,22 +2628,22 @@ class BaseFunction(Value):
     def check_args(self, arg_names, args):
         res = RuntimeResult()
         if len(args) > len(arg_names):
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args)} argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names)}",
                 'context': self.context,
                 'exit': False
-            }))
+            })
 
         if len(args) < len(arg_names):
-            return res.failure(Program.error()['Runtime']({
-                'pos_start': self.pos_start,
+            raise Al_RuntimeError({
+                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args)} few argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names)}",
                 'context': self.context,
                 'exit': False
-            }))
+            })
         return res.success(None)
 
     def populate_args(self, arg_names, args, exec_context):
@@ -2592,22 +2681,22 @@ class BaseClass(Value):
     def check_args(self, constructor_args, args):
         res = RuntimeResult()
         if len(args) > len(constructor_args):
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args)} argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(constructor_args)}",
                 'context': self.context,
                 'exit': False
-            }))
+            })
 
         if len(args) < len(constructor_args):
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args)} few argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(constructor_args)}",
                 'context': self.context,
                 'exit': False
-            }))
+            })
         return res.success(None)
 
     def populate_args(self, constructor_args, args, exec_context):
@@ -2627,6 +2716,7 @@ class BaseClass(Value):
     def is_true(self):
         return True
     
+     
 
 class Function(BaseFunction):
     def __init__(self, name, body_node, arg_names, implicit_return, default_values, properties, type,context):
@@ -2714,22 +2804,22 @@ class Function(BaseFunction):
         res = RuntimeResult()
         
         if len(args) > len(arg_names):
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args) -1} argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names) - 1 if len(arg_names) > 0 else 0}",
                 'context': self.context,
                 'exit': False
-            }))
+            })
 
         if len(args) < len(arg_names):
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"{len(args) -1 if len(args) > 0 else 0} few argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names) - 1 }",
                 'context': self.context,
                 'exit': False
-            }))
+            })
         return res.success(None)
     
     def run_populate_args(self, arg_names, args, exec_context):
@@ -2769,7 +2859,7 @@ class Class(BaseClass):
         self.inherit_class = inherit_class
         self.methods = methods
         self.properties = methods
-        self.value = self.properties
+        self.value = f"<Class {str(self.class_name)}>"
         self.context = context
         self.body_node = None
         
@@ -2797,13 +2887,13 @@ class Class(BaseClass):
                     if len(method_args) == 1:
                         method_args = method_args[1:]
                     else:
-                        return res.failure(Program.error()['Runtime']({
+                        raise Al_RuntimeError({
                             'pos_start': self.pos_start,
                             'pos_end': self.pos_end,
                             'message': f"{method_name} method cannot have any arguments",
                             'context': self.context,
                             'exit': False
-                        }))
+                        })
                     res.register(method.run(method_args, self, new_context))
                     if res.should_return(): return res
         return res.success(self)
@@ -2841,11 +2931,12 @@ class Class(BaseClass):
     def get_comparison_ne(self, other):
         value = self.isSame(other)
         return self.setTrueorFalse(False if value else True), None
-   
+     
     
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
+    
     
     
     def isSame(self, other):
@@ -2855,6 +2946,7 @@ class Class(BaseClass):
             return _new_class == other_class
         return False
 
+    
     def merge(self, other):
         if isinstance(other, Dict) or isinstance(other, Object):
             for key, value in other.properties.items():
@@ -2880,6 +2972,7 @@ class Class(BaseClass):
             }
             return None, self.illegal_operation_typerror(error, other)
    
+    
     def copy(self):
         copy = Class(self.class_name, self.constructor_args,
                      self.inherit_class_name, self.inherit_class, self.properties, self.context)
@@ -2887,6 +2980,7 @@ class Class(BaseClass):
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
 
+    
     def __repr__(self):
         return f"<Class {str(self.class_name)}>"
         
@@ -3055,6 +3149,7 @@ class ModuleExportValue(Value):
 class BuiltInFunction(BaseFunction):
     def __init__(self, name):
         super().__init__(name)
+        self.value = name
 
     def execute(self, args):
         res = RuntimeResult()
@@ -3074,25 +3169,25 @@ class BuiltInFunction(BaseFunction):
 
     def no_visit(self, node, exec_context):
         res = RuntimeResult()
-        return res.failure(Program.error()['Runtime']({
+        raise Al_RuntimeError({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
             'message': f"{self.name} is not a supported built-in function",
             'context': self.context,
             'exit': False
-        }))
+        })
 
     def execute_len(self, exec_context):
         res = RuntimeResult()
         value = exec_context.symbolTable.get("value")
         if isinstance(value, Number):
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"type {TypeOf(value).getType()} is not supported",
+                'message': f"type '{TypeOf(value).getType()}' is not supported",
                 'context': self.context,
                 'exit': False
-            }))
+            })
         if isinstance(value, List):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
         if isinstance(value, String):
@@ -3101,8 +3196,16 @@ class BuiltInFunction(BaseFunction):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
         if isinstance(value, Object):
             return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
-        if isinstance(value, NoneType):
-            return res.success(Number(0).setPosition(self.pos_start, self.pos_end).setContext(self.context))
+        if isinstance(value, Dict):
+            return res.success(Number(len(value.value)).setPosition(self.pos_start, self.pos_end).setContext(self.context))
+        else:
+            raise Al_TypeError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"type '{TypeOf(value).getType()}' has no len()",
+                'context': self.context,
+                'exit': False
+            })
     execute_len.arg_names = ["value"]   
 
     def execute_append(self, exec_context):
@@ -3113,13 +3216,13 @@ class BuiltInFunction(BaseFunction):
             list.elements.append(value)
             return res.success(List(list.elements).setPosition(self.pos_start, self.pos_end).setContext(self.context))
         else:
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"First argument to 'append' must be a list.",
                 'context': self.context,
                 'exit': False
-            }))
+            })
     execute_append.arg_names = ["list", "value"]
 
     def execute_pop(self, exec_context):
@@ -3131,21 +3234,21 @@ class BuiltInFunction(BaseFunction):
                 list.elements.pop(index.value)
                 return res.success(List(list.elements).setPosition(self.pos_start, self.pos_end).setContext(self.context))
             except:
-                return res.failure(Program.error()['Runtime']({
+                raise Al_RuntimeError({
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
                     'message': f"Element at index {index.value} could not be removed from list because index is out of bounds",
                     'context': self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"First argument to 'pop' must be a list.",
                 'context': self.context,
                 'exit': False
-            }))
+            })
     execute_pop.arg_names = ["list", "index"]
 
     def execute_extend(self, exec_context):
@@ -3156,12 +3259,12 @@ class BuiltInFunction(BaseFunction):
             list.elements.extend(value.value)
             return res.success(List(list.elements).setPosition(self.pos_start, self.pos_end).setContext(self.context))
         else:
-            return res.failure(Program.error()['Runtime']({
+            raise Al_RuntimeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
                 'message': f"First argument to 'extend' must be a list.",
                 'context': self.context
-            }))
+            })
     execute_extend.arg_names = ["list", "value"]
 
     def copy(self):
@@ -3178,6 +3281,7 @@ class BuiltInClass(BaseClass):
     def __init__(self, name, properties):
         super().__init__(name)
         self.properties = properties
+        self.value = name
 
     def execute(self, args):
         res = RuntimeResult()
@@ -3197,13 +3301,13 @@ class BuiltInClass(BaseClass):
     
     def no_visit(self, node, exec_context):
         res = RuntimeResult()
-        return res.failure(Program.error()['Runtime']({
+        raise Al_RuntimeError({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
             'message': f"{self.name} is not a supported built-in function",
             'context': self.context,
             'exit': False
-        }))
+        })
 
     def copy(self):
         copy = BuiltInClass(self.name, self.properties)
@@ -3268,51 +3372,69 @@ def BuiltInFunction_PrintLn(args, node):
 def BuiltInFunction_Input(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but input() takes 0 or 1 argument(s)",
             "context": context,
             'exit': False
-        }))
+        })
     if len(args) == 0:
         try:
             input_value = input()
             return res.success(String(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
         except KeyboardInterrupt:
-            return res.failure("KeyboardInterrupt")
+            raise Al_KeyboardInterrupt({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"KeyboardInterrupt",
+                'context': context,
+                'exit': False
+            })
     if len(args) == 1:
         if isinstance(args[0], String):
             try:
                 input_value = input(args[0].value)
             except KeyboardInterrupt:
-                return res.failure("KeyboardInterrupt")
+                raise Al_KeyboardInterrupt({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"KeyboardInterrupt",
+                'context': context,
+                'exit': False
+                })
             return res.success(String(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["TypeError"]({
+            raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for input()",
                 "context": context,
                 'exit': False
-            }))
+            })
 
 
 def BuiltInFunction_InputInt(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but inputInt() takes 0 or 1 argument(s)",
             "context": context,
             'exit': False
-        }))
+        })
     if len(args) == 0:
         try:
             input_value = int(input())
         except KeyboardInterrupt:
-            return res.failure("KeyboardInterrupt")
+            raise Al_KeyboardInterrupt({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"KeyboardInterrupt",
+                'context': context,
+                'exit': False
+            })
         return res.success(Number(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
     if len(args) == 1:
         if isinstance(args[0], String):
@@ -3324,33 +3446,45 @@ def BuiltInFunction_InputInt(args, node, context):
                 except ValueError:
                     print("Invalid input, please try again")
                 except KeyboardInterrupt:
-                    return res.failure("KeyboardInterrupt")
+                    raise Al_KeyboardInterrupt({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"KeyboardInterrupt",
+                        'context': context,
+                        'exit': False
+                   })
             return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["TypeError"]({
+            raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for inputInt()",
                 "context": context,
                 'exit': False
-            }))
+            })
 
 
 def BuiltInFunction_InputFloat(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but inputFloat() takes 0 or 1 argument(s)",
             "context": context,
             'exit': False
-        }))
+        })
     if len(args) == 0:
         try:
             input_value = float(input())
         except KeyboardInterrupt:
-            return res.failure("KeyboardInterrupt")
+            raise Al_KeyboardInterrupt({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"KeyboardInterrupt",
+                        'context': context,
+                        'exit': False
+                   })
         return res.success(Number(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
     if len(args) == 1:
         if isinstance(args[0], String):
@@ -3362,28 +3496,34 @@ def BuiltInFunction_InputFloat(args, node, context):
                 except ValueError:
                     print("Invalid input, please try again")
                 except KeyboardInterrupt:
-                    return res.failure("KeyboardInterrupt")
+                    raise Al_KeyboardInterrupt({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"KeyboardInterrupt",
+                        'context': context,
+                        'exit': False
+                   })
             return res.success(Number(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["TypeError"]({
+            raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for inputFloat()",
                 "context": context,
                 'exit': False
-            }))
+            })
 
 
 def BuiltInFunction_InputBool(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but inputBool() takes 0 or 1 argument(s)",
             "context": context,
             'exit': False
-        }))
+        })
     if len(args) == 0:
         input_value = bool(input())
         return res.success(Boolean(input_value).setPosition(node.pos_start, node.pos_end).setContext(context))
@@ -3397,35 +3537,40 @@ def BuiltInFunction_InputBool(args, node, context):
                 except ValueError:
                     print("Invalid input, please try again")
                 except KeyboardInterrupt:
-                    return res.failure("KeyboardInterrupt")
+                    raise Al_KeyboardInterrupt({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"KeyboardInterrupt",
+                        'context': context,
+                        'exit': False
+                   })
             return res.success(Boolean(number).setPosition(node.pos_start, node.pos_end).setContext(context))
         else:
-            return res.failure(Program.error()["TypeError"]({
+            raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for inputBool()",
                 "context": context,
                 'exit': False
-            }))
+            })
 
 
 def BuiltInFunction_Str(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but str() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
     if hasattr(args[0], "value"):
         return res.success(String(str(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
         new_string = String(str(args[0]))
         new_string.setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(new_string)
-
     
     
 def BuiltInFunction_Range(args, node, context):
@@ -3433,103 +3578,103 @@ def BuiltInFunction_Range(args, node, context):
     # built in range takes 1 or 3 arguments eg range(5) or range(1, 5) or range(1, 5, 2)
     #print(args)
     if len(args) not in [1, 3]:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but range() takes 1 or 3 arguments",
             "context": context,
             'exit': False
-        }))
+        })
     if len(args) == 1:
         if isinstance(args[0], Number):
             return res.success(Number(range(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for range()",
             "context": context,
             'exit': False
-        }))
+        })
 
 
 def BuiltInFunction_Int(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but int() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
     if isinstance(args[0], Number):
         return res.success(Number(int(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     if isinstance(args[0], String):
         try:
             return res.success(Number(int(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         except ValueError:
-            return res.failure(Program.error()["TypeError"]({
+            raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for int()",
                 "context": context,
                 'exit': False
-            }))
+            })
     if isinstance(args[0], Boolean):
         return res.success(Number(int(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    return res.failure(Program.error()["TypeError"]({
+    raise Al_TypeError({
         "pos_start": node.pos_start,
         "pos_end": node.pos_end,
         'message': f"int() argument must be of type number, string or boolean, not {TypeOf(args[0]).getType()}",
         "context": context,
         'exit': False
-    }))
+    })
 
 
 def BuiltInFunction_Float(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but float() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
     if isinstance(args[0], Number):
         return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     if isinstance(args[0], String):
         try:
             return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         except ValueError:
-            return res.failure(Program.error()["TypeError"]({
+            raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for float()",
                 "context": context,
                 'exit': False
-            }))
+            })
     if isinstance(args[0], Boolean):
         return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    return res.failure(Program.error()["TypeError"]({
+    raise Al_TypeError({
         "pos_start": node.pos_start,
         "pos_end": node.pos_end,
         'message': f"float() argument must be of type number, string or boolean, not {TypeOf(args[0]).getType()}",
         "context": context,
         'exit': False
-    }))
+    })
 
 
 def BuiltInFunction_Bool(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but bool() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
     if isinstance(args[0], Boolean):
         return res.success(args[0])
     if isinstance(args[0], Number):
@@ -3538,13 +3683,13 @@ def BuiltInFunction_Bool(args, node, context):
         try:
             return res.success(Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         except ValueError:
-            return res.failure(Program.error()["TypeError"]({
+            raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for bool()",
                 "context": context,
                 'exit': False
-            }))
+            })
     else:
         bool_ = Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(bool_)
@@ -3553,13 +3698,13 @@ def BuiltInFunction_Bool(args, node, context):
 def BuiltInFunction_List(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but list() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
     if isinstance(args[0], List):
         return res.success(args[0])
     elif isinstance(args[0], String):
@@ -3568,13 +3713,13 @@ def BuiltInFunction_List(args, node, context):
             new_list.append(String(char).setPosition(node.pos_start, node.pos_end).setContext(context))
         return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
     elif isinstance(args[0], Boolean):
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
             "context": context,
             'exit': False
-        }))
+        })
     elif isinstance(args[0], Object):
         keys = [key for key in args[0].value]
         values = [args[0].value[key] for key in keys]
@@ -3592,25 +3737,25 @@ def BuiltInFunction_List(args, node, context):
         return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
    
     else: 
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
             "context": context,
             'exit': False
-        }))
+        })
 
 
 def BuiltInFunction_Pair(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but pair() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
        
     if isinstance(args[0], Pair):
         return res.success(args[0])
@@ -3644,95 +3789,95 @@ def BuiltInFunction_Pair(args, node, context):
         return res.success(Pair(new_pair).setPosition(node.pos_start, node.pos_end).setContext(context))
     
     else:
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
             "context": context,
             'exit': False
-        }))
+        })
 
 
 def BuiltInFunction_Object(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but object() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
     
     if isinstance(args[0], Object):
         return res.success(args[0])
     
     if isinstance(args[0], Number):
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
             "context": context,
             'exit': False
-        }))
+        })
  
  
 def BuiltInFunction_Max(args, node, context):
     res = RuntimeResult()
     if len(args) > 2:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but max() takes 2 arguments",
             "context": context,
             'exit': False
-        }))
+        })
         
     if isinstance(args[0], Number) and isinstance(args[1], Number):
         return res.success(Number(max(args[0].value, args[1].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
             "context": context,
             'exit': False
-        }))
+        })
   
 
 def BuiltInFunction_Min(args, node, context):
     res = RuntimeResult()
     if len(args) > 2:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but min() takes 2 arguments",
             "context": context,
             'exit': False
-        }))
+        })
         
     if isinstance(args[0], Number) and isinstance(args[1], Number):
         return res.success(Number(min(args[0].value, args[1].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
             "context": context,
             'exit': False
-        }))  
+        })
 
 
 def BuiltInFunction_isFinite(args, node, context):
     res = RuntimeResult()
     if len(args) != 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but isFinite() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
 
 
     if isinstance(args[0], Number):
@@ -3741,26 +3886,26 @@ def BuiltInFunction_isFinite(args, node, context):
             return num == num and num != float('inf') and num != float('-inf')
         return res.success(Boolean(isFinite(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
             "context": context,
             'exit': False
-        }))
+        })
     
 
 def BuiltInFunction_Sorted(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but sort() takes 1 argument",
             "context": context,
             'exit': False
-        }))
-        
+        })
+    
     if isinstance(args[0], List):
         new_elements = []
         elements = args[0].elements
@@ -3772,25 +3917,25 @@ def BuiltInFunction_Sorted(args, node, context):
         is_sorted = sorted(new_elements)
         return res.success(List(is_sorted).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
             "context": context,
             'exit': False
-        }))
+        })
    
 
 def BuiltInFunction_Substr(args, node, context):
     res = RuntimeResult()
     if len(args) > 3:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but substr() takes 3 arguments",
             "context": context,
             'exit': False
-        }))
+        })
     
     elif len(args) == 2:
         if isinstance(args[0], String) and isinstance(args[1], Number):
@@ -3806,25 +3951,25 @@ def BuiltInFunction_Substr(args, node, context):
             return res.success(String(getsubstr(args[0].value, start, start + length)).setPosition(node.pos_start, node.pos_end).setContext(context))
     
     else:
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
             "context": context,
             'exit': False
-        }))
+        })
 
 
 def BuiltInFunction_Reverse(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but reverse() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
         
     if isinstance(args[0], List):
         new_elements = []
@@ -3837,13 +3982,13 @@ def BuiltInFunction_Reverse(args, node, context):
         new_elements.reverse()
         return res.success(List(new_elements).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
             "context": context,
             'exit': False
-        }))
+        })
    
     
 def BuiltInFunction_Format(args, node):
@@ -3856,44 +4001,44 @@ def BuiltInFunction_Format(args, node):
 def BuiltInFunction_Typeof(args, node, context):
     res = RuntimeResult()
     if len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but typeof() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
         
     if len(args) == 0:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"typeof() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
     return res.success(String(TypeOf(args[0]).getType()).setPosition(node.pos_start, node.pos_end).setContext(context))
 
 
 def BuiltInFunction_IsinstanceOf(args, node, context):
     res = RuntimeResult()
     if len(args) > 2:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but isinstance() takes 2 arguments",
             "context": context,
             'exit': False
-        }))
+        })
         
     if len(args) == 0:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"isinstance() takes 2 arguments",
             "context": context,
             'exit': False
-        }))
+        })
         
         
     def  getInstance(type1, type2):
@@ -3927,13 +4072,13 @@ def BuiltInFunction_IsinstanceOf(args, node, context):
                     return False
    
     if not isinstance(args[1], Types):
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"isisnstance() argument 2 must be a type",
             "context": context,
             'exit': False
-        }))
+        })
     else:
         return res.success(Boolean(getInstance(args[0], args[1])).setPosition(node.pos_start, node.pos_end).setContext(context))
 
@@ -3942,41 +4087,41 @@ def BuiltInFunction_HasProperty(args, node, context):
     res = RuntimeResult()
     
     if len(args) == 0:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"hasProperty() takes 2 arguments",
             "context": context,
             'exit': False
-        }))
+        })
     
     elif len(args) == 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"hasProperty() takes 2 arguments",
             "context": context,
             'exit': False
-        }))
+        })
     
     elif len(args) > 2:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but hasProperty() takes 2 arguments",
             "context": context,
             'exit': False
-        }))
+        })
     
     else:
         if not isinstance(args[1], String):
-            return res.failure(Program.error()["TypeError"]({
+            raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"hasProperty() property name must be string",
                 "context": context,
                 'exit': False
-            }))
+            })
         object_ = args[0]
         object_type = TypeOf(object_).getType()
         property_to_check = args[1]
@@ -3987,21 +4132,21 @@ def BuiltInFunction_HasProperty(args, node, context):
 def BuiltInFunction_Line(args, node, context):
     res = RuntimeResult()
     if len(args) == 0:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"line() takes at least 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
     if len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but line() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
         
     if isinstance(args[0], Number):
         print(f"{args[0].value}:-> ")
@@ -4010,25 +4155,25 @@ def BuiltInFunction_Line(args, node, context):
         print(f"{args[0].value}:-> ")
     
     else:
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"line() argument must be number",
             "context": context,
             'exit': False
-        }))
+        })
 
     
 def BuiltInFunction_Clear(args, node, context):
     res = RuntimeResult()
     if len(args) > 0:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but clear() takes no argument",
             "context": context,
             'exit': False
-        }))
+        })
     if len(args) == 0:
         os.system('cls' if os.name == 'nt' else 'clear')
         return res.success(None)
@@ -4037,25 +4182,25 @@ def BuiltInFunction_Clear(args, node, context):
 def BuiltInFunction_Delay(args, node, context):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but delay() takes 1 argument",
             "context": context,
             'exit': False
-        }))
+        })
 
     if isinstance(args[0], Number):
         time.sleep(args[0].value)
         return res.success(None)
     else:
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"delay() argument must be number",
             "context": context,
             'exit': False
-        }))
+        })
  
     
 def BuiltInFunction_Exit(args, node, context):
@@ -4063,34 +4208,34 @@ def BuiltInFunction_Exit(args, node, context):
     if len(args) == 0:
         sys.exit()
     elif len(args) > 1:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but exit() takes 0 or 1 argument(s)",
             "context": context,
             'exit': False
-        }))
+        })
     if isinstance(args[0], Number):
         if args[0].value == 0:
             sys.exit(0)
         elif args[0].value == 1:
             sys.exit(1)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid exit code",
                 "context": context,
                 'exit': False
-            }))
+            })
     else:
-        return res.failure(Program.error()["TypeError"]({
+        raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"exit() argument must be number",
             "context": context,
             'exit': False
-        }))
+        })
 
 
 # Built-in class
@@ -4098,46 +4243,542 @@ def BuiltInFunction_Exit(args, node, context):
 def BuiltInClass_Exception(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_Exception('Exception',{
+            'name': 'Exception',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"'Exception' takes 1 or 2 arguments",
             "context": context,
             'exit': False
-        }))
+        })
     if type == "raise":
         if len(args) == 1 and isinstance(args[0], String):
-            return res.success(Program.error()["Exception"]({
+            raise Al_Exception('Exception',{
                 'name': 'Exception',
                 'message': args[0].value,
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
-        }))
+            })
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            return res.success(Program.error()["Exception"]({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else 'Exception',
-                'message': args[1].value,
+            raise Al_Exception('Exception',{
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String("Exception"),
+                'message': args[1].value, 
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
-            }))
+            })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but Exception takes 1 or 2 arguments",
                 "context": context,
                 'exit': False
-            }))
+            })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
             return res.success(BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String(args[0].value)})))
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
             return res.success(BuiltInClass("Exception", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+def BuiltInClass_RuntimeError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_RuntimeError({
+            'name': 'RuntimeError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'RuntimeError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_RuntimeError({
+                'name': 'RuntimeError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_RuntimeError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String("RuntimeError"),
+                'message': args[1].value, 
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but RuntimeError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("RuntimeError", Dict({'name': String("RuntimeError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("RuntimeError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))        
+
+def BuiltInClass_NameError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_NameError({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'NameError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_NameError({
+                'name': 'NameError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_NameError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('NameError'),
+                'message': args[1].value, 
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but NameError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("NameError", Dict({'name': String("NameError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("NameError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+def BuiltInClass_TypeError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_TypeError({
+            'name': 'TypeError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'TypeError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_TypeError({
+                'name': 'TypeError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_TypeError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('TypeError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but TypeError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("TypeError", Dict({'name': String("TypeError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("TypeError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+def BuiltInClass_IndexError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_IndexError({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'IndexError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_IndexError({
+                'name': 'IndexError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_IndexError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('IndexError'),
+                'message': args[1].value, 
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but IndexError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("IndexError", Dict({'name': String("IndexError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("IndexError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+        
+def BuiltInClass_ValueError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ValueError({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'ValueError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_ValueError({
+                'name': 'ValueError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_ValueError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ValueError'),
+                'message': args[1].value, 
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but ValueError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("ValueError", Dict({'name': String("ValueError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("ValueError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+def BuiltInClass_PropertyError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_PropertyError({
+            'name': 'PropertyError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'PropertyError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_PropertyError({
+                'name': 'PropertyError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_PropertyError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('PropertyError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but PropertyError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("PropertyError", Dict({'name': String("PropertyError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("PropertyError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+def BuiltInClass_KeyError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_KeyError({
+            'name': 'KeyError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'KeyError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_KeyError({
+                'name': 'KeyError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_KeyError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('KeyError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but KeyError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("KeyError", Dict({'name': String("KeyError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("KeyError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+    
+def BuiltInClass_ZeroDivisionError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ZeroDivisionError({
+            'name': 'ZeroDivisionError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'ZeroDivisionError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_ZeroDivisionError({
+                'name': 'ZeroDivisionError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_ZeroDivisionError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ZeroDivisionError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but ZeroDivisionError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("ZeroDivisionError", Dict({'name': String("ZeroDivisionError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("ZeroDivisionError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+def BuiltInClass_GetError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_GetError({
+            'name': 'GetError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'GetError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_GetError({
+                'name': 'GetError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_GetError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('GetError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but GetError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("GetError", Dict({'name': String("GetError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("GetError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+def BuiltInClass_ModuleNotFoundError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ModuleNotFoundError({
+            'name': 'ModuleNotFoundError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'ModuleNotFoundError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_ModuleNotFoundError({
+                'name': 'ModuleNotFoundError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_ModuleNotFoundError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ModuleNotFoundError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but ModuleNotFoundError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("ModuleNotFoundError", Dict({'name': String("ModuleNotFoundError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("ModuleNotFoundError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+def BuiltInClass_KeyboardInterrupt(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_KeyboardInterrupt({
+            'name': 'KeyboardInterrupt',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'KeyboardInterrupt' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_KeyboardInterrupt({
+                'name': 'KeyboardInterrupt',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_KeyboardInterrupt({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('KeyboardInterrupt'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but KeyboardInterrupt takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("KeyboardInterrupt", Dict({'name': String("KeyboardInterrupt"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("KeyboardInterrupt", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+
+
 
 
 def BuiltInFunction_Http_Get():
@@ -4202,13 +4843,13 @@ class BuiltInMethod_String(Value):
     
     
     def no_method(self):
-        return RuntimeResult().failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": self.node.pos_start,
             "pos_end": self.node.pos_end,
             'message': f"{self.type} is not a valid method",
             "context": self.context,
             'exit': False
-        }))
+        })
     
    
     def is_true(self):
@@ -4218,13 +4859,13 @@ class BuiltInMethod_String(Value):
     def BuiltInMethod_upperCase(self):
         res = RuntimeResult()
         if len(self.args) != 0:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but UpperCase() takes no argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
         else:
             return String(self.name.value.upper()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
     
@@ -4232,13 +4873,13 @@ class BuiltInMethod_String(Value):
     def BuiltInMethod_lowerCase(self):
         res = RuntimeResult()
         if len(self.args) != 0:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but LowerCase() takes no argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
         else:
             return String(self.name.value.lower()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         
@@ -4246,13 +4887,13 @@ class BuiltInMethod_String(Value):
     def BuiltInMethod_capitalize(self):
         res = RuntimeResult()
         if len(self.args) != 0:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but Capitalize() takes no argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
         else:
             return String(self.name.value.capitalize()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
     
@@ -4260,13 +4901,13 @@ class BuiltInMethod_String(Value):
     def BuiltInMethod_strip(self):
         res = RuntimeResult()
         if len(self.args) != 0:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but strip() takes no argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
         else:
             return String(string_strip(self.name.value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
     
@@ -4300,23 +4941,23 @@ class BuiltInMethod_String(Value):
                         value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
                     return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for split()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 2:
             if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
                 if self.args[1].value < 0:
-                    return res.failure(Program.error()["Runtime"]({
+                    raise Al_RuntimeError({
                         "pos_start": self.node.pos_start,
                         "pos_end": self.node.pos_end,
                         'message': f"{self.args[1].value} is not a valid argument for split()",
                         "context": self.context,
                         'exit': False
-                    }))
+                    })
                 else:
                     value = []
                     split_list = self.name.value.split(self.args[0].value, self.args[1].value)
@@ -4324,21 +4965,21 @@ class BuiltInMethod_String(Value):
                         value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
                     return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for split()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but split() takes 1 or 2 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
    
     def BuiltInMethod_join(self):
@@ -4348,53 +4989,53 @@ class BuiltInMethod_String(Value):
                 try:
                     return String(self.name.value.join([x.value for x in self.args[0].elements])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 except:
-                    return res.failure(Program.error()["Runtime"]({
+                    raise Al_RuntimeError({
                         "pos_start": self.node.pos_start,
                         "pos_end": self.node.pos_end,
                         'message': f"expected sequence of strings, but got {TypeOf(self.args[0]).getType()}",
                         "context": self.context,
                         'exit': False
-                    }))
+                    })
             elif isinstance(self.args[0], Pair):
                 try:
                     return String(self.name.value.join([x.value for x in self.args[0].elements])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 except:
-                    return res.failure(Program.error()["Runtime"]({
+                    raise Al_RuntimeError({
                         "pos_start": self.node.pos_start,
                         "pos_end": self.node.pos_end,
                         'message': f"expected sequence of strings, but got {TypeOf(self.args[0]).getType()}",
                         "context": self.context,
                         'exit': False
-                    }))
+                    })
             elif isinstance(self.args[0], Object):
                 try:
                     return String(self.name.value.join([x.value for x in self.args[0].get_keys()])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 except:
-                    return res.failure(Program.error()["Runtime"]({
+                    raise Al_RuntimeError({
                         "pos_start": self.node.pos_start,
                         "pos_end": self.node.pos_end,
                         'message': f"expected sequence of strings, but got {TypeOf(self.args[0]).getType()}",
                         "context": self.context,
                         'exit': False
-                    }))
+                    })
             elif isinstance(self.args[0], String):
                 return String(self.name.value.join(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for join()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but join() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_replace(self):
@@ -4405,43 +5046,43 @@ class BuiltInMethod_String(Value):
             if isinstance(self.args[0], String) and isinstance(self.args[1], String):
                 return String(self.name.value.replace(self.args[0].value, self.args[1].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                raise Al_RuntimeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for replace()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 3:
             if isinstance(self.args[0], String) and isinstance(self.args[1], String) and isinstance(self.args[2], Number):
                 return String(self.name.value.replace(self.args[0].value, self.args[1].value, self.args[2].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}', '{TypeOf(self.args[1]).getType()}' and '{TypeOf(self.args[2]).getType()}' are not a valid arguments for replace()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but replace() takes 2 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
    
     def BuiltInMethod_length(self):
         res = RuntimeResult()
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": self.node.pos_start,
             "pos_end": self.node.pos_end,
             'message': f"'length' is not a callable",
             "context": self.context,
             'exit': False
-        }))
+        })
    
    
     def BuiltInMethod_substr(self):
@@ -4452,34 +5093,34 @@ class BuiltInMethod_String(Value):
                 end = len(self.name.value)
                 return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                raise Al_RuntimeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for substr()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 2:
             if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
                 start = self.args[0].value
                 end = self.args[1].value + 1
                 return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                raise Al_RuntimeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for substr()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but substr() takes 2 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
  
     
     def BuiltInMethod_slice(self):
@@ -4490,34 +5131,34 @@ class BuiltInMethod_String(Value):
                 end = len(self.name.value)
                 return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                raise Al_RuntimeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for slice()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 2:
             if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
                 start = self.args[0].value
                 end = self.args[1].value + 1
                 return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                raise Al_RuntimeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for slice()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but slice() takes 2 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_charAt(self):
@@ -4534,21 +5175,21 @@ class BuiltInMethod_String(Value):
                 end = start + 1
                 return String(getsubstr(string, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                raise Al_RuntimeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for charAt()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but charAt() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_includes(self):
@@ -4559,21 +5200,21 @@ class BuiltInMethod_String(Value):
                 substring = self.args[0].value.replace(" ", "")
                 return Boolean(string.find(substring) != -1).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["Runtime"]({
+                raise Al_RuntimeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for includes()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but includes() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_count(self):
@@ -4582,43 +5223,43 @@ class BuiltInMethod_String(Value):
             if isinstance(self.args[0], String):
                 return Number(self.name.value.count(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for count()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 2:
             if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
                 return Number(self.name.value.count(self.args[0].value, self.args[1].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for count()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 3:
             if isinstance(self.args[0], String) and isinstance(self.args[1], Number) and isinstance(self.args[2], Number):
                 return Number(self.name.value.count(self.args[0].value, self.args[1].value, self.args[2].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' and '{TypeOf(self.args[2]).getType()}' are not a valid arguments for count()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but count() takes 1 argument and 2 optional arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
         
        
     def BuiltInMethod_startsWith(self):
@@ -4629,13 +5270,13 @@ class BuiltInMethod_String(Value):
                 substring = self.args[0].value.replace(" ", "")
                 return Boolean(string.startswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for startsWith()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 2:
             if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
                 string = self.name.value.replace(" ", "")
@@ -4644,21 +5285,21 @@ class BuiltInMethod_String(Value):
                 end = start + 1
                 return Boolean(getsubstr(string, start, end).startswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for startsWith()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but startsWith() takes 1 or 2 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
       
       
     def BuiltInMethod_endsWith(self):
@@ -4669,13 +5310,13 @@ class BuiltInMethod_String(Value):
                 substring = self.args[0].value.replace(" ", "")
                 return Boolean(string.endswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for endsWith()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 2:
             if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
                 string = self.name.value.replace(" ", "")
@@ -4684,21 +5325,21 @@ class BuiltInMethod_String(Value):
                 end = start + 1
                 return Boolean(getsubstr(string, start, end).endswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for endsWith()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but endsWith() takes 1 or 2 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_find(self):
@@ -4707,46 +5348,46 @@ class BuiltInMethod_String(Value):
             if isinstance(self.args[0], String):
                 return Number(self.name.value.find(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for find()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 2:
             if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
                 start = self.args[1].value
                 return Number(self.name.value.find(self.args[0].value, start)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for find()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 3:
             if isinstance(self.args[0], String) and isinstance(self.args[1], Number) and isinstance(self.args[2], Number):
                 start = self.args[1].value
                 end = self.args[2].value
                 return Number(self.name.value.find(self.args[0].value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}', '{TypeOf(self.args[1]).getType()}' and '{TypeOf(self.args[2]).getType()}' are not valid arguments for find()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but find() takes 1, 2 or 3 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_findIndex(self):
@@ -4755,33 +5396,33 @@ class BuiltInMethod_String(Value):
             if isinstance(self.args[0], String):
                 return Number(self.name.value.find(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for findIndex()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 2:
             if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
                 start = self.args[1].value
                 return Number(self.name.value.find(self.args[0].value, start)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for findIndex()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but findIndex() takes 1 or 2 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
 
 
     def BuiltInMethod_isUpper(self):
@@ -4789,13 +5430,13 @@ class BuiltInMethod_String(Value):
         if len(self.args) == 0:
             return Boolean(self.name.value.isupper()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but isUpper() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_isLower(self):
@@ -4803,13 +5444,13 @@ class BuiltInMethod_String(Value):
         if len(self.args) == 0:
             return Boolean(self.name.value.islower()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but isLower() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
         
         
     def BuiltInMethod_isAlpha(self):
@@ -4817,13 +5458,13 @@ class BuiltInMethod_String(Value):
         if len(self.args) == 0:
             return Boolean(self.name.value.isalpha()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but isAlpha() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))  
+            })
     
     
     def BuiltInMethod_isDigit(self):
@@ -4831,13 +5472,13 @@ class BuiltInMethod_String(Value):
         if len(self.args) == 0:
             return Boolean(self.name.value.isdigit()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but isDigit() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
             
     
     def BuiltInMethod_isNumeric(self):
@@ -4845,13 +5486,13 @@ class BuiltInMethod_String(Value):
         if len(self.args) == 0:
             return Boolean(self.name.value.isnumeric()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but isNumeric() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
             
             
     def BuiltInMethod_isEmpty(self):
@@ -4859,13 +5500,13 @@ class BuiltInMethod_String(Value):
         if len(self.args) == 0:
             return Boolean(self.name.value == '').setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but isNumeric() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))       
+            })    
             
     
     def BuiltInMethod_format(self):
@@ -4879,21 +5520,21 @@ class BuiltInMethod_String(Value):
                     string = string.replace('{' + str(i) + '}', str(values[i].value))
                 return String(string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(args[0]).getType()}' is not valid argument for format()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but format() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     # def BuiltInMethod___getproperty(self):
     #     res = RuntimeResult()
@@ -4905,7 +5546,7 @@ class BuiltInMethod_String(Value):
     #             print(method)
     #             #return String(BuiltInMethod.__getattribute__(self, self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
     #         else:
-    #             return res.failure(Program.error()["TypeError"]({
+    #             raise Al_TypeError({
     #                 "pos_start": self.node.pos_start,
     #                 "pos_end": self.node.pos_end,
     #                 'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for __getproperty()",
@@ -4913,7 +5554,7 @@ class BuiltInMethod_String(Value):
     #                 'exit': False
     #             }))
     #     else:
-    #         return res.failure(Program.error()["Runtime"]({
+    #         raise Al_RuntimeError({
     #             "pos_start": self.node.pos_start,
     #             "pos_end": self.node.pos_end,
     #             'message': f"{len(self.args)} arguments given, but __getproperty() takes 1 argument",
@@ -4962,13 +5603,13 @@ class BuiltInMethod_List(Value):
     
     
     def no_method(self):
-        return RuntimeResult().failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
         "pos_start": self.node.pos_start,
         "pos_end": self.node.pos_end,
         'message': f"{self.type} is not a valid method",
         "context": self.context,
         'exit': False
-    }))
+    })
             
     def is_true(self):
         return True if self.name else False
@@ -4976,13 +5617,13 @@ class BuiltInMethod_List(Value):
         
     def BuiltInMethod_length(self):
         res = RuntimeResult()
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": self.node.pos_start,
             "pos_end": self.node.pos_end,
             'message': f"'length' is not a callable",
             "context": self.context,
             'exit': False
-        }))
+        })
         
     
     def BuiltInMethod_append(self):
@@ -4991,13 +5632,13 @@ class BuiltInMethod_List(Value):
             self.name.elements.append(self.args[0])
             return NoneType('none').none
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for append()",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
             
     def BuiltInMethod_pop(self):
@@ -5008,22 +5649,22 @@ class BuiltInMethod_List(Value):
             if isinstance(self.args[0], Number):
                     return List(self.name.elements.pop(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for pop()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
                 
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but pop() takes 0 or 1 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
      
             
     def BuiltInMethod_remove(self):
@@ -5031,13 +5672,13 @@ class BuiltInMethod_List(Value):
         if len(self.args) == 1:
            return List(self.name.elements.remove(self.args[0])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)  
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but remove() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
             
             
     def BuiltInMethod_insert(self):
@@ -5046,21 +5687,21 @@ class BuiltInMethod_List(Value):
             if isinstance(self.args[0], Number):
                 return List(self.name.elements.insert(self.args[0].value, self.args[1])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for insert()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but insert() takes 2 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
             
             
     def BuiltInMethod_reverse(self):
@@ -5072,13 +5713,13 @@ class BuiltInMethod_List(Value):
             return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but reverse() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
    
             
     def BuiltInMethod_empty(self):
@@ -5086,13 +5727,13 @@ class BuiltInMethod_List(Value):
         if len(self.args) == 0:
             return List(self.name.elements.clear()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end) 
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but empty() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
 
 
     def BuiltInMethod_getItem(self):
@@ -5101,22 +5742,22 @@ class BuiltInMethod_List(Value):
             if isinstance(self.args[0], Number):
                     return List(self.name.elements[self.args[0].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for getItem()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
                 
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but getItem() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
 
 
     def BuiltInMethod_setItem(self):
@@ -5128,25 +5769,25 @@ class BuiltInMethod_List(Value):
                     self.name.elements[self.args[0].value] = new_value
                     return List(self.name.elements).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for setItem()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
                 
         #elif len(self.args) == 1:
             
                 
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but setItem() takes 2 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
 
 
     def BuiltInMethod_slice(self):
@@ -5155,33 +5796,33 @@ class BuiltInMethod_List(Value):
             if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
                     return List(self.name.elements[self.args[0].value:self.args[1].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for slice()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         elif len(self.args) == 1:
             if isinstance(self.name, List):
                 if isinstance(self.args[0], Number):
                     return List(self.name.elements[self.args[0].value:]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 else:
-                    return res.failure(Program.error()["Runtime"]({
+                    raise Al_RuntimeError({
                         "pos_start": self.node.pos_start,
                         "pos_end": self.node.pos_end,
                         'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for slice()",
                         "context": self.context,
                         'exit': False
-                    }))
+                    })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but slice() takes 2 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
         
         
     def BuiltInMethod_join(self):
@@ -5198,13 +5839,13 @@ class BuiltInMethod_List(Value):
                             new_string += self.args[0].value
                     return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for join()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
                 
         elif len(self.args) == 0:
             new_string = ""
@@ -5217,13 +5858,13 @@ class BuiltInMethod_List(Value):
                     new_string += ","
             return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but join() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
         
     
     def BuiltInMethod_includes(self):
@@ -5262,13 +5903,13 @@ class BuiltInMethod_List(Value):
                         
                 return Boolean(isSame).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but includes() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
 
 
     def BuiltInMethod_count(self):
@@ -5294,13 +5935,13 @@ class BuiltInMethod_List(Value):
                 return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but count() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
 
 
     def BuiltInMethod_indexOf(self):
@@ -5322,13 +5963,13 @@ class BuiltInMethod_List(Value):
                         return Number(index).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 return Number(-1).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but indexOf() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
 
     
     def BuiltInMethod_isEmpty(self):
@@ -5339,13 +5980,13 @@ class BuiltInMethod_List(Value):
             else:
                 return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but isEmpty() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_isNumber(self):
@@ -5357,13 +5998,13 @@ class BuiltInMethod_List(Value):
                     return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but isNumber() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_isString(self):
@@ -5374,13 +6015,13 @@ class BuiltInMethod_List(Value):
                     return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but isString() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_toString(self):
@@ -5396,13 +6037,13 @@ class BuiltInMethod_List(Value):
                     new_string += ", " if element != self.name.elements[-1] else ""
             return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but toString() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))    
+            })    
     
     
     def BuiltInMethod___methods__(self):
@@ -5414,13 +6055,13 @@ class BuiltInMethod_List(Value):
                     new_list.append(element)
             return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but __properies__() takes 0 arguments",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
 
     def BuiltInMethod_map(self):
@@ -5433,21 +6074,21 @@ class BuiltInMethod_List(Value):
                     new_list.append(res.register(func.execute([element])))
                 return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for map()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but map() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
     
     
     def BuiltInMethod_filter(self):
@@ -5464,21 +6105,21 @@ class BuiltInMethod_List(Value):
                 return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                     
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for filter()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but filter() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
 
 
     def BuiltInMethod_find(self):
@@ -5507,22 +6148,22 @@ class BuiltInMethod_List(Value):
                                 if new_res.value == "true":
                                     return self.name.elements[i]                    
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for find()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
             
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but find() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))      
+            })    
 
    
     def copy(self):
@@ -5566,13 +6207,13 @@ class BuiltInMethod_Pair(Value):
     
     def no_method(self):
         res = RuntimeResult()
-        return res.failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": self.node.pos_start,
             "pos_end": self.node.pos_end,
             'message': f"{self.type} is not a valid method for pair()",
             "context": self.context,
             'exit': False
-        })) 
+        })
     
     def is_true(self):
         return True if self.name else False
@@ -5600,13 +6241,13 @@ class BuiltInMethod_Pair(Value):
                 return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but count() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
             
     def BuiltInMethod_indexOf(self):
         res = RuntimeResult()
@@ -5627,13 +6268,13 @@ class BuiltInMethod_Pair(Value):
                         return Number(index).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 return Number(-1).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but indexOf() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
        
        
     def copy(self):
@@ -5678,13 +6319,13 @@ class BuiltInMethod_Dict(Value):
     
     
     def no_method(self):
-        return RuntimeResult().failure(Program.error()["Runtime"]({
+        raise Al_RuntimeError({
             "pos_start": self.node.pos_start,
             "pos_end": self.node.pos_end,
             'message': f"{self.type} is not a valid method",
             "context": self.context,
             'exit': False
-        }))
+        })
     
     def is_true(self):
         return True if self.name else False
@@ -5698,21 +6339,21 @@ class BuiltInMethod_Dict(Value):
                         return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             else:
-                return res.failure(Program.error()["TypeError"]({
+                raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for has_key()",
                     "context": self.context,
                     'exit': False
-                }))
+                })
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but has_key() takes 1 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
                 
     
     def BuiltInMethod_keys(self):
@@ -5723,13 +6364,13 @@ class BuiltInMethod_Dict(Value):
                 keys.append(key)
             return List(keys).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but keys() takes 0 argument",
                 "context": self.context,
                 'exit': False
-            })) 
+            })
             
     
     def BuiltInMethod_values(self):
@@ -5740,13 +6381,13 @@ class BuiltInMethod_Dict(Value):
                 values.append(value)
             return List(values).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            return res.failure(Program.error()["Runtime"]({
+            raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but values() takes 0 argument",
                 "context": self.context,
                 'exit': False
-            }))
+            })
            
         
     def copy(self):
@@ -5806,8 +6447,8 @@ class Types(Value):
         return self.setTrueorFalse(other.value == "none"), None
     
     def notted(self):
-        value = self.value
-        return self.setTrueorFalse(False if value == "true" else True), None
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
     
     def copy(self):
         copy = Types(self.name)
@@ -5849,119 +6490,6 @@ def BuiltInModule_Http(context):
     return Module("http", module_path, context)
  
  
-class Al_Exception(Exception):
-    def __init__(self, name, message):
-        self.name = name
-        self.message = message
-        properties = {
-            'name': String(name),
-            'message': String(message)
-        }
-        self.properties = Dict(properties)
-            
-        
-    def __repr__(self):
-        return f"<Exception {self.name}: {self.message}>"
-    
-
-    
-
-class Exception_Runtime(Al_Exception):
-    def __init__(self, message, scope):
-        super().__init__("Runtime", message)
-        self.scope = scope
-        self.setError()
-
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<RuntimeError {self.message}>"
-  
-    
-class NameError(Al_Exception):
-    def __init__(self,message,scope):
-        super().__init__("NameError", message)
-        self.scope = scope
-        self.setError()
-        
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<NameError {self.message}>"
-
-
-class KeyError(Al_Exception):
-    def __init__(self,message,scope):
-        super().__init__("KeyError", message)
-        self.scope = scope
-        self.setError()
-        
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<KeyError {self.message}>"
-
-
-class TypeError(Al_Exception):
-    def __init__(self,message,scope):
-        super().__init__("TypeError", message)
-        self.scope = scope
-        self.setError()
-        
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<TypeError {self.message}>"
-    
-
-class PropertyError(Al_Exception):
-    def __init__(self,message,scope):
-        super().__init__("PropertyError", message)
-        self.scope = scope
-        self.setError()
-        
-    def setError(self):
-        if self.scope == "catch":
-            Program.printError("another exception occured during handling of the above exception:")
-            return Program.error()[self.name](self.message)
-        elif self.scope == "attempt":
-            pass
-        else:
-            return Program.error()[self.name](self.message)
-        
-    def __repr__(self):
-        return f"<PropertyError {self.message}>"
-
-
-
 
 
 class Interpreter:
@@ -5969,47 +6497,13 @@ class Interpreter:
     def __init__(self):
         self.error_detected = False
         self.exception = False
-        self.exception_details = {}
-    
-    
-    
-    def setAttempt(self, attempt_details,exception_details):
-        res = RuntimeResult()
-        node = exception_details['node']
-        exception = attempt_details["exception"]
-        context = attempt_details["context"]
-        catch_statement = attempt_details["catch_statement"]
-        else_statement = attempt_details["else_statement"]
-        exception_name = exception["name"]
-        exception_name_as = exception["as"]
-        exception_error = Dict(exception_details)
-        if exception_name_as != None:
-            context.symbolTable.set(exception_name_as.value, exception_error)
-        else:
-            context.symbolTable.set(exception_name.value, exception_error)
-        if catch_statement != None:
-            res.register(self.visit(catch_statement['body'], context))
-        if else_statement != None:
-            res.register(self.visit(else_statement['body'], context))
-        
-  
-    def setCatch(self,exception_details):
-        res = RuntimeResult()
-        return res.failure(Program.error()[exception_details['name']]({
-                    'pos_start': exception_details['pos_start'],
-                    'pos_end': exception_details['pos_end'],
-                    'message': f"{exception_details['message']}",
-                    'context': exception_details["context"],
-                    'exit': False
-                }))
-        
+        self.exception_details = {}      
    
-    def visit(self, node, context, exception=None, attempt_details=None):
+    
+    def visit(self, node, context):
         method_name = f'visit_{type(node).__name__}'
         method = getattr(self, method_name, self.no_visit)
         self.context = context
-        if attempt_details:
-            self.attempt_details = attempt_details
         return method(node, context)
 
     
@@ -6041,13 +6535,6 @@ class Interpreter:
                 context).setPosition(node.pos_start, node.pos_end)
         )
 
-
-    def visit_ObjectRefNode(self, node, context):
-        return RuntimeResult().success(
-            ObjectRefNode(node.tok.value).setContext(
-                context).setPosition(node.pos_start, node.pos_end)
-        )
-
     
     def visit_StringInterpNode(self, node, context):
         res = RuntimeResult()
@@ -6059,17 +6546,14 @@ class Interpreter:
             if isinstance(values_to_replace, list):
                 for pv in range(len(inter_pv)):
                     replace_value = res.register(self.visit(values_to_replace[pv], context))
-                    if replace_value == None:
-                        self.error_detected = True
-                        return res.noreturn()
                     value_replaced = str(replace_value)
                     if isinstance(replace_value, String):
                         value_replaced = str(replace_value.value)
-                    if value_replaced[0] == "'":
-                        value_replaced = str(value_replaced[1:-1])
+                    else:
+                        if value_replaced[0] == "'":
+                            value_replaced = str(value_replaced[1:-1])
                     if value_replaced == "None":
                         value_replaced = str(NoneType.none)
-                    # replace placeholder with value
                     string_to_interp = string_to_interp.replace(
                         '%{' + str(inter_pv[pv]) + '}', value_replaced)
                     if '%%{{' in string_to_interp and '}}' in string_to_interp:
@@ -6088,8 +6572,8 @@ class Interpreter:
                 return res.success(value)
             else:
                 res.noreturn()
-        except:
-            pass
+        except Exception as e:
+            raise e
     
     
     def visit_ListNode(self, node, context):
@@ -6149,25 +6633,26 @@ class Interpreter:
         if node.variable_keyword_token == "module":
             value = context.symbolTable.get(node.value_node.value)
             if value == None:
-               return res.failure(Program.error()['NameError']({
+               raise Al_NameError({
+                    'name': "NameError",
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"name '{node.value_node.value}' is not defined",
                     'context': context,
                     'exit': False
-                }))
+               })
         
         if type(node.variable_name_token).__name__ == "tuple" or type(node.variable_name_token).__name__ == "list":
             var_name = node.variable_name_token
             if isinstance(var_name, Pair) or isinstance(var_name, List):
                 if len(var_name) != len(value.elements):
-                    return res.failure(Program.error()['ValueError']({
+                    raise Al_ValueError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"Expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
                         'context': context,
                         'exit': False
-                    }))
+                    })
                 else:
                     for i in range(len(var_name)):
                         context.symbolTable.set(
@@ -6179,13 +6664,13 @@ class Interpreter:
                     var = []
                     for v in var_name:
                         if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
-                            return res.failure(Program.error()['ValueError']({
+                            raise Al_ValueError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"Cannot pair '{TypeOf(value).getType()}' with '{TypeOf(v).getType()}'",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                         var.append(v.name.value)
                     if '*' + v.name.value.split('*')[-1] in var:
                         properties = []
@@ -6200,13 +6685,13 @@ class Interpreter:
                                     '*')[-1], List(properties[i:]))
 
                     else:
-                        return res.failure(Program.error()['ValueError']({
+                        raise Al_ValueError({
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
                             'message': f"Expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
                             'context': context,
                             'exit': False
-                        }))
+                        })
                 else:
                     properties = []
                     var = []
@@ -6215,30 +6700,31 @@ class Interpreter:
                     for v in var_name:
                         var.append(v.name.value)
                         if '*' + v.name.value.split('*')[-1] in var:
-                            return res.failure(Program.error()['ValueError']({
+                            raise Al_ValueError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"not to many values to pair",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                         else:
                             for i in range(len(var_name)):
                                 context.symbolTable.set(
                                     var_name[i].name.value, properties[i])
 
             elif isinstance(value, Pair) or isinstance(value, List):
+                
                 if len(var_name) != len(value.elements):
                     var = []
                     for v in var_name:
                         if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
-                            return res.failure(Program.error()['ValueError']({
+                            raise Al_ValueError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"Cannot pair '{TypeOf(value).getType()}' with '{TypeOf(v).getType()}'",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                         var.append(v.name.value)
                     if '*' + v.name.value.split('*')[-1] in var:
                         elements = []
@@ -6252,13 +6738,13 @@ class Interpreter:
                                 context.symbolTable.set(
                                     v.name.value.split('*')[-1], List(elements[i:]))
                     else:
-                        return res.failure(Program.error()['ValueError']({
+                        raise Al_ValueError({
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
                             'message': f"Expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
                             'context': context,
                             'exit': False
-                        }))
+                        })
                 else:
                     elements = []
                     var = []
@@ -6267,26 +6753,26 @@ class Interpreter:
                     for v in var_name:
                         var.append(v.name.value)
                         if '*' + v.name.value.split('*')[-1] in var:
-                            return res.failure(Program.error()['ValueError']({
+                            raise Al_ValueError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"not to many values to pair",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                         else:
                             for i in range(len(var_name)):
                                 context.symbolTable.set(
                                     var_name[i].name.value, elements[i])
 
             else:
-                return res.failure(Program.error()['Runtime']({
+                raise Al_RuntimeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"Cannot pair '{TypeOf(value).getType()}' with '{TypeOf(var_name).getType()}'",
                     'context': context,
                     'exit': False
-                }))
+                })
         
        
         else:
@@ -6318,28 +6804,26 @@ class Interpreter:
             value = context.symbolTable.get(NoneType.none)
         elif value is None:
             if var_name == "@":
-                return res.failure(Program.error()['Runtime']({
+                raise Al_RuntimeError({
+                    'name': "RuntimeError",
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"Expected '@' to be followed by an identifier",
                     'context': context,
                     'exit': False
-                }))
+                })
             
             
             exception_details =  {
-                'name': String('NameError'),
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': String(str(var_name) + " is not defined"),
+                'message': f"name '{var_name}' is not defined",
                 'node': node,
                 'context': context,
                 'exit': False
             } 
-            scope = context.symbolTable.get_current_scope()
             self.error_detected = True
-            
-            raise NameError(exception_details, scope)
+            raise Al_NameError(exception_details)
            
         
         else:
@@ -6353,18 +6837,17 @@ class Interpreter:
         operation = node.operation
         v = context.symbolTable.get(var_name)
         value = res.register(self.visit(node.value, context))
-        scope = context.symbolTable.get_current_scope()
         if v != None:
             if type(v) is dict:
                 var_type = v['type']
                 if var_type == "final":
-                    raise NameError({
+                    raise Al_NameError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"name '{var_name}' cannot be reassigned",
                         'context': context,
                         'exit': False
-                    }, scope)
+                    })
                 else:
                     if operation == "add":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
@@ -6372,25 +6855,27 @@ class Interpreter:
                                 new_value = Number(setNumber(v['value'].value) + setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         elif isinstance(v['value'], String):
                             if isinstance(value, String):
                                 new_value = String(v['value'].value + value.value)
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"reassignment of {TypeOf(v['value']).getType()} to {TypeOf(value).getType()} is not allowed",
+                                    'message': String(f"reassignment of {TypeOf(v['value']).getType()} to {TypeOf(value).getType()} is not allowed"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         elif isinstance(v['value'], List):
                             if isinstance(value, List):
                                 new_value = List(v['value'].elements + value.elements)
@@ -6402,207 +6887,233 @@ class Interpreter:
                                 new_value = List(v['value'].elements + new_list)
                                 context.symbolTable.set(var_name, new_value)
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed",
+                                    'message': String(f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         elif isinstance(v['value'], Pair):
                             if isinstance(value, Pair):
                                 new_value = Pair(v['value'].elements + value.elements)
                                 context.symbolTable.set(var_name, new_value)
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed",
+                                    'message': String(f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed"),
                                     'context': context,
                                     'exit': False
-                                }))    
+                                })    
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
                                     'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
-                                })) 
+                                }) 
                     elif operation == "sub":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) - setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         else:
-                            return res.failure(Program.error()['TypeError']({
-                                    'pos_start': node.pos_start,
-                                    'pos_end': node.pos_end,
-                                    'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
-                                    'context': context,
-                                    'exit': False
-                                }))
+                           raise Al_TypeError({
+                               'name': String('TypeError'),
+                               'pos_start': node.pos_start,
+                               'pos_end': node.pos_end,
+                               'message': String(f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                               'context': context,
+                               'exit': False
+                           })
                     elif operation == "mul":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) * setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         elif isinstance(v['value'], String):
                             if isinstance(value, Number):
                                 new_value = String(v['value'].value * value.value)
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         elif isinstance(v['value'], List):
                             if isinstance(value, Number):
                                 new_value = List(v['value'].elements * value.value)
                                 context.symbolTable.set(var_name, new_value)
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}",
+                                    'message': String(f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         elif isinstance(v['value'], Pair):
                             if isinstance(value, Number):
                                 new_value = Pair(v['value'].elements * value.value)
                                 context.symbolTable.set(var_name, new_value)
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}",
+                                    'message': String(f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                     elif operation == "div":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) / setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))    
+                                })    
                     elif operation == "floor_div":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) // setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                     elif operation == "mod":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) % setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                     elif operation == "pow":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) ** setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
-                                return res.failure(Program.error()['TypeError']({
+                                raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '**=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '^=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                         else:
-                            return res.failure(Program.error()['TypeError']({
+                            raise Al_TypeError({
+                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '**=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': String(f"unsupported '^=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
-                                }))
+                                })
                     else:
+                        if type(value).__name__ in immutables:
+                            raise Al_TypeError({
+                                'name': String('TypeError'),
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"cannot set name '{var_name}' to immutable type '{TypeOf(value).getType()}'",
+                                'context': context,
+                                'exit': False
+                            })
                         context.symbolTable.set(var_name, value, "let")
-            
-        
+                   
         else:
-            return res.failure(Program.error()['NameError']({
+            raise Al_NameError({
+                'name': String('NameError'),
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': f"name '{var_name}' is not defined",
+                'message': String(f"name '{var_name}' is not defined"),
                 'context': context,
                 'exit': False
-            }))
+            })
         value = value.copy().setContext(context).setPosition(
             node.pos_start, node.pos_end) if hasattr(value, 'copy') else value
         return res.success(value)
@@ -6613,7 +7124,6 @@ class Interpreter:
         value = ""
         object_name = res.register(self.visit(node.name, context)) 
         object_key = node.property
-        scope = context.symbolTable.get_current_scope()
         #print(type(object_name).__name__, type(object_key).__name__, object_key)
         error = {
             'name': String('PropertyError'),
@@ -6638,8 +7148,8 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.id.value}'"
                         else:
-                            error["message"] = f"{object_name.name} has no method {object_key.id.value}"
-                        raise PropertyError(error, scope)
+                            error["message"] = f"'{object_name.name}' has no method '{object_key.id.value}'"
+                        raise Al_PropertyError(error)
             
             if type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -6650,8 +7160,8 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.value}'"
                         else:
-                            error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        raise PropertyError(error, scope)
+                            error["message"] = f"'{object_name.name}' has no property '{object_key.value}'"
+                        raise Al_PropertyError(error)
             
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6676,13 +7186,14 @@ class Interpreter:
                             
                         else:
                             if object_name.name == "Export":
-                                error['message'] = f"Export has no member '{object_key.node_to_call.value}'"
+                                error['message'] = String(f"Export has no member '{object_key.node_to_call.value}'")
                             else:
                                 self.error_detected = True
-                                error["message"] = f"'{object_name.name}' has no method '{object_key.node_to_call.value}'"
-                            raise PropertyError(error, scope)
+                                error["message"] = String(
+                                    f"'{object_name.name}' has no method '{object_key.node_to_call.value}'")
+                            raise Al_PropertyError(error)
                     # else:
-                    #     raise PropertyError(error, scope)
+                    #     raise Al_PropertyError(error)
         
         elif isinstance(object_name, BuiltInClass):
             if type(object_key).__name__ == "Token":
@@ -6690,8 +7201,9 @@ class Interpreter:
                     value = object_name.properties.properties[object_key.value]
                     return res.success(value)
                 else:
-                    error["message"] = f"{object_name.name} has no property {object_key.value}"
-                    raise PropertyError(error, scope)
+                    error["message"] = String(
+                        f"{object_name.name} has no property {object_key.value}")
+                    raise Al_PropertyError(error)
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in object_name.properties.properties:
@@ -6713,15 +7225,14 @@ class Interpreter:
                             return res.success(return_value)
                     else:
                         error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                 else:
                     error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
             else:
                 error["message"] = f"'{object_key.node_to_call.value}'"
-                raise PropertyError(error, scope)
-            
-        
+                raise Al_PropertyError(error)
+                    
         elif isinstance(object_name, Object):
             builtin_properties = {
                 'get': 'get',
@@ -6732,8 +7243,8 @@ class Interpreter:
                         value = object_name.properties[object_key.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        raise PropertyError(error, scope)
+                        error["message"] = f"'{node.name.id.value}' has no property '{object_key.id.value}'"
+                        raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6741,8 +7252,8 @@ class Interpreter:
                         if object_key.node_to_call.value in object_name.properties:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
-                                error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                raise PropertyError(error, scope)
+                                error["message"] = f"'{object_key.node_to_call.value}' is not callable"
+                                raise Al_PropertyError(error)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -6761,8 +7272,8 @@ class Interpreter:
                                 else:
                                     return res.success(return_value)
                         else:
-                            error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            raise PropertyError(error, scope)
+                            error["message"] = f"'{node.name.id.value}' has no property '{object_key.node_to_call.value}'"
+                            raise Al_PropertyError(error)
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -6787,9 +7298,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                     # else:
-                    #     raise PropertyError(error, scope)
+                    #     raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -6797,13 +7308,8 @@ class Interpreter:
                         value = object_name.properties[object_key.value]
                         return res.success(value)
                     else:
-                        print()
-                        # if object_name.properties['__name']:
-                        #     name = object_name.properties['__name']
-                        #     error["message"] = f"{name} has no property {object_key.value}"
-                        # else:
-                        error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        raise PropertyError(error, scope)
+                        error["message"] = f"'{object_name.name}' has no property '{object_key.value}'"
+                        raise Al_PropertyError(error)
             
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -6811,8 +7317,8 @@ class Interpreter:
                         value = object_name.properties[object_key.name.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
-                        raise PropertyError(error, scope)
+                        error["message"] = f"'{node.name.id.value}' has no property '{object_key.name.id.value}'"
+                        raise Al_PropertyError(error)
    
         elif isinstance(object_name, Dict):
             if type(object_key).__name__ == "VarAccessNode":
@@ -6825,7 +7331,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
 
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -6843,7 +7349,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                raise PropertyError(error, scope)
+                                raise Al_PropertyError(error)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -6864,8 +7370,8 @@ class Interpreter:
                                 else:
                                     return res.success(return_value)
                         else:
-                            error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            raise PropertyError(error, scope)
+                            error["message"] = f"'{node.name.id.value}' has no property '{object_key.node_to_call.value}'"
+                            raise Al_PropertyError(error)
                 else:
                     if object_key.id.node_to_call.id.value in dict_methods:
                         args = []
@@ -6900,9 +7406,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                     # else:
-                    #     raise PropertyError(error, scope)
+                    #     raise Al_PropertyError(error)
 
             elif type(object_key).__name__ == "Token":
                 if object_key.value in dict_methods:
@@ -6914,7 +7420,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'{object_key.value}'"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
 
             elif type(object_key).__name__ == "PropertyNode":
                 if hasattr(object_name, "properties"):
@@ -6922,8 +7428,8 @@ class Interpreter:
                         value = object_name.properties[object_key.name.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"{node.name.id.value} has no property {object_key.name.id.value}"
-                        raise PropertyError(error, scope)
+                        error["message"] = f"'{node.name.id.value}' has no property '{object_key.name.id.value}'"
+                        raise Al_PropertyError(error)
                 
         elif isinstance(object_name, List):
             if type(object_key).__name__ == "VarAccessNode":
@@ -6947,7 +7453,7 @@ class Interpreter:
                      return res.success(value)
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -6977,7 +7483,7 @@ class Interpreter:
                                 return res.success(return_value)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
         
         elif isinstance(object_name, Pair):
             if type(object_key).__name__ == "Token":
@@ -6990,7 +7496,7 @@ class Interpreter:
                         return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'list' has no property {object_key.value}"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -7005,7 +7511,7 @@ class Interpreter:
                         return res.success(value.name)
                     else:
                         error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
         
         elif isinstance(object_name, String):
             if type(object_key).__name__ == "Token":
@@ -7016,20 +7522,8 @@ class Interpreter:
                     else:
                         return res.success(BuiltInMethod(value))
                 else:
-                    scope = context.symbolTable.get_current_scope()
-                    self.error_detected = True
-                    if  scope == "attempt":
-                        attempt_details = self.attempt_details
-                        exception_details['message'] = f"no property '{object_key.value}'"
-                        attempt_scope = self.setAttempt(attempt_details, exception_details)
-                        return res.failure(attempt_scope)
-                    elif scope == "catch":
-                        Program.printError("another exception occured during handling of the above exception:")
-                        error["message"] = f"no property '{object_key.value}'"
-                        raise PropertyError(error, scope)
-                    else:
-                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                        raise PropertyError(error, scope)
+                    error["message"] = f"'string' has no property {object_key.value}"
+                    raise Al_PropertyError(error)
                     
                 
                 
@@ -7039,7 +7533,7 @@ class Interpreter:
                     return res.success(String(value))
                 else:
                     error["message"] = f"'string' has no property {object_key.id.value}"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                
             elif type(object_key).__name__ == "PropertyNode":
                 if type(object_key.id).__name__ ==  "CallNode":
@@ -7054,14 +7548,14 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'string' has no property {object_key.id.node_to_call.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                 else:
                     if object_key.id.value in string_methods:
                         value = f"<{str(object_key.id.value)}()>, [ built-in string method ]"
                         return res.success(String(value))
                     else:
                         error["message"] = f"'string' has no property {object_key.id.value}"
-                        raise PropertyError(error, scope) 
+                        raise Al_PropertyError(error) 
                 
             
             elif type(object_key).__name__ == "CallNode":
@@ -7077,7 +7571,7 @@ class Interpreter:
                         return res.success(value.name)
                     else:
                         error["message"] = f"'string' has no property {object_key.node_to_call.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
         
         elif isinstance(object_name, BuiltInMethod_String):
             if type(object_key).__name__ == "CallNode":
@@ -7093,7 +7587,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"'string' has no property {object_key.node_to_call.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                 
         elif isinstance(object_name, Number):
             if type(object_key).__name__ == "Token":
@@ -7102,7 +7596,7 @@ class Interpreter:
                     return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "VarAccessNode":
                 if object_key.id.value in number_methods:
@@ -7110,7 +7604,7 @@ class Interpreter:
                     return res.success(BuiltInMethod(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.value}"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
             
             elif type(object_key).__name__ == "CallNode":
                 if object_key.node_to_call.value in number_methods:
@@ -7123,7 +7617,7 @@ class Interpreter:
                     return res.success(value)
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
-                    raise PropertyError(error, scope) 
+                    raise Al_PropertyError(error) 
                
         elif isinstance(object_name, Function):
             if type(object_key).__name__ == "Token":
@@ -7135,16 +7629,11 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.value}'"
                         else:
-                            error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        raise PropertyError(error, scope)
+                            error["message"] = f"{object_name.name} has no property '{object_key.value}'"
+                        raise Al_PropertyError(error)
                 else:
-                    return res.failure(Program.error()['Runtime']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"{object_name.name} has no property {object_key.value}",
-                        'context': context,
-                        'exit': False
-                    }))
+                    error["message"] = f"{object_name.name} has no property '{object_key.value}'"
+                    raise Al_PropertyError(error)
             if type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in object_name.properties.properties:
@@ -7169,21 +7658,11 @@ class Interpreter:
                         else:
                             return res.success(return_value)
                 else:
-                    return res.failure(Program.error()['Runtime']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"{object_name.name} has no property {object_key.node_to_call.value}",
-                        'context': context,
-                        'exit': False
-                    }))
+                    error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
+                    raise Al_PropertyError(error)
             else:
-                return res.failure(Program.error()['PropertyError']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"'{object_name.name}'",
-                    'context': context,
-                    'exit': False
-                }))
+                error["message"] = f"'{object_name.name}'"
+                raise Al_PropertyError(error)
          
         elif type(object_name).__name__ == "PropertyNode":
             print(type(object_key))
@@ -7196,7 +7675,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "CallNode":
                 if hasattr(object_name, "properties"):
@@ -7205,7 +7684,7 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
                                 error["message"] = f"{object_key.node_to_call.value} is not callable"
-                                raise PropertyError(error, scope)
+                                raise Al_PropertyError(error)
                             else:
                                 args_node = object_key.args_nodes
                                 args = []
@@ -7224,7 +7703,7 @@ class Interpreter:
                                     return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
-                            raise PropertyError(error, scope)
+                            raise Al_PropertyError(error)
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.id.value]
@@ -7249,9 +7728,9 @@ class Interpreter:
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
                             error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                     # else:
-                    #     raise PropertyError(error, scope)
+                    #     raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -7259,13 +7738,12 @@ class Interpreter:
                         value = object_name.properties[object_key.value]
                         return res.success(value)
                     else:
-                        print(object_name.properties)
                         # if object_name.properties['__name']:
                         #     name = object_name.properties['__name']
                         #     error["message"] = f"{name} has no property {object_key.value}"
                         # else:
                         error["message"] = f"{object_name.name} has no property {object_key.value}"
-                        raise PropertyError(error, scope)
+                        raise Al_PropertyError(error)
                 
         elif isinstance(object_name, Module):
             if type(object_key).__name__ == "Token":
@@ -7275,36 +7753,25 @@ class Interpreter:
                         return res.success(value)
        
         else:
-            scope = context.symbolTable.get_current_scope()
-            if  scope == "attempt":
-                attempt_details = self.attempt_details
-                exception_details['message'] = f"'{object_key.value}'"
-                attempt_scope = self.setAttempt(attempt_details, exception_details)
-                return res.failure(attempt_scope)
-            elif scope == "catch":
-                Program.printError("another exception occured during handling of the above exception:")
-                error["message"] = f"'{object_key.value}'"
-                raise PropertyError(error, scope)
+            self.error_detected = True
+            key = ''
+            message = ''
+            if hasattr(object_key, "value"):
+                key = object_key.value
+            elif hasattr(object_key, "id"):
+                key = object_key.id.value
+            elif hasattr(object_key, "node_to_call"):
+                if hasattr(object_key.node_to_call, "value"):
+                    key = object_key.node_to_call.value
+                elif hasattr(object_key.node_to_call, "id"):
+                    key = object_key.node_to_call.id.value
+            if hasattr(object_name, "name"):
+                message = f"'{object_name.name}' has no property {key}"
             else:
-                self.error_detected = True
-                key = ''
-                message = ''
-                if hasattr(object_key, "value"):
-                    key = object_key.value
-                elif hasattr(object_key, "id"):
-                    key = object_key.id.value
-                elif hasattr(object_key, "node_to_call"):
-                    if hasattr(object_key.node_to_call, "value"):
-                        key = object_key.node_to_call.value
-                    elif hasattr(object_key.node_to_call, "id"):
-                        key = object_key.node_to_call.id.value
-                if hasattr(object_name, "name"):
-                    message = f"'{object_name.name}' has no property {key}"
-                else:
-                    message = f"'{key}'"
-                error["message"] = message
-                raise PropertyError(error, scope)
-
+                message = f"'{key}'"
+            error["message"] = message
+            raise Al_PropertyError(error)
+                
     
     def visit_PropertySetNode(self, node, context):
         res = RuntimeResult()
@@ -7312,6 +7779,7 @@ class Interpreter:
         property = node.property
         value = res.register(self.visit(node.value, context))
         error = {
+            'name': String("PropertyError"),
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             "message": "",
@@ -7324,14 +7792,15 @@ class Interpreter:
                     object_name.properties[property.value] = value
                 if property.value in class_methods:
                     error["message"] = f"'class' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
         
         elif isinstance(object_name, BuiltInClass):
             if property.value in object_name.properties.properties:
                 object_name.properties.properties[property.value] = value
             else:
-                error["message"] = f"cannot set '{property.value}' on immutable type '{object_name.name}'"
-                return res.failure(Program.error()["TypeError"](error))
+                error['name'] = String("TypeError")
+                error["message"] = f"cannot set '{property.value}' on immutable type '{TypeOf(object_name).getType()}'"
+                raise Al_TypeError(error)
         
         elif isinstance(object_name, Dict):
             if type(property).__name__ == "Token":
@@ -7340,16 +7809,17 @@ class Interpreter:
                    
                 if property.value in dict_methods:
                     error["message"] = f"'dict' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
        
         elif isinstance(object_name, Object):
             if type(property).__name__ == "Token":
-                if hasattr(object_name, "properties"):
-                   object_name.properties[property.value] = value
-                   
                 if property.value in object_methods:
                     error["message"] = f"'object' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
+                else:
+                    error['name'] = String("TypeError")
+                    error["message"] = f"cannot set '{property.value}' on immutable type 'object'"
+                    raise Al_TypeError(error)
         
         elif isinstance(object_name, Function):
             if type(property).__name__ == "Token":
@@ -7357,49 +7827,50 @@ class Interpreter:
                     object_name.properties.properties[property.value] = value
                 if property.value in function_methods:
                     error["message"] = f"'function' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                       
         elif isinstance(object_name, List):
             if type(property).__name__ == "Token":
                 if property.value in list_methods:
                     error["message"] = f"'list' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 else:
                     error["message"] = f"'list' object has no property '{property.value}'"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                    
         elif isinstance(object_name, Pair):
             if type(property).__name__ == "Token":
                 if property.value in pair_methods:
                     error["message"] = f"'pair' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 else:
-                    error["message"] = f"cannot set '{property.value}' on immutable type '{object_name.name}'"
-                    return res.failure(Program.error()["TypeError"](error))
+                    error['name'] = String("TypeError")
+                    error["message"] = f"cannot set '{property.value}' on immutable type 'pair'"
+                    raise Al_TypeError(error)
         
         elif isinstance(object_name, String):
             if type(property).__name__ == "Token":
                 if property.value in string_methods:
                     error["message"] = f"'string' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 else:
                     error["message"] = f"'string' object has no property '{property.value}'"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
         
         elif isinstance(object_name, Number):
             if type(property).__name__ == "Token":
                 if property.value in number_methods:
                     error["message"] = f"'number' object property '{property.value}' is read-only"
-                    raise PropertyError(error, scope)
+                    raise Al_PropertyError(error)
                 else:
                     error["message"] = f"'number' object has no property '{property.value}'"
-                    raise PropertyError(error, scope)
-        
-        
+                    raise Al_PropertyError(error)
+               
         else:
             if type(property).__name__ == "Token":
-                error["message"] = f"'{TypeOf(object_name).getType()}' object has no property '{property.value}'"
-                return res.failure(Program.error()["TypeError"](error))
+                error['name'] = String("TypeError")
+                error["message"] = f"type '{TypeOf(object_name).getType()}' object has no property '{property.value}'"
+                raise Al_TypeError(error)
  
     
     def visit_IndexNode(self, node, context):
@@ -7419,79 +7890,92 @@ class Interpreter:
                         index_value.elements[index.value] = value_
                     return res.success(get_value)
                 except IndexError:
-                    return res.failure(Program.error()['IndexError']({
+                    raise Al_IndexError({
+                        'name': String("IndexError"),
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"list index out of range",
                         'context': context,
                         'exit': False
-                    }))
+                    })
                 except AttributeError:
                      pass
             else:
-                return res.failure(Program.error()['TypeError']({
+                raise Al_TypeError({
+                    'name': String("TypeError"),
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"list indices must be integers or slices, not {index_type}",
                     'context': context,
                     'exit': False
-                }))
+                })
         
         elif object_type == "pair":
             if index_type == "int":
                 try:
                     get_value = index_value.elements[index.value]
                     if type_ == "=":
-                        index_value.elements[index.value] = value_
+                        raise Al_TypeError({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"immutable object does not support item assignment",
+                            'context': context,
+                            'exit': False
+                        })
                     return res.success(get_value)
                 except IndexError:
-                    return res.failure(Program.error()['IndexError']({
+                    raise Al_IndexError({
+                        'name': String("IndexError"),
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"pair index out of range",
                         'context': context,
                         'exit': False
-                    }))
+                    })
                 except AttributeError:
                     pass
             else:
-                return res.failure(Program.error()['TypeError']({
+                raise Al_TypeError({
+                    'name': String("TypeError"),
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"pair indices must be integers or slices, not {index_type}",
                     'context': context,
                     'exit': False
-                }))
+                })
         
         elif object_type == "object":
             if index_type == "string":
                 try:
-                    if type(index_value).__name__ == "dict":
-                        get_value = index_value[index.value]
-                        if type_ == "=":
-                            index_value[index.value] = value_
-                        return res.success(get_value)
-                    else:
-                        get_value = index_value.properties[index.value]
-                        return res.success(get_value)
+                    get_value = index_value.properties[index.value]
+                    if type_ == "=":
+                        raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"immutable object does not support item assignment",
+                                'context': context,
+                                'exit': False
+                            })
+                    return res.success(get_value)
                 except KeyError:
-                    return res.failure(Program.error()['KeyError']({
+                    raise Al_KeyError({
+                        'name': String("KeyError"),
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"'{index.value}'",
                         'context': context,
                         'exit': False
-                    }))
+                    })
                 except AttributeError:
                     pass
             else:
-                return res.failure(Program.error()['TypeError']({
+                raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"object indices must be strings, not {index_type}",
                     'context': context,
                     'exit': False
-                }))
+                })
         
         elif object_type == "dict":
             if index_type == "string":
@@ -7501,23 +7985,24 @@ class Interpreter:
                         index_value.properties[index.value] = value_
                     return res.success(get_value)
                 except KeyError:
-                    return res.failure(Program.error()['KeyError']({
+                    raise Al_KeyError({
+                        'name': String("KeyError"),
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"'{index.value}'",
                         'context': context,
                         'exit': False
-                    }))
+                    })
                 except AttributeError:
                     pass
             else:
-                return res.failure(Program.error()['TypeError']({
+                raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"object indices must be strings, not {index_type}",
                     'context': context,
                     'exit': False
-                }))
+                })
         
         elif object_type == "string":
             try:
@@ -7526,13 +8011,14 @@ class Interpreter:
                     index_value.value[index.value] = value_
                 return res.success(String(get_value))
             except IndexError:
-                return res.failure(Program.error()['IndexError']({
+                raise Al_IndexError({
+                    'name': String("IndexError"),
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"string index out of range",
                     'context': context,
                     'exit': False
-                }))
+                })
             except AttributeError:
                 pass
 
@@ -7556,13 +8042,14 @@ class Interpreter:
                             get_value = index_value.elements[start.value::end.value]
                             return res.success(List(get_value))
                         except IndexError:
-                            return res.failure(Program.error()['IndexError']({
+                           raise Al_IndexError({
+                                'name': String("IndexError"),
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"list index out of range",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                     elif start_type == "NoneType" and end_type == "NoneType":
                         return res.success(List(index_value.elements[::]))
                     elif start_type == "NoneType" and end_type == "int":
@@ -7570,33 +8057,36 @@ class Interpreter:
                             get_value = index_value.elements[::end.value]
                             return res.success(List(get_value))
                         except IndexError:
-                            return res.failure(Program.error()['IndexError']({
+                            raise Al_IndexError({
+                                'name': String("IndexError"),
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"list index out of range",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                     elif start_type == "int" and end_type == "NoneType":
                         try:
                             get_value = index_value.elements[start.value::]
                             return res.success(List(get_value))
                         except IndexError:
-                            return res.failure(Program.error()['IndexError']({
+                            raise Al_IndexError({
+                                'name': String("IndexError"),
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"list index out of range",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                     else:
-                        return res.failure(Program.error()['TypeError']({
+                        raise Al_TypeError({
+                            'name': String("TypeError"),
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
                             'message': f"list indices must be integers or slices, not {start_type}",
                             'context': context,
                             'exit': False
-                        }))
+                        })
             else:
                 if start_type == "int" and end_type == "int":
                     try:
@@ -7622,13 +8112,14 @@ class Interpreter:
                         get_value = index_value.elements[:]
                         return res.success(List(get_value))
                 else:
-                    return res.failure(Program.error()['TypeError']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"slice indices must be integers, not {start_type} and {end_type}",
-                    'context': context,
-                    'exit': False
-                }))
+                    raise Al_TypeError({
+                        'name': String("TypeError"),
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"slice indices must be integers, not {start_type} and {end_type}",
+                        'context': context,
+                        'exit': False
+                    })
 
         elif object_type == "pair":
             if type_ == "double_colon":
@@ -7638,13 +8129,14 @@ class Interpreter:
                             get_value = index_value.elements[start.value::end.value]
                             return res.success(Pair(get_value))
                         except IndexError:
-                            return res.failure(Program.error()['IndexError']({
+                            raise Al_IndexError({
+                                'name': String("IndexError"),
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"pair index out of range",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                     elif start_type == "NoneType" and end_type == "NoneType":
                         return res.success(Pair(index_value.elements[::]))
                     elif start_type == "NoneType" and end_type == "int":
@@ -7652,33 +8144,36 @@ class Interpreter:
                             get_value = index_value.elements[::end.value]
                             return res.success(Pair(get_value))
                         except IndexError:
-                            return res.failure(Program.error()['IndexError']({
+                            raise Al_IndexError({
+                                'name': String("IndexError"),
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"pair index out of range",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                     elif start_type == "int" and end_type == "NoneType":
                         try:
                             get_value = index_value.elements[start.value::]
                             return res.success(Pair(get_value))
                         except IndexError:
-                            return res.failure(Program.error()['IndexError']({
+                            raise Al_IndexError({
+                                'name': String("IndexError"),
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"pair index out of range",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                     else:
-                        return res.failure(Program.error()['TypeError']({
+                        raise Al_TypeError({
+                            'name': String("TypeError"),
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
                             'message': f"pair indices must be integers or slices, not {start_type}",
                             'context': context,
                             'exit': False
-                        }))
+                        })
             else:
                 if start_type == "int" and end_type == "int":
                     try:
@@ -7704,13 +8199,14 @@ class Interpreter:
                         get_value = index_value.elements[:]
                         return res.success(Pair(get_value))
                 else:
-                    return res.failure(Program.error()['TypeError']({
+                    raise Al_TypeError({
+                    'name': String("TypeError"),
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"slice indices must be integers, not {start_type} and {end_type}",
                     'context': context,
                     'exit': False
-                }))
+                })
           
         elif object_type == "string":
             if type_ == "double_colon":
@@ -7720,13 +8216,13 @@ class Interpreter:
                             get_value = index_value.value[start.value::end.value]
                             return res.success(String(get_value))
                         except IndexError:
-                            return res.failure(Program.error()['IndexError']({
+                            raise Al_IndexError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"string index out of range",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                     elif start_type == "NoneType" and end_type == "NoneType":
                         return res.success(String(index_value.value[::]))
                     elif start_type == "NoneType" and end_type == "int":
@@ -7734,33 +8230,33 @@ class Interpreter:
                             get_value = index_value.value[::end.value]
                             return res.success(String(get_value))
                         except IndexError:
-                            return res.failure(Program.error()['IndexError']({
+                            raise Al_IndexError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"string index out of range",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                     elif start_type == "int" and end_type == "NoneType":
                         try:
                             get_value = index_value.value[start.value::]
                             return res.success(String(get_value))
                         except IndexError:
-                            return res.failure(Program.error()['IndexError']({
+                            raise Al_IndexError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'message': f"string index out of range",
                                 'context': context,
                                 'exit': False
-                            }))
+                            })
                     else:
-                        return res.failure(Program.error()['TypeError']({
+                        raise Al_TypeError({
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
                             'message': f"string indices must be integers or slices, not {start_type}",
                             'context': context,
                             'exit': False
-                        }))
+                        })
             else:
                 if start_type == "int" and end_type == "int":
                     try:
@@ -7786,22 +8282,22 @@ class Interpreter:
                         get_value = index_value.value[:]
                         return res.success(String(get_value))
                 else:
-                    return res.failure(Program.error()['TypeError']({
+                    raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"string indices must be integers, not {start_type} and {end_type}",
                     'context': context,
                     'exit': False
-                }))
+                })
 
         else:
-            return res.failure(Program.error()['TypeError']({
+            raise Al_TypeError({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f"{object_type} cannot be sliced",
                 'context': context,
                 'exit': False  
-            }))  
+            })
         
     
     def visit_SpreadNode(self, node, context):
@@ -7861,13 +8357,13 @@ class Interpreter:
                 name = module.value
                 value = context.symbolTable.get(name)
                 if value == None:
-                    res.failure(Program.error()['NameError']({
+                    raise Al_NameError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"name '{name}' is not defined",
                         'context': context,
                         'exit': False
-                    }))
+                    })
                 else:
                     #print(name, value)
                     context.symbolTable.set(name, value)
@@ -7882,13 +8378,13 @@ class Interpreter:
         var_name = node.name.value
         value = context.symbolTable.get(node.value.value)
         if value == None:
-           return res.failure(Program.error()['NameError']({
+            raise Al_NameError({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f"name '{node.value.value}' is not defined",
                 'context': context,
                 'exit': False
-            }))
+            })
         return res.success(Object(var_name,value, "module"))
     
     
@@ -7916,7 +8412,7 @@ class Interpreter:
 
                 if  context.symbolTable.modules.is_module_in_members(module_name):
                     error['message'] = "Module '{}' already imported".format(module_name)
-                    return res.failure(Program.error()["ModuleError"](error))
+                    raise Al_GetError(error)
                 else:
                     try: 
                         module = builtin_modules[module_path](f"./lib/{module_path}/main.alden")
@@ -7924,15 +8420,15 @@ class Interpreter:
                         context.symbolTable.set_module(module_name, module)
                     except RecursionError:
                             error['message'] = "Circlular import: module {} is already imported".format(module_name)
-                            return res.failure(Program.error()["ModuleError"](error))
+                            raise Al_GetError(error)
             else:
                 error['message'] = "Module '{}' not found".format(module_name)
-                return res.failure(Program.error()["ModuleError"](error))
+                raise Al_ModuleNotFoundError(error)
         
         else:
             if  context.symbolTable.modules.is_module_in_members(module_name):
                 error['message'] = "Module '{}' already imported".format(module_name)
-                return res.failure(Program.error()["ModuleError"](error))
+                raise Al_NameError(error)
             else:
                 Program.createModule(module_name, module, context)
                 context.symbolTable.set_module(module_name, module)
@@ -7992,7 +8488,13 @@ class Interpreter:
                 result, error = left.or_by(right)
             
             if error:
-                return res.failure(error)
+                raise Al_RuntimeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': error,
+                    'context': context,
+                    'exit': False
+                })
             else:
                 return res.success(result.setPosition(node.pos_start, node.pos_end))
         except KeyboardInterrupt:
@@ -8010,7 +8512,7 @@ class Interpreter:
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
             if isinstance(number, Pair):
                 for i in range(len(number.elements)):
-                    number = Number(not number.elements[i].value)
+                    number = Number(number.elements[i].value)
             number, error = number.notted()
         if error:
             return res.failure(error)
@@ -8046,242 +8548,233 @@ class Interpreter:
     def visit_ForNode(self, node, context):
         res = RuntimeResult()
         elements = []
-        start_value = res.register(self.visit(node.start_value_node, context))
-        if res.should_return():
-            return res
-        end_value = res.register(self.visit(node.end_value_node, context))
-        if res.should_return():
-            return res
-        if node.step_value_node:
-            step_value = res.register(
-                self.visit(node.step_value_node, context))
+        try:
+            start_value = res.register(self.visit(node.start_value_node, context))
             if res.should_return():
                 return res
-        else:
-            step_value = Number(1)
-        i = start_value.value
-
-        if step_value.value >= 0:
-            if not isinstance(start_value, Number) or not isinstance(end_value, Number) or not isinstance(step_value, Number):
-                return res.failure(
-                    Program.error()['Syntax']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'context': context,
-                        'message': 'For loop not supported between ints and strings',
-                        'exit': False
-                    })
-                )
-            if type(end_value.value) == float:
-                return res.failure(
-                    Program.error()['Syntax']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'context': context,
-                        'message': 'For loop not supported between ints and floats',
-                        'exit': False
-                    })
-                )
-                
-            if type(end_value.value) == range:
-                
-                return res.failure(
-                    Program.error()['Syntax']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'context': context,
-                        'message': 'For loop not supported between ints and ranges',
-                        'exit': False,
-                    })
-                )
-                
-                
-            def condition(): return i < end_value.value
-        else:
-            def condition(): return i > end_value.value
-
-        while condition():
-            context.symbolTable.set(node.var_name_token.value, Number(i))
-            i += step_value.value
-            value = res.register(self.visit(node.body_node, context))
-            if res.should_return() and res.loop_continue == False and res.loop_break == False:
+            end_value = res.register(self.visit(node.end_value_node, context))
+            if res.should_return():
                 return res
+            if node.step_value_node:
+                step_value = res.register(
+                    self.visit(node.step_value_node, context))
+                if res.should_return():
+                    return res
+            else:
+                step_value = Number(1)
+            i = start_value.value
 
-            if res.loop_continue:
-                continue
+            if step_value.value >= 0:
+                if not isinstance(start_value, Number) or not isinstance(end_value, Number) or not isinstance(step_value, Number):
+                        raise Al_TypeError({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': 'For loop not supported between ints and strings',
+                            'exit': False
+                        })
+                if type(end_value.value) == float:
+                        raise Al_TypeError({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': 'For loop not supported between ints and floats',
+                            'exit': False
+                        })
+                    
+                if type(end_value.value) == range:
+                        raise Al_TypeError({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': 'For loop not supported between ints and ranges',
+                            'exit': False,
+                        })
+                    
+                def condition(): return i < end_value.value
+            else:
+                def condition(): return i > end_value.value
 
-            if res.loop_break:
-                break
+            while condition():
+                context.symbolTable.set(node.var_name_token.value, Number(i))
+                i += step_value.value
+                value = res.register(self.visit(node.body_node, context))
+                if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                    return res
 
-            elements.append(value)
+                if res.loop_continue:
+                    continue
+
+                if res.loop_break:
+                    break
+
+                elements.append(value)
+        except KeyboardInterrupt:
+            raise Al_KeyboardInterrupt({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"",
+                'context': context,
+                'exit': False
+            })
         return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
-
-
+    
+    
     def visit_InNode(self, node, context):
         res = RuntimeResult()
-        iterable_node = context.symbolTable.get(node.iterable_node.value)
+        if type(node.iterable_node).__name__ == 'ListNode' or type(node.iterable_node).__name__ == 'PairNode' or type(node.iterable_node).__name__ == 'DictNode' or type(node.iterable_node).__name__ == 'ObjectNode' or type(node.iterable_node).__name__ == 'StringNode':
+            iterable_node = res.register(self.visit(node.iterable_node, context))
+        else:
+            iterable_node = context.symbolTable.get(node.iterable_node.value)
         iterators = node.iterators
         if type(iterable_node) == dict:
             iterable_node = iterable_node['value']
         value = ""
         elements = []
-        if type(iterable_node).__name__ == "NoneType":
-            return res.failure(
-                Program.error()['NameError']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'context': context,
-                    'message': f"name '{node.iterable_node.value}' is not defined",
-                    'exit': False
-                })
-            )
-        
- 
-        if isinstance(iterable_node, Object) or isinstance(iterable_node, Dict):
-            end_value = iterable_node.get_length()
-            values = []
-            for i in range(end_value):
-                if len(iterators) == 1:
-                    if type(iterators[0]).__name__ == "VarAccessNode":
-                        pair = (iterable_node.get_keys(), iterable_node.get_values())
-                        new_pair = ""
-                        key, value = pair[0][i], pair[1][i]
-                        new_pair = tuple([key, value])
-                        context.symbolTable.set(iterators[0].id.value, Pair(new_pair))
-                        value = res.register(self.visit(node.body_node, context))
-                        elements.append(value)
-                        
-                    else:
-                        return res.failure(
-                            Program.error()['Syntax']({
+        try:
+            if type(iterable_node).__name__ == "NoneType":
+                raise Al_NameError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': f"name '{node.iterable_node.value}' is not defined",
+                        'exit': False
+                    })
+            
+    
+            if isinstance(iterable_node, Object) or isinstance(iterable_node, Dict):
+                end_value = iterable_node.get_length()
+                values = []
+                for i in range(end_value):
+                    if len(iterators) == 1:
+                        if type(iterators[0]).__name__ == "VarAccessNode":
+                            pair = (iterable_node.get_keys(), iterable_node.get_values())
+                            new_pair = ""
+                            key, value = pair[0][i], pair[1][i]
+                            new_pair = tuple([key, value])
+                            context.symbolTable.set(iterators[0].id.value, Pair(new_pair))
+                            value = res.register(self.visit(node.body_node, context))
+                            elements.append(value)
+                            
+                        else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'context': context,
+                                    'message': 'cannot assign to non-identifier',
+                                    'exit': False
+                                })
+                    elif len(iterators) == 2:
+                        if type(iterators[0]).__name__ == "VarAccessNode" and type(iterators[1]).__name__ == "VarAccessNode":
+                            # create a new pair
+                            pair = (iterable_node.get_keys(), iterable_node.get_values())
+                            new_pair = ""
+                            key, value = pair[0][i], pair[1][i]
+                            context.symbolTable.set(iterators[0].id.value, key)
+                            context.symbolTable.set(iterators[1].id.value, value)
+                            value = res.register(self.visit(node.body_node, context))
+                            elements.append(value)
+                        else:
+                            raise Al_TypeError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'context': context,
                                 'message': 'cannot assign to non-identifier',
                                 'exit': False
                             })
-                        )
-                elif len(iterators) == 2:
-                    if type(iterators[0]).__name__ == "VarAccessNode" and type(iterators[1]).__name__ == "VarAccessNode":
-                        # create a new pair
-                        pair = (iterable_node.get_keys(), iterable_node.get_values())
-                        new_pair = ""
-                        key, value = pair[0][i], pair[1][i]
-                        context.symbolTable.set(iterators[0].id.value, key)
-                        context.symbolTable.set(iterators[1].id.value, value)
-                        value = res.register(self.visit(node.body_node, context))
-                        elements.append(value)
-                    else:
-                        return res.failure(
-                            Program.error()['Syntax']({
+            
+            elif isinstance(iterable_node, List):
+                end_value = len(iterable_node.elements)
+                for i in range(end_value):
+                    if len(iterators) == 1:
+                        if type(iterators[0]).__name__ == "VarAccessNode":
+                            context.symbolTable.set(iterators[0].id.value, iterable_node.elements[i])
+                            value = res.register(self.visit(node.body_node, context))
+                            elements.append(value)
+                        else:
+                            raise Al_TypeError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'context': context,
                                 'message': 'cannot assign to non-identifier',
                                 'exit': False
                             })
-                        )
-        
-        elif isinstance(iterable_node, List):
-            end_value = len(iterable_node.elements)
-            for i in range(end_value):
-                if len(iterators) == 1:
-                    if type(iterators[0]).__name__ == "VarAccessNode":
-                        context.symbolTable.set(iterators[0].id.value, iterable_node.elements[i])
-                        value = res.register(self.visit(node.body_node, context))
-                        elements.append(value)
-                    else:
-                        return res.failure(
-                            Program.error()['Syntax']({
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'context': context,
-                                'message': 'cannot assign to non-identifier',
-                                'exit': False
-                            })
-                        )
-                elif len(iterators) == 2:
-                    return res.failure(
-                        Program.error()['Syntax']({
+                    elif len(iterators) == 2:
+                        raise Al_TypeError({
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
                             'context': context,
                             'message': f'cannot iterate with type {TypeOf(iterable_node.elements[i]).getType()}',
                             'exit': False
                         })
-                    )
-           
-        elif isinstance(iterable_node, Pair):
-            end_value = len(iterable_node.elements)
-            for i in range(end_value):
-                if len(iterators) == 1:
-                    if type(iterators[0]).__name__ == "VarAccessNode":
-                        context.symbolTable.set(iterators[0].id.value, iterable_node.elements[i])
-                        value = res.register(self.visit(node.body_node, context))
-                        elements.append(value)
-                    else:
-                        return res.failure(
-                            Program.error()['Syntax']({
+            
+            elif isinstance(iterable_node, Pair):
+                end_value = len(iterable_node.elements)
+                for i in range(end_value):
+                    if len(iterators) == 1:
+                        if type(iterators[0]).__name__ == "VarAccessNode":
+                            context.symbolTable.set(iterators[0].id.value, iterable_node.elements[i])
+                            value = res.register(self.visit(node.body_node, context))
+                            elements.append(value)
+                        else:
+                            raise Al_TypeError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'context': context,
                                 'message': 'cannot assign to non-identifier',
                                 'exit': False
                             })
-                        )
-                elif len(iterators) == 2:
-                    return res.failure(
-                        Program.error()['Syntax']({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'context': context,
-                            'message': f'cannot iterate with type {TypeOf(iterable_node.elements[i]).getType()}',
-                            'exit': False
-                        })
-                    )
-        
-        elif isinstance(iterable_node, String):
-            end_value = len(iterable_node.value)
-            for i in range(end_value):
-                if len(iterators) == 1:
-                    if type(iterators[0]).__name__ == "VarAccessNode":
-                        new_list = list(iterable_node.value)
-                        context.symbolTable.set(iterators[0].id.value, String(new_list[i]))
-                        value = res.register(self.visit(node.body_node, context))
-                        elements.append(value)
-                    else:
-                        return res.failure(
-                            Program.error()['Syntax']({
+                    elif len(iterators) == 2:
+                            raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'context': context,
+                                'message': f'cannot iterate with type {TypeOf(iterable_node.elements[i]).getType()}',
+                                'exit': False
+                            })
+            
+            elif isinstance(iterable_node, String):
+                end_value = len(iterable_node.value)
+                for i in range(end_value):
+                    if len(iterators) == 1:
+                        if type(iterators[0]).__name__ == "VarAccessNode":
+                            new_list = list(iterable_node.value)
+                            context.symbolTable.set(iterators[0].id.value, String(new_list[i]))
+                            value = res.register(self.visit(node.body_node, context))
+                            elements.append(value)
+                        else:
+                            raise Al_TypeError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
                                 'context': context,
                                 'message': 'cannot assign to non-identifier',
                                 'exit': False
                             })
-                        )
-                elif len(iterators) == 2:
-                    return res.failure(
-                        Program.error()['Syntax']({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'context': context,
-                            'message': f'cannot iterate with type {TypeOf(iterable_node.value[i]).getType()}',
-                            'exit': False
-                        })
-                    )
-        
-        else:
-            return res.failure(
-                Program.error()['Syntax']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'context': context,
-                    'message': f"type '{TypeOf(iterable_node).getType()}'' is not iterable",
-                    'exit': False
-                })
-            )
-        
-       
+                    elif len(iterators) == 2:
+                            raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'context': context,
+                                'message': f'cannot iterate with type {TypeOf(iterable_node.value[i]).getType()}',
+                                'exit': False
+                            })
+            
+            else:
+                raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': f"type '{TypeOf(iterable_node).getType()}'' is not iterable",
+                        'exit': False
+                    })
+        except KeyboardInterrupt:
+            raise Al_KeyboardInterrupt({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"",
+                'context': context,
+                'exit': False
+            })
         return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
     
     
@@ -8309,7 +8802,13 @@ class Interpreter:
 
                 elements.append(value)
         except KeyboardInterrupt:
-            print('Exiting...')
+            raise Al_KeyboardInterrupt({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"",
+                'context': context,
+                'exit': False
+            })
 
         return res.success(NoneType.none if node.return_null else List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
@@ -8347,80 +8846,120 @@ class Interpreter:
         if type(node.expression).__name__ != "CallNode":
             exception = res.register(self.visit(node.expression, context))
             if res.should_return(): return res
-            if type (exception).__name__ == "BuiltInClass" and exception.name == "Exception":
+            if type(exception).__name__ == "BuiltInClass" and exception.name in builtin_exceptions:
                 args = [exception.properties.properties["name"],
                         exception.properties.properties["message"]]
-                return BuiltInClass_Exception(args, node, context, "raise")
+                if  exception.name in builtin_exceptions:
+                    attr = builtin_exceptions[exception.name].__name__
+                    attr_name = attr.split("Al_")[1]
+                    exception = f'BuiltInClass_{attr_name}'
+                    if exception in globals():
+                        return globals()[exception](args, node, context, "raise")
             else:
-                return res.failure(Program.error()['TypeError']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'context': context,
-                        'message': f"exceptions must be of type Exception",
-                        'exit': False
-                    }))
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'message': f"exceptions must be of type Exception",
+                    'exit': False
+                })
         else:
             if type(node.expression.node_to_call).__name__ == "VarAccessNode":
                 name = node.expression.node_to_call.id.value
-                if name != "Exception":
-                    return res.failure(Program.error()['TypeError']({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'context': context,
-                        'message': f"Expected 'raise' to be followed by 'Exception'",
-                        'exit': False
-                    }))
+                if not name in builtin_exceptions:
+                    exception = context.symbolTable.get(name)
+                    if exception == None:
+                        raise Al_NameError({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': f"name '{node.expression.node_to_call.id.value}' is not defined",
+                            'exit': False
+                        })
+                    else:
+                        raise Al_TypeError({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': f"exceptions must be of type Exception",
+                            'exit': False
+                        })
                 else:
                     self.error_detected = True
                     args_nodes = node.expression.args_nodes
                     args = []
                     for arg_node in args_nodes:
                         args.append(res.register(self.visit(arg_node, context)))
-                    return BuiltInClass_Exception(args, node, context, "raise")
+                        if res.should_return(): return res
+                    if name in builtin_exceptions:
+                        attr = builtin_exceptions[name].__name__
+                        attr_name = attr.split("Al_")[1]
+                        exception = f'BuiltInClass_{attr_name}'
+                        if exception in globals():
+                            return globals()[exception](args, node, context, "raise")
 
     
     def visit_AttemptNode(self,node,context):
         res = RuntimeResult()
-        exception = node.exception
-        exception_name = exception["name"]
-        exception_name_as = exception["as"]
         attempt_statement = node.attempt_statement
-        catch_statement = node.catch_statement
-        else_statement = node.else_statement
-        
-        attempt_properties = {
-            'exception': exception,
-            'context': context,
-            'attempt_statement': attempt_statement,
-            'catch_statement': catch_statement,
-            'else_statement': else_statement
-        }
-        context.symbolTable.set_current_scope("attempt")
-        self.context.symbolTable.set_current_scope("attempt")
-            
+        catches = node.catches
+        exceptions_names = []
+        finally_statement = node.finally_statement
+        for catch in catches:
+            exception = catch['exception']
+            if exception:
+                exception_name = exception["name"].value
+                exceptions_names.append(exception_name)
+        for name in exceptions_names:
+            if not name in builtin_exceptions:
+                raise Al_NameError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'message': f"name '{name}' is not defined",
+                    'exit': False
+                })
         try:
             value = res.register(self.visit(attempt_statement['body'], context))
             if res.should_return(): return res
             return res.success(value)
         except Exception as attempt_exception:
-            context.symbolTable.set_current_scope("catch")
-            exception_error = Dict({
-                'name': attempt_exception.name,
-                'message': attempt_exception.message['message'],
-            })
-            
-            if exception_name_as != None:
-                context.symbolTable.set(exception_name_as.value, exception_error)
-            else:
-                context.symbolTable.set(exception_name.value, exception_error)
-            value = res.register(self.visit(catch_statement['body'], context))
-            if res.should_return(): return res
-            return res.success(value)
-        
-        
-
+            for catch in catches:
+                exception = catch['exception']
+                if exception:
+                    exception_name = exception["name"].value
+                    exceptions_names.append(exception_name)
+                if catch != None and catch != {}:
+                    if exception:
+                        exception_name = exception["name"].value
+                        exception_name_as = exception["as"]
+                        if attempt_exception.name == exception_name or exception_name == "Exception":
+                                exception_error = Dict({
+                                    'name': attempt_exception.name if isinstance(attempt_exception.name, String) else String(attempt_exception.name),
+                                    'message': attempt_exception.message['message'] if isinstance(attempt_exception.message['message'], String) else String(attempt_exception.message['message']),
+                                })
+                                if exception_name_as != None:
+                                    context.symbolTable.set(exception_name_as.value, exception_error)
+                                try:
+                                    value = res.register(self.visit(catch['body'], context))
+                                    if res.should_return(): return res
+                                    return res.success(value)
+                                except Exception as catch_exception:
+                                    Program.printError("\nAnother exception occurred while handling the above exception: ")
+                                    raise catch_exception
+                    else:
+                        try:
+                            value = res.register(self.visit(catch['body'], context))
+                            if res.should_return(): return res
+                            return res.success(value)
+                        except Exception as catch_exception:
+                            Program.printError("\nAnother exception occurred while handling the above exception: ")
+                            raise catch_exception
+            raise attempt_exception
+        finally:
+            if finally_statement:
+                res.register(self.visit(finally_statement['body'], context))
     
-                       
     
     def visit_FunctionNode(self, node, context):
         res = RuntimeResult()
@@ -8468,7 +9007,7 @@ class Interpreter:
                 
                 # if already_defined:
                 #     if isinstance(already_defined, Object):
-                #         return res.failure(Program.error()["Runtime"]({
+                #         raise Al_RuntimeError({
                 #             "pos_start": node.pos_start,
                 #             "pos_end": node.pos_end,
                 #             "message": "Object with name '{}' already defined".format(object_name),
@@ -8476,7 +9015,7 @@ class Interpreter:
                 #             "exit": False
                 #         }))
                 #     else:
-                #         return res.failure(Program.error()["Runtime"]({
+                #         raise Al_RuntimeError({
                 #             "pos_start": node.pos_start,
                 #             "pos_end": node.pos_end,
                 #             "message": "name '{}' already defined".format(object_name),
@@ -8524,13 +9063,13 @@ class Interpreter:
                     context).setPosition(node.pos_start, node.pos_end)
                 already_defined = context.symbolTable.get(object_name)
                 if already_defined:
-                    return res.failure(Program.error()["Runtime"]({
+                    raise Al_RuntimeError({
                         "pos_start": node.pos_start,
                         "pos_end": node.pos_end,
                         "message": "Object with name '{}' already defined".format(object_name),
                         "context": context,
                         "exit": False
-                    }))
+                    })
                 context.symbolTable.set(object_name, object_value)
             else:
                 if node.other != None:
@@ -8581,33 +9120,13 @@ class Interpreter:
         value_to_call = value_to_call.copy().setPosition(
             node.pos_start, node.pos_end) if hasattr(value_to_call, 'copy') else value_to_call
         if not isinstance(value_to_call, Function) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInFunction) and not isinstance(value_to_call, BuiltInClass):
-            scope = context.symbolTable.get_current_scope()
-            exception_details = {
-                'name': 'Runtime',
+            raise Al_NameError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
                 'message': "'{}' is not callable".format(node.node_to_call.name.value),
-            }
-            if scope == "attempt":
-                attempt_details = self.attempt_details
-                attempt_scope = self.setAttempt(attempt_details, exception_details)
-                return res.success(attempt_scope)
-            elif scope == "catch":
-                Program.printError("another exception occured during handling of the above exception:")
-                return res.failure(Program.error()['NameError']({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': "'{}' is not callable".format(node.node_to_call.name.value),
-                    'context': context,
-                    'exit': False
-                }))
-            else:
-                return res.failure(Program.error()["Runtime"](
-                {
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    "message": "'{}' is not callable".format(node.node_to_call.name.value),
-                    "context": context,
-                    "exit": False
-                }))
+                'context': context,
+                'exit': False
+            })
         for arg_node in node.args_nodes:
             args.append(res.register(self.visit(arg_node, context)))
             if res.should_return():
@@ -8620,7 +9139,6 @@ class Interpreter:
                     args = [x for x in args if x != None]
                 
         builtin = value_to_call.name
-        
         builtins = {
             'print': BuiltInFunction_Print,
             'println': BuiltInFunction_PrintLn,
@@ -8650,15 +9168,22 @@ class Interpreter:
             'hasProperty': BuiltInFunction_HasProperty,
             'delay': BuiltInFunction_Delay,
             'Exception': BuiltInClass_Exception,
+            'RuntimeError': BuiltInClass_RuntimeError,
+            'NameError': BuiltInClass_NameError,
+            'TypeError': BuiltInClass_TypeError,
+            'ValueError': BuiltInClass_ValueError,
+            'KeyError': BuiltInClass_KeyError,
+            'IndexError': BuiltInClass_IndexError,
+            'PropertyError': BuiltInClass_PropertyError,
+            'GetError': BuiltInClass_GetError,
+            'ModuleNotFoundError': BuiltInClass_ModuleNotFoundError,
             'exit': BuiltInFunction_Exit
         }
-        
-        
         
         if builtin in builtins:
             if builtin == 'print' or builtin == 'println':
                 return builtins[builtin](args,node)
-            elif builtin == 'Exception':
+            elif builtin in builtin_exceptions:
                 return builtins[builtin](args, node, context, None)
             return builtins[builtin](args, node, context)
         
@@ -8684,46 +9209,46 @@ class Interpreter:
         if type(identifier).__name__ == 'Dict' or type(identifier).__name__ == 'Object' or type(identifier).__name__ == 'Class':
             new_properties = {}
             for key, value in identifier.properties.items():
-                if expression != None:
+                if expression != None and expression != '':
                     if type(expression).__name__ == 'List':
                         if len(expression.elements) == 0:
-                            return res.failure(Program.error()["IndexError"](
+                            raise Al_IndexError(
                             {
                                 "pos_start": node.pos_start,
                                 "pos_end": node.pos_end,
                                 "message": "Property name cannot be empty",
                                 "context": context,
                                 "exit": False
-                            }))
+                            })
                         elif len(expression.elements) > 1:
-                            return res.failure(Program.error()["IndexError"](
+                            raise Al_IndexError(
                             {
                                 "pos_start": node.pos_start,
                                 "pos_end": node.pos_end,
                                 "message": "invalid index expression",
                                 "context": context,
                                 "exit": False
-                            }))
+                            })
                         else:
                             if not isinstance(expression.elements[0], String):
-                                return res.failure(Program.error()["TypeError"](
+                                raise Al_TypeError(
                                 {
                                     "pos_start": node.pos_start,
                                     "pos_end": node.pos_end,
                                     "message": f"type '{TypeOf(expression.elements[0]).getType()}' must be of type 'string'",
                                     "context": context,
                                     "exit": False
-                                }))
+                                })
                             name = expression.elements[0].value
                             if not name in identifier.properties:
-                                return res.failure(Program.error()["PropertyError"](
+                                raise Al_PropertyError(
                                     {
                                         "pos_start": node.pos_start,
                                         "pos_end": node.pos_end,
                                         "message": f"{node.identifier.value} has no property '{name}'" if hasattr(node.identifier, 'value') else f"'{name}'",
                                         "context": context,
                                         "exit": False
-                                    }))
+                                    })
                             identifier.properties = {key: value for key, value in identifier.properties.items() if key != name}
                             new_properties = {**new_properties, **identifier.properties}
                             context.symbolTable.set(node.identifier.value, Dict(new_properties))
@@ -8732,30 +9257,31 @@ class Interpreter:
                         if type(expression).__name__ == 'PropertyNode':
                             name = expression.property.value
                             if not name in identifier.properties:
-                                return res.failure(Program.error()["PropertyError"](
+                                raise Al_PropertyError(
                                     {
                                         "pos_start": node.pos_start,
                                         "pos_end": node.pos_end,
                                         "message": f"{node.identifier.value} has no property '{name}'" if hasattr(node.identifier, 'value') else f"'{name}'",
                                         "context": context,
                                         "exit": False
-                                    }))
+                                    })
                             identifier.properties = {key: value for key, value in identifier.properties.items() if key != name}
                             new_properties = {**new_properties, **identifier.properties}
                             context.symbolTable.set(node.identifier.value, Dict(new_properties))
                             return res.success(None)
                 else:
-                    context.symbolTable.set(node.identifier.value, Dict(new_properties))
-                    return res.success(None)  
+                    identifier.properties = {}
+                    context.symbolTable.set(node.identifier.value, identifier)
+                    return res.success(None)
         else:
-             return res.failure(Program.error()["TypeError"](
+             raise Al_TypeError(
                 {
                     "pos_start": node.pos_start,
                     "pos_end": node.pos_end,
                     "message": f"del on type '{TypeOf(identifier).getType()}' is not supported",
                     "context": context,
                     "exit": False
-                }))           
+                })           
                                        
     
     def visit_ReturnNode(self, node, context):
@@ -8817,6 +9343,19 @@ BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
 BuiltInFunction.isFinite = BuiltInFunction("isFinite")
 BuiltInClass.Exception = BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String("")}))
+BuiltInClass.RuntimeError = BuiltInClass("RuntimeError", Dict({'name': String("RuntimeError"), 'message': String("")}))
+BuiltInClass.NameError = BuiltInClass("NameError", Dict({'name': String("NameError"), 'message': String("")}))
+BuiltInClass.TypeError = BuiltInClass("TypeError", Dict({'name': String("TypeError"), 'message': String("")}))
+BuiltInClass.IndexError = BuiltInClass("IndexError", Dict({'name': String("IndexError"), 'message': String("")}))
+BuiltInClass.ValueError = BuiltInClass("ValueError", Dict({'name': String("ValueError"), 'message': String("")}))
+BuiltInClass.PropertyError = BuiltInClass("PropertyError", Dict({'name': String("PropertyError"), 'message': String("")}))
+BuiltInClass.KeyError = BuiltInClass("KeyError", Dict({'name': String("KeyError"), 'message': String("")}))
+BuiltInClass.ZeroDivisionError = BuiltInClass("ZeroDivisionError", Dict({'name': String("ZeroDivisionError"), 'message': String("")}))
+BuiltInClass.GetError = BuiltInClass("GetError", Dict({'name': String("GetError"), 'message': String("")}))
+BuiltInClass.ModuleNotFoundError = BuiltInClass("ModuleNotFoundError", Dict({'name': String("ModuleNotFoundError"), 'message': String("")}))
+BuiltInClass.KeyboardInterrupt = BuiltInClass("KeyboardInterrupt", Dict({'name': String("KeyboardInterrupt"), 'message': String("")}))
+
+
  
 Types.Number = Types("Number")
 Types.String = Types("String")
@@ -8880,6 +9419,18 @@ symbolTable_.set('Function', Types.Function)
 symbolTable_.set('BuiltInFunction', Types.BuiltInFunction)
 symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
 symbolTable_.set('Exception', BuiltInClass.Exception)
+symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
+symbolTable_.set('NameError', BuiltInClass.NameError)
+symbolTable_.set('TypeError', BuiltInClass.TypeError)
+symbolTable_.set('IndexError', BuiltInClass.IndexError)
+symbolTable_.set('ValueError', BuiltInClass.ValueError)
+symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
+symbolTable_.set('KeyError', BuiltInClass.KeyError)
+symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
+symbolTable_.set('GetError', BuiltInClass.GetError)
+symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
+symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
+
 symbolTable_.setSymbol()
 name = "Kenny"
 try:

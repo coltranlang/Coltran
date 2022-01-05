@@ -197,25 +197,24 @@ end
 
 #println(not String == String)
 # Operator check
-println(fm"'not' operator on true: %{not(true)}")
-println(fm"'not' operator on false: %{not(false)}")
-println(fm"'not' operator on none: %{not(none)}")
-println(fm"'not' operator on int: %{not(1)}")
-println(fm"'not' operator on float: %{not(1.0)}")
-println(fm"'not' operator on string: %{not('')}")
-println(fm"'not' operator on list: %{not([])}")
-println(fm"'not' operator on pair: %{not(pair)}")
-println(fm"'not' operator on dict: %{not(dict)}")
-println(fm"'not' operator on class: %{not(Employee)}")
-println(fm"'not' operator on function: %{not(@greet)}")
-println(fm"'not' operator on builtin_function: %{not(print)}")
-println(fm"'not' operator on builtin_class: %{not(Exception)}")
-println(fm"'not' operator on builtin_method: %{not(str.upperCase)}")
-println(fm"'not' operator on builtin_type: %{not(String)}")
-println(fm"'not' operator on none: %{not(none)}")
+println(fm"'not' operator on true: %{not(true)}")  # false
+println(fm"'not' operator on false: %{not(false)}") # true
+println(fm"'not' operator on none: %{not(none)}")  # true
+println(fm"'not' operator on int: %{not(1)}")     # false
+println(fm"'not' operator on float: %{not(1.0)}") # false
+println(fm"'not' operator on string: %{not('')}") # true
+println(fm"'not' operator on list: %{not([])}")  # false
+println(fm"'not' operator on pair: %{not(pair)}") # false
+println(fm"'not' operator on dict: %{not(dict)}") # false
+println(fm"'not' operator on class: %{not(Employee)}") # false
+println(fm"'not' operator on function: %{not(@greet)}") # false
+println(fm"'not' operator on builtin_function: %{not(print)}") # false
+println(fm"'not' operator on builtin_class: %{not(Exception)}") # false
+println(fm"'not' operator on builtin_method: %{not(str.upperCase)}") # false
+println(fm"'not' operator on builtin_type: %{not(String)}") # false
+println(fm"'not' operator on none: %{not(none)}") # false
 println(not "" == "")
 let dict_user = {"name": "John","age": 21,"email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
-
 # list.map = def @map(list, func)
 #     if not isinstanceof(list, List):
 #         raise Exception(fm"Expected List, got '%{typeof(list)}'")
@@ -324,7 +323,7 @@ println(array.filter(@isPrime)) # [2, 3, 5, 7, 11, 13]
 
 line(75)
 # Searching for a value in a list
-let fruits = ['apple', 'banana', 'grapes', 'mango', 'orange']
+let fruits = ['apple', 'banana', 'grapes', 's', 'orange']
 
 println(fruits.find(def (fruit) -> fruit == 'mango')) # mango
 
@@ -361,15 +360,39 @@ println(invetory.find(@isCherries)) # {name: 'cherries', quantity: 10}
 #     println(fm"%{user.name} is verified")
 # end
  #println(fm"Hello, %{dict_user.nadme}")
+ def @test2()
+    raise Exception
+end
+ def @test()
+    @test2()
+end
 let dic = {"name": "John","age": 21,"email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
 def @greet2(name)
-    return "Hello, " + nasme
+    @test()
 end
-attempt:
-    println(@greet2('nasme'))
-catch Exception as e:
-    println(fm"Exception: %{e}")
+#println(@greet2('nasme'))
+let fruits = ['apple', 'banana', 'grapes', 'mango', 'orange']
+class Test()
 end
+let Runtime = "d"
+
+
+# while true:
+#     println("Hello")
+# end
+# Embedded attempt
+# attempt:
+#     println(Test(''))
+# catch Exception as e:
+#     attempt:
+#         println(e.messasge)
+#     catch Exception as e:
+#         println(fm"The exception is %{e}")
+#     end
+# finally:
+#     println("an error occured")
+# end
+
 #println(fm"Hello, %{@greet(nasme)}")
 
 #println(dic.name)

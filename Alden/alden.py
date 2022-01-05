@@ -4,7 +4,7 @@ import sys
 import os
 import platform
 sys.path.append("./")
-from Program.program import Program
+from Program.program import Al_Program
 
 
 app = typer.Typer()
@@ -23,14 +23,14 @@ def getOs():
 def repl():
     """ Repl """
     print(f"Alden 1.0 on {getOs()}")
-    Program.runRepl()
+    Al_Program.runRepl()
     
    
 
 def run(file):
     """ Run an Alden file"""
     if file:
-        Program.runFile(file)
+        Al_Program.runFile(file)
     else:
         print("No file specified")
         sys.exit(1)

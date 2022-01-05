@@ -1,0 +1,45 @@
+def @arguementError()
+    final error_name, error_message = "ARGUEMENT_ERROR", "Missing arguement, '{0}' is required".format(['name'])
+    let error = RuntimeError(error_name, error_message)
+    raise error
+end
+
+def @keyError()
+    final error_name, error_message = fm"KEY_ERROR", "Missing key, '{0}' is required".format(['name'])
+    let error = KeyError(error_name, error_message)
+    raise error
+end
+
+def @typeError()
+    final error_name, error_message = "TYPE_ERROR", "Invalid type, '{0}' is required".format(['#'])
+    let error = TypeError(error_name, error_message)
+    raise error
+end
+
+def @attemptCatch(func)
+    attempt:
+        func()
+    catch Exception as e:
+        println(fm"Exception: %{e}")
+    catch KeyboardInterrupt as e:
+        println(fm"KeyboardInterrupt: %{e}")
+    catch:
+        println("Unknown error")
+    end
+end
+
+def @main()
+    while true:
+        println("Hello")
+    end 
+end
+
+#@attemptCatch(@main)
+
+in {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'} as (key, value):
+    attempt:
+        println(key + " " + value)
+    catch Exception as e:
+        println(e.name + " " + e.message)
+    end
+end
