@@ -369,6 +369,7 @@ end
 let dic = {"name": "John","age": 21,"email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
 def @greet2(name)
     @test()
+<<<<<<< HEAD
 end
 #println(@greet2('nasme'))
 let fruits = ['apple', 'banana', 'grapes', 'mango', 'orange']
@@ -380,6 +381,22 @@ let Runtime = "d"
 # while true:
 #     println("Hello")
 # end
+=======
+end
+#println(@greet2('nasme'))
+let fruits = ['apple', 'banana', 'grapes', 'mango', 'orange']
+class Test()
+end
+attempt:
+    println(Test(''))
+catch Exception as e:
+    println(fm"Exception: %{e}")
+# catch NameError as e:
+#     println(fm"Exception: %{e}")
+finally:
+    println("an error occured")
+end
+>>>>>>> 9921cbd134f05f2356b9bc08ded1a47fcaef0242
 # Embedded attempt
 # attempt:
 #     println(Test(''))

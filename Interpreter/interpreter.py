@@ -1023,7 +1023,7 @@ class Value:
                 'pos_end': error['pos_end'],
                 'context': error['context'],
                 'exit': error['exit'] if 'exit' in error else True
-            })
+            }, scope)
 
     def none_value(self):
         return Program.NoneValue()
@@ -4242,6 +4242,7 @@ def BuiltInFunction_Exit(args, node, context):
 
 def BuiltInClass_Exception(args, node, context, type):
     res = RuntimeResult()
+    scope = context.symbolTable.get_current_scope()
     if len(args) == 0 or len(args) > 2:
         raise Al_Exception('Exception',{
             'name': 'Exception',
@@ -7146,7 +7147,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         if object_name.name == "Export":
-                            error['message'] = f"Export has no member '{object_key.id.value}'"
+                            error['message'] = String(f"Export has no member '{object_key.id.value}'")
                         else:
                             error["message"] = f"'{object_name.name}' has no method '{object_key.id.value}'"
                         raise Al_PropertyError(error)
@@ -7158,7 +7159,7 @@ class Interpreter:
                         return res.success(value)
                     else:
                         if object_name.name == "Export":
-                            error['message'] = f"Export has no member '{object_key.value}'"
+                            error['message'] = String(f"Export has no member '{object_key.value}'")
                         else:
                             error["message"] = f"'{object_name.name}' has no property '{object_key.value}'"
                         raise Al_PropertyError(error)
@@ -7778,6 +7779,7 @@ class Interpreter:
         object_name = res.register(self.visit(node.name, context))
         property = node.property
         value = res.register(self.visit(node.value, context))
+        scope = context.symbolTable.get_current_scope()
         error = {
             'name': String("PropertyError"),
             "pos_start": node.pos_start,
@@ -7882,6 +7884,7 @@ class Interpreter:
         if res.should_return(): return res
         object_type = TypeOf(index_value).getType()
         index_type = TypeOf(index).getType()
+        scope = context.symbolTable.get_current_scope()
         if object_type == "list":
             if index_type == "int":
                 try:
@@ -8843,6 +8846,7 @@ class Interpreter:
     
     def visit_RaiseNode(self, node, context):
         res = RuntimeResult()
+        scope = context.symbolTable.get_current_scope()
         if type(node.expression).__name__ != "CallNode":
             exception = res.register(self.visit(node.expression, context))
             if res.should_return(): return res
