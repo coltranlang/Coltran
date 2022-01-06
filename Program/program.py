@@ -79,6 +79,7 @@ class Al_Program:
                     context.symbolTable = symbolTable_
                     result = interpreter.visit(ast.node, context)
                     interpreter_error_detected = interpreter.error_detected
+                    #print(f"Error detected: {interpreter}")
                     if hasattr(result, 'value') and hasattr(result, 'error'):
                         return result.value, ""
 

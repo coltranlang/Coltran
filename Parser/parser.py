@@ -327,11 +327,12 @@ class PropertyNode:
     
 
 class PropertySetNode:
-    def __init__(self, name, property, value):
+    def __init__(self, name, property, value, type_=None):
         self.name = name
         self.id = name
         self.property = property
         self.value = value
+        self.type_ = type_
         self.pos_start = self.name.pos_start
         self.pos_end = self.value.pos_end
         
@@ -668,12 +669,11 @@ class ModuleObject:
 
 
 class ClassNode:
-    def __init__(self,class_name, class_constuctor_args,inherits_class_name, inherits_class, methods):
+    def __init__(self,class_name, class_constuctor_args,inherits_class_name, methods):
         self.id = class_name
         self.class_name = class_name
         self.class_constuctor_args = class_constuctor_args
         self.inherits_class_name = inherits_class_name
-        self.inherits_class = inherits_class
         self.methods = methods
         self.pos_start = self.class_name.pos_start
         self.pos_end = self.class_name.pos_end
@@ -1705,6 +1705,32 @@ class Parser:
                 self.advance()
                 call_node = res.success(CallNode(name, arg_nodes))
                 name = res.register(call_node)
+        if self.current_token.type == tokenList.TT_PLUS_PLUS:
+                atom = res.register(self.increment_or_decrement(owner))
+                if res.error: return res
+
+        elif self.current_token.type == tokenList.TT_MINUS_MINUS:
+            atom = res.register(self.increment_or_decrement(owner))
+        elif self.current_token.type == tokenList.TT_PLUS_EQ:
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type == tokenList.TT_IDENTIFIER:
+                value = res.register(self.expr())
+                return res.success(PropertySetNode(owner, name, value, "add"))
+            elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
+                value = res.register(self.atom())
+                return res.success(VarReassignNode(owner, value, "add"))
+            elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
+                self.error_detected = True
+                self.error['Syntax']({
+                    'message': "invalid syntax",
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'exit': False
+                })
+            else:
+                expr  = res.register(self.expr())
+                return res.success(VarReassignNode(owner, expr, "add"))
         if self.current_token.type == tokenList.TT_EQ:
             res.register_advancement()
             self.advance()
@@ -2869,6 +2895,7 @@ class Parser:
             res.register_advancement()
             self.advance()
         else:
+            self.error_detected = True
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
@@ -2876,6 +2903,7 @@ class Parser:
                 'exit': False
             }))
         if self.current_token.type != tokenList.TT_IDENTIFIER:
+            self.error_detected = True
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
@@ -2886,8 +2914,9 @@ class Parser:
             
         class_name = self.current_token
         #class name has to be upper case
-        # class name cannot start with @ keyword or symbol or number
+        # class name must be only letters
         if  isFirstLetterUpper(class_name.value) == False:
+            self.error_detected = True
             return res.failure(self.error['NameError']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
@@ -2895,6 +2924,7 @@ class Parser:
                 'exit': False
             }))
         if isOnlyLetters(class_name.value) == False:
+            self.error_detected = True
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
@@ -2902,6 +2932,7 @@ class Parser:
                 'exit': False
             }))
         if class_name in tokenList.KEYWORDS:
+            self.error_detected = True
             return res.failure(self.error['NameError']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
@@ -2912,6 +2943,7 @@ class Parser:
         self.advance()
         
         if self.current_token.type != tokenList.TT_LPAREN:
+            self.error_detected = True
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
@@ -2931,6 +2963,7 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 if self.current_token.type != tokenList.TT_IDENTIFIER:
+                    self.error_detected = True
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
@@ -2941,6 +2974,7 @@ class Parser:
                 res.register_advancement()
                 self.advance()
             if self.current_token.type != tokenList.TT_RPAREN:
+                self.error_detected = True
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
@@ -2949,6 +2983,7 @@ class Parser:
                 }))
             else:
                 if self.current_token.type != tokenList.TT_RPAREN:
+                    self.error_detected = True
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
@@ -2959,12 +2994,42 @@ class Parser:
                 self.advance()
         else:
             if self.current_token.type != tokenList.TT_RPAREN:
+                self.error_detected = True
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
                     'message': "Expected ')'",
                     'exit': False
                 }))
+            res.register_advancement()
+            self.advance()
+        if self.current_token.type == tokenList.TT_TILDE:
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type != tokenList.TT_IDENTIFIER:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected an identifier",
+                    'exit': False
+                }))
+            inherit_class_name = self.current_token
+            res.register_advancement()
+            self.advance()
+        while self.current_token.type == tokenList.TT_COMMA:
+            inherit_class_name = []
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type != tokenList.TT_IDENTIFIER:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected an identifier",
+                    'exit': False
+                }))
+            inherit_class_name.append(self.current_token)
             res.register_advancement()
             self.advance()
         if self.current_token.type != tokenList.TT_NEWLINE:
@@ -2981,14 +3046,14 @@ class Parser:
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, inherit_class, methods))
+            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
         while self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, inherit_class, methods))
+                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
             if self.current_token.matches(tokenList.TT_KEYWORD, "def"):
                 methods = self.set_methods()
             else:
@@ -3003,19 +3068,19 @@ class Parser:
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, inherit_class, methods))
+                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
         if self.current_token.matches(tokenList.TT_KEYWORD, "def"):
             methods = self.set_methods()
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, inherit_class, methods))
+                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
         if self.current_token.matches(tokenList.TT_KEYWORD, "end"):
             res.register_advancement()
             self.advance()
-            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, inherit_class, methods))
+            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
         if self.current_token.type == tokenList.TT_EOF:
-            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, inherit_class, methods))
+            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
         return res.failure(self.error['Syntax']({
             'pos_start': self.current_token.pos_start,
             'pos_end': self.current_token.pos_end,
@@ -3902,6 +3967,17 @@ class Parser:
             'pos_start': start_token.pos_start,
             'pos_end': attempt_statements.pos_end
         }
+        for statement in attempt_statements.elements:
+            if statement == None or statement == '':
+                self.error_detected = True
+                return res.failure(self.error['Syntax'](
+                    {
+                        'pos_start': start_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': 'attempt statement cannot be empty',
+                        'exit': False
+                    }
+                ))
         while self.current_token.type == tokenList.TT_NEWLINE:
             self.skipLines() 
         
@@ -4517,9 +4593,12 @@ dict = {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'}
 strn = "Hello, World!"
 class Employee:
     pass
+data = {}
+if data or {}:
+    print("data is empty")
+else:
+    print("data is not empty")
 
-for i in {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'}:
-    print(i)
 # print(f"'not' operator on true: %{not(True)}")  # false
 # print(f"'not' operator on false: %{not(False)}") # true
 # print(f"'not' operator on none: %{not(None)}")  # true

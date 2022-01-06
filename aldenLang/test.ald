@@ -946,3 +946,5 @@ print(type + ' ' + status + ' ' + message + '\n')
 # println(@makeList("tissue"))
 # println(@makeList("napkins"))
 # println(@makeList("spoons"))
+# generate ascii letters
+

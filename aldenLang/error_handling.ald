@@ -36,10 +36,23 @@ end
 
 #@attemptCatch(@main)
 
-in {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'} as (key, value):
+in {name: 'Kenny', age: 23, hobby: 'Playing soccer'} as (key, value):
     attempt:
-        println(key + " " + value)
+        println(key + " " + str(value))
     catch Exception as e:
         println(e.name + " " + e.message)
     end
+end
+
+# Nested error_handling
+attempt:
+    println(Test(''))
+catch Exception as e:
+    attempt:
+        println(e.gh)
+    catch Exception as e:
+        println(fm"Exception: %{e}")
+    end
+finally:
+    println("an error occured")
 end

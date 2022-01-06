@@ -190,8 +190,8 @@ class Lexer:
             elif self.current_char == '}':
                 tokens.append(Token(tokenList.TT_RBRACE, pos_start=self.pos))
                 self.advance()
-            elif self.current_char == '$':
-                tokens.append(Token(tokenList.TT_DOLLAR, pos_start=self.pos))
+            elif self.current_char == '~':
+                tokens.append(Token(tokenList.TT_TILDE, pos_start=self.pos))
                 self.advance()
             elif self.current_char == '&':
                 tokens.append(self.make_and())

@@ -1,19 +1,103 @@
-class Animal(name, age, breed, color)
-   def __init(self)
-   end  
+let accounts = []
 
-   def bark(self)
-      println(fm"%{self.name} barks")
-   end
-   
-   def eat(self)
-      println(fm"%{self.name} eats")
-   end
+class Accounts(config)
+    def __init(self)
+    end
+    def create_account(self, data)
+        accounts.append(data)
+        self.accounts = accounts
+    end
+    def get_account(self, account_id)
+        return self.accounts.find(def (account) -> account.id == account_id)
+    end
+    def get_accounts(self)
+        return self.accounts
+    end
+end
+
+
+class Client(config)
+    def __init(self)
+        if not config.has_key("client_id"):
+            raise KeyError("Client ID is required")
+        end
+        if not config.has_key("client_secret"):
+            raise KeyError("Client Secret is required")
+        end
+        self.client_id = config["client_id"]
+        self.client_secret = config["client_secret"]
+        self.accounts = Accounts(config)
+    end
+    def get_config(self)
+        return self.config
+    end
+    def __str(self)
+        return fm"Client ID: %{self.client_id}, Client Secret: %{self.client_secret}"
+    end
+end
+
+
+class Wallet()
+    def __init(self)
+        self.balance = 12
+    end
+    def deposit(self, amount)
+        #self.balance += amount
+        self.balance = self.balance + amount
+    end
+    def withdraw(self, amount)
+        if self.balance < amount:
+            raise ValueError("Insufficient funds")
+        end
+        #self.balance -= amount
+        self.balance = self.balance - amount
+    end
+    def get_balance(self)
+        return fm"Your balance is $%{self.balance}"
+    end
+end
+
+
+class BankAccount() ~ Wallet
+    def __init(self)
+        self.balance = 0
+    end
+    def get_balance(self)
+        return fm"Balance: $%{self.balance}"
+    end
 end
 
 
 
-let dog = Animal("dog", 2, "labrador", "brown")
-dog.bark()
-dog.eat()
+final config = {
+    "client_id": "isodnosd6eebecwye53283",
+    "client_secret": '35h9ew8734b34723wewe7te7'
+}
 
+let client = Client(config)
+
+let account_data1 = {
+    "id": "12345",
+    "name": "John Doe",
+    "balance": "100.00"
+}
+
+let account_data2 = {
+    "id": "12346",
+    "name": "Jane Doe",
+    "balance": "200.00"
+}
+client.accounts.create_account(account_data1)
+client.accounts.create_account(account_data2)
+let account = client.accounts.get_account("12345")
+println(account)
+
+let wallet = Wallet()
+wallet.deposit(100)
+wallet.withdraw(50)
+println(wallet.get_balance())
+
+let bank_account = BankAccount()
+bank_account.deposit(100)
+bank_account.withdraw(50)
+println(bank_account.get_balance())
