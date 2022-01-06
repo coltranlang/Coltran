@@ -95,7 +95,15 @@ def isOnlyLetters(text):
 def isFirstLetterUpper(text):
     return text[0].isupper()               
 
-    
+operation_methods = {
+    'PLUS_EQ': 'add',
+    'MINUS_EQ': 'sub',
+    'MUL_EQ': 'mul',
+    'DIV_EQ': 'div',
+    'FLOOR_DIV_EQ': 'floor_div',
+    'MOD_EQ': 'mod',
+    'POWER_EQ': 'pow'
+}    
 
 
 class Program:
@@ -296,12 +304,13 @@ class VarAccessNode:
 
 
 class VarReassignNode:
-    def __init__(self, name, value=None, operation=None):
+    def __init__(self, name, value=None, operation=None, property=None):
         res = ParseResult()
         self.name = name
         self.id = name
         self.value = value
         self.operation = operation
+        self.property = property
         
         if self.name == "" or self.name == None:
             pass
@@ -334,7 +343,7 @@ class PropertySetNode:
         self.value = value
         self.type_ = type_
         self.pos_start = self.name.pos_start
-        self.pos_end = self.value.pos_end
+        self.pos_end = self.value.pos_end if self.value != None else self.name.pos_end
         
     def __repr__(self):
         return f'{self.name}'
@@ -1291,15 +1300,16 @@ class Parser:
                 atom = res.register(self.increment_or_decrement(atom))
             elif self.current_token.type == tokenList.TT_MINUS_MINUS:
                 atom = res.register(self.increment_or_decrement(atom))
-            elif self.current_token.type == tokenList.TT_PLUS_EQ:
+            elif self.current_token.type != None and self.current_token.type in operation_methods:
+                operator = self.current_token
                 res.register_advancement()
                 self.advance()
                 if self.current_token.type == tokenList.TT_IDENTIFIER:
                     identifier = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, identifier, "add"))
+                    return res.success(VarReassignNode(atom, identifier, operation_methods[operator.type]))
                 elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
                     value = res.register(self.atom())
-                    return res.success(VarReassignNode(atom, value, "add"))
+                    return res.success(VarReassignNode(atom, value, operation_methods[operator.type]))
                 elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
                     self.error_detected = True
                     self.error['Syntax']({
@@ -1310,147 +1320,9 @@ class Parser:
                     })
                 else:
                     expr  = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, expr, "add"))
+                    return res.success(VarReassignNode(atom, expr, operation_methods[operator.type]))
                     
-            elif self.current_token.type == tokenList.TT_MINUS_EQ:
-                res.register_advancement()
-                self.advance()
-                if self.current_token.type == tokenList.TT_IDENTIFIER:
-                    identifier = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, identifier, "sub"))
-                elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
-                    value = res.register(self.atom())
-                    return res.success(VarReassignNode(atom, value, "sub"))
-                elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
-                    self.error_detected = True
-                    self.error['Syntax']({
-                        'message': "invalid syntax",
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'exit': False
-                    })
-                else:
-                    expr  = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, expr, "sub"))
-                    
-            elif self.current_token.type == tokenList.TT_MUL_EQ:
-                res.register_advancement()
-                self.advance()
-                if self.current_token.type == tokenList.TT_IDENTIFIER:
-                    identifier = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, identifier, "mul"))
-                elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
-                    value = res.register(self.atom())
-                    return res.success(VarReassignNode(atom, value, "mul"))
-                elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
-                    self.error_detected = True
-                    self.error['Syntax']({
-                        'message': "invalid syntax",
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'exit': False
-                    })
-                else:
-                    expr  = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, expr, "mul"))
-                    
-            elif self.current_token.type == tokenList.TT_DIV_EQ:
-                res.register_advancement()
-                self.advance()
-                if self.current_token.type == tokenList.TT_IDENTIFIER:
-                    identifier = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, identifier, "div"))
-                elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
-                    value = res.register(self.atom())
-                    return res.success(VarReassignNode(atom, value, "div"))
-                elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
-                    self.error_detected = True
-                    self.error['Syntax']({
-                        'message': "invalid syntax",
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'exit': False
-                    })
-                else:
-                    expr  = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, expr, "div"))
-                
-            elif self.current_token.type == tokenList.TT_FLOOR_DIV_EQ:
-                res.register_advancement()
-                self.advance()
-                if self.current_token.type == tokenList.TT_IDENTIFIER:
-                    identifier = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, identifier, "floor_div"))
-                elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
-                    value = res.register(self.atom())
-                    return res.success(VarReassignNode(atom, value, "floor_div"))
-                elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
-                    self.error_detected = True
-                    self.error['Syntax']({
-                        'message': "invalid syntax",
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'exit': False
-                    })
-                else:
-                    expr  = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, expr, "floor_div"))
-                    
-            elif self.current_token.type == tokenList.TT_MOD_EQ:
-                res.register_advancement()
-                self.advance()
-                if self.current_token.type == tokenList.TT_IDENTIFIER:
-                    identifier = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, identifier, "mod"))
-                elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
-                    value = res.register(self.atom())
-                    return res.success(VarReassignNode(atom, value, "mod"))
-                elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
-                    self.error_detected = True
-                    self.error['Syntax']({
-                        'message': "invalid syntax",
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'exit': False
-                    })
-                else:
-                    expr  = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, expr, "mod"))
-            
-            elif self.current_token.type == tokenList.TT_POWER_EQ:
-                res.register_advancement()
-                self.advance()
-                if self.current_token.type == tokenList.TT_IDENTIFIER:
-                    identifier = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, identifier, "pow"))
-                elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
-                    value = res.register(self.atom())
-                    return res.success(VarReassignNode(atom, value, "pow"))
-                elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
-                    self.error_detected = True
-                    self.error['Syntax']({
-                        'message': "invalid syntax",
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'exit': False
-                    })
-                else:
-                    expr  = res.register(self.expr())
-                    return res.success(VarReassignNode(atom, expr, "pow"))
-            
-            
             else:
-                # if self.current_token.type == tokenList.TT_GETTER:
-                #     res.register_advancement()
-                #     self.advance()
-                #     if self.current_token.type == tokenList.TT_DOT:
-                #         self.error_detected = True
-                #         return res.failure(self.error['Syntax']({
-                #             'pos_start': self.current_token.pos_start,
-                #             'pos_end': self.current_token.pos_end,
-                #             'message': f"Expected a property name",
-                #             'exit': False
-                #         }))
                 break
         
                 
@@ -1705,21 +1577,27 @@ class Parser:
                 self.advance()
                 call_node = res.success(CallNode(name, arg_nodes))
                 name = res.register(call_node)
+        
         if self.current_token.type == tokenList.TT_PLUS_PLUS:
-                atom = res.register(self.increment_or_decrement(owner))
-                if res.error: return res
+            res.register_advancement()
+            self.advance()
+            return res.success(PropertySetNode(owner, name, None, "++"))
 
         elif self.current_token.type == tokenList.TT_MINUS_MINUS:
-            atom = res.register(self.increment_or_decrement(owner))
-        elif self.current_token.type == tokenList.TT_PLUS_EQ:
+            res.register_advancement()
+            self.advance()
+            return res.success(PropertySetNode(owner, name, None, "--"))
+        
+        elif self.current_token.type != None and self.current_token.type in operation_methods:
+            operator = self.current_token
             res.register_advancement()
             self.advance()
             if self.current_token.type == tokenList.TT_IDENTIFIER:
                 value = res.register(self.expr())
-                return res.success(PropertySetNode(owner, name, value, "add"))
+                return res.success(VarReassignNode(owner, value, operation_methods[operator.type], name))
             elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
                 value = res.register(self.atom())
-                return res.success(VarReassignNode(owner, value, "add"))
+                return res.success(VarReassignNode(owner, value, operation_methods[operator.type], name))
             elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
                 self.error_detected = True
                 self.error['Syntax']({
@@ -1730,7 +1608,8 @@ class Parser:
                 })
             else:
                 expr  = res.register(self.expr())
-                return res.success(VarReassignNode(owner, expr, "add"))
+                return res.success(VarReassignNode(owner, expr, operation_methods[operator.type], name))
+
         if self.current_token.type == tokenList.TT_EQ:
             res.register_advancement()
             self.advance()
@@ -3607,6 +3486,14 @@ class Parser:
                     elements.pop()
                     continue
         
+            if self.current_token != None and self.current_token.type in operation_methods:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "invalid syntax",
+                    'exit': False
+                }))
         
         return res.success(ListNode(elements, pos_start, self.current_token.pos_end.copy()))
 
@@ -3708,6 +3595,15 @@ class Parser:
                 if element == "":
                     elements.pop()
                     continue
+                
+            if self.current_token != None and self.current_token.type in operation_methods:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "invalid syntax",
+                    'exit': False
+                }))
         return res.success(PairNode(elements, pos_start, self.current_token.pos_end.copy()))
 
     def string_interp(self):
@@ -4615,3 +4511,12 @@ else:
 # print(f"'not' operator on builtin_method: %{not(strn.upper)}") # false
 # print(f"'not' operator on builtin_type: %{not(strn)}") # false
 # print(f"'not' operator on none: %{not(None)}") # false
+l = [1,2,3,4,5,6,7,8,9,10]
+l += {'name': 'Kenny'}
+print(l)
+num = 2
+num **= 0
+print("num is: %d" % num)
+x = range(10)
+for i in x:
+    print(i)

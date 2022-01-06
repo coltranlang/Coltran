@@ -39,18 +39,16 @@ end
 
 class Wallet()
     def __init(self)
-        self.balance = 12
+        self.balance = 0
     end
     def deposit(self, amount)
-        #self.balance += amount
-        self.balance = self.balance + amount
+        self.balance += amount
     end
     def withdraw(self, amount)
         if self.balance < amount:
             raise ValueError("Insufficient funds")
         end
-        #self.balance -= amount
-        self.balance = self.balance - amount
+        self.balance -= amount
     end
     def get_balance(self)
         return fm"Your balance is $%{self.balance}"
@@ -78,13 +76,13 @@ let client = Client(config)
 
 let account_data1 = {
     "id": "12345",
-    "name": "John Doe",
+    "name": "David s Account",
     "balance": "100.00"
 }
 
 let account_data2 = {
     "id": "12346",
-    "name": "Jane Doe",
+    "name": "Jane d Account",
     "balance": "200.00"
 }
 client.accounts.create_account(account_data1)
@@ -95,9 +93,18 @@ println(account)
 let wallet = Wallet()
 wallet.deposit(100)
 wallet.withdraw(50)
+wallet.withdraw(18.50)
 println(wallet.get_balance())
 
 let bank_account = BankAccount()
 bank_account.deposit(100)
 bank_account.withdraw(50)
 println(bank_account.get_balance())
+#Wallet += BankAccount
+#Wallet -= BankAccount
+#Wallet *= BankAccount
+#Wallet /= BankAccount
+#Wallet %= BankAccount
+#Wallet ^= BankAccount
+wallet.balance++
+println(wallet.balance)

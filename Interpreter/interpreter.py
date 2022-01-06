@@ -546,10 +546,10 @@ class Program:
         result = Program.generateTraceBack(detail)
         if isinstance(detail["message"], String):
             detail["message"] = detail["message"].value
-        result += f'\n{detail["name"]}: {detail["message"]}\n'
         result += '\n\n' + \
             stringsWithArrows(
                 detail["pos_start"].fileText, detail["pos_start"], detail["pos_end"])
+        result += f'\n{detail["name"]}: {detail["message"]}\n'
         return result
 
     def generateTraceBack(detail):
@@ -684,7 +684,7 @@ class Al_Exception(Exception):
 
 class Al_ZeroDivisionError(Al_Exception):
     def __init__(self, message):
-        super().__init__("Runtime", message)
+        super().__init__("ZeroDivisionError", message)
 
     def __repr__(self):
         return f"<ZeroDivisionError {self.name}: {self.message}>"
@@ -1022,7 +1022,7 @@ class Value:
                 'pos_end': error['pos_end'],
                 'context': error['context'],
                 'exit': error['exit'] if 'exit' in error else True
-            }, scope)
+            })
 
     def none_value(self):
         return Program.NoneValue()
@@ -3600,30 +3600,96 @@ def BuiltInFunction_Str(args, node, context):
         new_string.setPosition(node.pos_start, node.pos_end).setContext(context)
         return res.success(new_string)
     
-    
+
+def Range(start, end, step):
+    return List([Number(i) for i in range(start, end, step)])
+
 def BuiltInFunction_Range(args, node, context):
     res = RuntimeResult()
-    # built in range takes 1 or 3 arguments eg range(5) or range(1, 5) or range(1, 5, 2)
-    #print(args)
-    if len(args) not in [1, 3]:
+    start = 0
+    end = 0
+    step = 0
+    if len(args) > 3:
         raise Al_RuntimeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
+            'pos_start': node.pos_start,
+            'pos_end': node.pos_end,
             'message': f"{len(args)} arguments given, but range() takes 1 or 3 arguments",
-            "context": context,
+            'context': context,
             'exit': False
         })
     if len(args) == 1:
+        start = 0
         if isinstance(args[0], Number):
-            return res.success(Number(range(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        raise Al_TypeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for range()",
-            "context": context,
+            end = args[0].value
+        else:
+            raise Al_TypeError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for range()",
+                'context': context,
+                'exit': False
+            })
+        step = 1
+    elif len(args) == 3:
+        if isinstance(args[0], Number) and isinstance(args[1], Number) and isinstance(args[2], Number):
+            start = args[0].value
+            end = args[1].value
+            step = args[2].value
+        else:
+            raise Al_TypeError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"range() arguments must be of type Number",
+                'context': context,
+                'exit': False
+            })
+    elif len(args) == 2:
+        if isinstance(args[0], Number) and isinstance(args[1], Number):
+            start = args[0].value
+            end = args[1].value
+            step = 1
+        else:
+            raise Al_TypeError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not valid types for range()",
+                'context': context,
+                'exit': False
+            })
+    if step == 0:
+        raise Al_RuntimeError({
+            'pos_start': node.pos_start,
+            'pos_end': node.pos_end,
+            'message': f"step cannot be 0",
+            'context': context,
             'exit': False
         })
-
+    if step > 0:
+        if start > end:
+            raise Al_RuntimeError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"start cannot be greater than end",
+                'context': context,
+                'exit': False
+            })
+    elif step < 0:
+        if start < end:
+            raise Al_RuntimeError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"start cannot be less than end",
+                'context': context,
+                'exit': False
+            })
+    # check if range is called from a for loop
+    #print(context.parent)
+    return res.success(Range(start, end, step).setPosition(node.pos_start, node.pos_end).setContext(context))
+    # if len(args) == 3:
+    #     start = args[0].value
+    #     end = args[1].value
+    #     step = args[2].value
+    
 
 def BuiltInFunction_Int(args, node, context):
     res = RuntimeResult()
@@ -6889,9 +6955,16 @@ class Interpreter:
         elif hasattr(var_name, 'id'):
             var_name = var_name.id.value
         operation = node.operation
-        v = context.symbolTable.get(var_name)
+        value_ = context.symbolTable.get(var_name)
         value = res.register(self.visit(node.value, context))
-        if v != None:
+        property = node.property
+        v = value_
+        if value_ != None:
+            if isinstance(value_, Class):
+                v = {
+                    'value': value_,
+                    'type': 'let'
+                }
             if type(v) is dict:
                 var_type = v['type']
                 if var_type == "final":
@@ -6913,7 +6986,7 @@ class Interpreter:
                                     'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",),
+                                    'message': String(f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
                                 })
@@ -6926,7 +6999,7 @@ class Interpreter:
                                     'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"reassignment of {TypeOf(v['value']).getType()} to {TypeOf(value).getType()} is not allowed"),
+                                    'message': f"can only concatenate string (not '{TypeOf(value).getType()}') to string",
                                     'context': context,
                                     'exit': False
                                 })
@@ -6940,12 +7013,17 @@ class Interpreter:
                                     new_list.append(String(char).setPosition(node.pos_start, node.pos_end).setContext(context))
                                 new_value = List(v['value'].elements + new_list)
                                 context.symbolTable.set(var_name, new_value)
+                            elif isinstance(value, Object) or isinstance(value, Dict):
+                                new_list = []
+                                for key, value in value.properties.items():
+                                    new_list.append(String(key).setPosition(node.pos_start, node.pos_end).setContext(context))
+                                new_value = List(v['value'].elements + new_list)
+                                context.symbolTable.set(var_name, new_value)
                             else:
                                 raise Al_TypeError({
-                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed"),
+                                    'message': f"type '{TypeOf(value).getType()}' is not iterable",
                                     'context': context,
                                     'exit': False
                                 })
@@ -6958,15 +7036,98 @@ class Interpreter:
                                     'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"reassignment of '{TypeOf(v['value']).getType()}' to '{TypeOf(value).getType()}' is not allowed"),
+                                    'message': f"can only concatenate pair (not '{TypeOf(value).getType()}') to pair",
                                     'context': context,
                                     'exit': False
                                 })    
+                        elif isinstance(v['value'], Dict) or isinstance(v['value'], Object) or isinstance(v['value'], Class):
+                                if not hasattr(property, 'value'):
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                                property_value = v['value'].properties[property.value]
+                                
+                                if isinstance(property_value, Number) or isinstance(property_value, Boolean):
+                                    if isinstance(value, Number) or isinstance(value, Boolean):
+                                        new_value = Number(setNumber(property_value.value) + setNumber(value.value))
+                                        v['value'].properties[property.value] = new_value
+                                    else:
+                                        raise Al_TypeError({
+                                            'name': String('TypeError'),
+                                            'pos_start': node.pos_start,
+                                            'pos_end': node.pos_end,
+                                            'message': String(f"unsupported '+=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'"),
+                                            'context': context,
+                                            'exit': False
+                                        })
+                                elif isinstance(property_value, String):
+                                    if isinstance(value, String):
+                                        new_value = String(property_value.value + value.value)
+                                        v['value'].properties[property.value] = new_value
+                                    else:
+                                        raise Al_TypeError({
+                                            'name': String('TypeError'),
+                                            'pos_start': node.pos_start,
+                                            'pos_end': node.pos_end,
+                                            'message': f"can only concatenate string (not '{TypeOf(value).getType()}') to string",
+                                            'context': context,
+                                            'exit': False
+                                        })
+                                elif isinstance(property_value, List):
+                                    if isinstance(value, List):
+                                        new_value = List(property_value.elements + value.elements)
+                                        v['value'].properties[property.value] = new_value
+                                    elif isinstance(value, String):
+                                        new_list = []
+                                        for char in value.value:
+                                            new_list.append(String(char).setPosition(node.pos_start, node.pos_end).setContext(context))
+                                        new_value = List(property_value.elements + new_list)
+                                        v['value'].properties[property.value] = new_value
+                                    elif isinstance(value, Object) or isinstance(value, Dict):
+                                        new_list = []
+                                        for key, value in value.properties.items():
+                                            new_list.append(String(key).setPosition(node.pos_start, node.pos_end).setContext(context))
+                                        new_value = List(property_value.elements + new_list)
+                                        v['value'].properties[property.value] = new_value
+                                    else:
+                                        raise Al_TypeError({
+                                            'name': String('TypeError'),
+                                            'pos_start': node.pos_start,
+                                            'pos_end': node.pos_end,
+                                            'message': f"type '{TypeOf(value).getType()}' is not iterable",
+                                            'context': context,
+                                            'exit': False
+                                        })
+                                elif isinstance(property_value, Pair):
+                                    if isinstance(value, Pair):
+                                        new_value = Pair(property_value.elements + value.elements)
+                                        v['value'].properties[property.value] = new_value
+                                    else:
+                                        raise Al_TypeError({
+                                            'name': String('TypeError'),
+                                            'pos_start': node.pos_start,
+                                            'pos_end': node.pos_end,
+                                            'message': f"can only concatenate pair (not '{TypeOf(value).getType()}') to pair",
+                                            'context': context,
+                                            'exit': False
+                                        })
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '+=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    }) 
                         else:
                             raise Al_TypeError({
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'message': f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 }) 
@@ -6977,10 +7138,39 @@ class Interpreter:
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
                                 raise Al_TypeError({
-                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                                    'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                })
+                        elif isinstance(v['value'], Object) or isinstance(v['value'], Dict) or isinstance(v['value'], Class):
+                            if not hasattr(property, 'value'):
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '-=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            property_value = v['value'].properties[property.value]
+                            if isinstance(property_value, Number) or isinstance(property_value, Boolean):
+                                if isinstance(value, Number) or isinstance(value, Boolean):
+                                    new_value = Number(setNumber(property_value.value) - setNumber(value.value))
+                                    v['value'].properties[property.value] = new_value
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '-=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '-=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 })
@@ -7021,31 +7211,133 @@ class Interpreter:
                                     'exit': False
                                 })
                         elif isinstance(v['value'], List):
-                            if isinstance(value, Number):
-                                new_value = List(v['value'].elements * value.value)
-                                context.symbolTable.set(var_name, new_value)
+                            if isinstance(value, Number) or isinstance(value, Boolean):
+                                if isinstance(setNumber(value.value), int):
+                                    new_value = List(v['value'].elements * value.value)
+                                    context.symbolTable.set(var_name, new_value)
+                                else:
+                                    raise Al_TypeError({
+                                    'name': String('TypeError'),
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': String(f"cannot multiply by non-int of type '{TypeOf(value).getType()}'"),
+                                    'context': context,
+                                    'exit': False
+                                })
                             else:
                                 raise Al_TypeError({
                                     'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}"),
+                                    'message': String(f"cannot multiply by non-int of type '{TypeOf(value).getType()}'"),
                                     'context': context,
                                     'exit': False
                                 })
                         elif isinstance(v['value'], Pair):
-                            if isinstance(value, Number):
-                                new_value = Pair(v['value'].elements * value.value)
-                                context.symbolTable.set(var_name, new_value)
-                            else:
-                                raise Al_TypeError({
-                                    'name': String('TypeError'),
+                            if isinstance(value, Number) or isinstance(value, Boolean):
+                                if isinstance(setNumber(value.value), int):
+                                    new_value = Pair(v['value'].elements * value.value)
+                                    context.symbolTable.set(var_name, new_value)
+                                else:
+                                    raise Al_TypeError({
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"cannot multiply {TypeOf(v['value']).getType()} and {TypeOf(value).getType()}"),
+                                    'message': f"cannot multiply by non-int of type '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 })
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"cannot multiply by non-int of type '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                })
+                        elif isinstance(v['value'], Object) or isinstance(v['value'], Dict) or isinstance(v['value'], Class):
+                            if not hasattr(property, 'value'):
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '*=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            property_value = v['value'].properties[property.value]
+                            if isinstance(property_value, Number) or isinstance(property_value, Boolean):
+                                if isinstance(value, Number) or isinstance(value, Boolean):
+                                    new_value = Number(setNumber(property_value.value) * setNumber(value.value))
+                                    v['value'].properties[property.value] = new_value
+                                else:
+                                    raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '*=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                })
+                            elif isinstance(property_value, String):
+                                if isinstance(value, Number):
+                                    new_value = String(property_value.value * value.value)
+                                    v['value'].properties[property.value] = new_value
+                                else:
+                                    raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"cannot multiply {TypeOf(property_value).getType()} and {TypeOf(value).getType()}",
+                                    'context': context,
+                                    'exit': False
+                                })
+                            elif isinstance(property_value, List):
+                                if isinstance(value, Number) or isinstance(value, Boolean):
+                                    if isinstance(setNumber(value.value), int):
+                                        new_value = List(property_value.elements * value.value)
+                                        v['value'].properties[property.value] = new_value
+                                    else:
+                                        raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': String(f"cannot multiply by non-int of type '{TypeOf(value).getType()}'"),
+                                        'context': context,
+                                        'exit': False
+                                    })
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': String(f"cannot multiply by non-int of type '{TypeOf(value).getType()}'"),
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            elif isinstance(property_value, Pair):
+                                if isinstance(value, Number) or isinstance(value, Boolean):
+                                    if isinstance(setNumber(value.value), int):
+                                        new_value = Pair(property_value.elements * value.value)
+                                        v['value'].properties[property.value] = new_value
+                                    else:
+                                        raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"cannot multiply by non-int of type '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"cannot multiply by non-int of type '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '*=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                })                        
                         else:
                             raise Al_TypeError({
                                     'name': String('TypeError'),
@@ -7058,60 +7350,199 @@ class Interpreter:
                     elif operation == "div":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
-                                new_value = Number(setNumber(v['value'].value) / setNumber(value.value))
-                                context.symbolTable.set(var_name, new_value, "let")
+                                if value.value != 0:
+                                    new_value = Number(setNumber(v['value'].value) / setNumber(value.value))
+                                    context.symbolTable.set(var_name, new_value, "let")
+                                else:
+                                    raise Al_ZeroDivisionError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"division by zero",
+                                        'context': context,
+                                        'exit': False
+                                    })
                             else:
                                 raise Al_TypeError({
-                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                                    'message': f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 })
-                        else:
-                            raise Al_TypeError({
-                                    'name': String('TypeError'),
+                        elif isinstance(v['value'], Object) or isinstance(v['value'], Dict) or isinstance(v['value'], Class):
+                            if not hasattr(property, 'value'):
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            property_value = v['value'].properties[property.value]
+                            if isinstance(property_value, Number) or isinstance(property_value, Boolean):
+                                if isinstance(value, Number) or isinstance(value, Boolean):
+                                    if value.value != 0:
+                                        new_value = Number(setNumber(property_value.value) / setNumber(value.value))
+                                        v['value'].properties[property.value] = new_value
+                                    else:
+                                        raise Al_ZeroDivisionError({
+                                            'pos_start': node.pos_start,
+                                            'pos_end': node.pos_end,
+                                            'message': f"division by zero",
+                                            'context': context,
+                                            'exit': False
+                                        })
+                                else:
+                                    raise Al_TypeError({
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                                    'message': f"unsupported '/=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                })  
+                            else:
+                                raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"unsupported '/=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
+                                'context': context,
+                                'exit': False
+                            }) 
+                        else:
+                            raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '/=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 })    
                     elif operation == "floor_div":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
-                                new_value = Number(setNumber(v['value'].value) // setNumber(value.value))
-                                context.symbolTable.set(var_name, new_value, "let")
+                                if value.value != 0:
+                                    new_value = Number(setNumber(v['value'].value) // setNumber(value.value))
+                                    context.symbolTable.set(var_name, new_value, "let")
+                                else:
+                                    raise Al_ZeroDivisionError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"division by zero",
+                                        'context': context,
+                                        'exit': False
+                                    })
                             else:
                                 raise Al_TypeError({
-                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                                    'message': f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                })
+                        elif isinstance(v['value'], Object) or isinstance(v['value'], Dict) or isinstance(v['value'], Class):
+                            if not hasattr(property, 'value'):
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            property_value = v['value'].properties[property.value]
+                            if isinstance(property_value, Number) or isinstance(property_value, Boolean):
+                                if isinstance(value, Number) or isinstance(value, Boolean):
+                                    if value.value != 0:
+                                        new_value = Number(setNumber(property_value.value) // setNumber(value.value))
+                                        v['value'].properties[property.value] = new_value
+                                    else:
+                                        raise Al_ZeroDivisionError({
+                                            'pos_start': node.pos_start,
+                                            'pos_end': node.pos_end,
+                                            'message': f"division by zero",
+                                            'context': context,
+                                            'exit': False
+                                        })
+                                else:
+                                    raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '//=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }) 
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '//=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 })
                         else:
                             raise Al_TypeError({
-                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                                    'message': f"unsupported '//=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
-                                })
+                                })  
                     elif operation == "mod":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
                             if isinstance(value, Number) or isinstance(value, Boolean):
-                                new_value = Number(setNumber(v['value'].value) % setNumber(value.value))
-                                context.symbolTable.set(var_name, new_value, "let")
+                                if value.value != 0:
+                                    new_value = Number(setNumber(v['value'].value) % setNumber(value.value))
+                                    context.symbolTable.set(var_name, new_value, "let")
+                                else:
+                                    raise Al_ZeroDivisionError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"modulo by zero",
+                                        'context': context,
+                                        'exit': False
+                                    })
                             else:
                                 raise Al_TypeError({
-                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                                    'message': f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                })
+                        elif isinstance(v['value'], Object) or isinstance(v['value'], Dict) or isinstance(v['value'], Class):
+                            if not hasattr(property, 'value'):
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '%=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            property_value = v['value'].properties[property.value]
+                            if isinstance(property_value, Number) or isinstance(property_value, Boolean):
+                                if isinstance(value, Number) or isinstance(value, Boolean):
+                                    if value.value != 0:
+                                        new_value = Number(setNumber(property_value.value) % setNumber(value.value))
+                                        v['value'].properties[property.value] = new_value
+                                    else:
+                                        raise Al_ZeroDivisionError({
+                                            'pos_start': node.pos_start,
+                                            'pos_end': node.pos_end,
+                                            'message': f"modulo by zero",
+                                            'context': context,
+                                            'exit': False
+                                        })
+                                else:
+                                    raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '%=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                })
+                            else:
+                                    raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '%=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 })
@@ -7131,19 +7562,47 @@ class Interpreter:
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
                                 raise Al_TypeError({
-                                    'name': String('TypeError'),
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"unsupported '^=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                                    'message': f"unsupported '^=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 })
-                        else:
-                            raise Al_TypeError({
-                                    'name': String('TypeError'),
+                        elif isinstance(v['value'], Object) or isinstance(v['value'], Dict) or isinstance(v['value'], Class):
+                            if not hasattr(property, 'value'):
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '^=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            property_value = v['value'].properties[property.value]
+                            if isinstance(property_value, Number) or isinstance(property_value, Boolean):
+                                if isinstance(value, Number) or isinstance(value, Boolean):
+                                    new_value = Number(setNumber(property_value.value) ** setNumber(value.value))
+                                    v['value'].properties[property.value] = new_value
+                                else:
+                                   raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '^=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    }) 
+                            else:
+                                raise Al_TypeError({
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"unsupported '^=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                                    'message': f"unsupported '^=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
+                                    'context': context,
+                                    'exit': False
+                                }) 
+                        else:
+                            raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"unsupported '^=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 })
@@ -7157,8 +7616,15 @@ class Interpreter:
                                 'context': context,
                                 'exit': False
                             })
-                        context.symbolTable.set(var_name, value, "let")
-                   
+                        else:
+                            raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"unsupported '{operation}' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
+                                'context': context,
+                                'exit': False
+                            })
+                  
         else:
             raise Al_NameError({
                 'name': String('NameError'),
@@ -7830,141 +8296,35 @@ class Interpreter:
         value = res.register(self.visit(node.value, context))
         operation = node.type_
         error = {
-            'name': String("PropertyError"),
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             "message": "",
             "context": context,
             "exit": False
         }
-        if operation == "add":
-            property_value = None
-            if isinstance(object_name, Object) or isinstance(object_name, Class):
+        if operation != None and operation == "++":
+            if isinstance(object_name, Object) or isinstance(object_name, Dict):
                 property_value = object_name.properties[property.value]
                 if isinstance(property_value, Number) or isinstance(property_value, Boolean):
-                    if isinstance(value, Number) or isinstance(value, Boolean):
-                        new_value = Number(setNumber(property_value.value) + setNumber(value.value))
-                        object_name.properties[property.value] = new_value
-                        return res.success(new_value)
-                    else:
-                        raise Al_TypeError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"unsupported '+=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
-                            'context': context,
-                            'exit': False
-                        })
-                elif isinstance(property_value, String):
-                    if isinstance(value, String):
-                        new_value = String(property_value.value + value.value)
-                        object_name.properties[property.value] = new_value
-                        return res.success(new_value)
-                    else:
-                        raise Al_TypeError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"unsupported '+=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
-                            'context': context,
-                            'exit': False
-                        })
-                elif isinstance(property_value, List):
-                    if isinstance(value, List):
-                        new_value = List(property_value.elements + value.elements)
-                        object_name.properties[property.value] = new_value
-                        return res.success(new_value)
-                    else:
-                        raise Al_TypeError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"unsupported '+=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
-                            'context': context,
-                            'exit': False
-                        })
-                elif isinstance(property_value, Pair):
-                    if isinstance(value, List):
-                        new_value = Pair(property_value.elements + value.elements)
-                        object_name.properties[property.value] = new_value
-                        return res.success(new_value)
-                    else:
-                        raise Al_TypeError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"unsupported '+=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
-                            'context': context,
-                            'exit': False
-                        })
+                    new_value = setNumber(property_value.value) + 1
+                    new_value = Number(new_value)
+                    object_name.properties[property.value] = new_value
+                    return res.success(object_name.properties[property.value])
                 else:
-                    raise Al_TypeError({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"unsupported '+=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
-                        'context': context,
-                        'exit': False
-                    }) 
-        elif operation == "sub":
-            property_value = None
-            if isinstance(object_name, Object) or isinstance(object_name, Class):
+                    error["message"] = f"'++' not supported for type '{TypeOf(property_value).getType()}'"
+                    raise Al_TypeError(error)
+        if operation != None and operation == "--":
+            if isinstance(object_name, Object) or isinstance(object_name, Dict):
                 property_value = object_name.properties[property.value]
                 if isinstance(property_value, Number) or isinstance(property_value, Boolean):
-                    if isinstance(value, Number) or isinstance(value, Boolean):
-                        new_value = Number(setNumber(property_value.value) - setNumber(value.value))
-                        object_name.properties[property.value] = new_value
-                        return res.success(new_value)
-                    else:
-                        raise Al_TypeError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"unsupported '-=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
-                            'context': context,
-                            'exit': False
-                        })
-                elif isinstance(property_value, String):
-                    if isinstance(value, String):
-                        new_value = String(property_value.value - value.value)
-                        object_name.properties[property.value] = new_value
-                        return res.success(new_value)
-                    else:
-                        raise Al_TypeError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"unsupported '-=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
-                            'context': context,
-                            'exit': False
-                        })
-                elif isinstance(property_value, List):
-                    if isinstance(value, List):
-                        new_value = List(property_value.elements - value.elements)
-                        object_name.properties[property.value] = new_value
-                        return res.success(new_value)
-                    else:
-                        raise Al_TypeError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"unsupported '-=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
-                            'context': context,
-                            'exit': False
-                        })
-                elif isinstance(property_value, Pair):
-                    if isinstance(value, List):
-                        new_value = Pair(property_value.elements - value.elements)
-                        object_name.properties[property.value] = new_value
-                        return res.success(new_value)
-                    else:
-                        raise Al_TypeError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"unsupported '-=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
-                            'context': context,
-                            'exit': False
-                        })
+                    new_value = setNumber(property_value.value) + 1
+                    new_value = Number(new_value)
+                    object_name.properties[property.value] = new_value
+                    return res.success(object_name.properties[property.value])
                 else:
-                    raise Al_TypeError({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"unsupported '-=' operation for '{TypeOf(property_value).getType()}' and '{TypeOf(value).getType()}'",
-                        'context': context,
-                        'exit': False
-                    })         
+                    error["message"] = f"'--' not supported for type '{TypeOf(property_value).getType()}'"
+                    raise Al_TypeError(error)
+                
         if isinstance(object_name, Class):
             if type(property).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -8745,12 +9105,22 @@ class Interpreter:
             i = start_value.value
 
             if step_value.value >= 0:
+                if type(node.end_value_node).__name__ == 'CallNode':
+                    name = node.end_value_node.node_to_call.value if hasattr(node.end_value_node.node_to_call, 'value') else node.end_value_node.node_to_call.id.value if hasattr(node.end_value_node.node_to_call, 'id') else node.end_value_node.node_to_call
+                    if name == "range":
+                        raise Al_TypeError({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': f"For loop not supported with range()",
+                            'exit': False
+                        })
                 if not isinstance(start_value, Number) or not isinstance(end_value, Number) or not isinstance(step_value, Number):
                         raise Al_TypeError({
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
                             'context': context,
-                            'message': 'For loop not supported between ints and strings',
+                            'message': f"For loop not supported between '{TypeOf(start_value).getType()}' and '{TypeOf(end_value).getType()}'",
                             'exit': False
                         })
                 if type(end_value.value) == float:
@@ -8758,17 +9128,8 @@ class Interpreter:
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
                             'context': context,
-                            'message': 'For loop not supported between ints and floats',
+                            'message': f"For loop not supported between '{TypeOf(start_value).getType()}' and '{TypeOf(end_value).getType()}'",
                             'exit': False
-                        })
-                    
-                if type(end_value.value) == range:
-                        raise Al_TypeError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'context': context,
-                            'message': 'For loop not supported between ints and ranges',
-                            'exit': False,
                         })
                     
                 def condition(): return i < end_value.value
@@ -9534,7 +9895,7 @@ BuiltInFunction.inputFloat = BuiltInFunction("inputFloat")
 BuiltInFunction.inputBool = BuiltInFunction("inputBool")
 BuiltInFunction.clear = BuiltInFunction("clear")
 BuiltInFunction.len = BuiltInFunction("len")
-#BuiltInFunction.range = BuiltInFunction("range")
+BuiltInFunction.range = BuiltInFunction("range")
 BuiltInFunction.str = BuiltInFunction("str")
 BuiltInFunction.int = BuiltInFunction("int")
 BuiltInFunction.float = BuiltInFunction("float")
@@ -9597,7 +9958,7 @@ symbolTable_.set('inputFloat', BuiltInFunction.inputFloat)
 symbolTable_.set('inputBool', BuiltInFunction.inputBool)
 symbolTable_.set('clear', BuiltInFunction.clear)
 symbolTable_.set('len', BuiltInFunction.len)
-#symbolTable_.set('range', BuiltInFunction.range)
+symbolTable_.set('range', BuiltInFunction.range)
 symbolTable_.set('str', BuiltInFunction.str)
 symbolTable_.set('int', BuiltInFunction.int)
 symbolTable_.set('float', BuiltInFunction.float)
