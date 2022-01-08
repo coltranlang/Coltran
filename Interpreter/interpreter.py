@@ -212,7 +212,11 @@ def string_count(string, value, start=0, end=None):
         if string[i] == value:
             count += 1
     return count
-            
+  
+def is_static(string):
+    if len(string) == 0:
+        return False
+    return string[0] == '@'          
 
 
 class Regex:
@@ -503,6 +507,19 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
+        def Warning(detail):
+            isDetail = {
+                'name': 'Warning',
+                'type': 'invalid syntax',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
                   
         methods = {
             'Default': Default,
@@ -518,7 +535,8 @@ class Program:
             'GetError': GetError,
             'ModuleNotFoundError': ModuleNotFoundError,
             'KeyboardInterrupt': KeyboardInterrupt,
-            'Exception': Exception
+            'Exception': Exception,
+            'Warning': Warning
         }
         
         return methods
@@ -769,6 +787,14 @@ class Al_KeyboardInterrupt(Al_Exception):
         
     def __repr__(self):
         return f"<KeyboardInterrupt {self.message}>"
+
+
+class Al_Warning(Al_Exception):
+    def __init__(self,message):
+        super().__init__("Warning", message)
+    
+    def __repr__(self):
+        return f"<Warning {self.message}>"
 
 
 builtin_exceptions = {
@@ -2429,8 +2455,7 @@ class Dict(Value):
         for value in self.properties.values():
             values.append(value)
         return values
-
-    
+ 
     def isSame(self, other):
         if isinstance(other, Dict):
             new_dict = f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
@@ -2462,6 +2487,9 @@ class Dict(Value):
                 'exit': False
             }
             return None, self.illegal_operation_typerror(error, other)
+     
+    def has_property(self, property_name):
+        return property_name in self.properties
         
     def get_comparison_eq(self, other):
         value = self.isSame(other)
@@ -2561,6 +2589,9 @@ class Object(Value):
                 return None, self.none_value()
         else:
             return None, self.illegal_operation(error, other)
+    
+    def has_property(self, property_name):
+        return property_name in self.properties
             
     def get_comparison_eq(self, other):
         value = self.isSame(other)
@@ -2858,16 +2889,9 @@ class Function(BaseFunction):
         return f"<Function {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
 
-class ClassInstance:
-    def __init__(self, klass:"Class"):
-        self.klass = klass
-    
-    def __repr__(self):
-        return f"<ClassInstance {str(self.klass.class_name)}>"
-
 
 class Class(BaseClass):
-    def __init__(self, class_name, constructor_args, inherit_class_name, methods, context):
+    def __init__(self, class_name, constructor_args, inherit_class_name, methods, class_fields_modifiers, context):
         super().__init__(class_name)
         self.id = class_name
         self.class_name = class_name
@@ -2875,14 +2899,16 @@ class Class(BaseClass):
         self.inherit_class_name = inherit_class_name
         self.methods = methods
         self.properties = methods
+        self.class_fields_modifiers = class_fields_modifiers
         self.value = f"<Class {str(self.class_name)}>"
         self.context = context
-        self.body_node = None
+        self.body_node = None 
+        self.representation = self.value
         
-        
+               
+    
     def execute(self, args):
         res = RuntimeResult()
-        inherits_from = None
         new_context = self.generate_new_context()
         
         if self.inherit_class_name:
@@ -2895,9 +2921,10 @@ class Class(BaseClass):
             self.constructor_args, args)}, **self.properties)
         self.method_properties = method_properties
         self.check_args(self.constructor_args, args)
-        self.populate_args(self.constructor_args, args, self.context)
-                    
+        self.populate_args(self.constructor_args, args, self.context)     
+           
         if res.should_return(): return res
+        
         if  self.properties == {}:
             self.properties = method_properties
         else:
@@ -2907,7 +2934,6 @@ class Class(BaseClass):
                 self.properties[method_name] = method
                 self.properties = method_properties
                 
-                # run init method if it exists
                 if method_name == '__init':
                     method_args = method.arg_names
                     if len(method_args) == 1:
@@ -2922,9 +2948,17 @@ class Class(BaseClass):
                         })
                     res.register(method.run(method_args, self, new_context))
                     if res.should_return(): return res
+                
+                if method_name == '__repr':
+                    method_args = method.arg_names
+                    if len(method_args) == 1:
+                        method_args = method_args[1:]
+                    val = res.register(method.run(method_args, self, new_context))
+                    self.representation = val
+             
         return res.success(self)
-              
-        
+    
+  
     def set_method(self, key, value):
         self.properties[key] = value
         return self
@@ -2948,6 +2982,10 @@ class Class(BaseClass):
                     return value, None
             return "none", self.key_error(error, method_name)
 
+    
+    def has_property(self, property_name):
+        return property_name in self.properties
+        
    
     def get_comparison_eq(self, other):
         value = self.isSame(other)
@@ -2999,15 +3037,15 @@ class Class(BaseClass):
    
     
     def copy(self):
-        copy = Class(self.class_name, self.constructor_args,
-                     self.inherit_class_name, self.properties, self.context)
+        copy = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.properties, self.class_fields_modifiers, self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
 
     
     def __repr__(self):
-        return f"<Class {str(self.class_name)}>"
+        return self.representation
+    
         
 
 class ModuleObject(Value):
@@ -3385,6 +3423,8 @@ def BuiltInFunction_PrintLn(args, node):
     res = RuntimeResult()
     for arg in args:
         value = str(arg)
+        # if isinstance(arg, Class):
+        #    print(arg.representation, "is represented as")
         if isinstance(arg, String):
             value = arg.value
         else:
@@ -3603,6 +3643,7 @@ def BuiltInFunction_Str(args, node, context):
 
 def Range(start, end, step):
     return List([Number(i) for i in range(start, end, step)])
+
 
 def BuiltInFunction_Range(args, node, context):
     res = RuntimeResult()
@@ -6912,7 +6953,6 @@ class Interpreter:
         if type(value) is dict:
             try:
                 value = value['value']
-                
             except:
                 value = value
                 
@@ -6959,6 +6999,13 @@ class Interpreter:
         value = res.register(self.visit(node.value, context))
         property = node.property
         v = value_
+        error = {
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            "message": "",
+            "context": context,
+            "exit": False
+        }
         if value_ != None:
             if isinstance(value_, Class):
                 v = {
@@ -7049,6 +7096,9 @@ class Interpreter:
                                         'context': context,
                                         'exit': False
                                     })
+                                if not v['value'].has_property(property.value):
+                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    raise Al_PropertyError(error)
                                 property_value = v['value'].properties[property.value]
                                 
                                 if isinstance(property_value, Number) or isinstance(property_value, Boolean):
@@ -7153,6 +7203,9 @@ class Interpreter:
                                         'context': context,
                                         'exit': False
                                     })
+                            if not v['value'].has_property(property.value):
+                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
                                 if isinstance(value, Number) or isinstance(value, Boolean):
@@ -7263,6 +7316,9 @@ class Interpreter:
                                         'context': context,
                                         'exit': False
                                     })
+                            if not v['value'].has_property(property.value):
+                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
                                 if isinstance(value, Number) or isinstance(value, Boolean):
@@ -7378,6 +7434,9 @@ class Interpreter:
                                         'context': context,
                                         'exit': False
                                     })
+                            if not v['value'].has_property(property.value):
+                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
                                 if isinstance(value, Number) or isinstance(value, Boolean):
@@ -7447,6 +7506,9 @@ class Interpreter:
                                         'context': context,
                                         'exit': False
                                     })
+                            if not v['value'].has_property(property.value):
+                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
                                 if isinstance(value, Number) or isinstance(value, Boolean):
@@ -7516,6 +7578,9 @@ class Interpreter:
                                         'context': context,
                                         'exit': False
                                     })
+                            if not v['value'].has_property(property.value):
+                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
                                 if isinstance(value, Number) or isinstance(value, Boolean):
@@ -7577,6 +7642,9 @@ class Interpreter:
                                         'context': context,
                                         'exit': False
                                     })
+                            if not v['value'].has_property(property.value):
+                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
                                 if isinstance(value, Number) or isinstance(value, Boolean):
@@ -7968,7 +8036,7 @@ class Interpreter:
                      value = object_name.properties.properties[object_key.value]
                      return res.success(value)
                 else:
-                    error["message"] = f"'list' has no property {object_key.value}"
+                    error["message"] = f"'list' has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "CallNode":
@@ -7998,7 +8066,7 @@ class Interpreter:
                             else:
                                 return res.success(return_value)
                     else:
-                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
+                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
         
         elif isinstance(object_name, Pair):
@@ -8011,7 +8079,7 @@ class Interpreter:
                         value = f"<{str(object_key.value)}()>, [ built-in list method ]"
                         return res.success(BuiltInMethod(value))
                 else:
-                    error["message"] = f"'list' has no property {object_key.value}"
+                    error["message"] = f"'pair' has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "CallNode":
@@ -8026,7 +8094,7 @@ class Interpreter:
                             object_key.node_to_call.value, object_name, args, node, context)
                         return res.success(value.name)
                     else:
-                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
+                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
         
         elif isinstance(object_name, String):
@@ -8038,7 +8106,7 @@ class Interpreter:
                     else:
                         return res.success(BuiltInMethod(value))
                 else:
-                    error["message"] = f"'string' has no property {object_key.value}"
+                    error["message"] = f"'string' has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
                     
                 
@@ -8063,14 +8131,14 @@ class Interpreter:
                             object_key.id.node_to_call.id.value, object_name, args, node, context)
                         return res.success(value)
                     else:
-                        error["message"] = f"'string' has no property {object_key.id.node_to_call.id.value}"
+                        error["message"] = f"'string' has no property '{object_key.id.node_to_call.id.value}'"
                         raise Al_PropertyError(error)
                 else:
                     if object_key.id.value in string_methods:
                         value = f"<{str(object_key.id.value)}()>, [ built-in string method ]"
                         return res.success(String(value))
                     else:
-                        error["message"] = f"'string' has no property {object_key.id.value}"
+                        error["message"] = f"'string' has no property '{object_key.id.value}'"
                         raise Al_PropertyError(error) 
                 
             
@@ -8303,7 +8371,10 @@ class Interpreter:
             "exit": False
         }
         if operation != None and operation == "++":
-            if isinstance(object_name, Object) or isinstance(object_name, Dict):
+            if isinstance(object_name, Object) or isinstance(object_name, Dict) or isinstance(object_name, Class):
+                if not object_name.has_property(property.value):
+                    error["message"] = f"{object_name.name} has no property '{property.value}'"
+                    raise Al_PropertyError(error)
                 property_value = object_name.properties[property.value]
                 if isinstance(property_value, Number) or isinstance(property_value, Boolean):
                     new_value = setNumber(property_value.value) + 1
@@ -8314,7 +8385,10 @@ class Interpreter:
                     error["message"] = f"'++' not supported for type '{TypeOf(property_value).getType()}'"
                     raise Al_TypeError(error)
         if operation != None and operation == "--":
-            if isinstance(object_name, Object) or isinstance(object_name, Dict):
+            if isinstance(object_name, Object) or isinstance(object_name, Dict) or isinstance(object_name, Class):
+                if not object_name.has_property(property.value):
+                    error["message"] = f"{object_name.name} has no property '{property.value}'"
+                    raise Al_PropertyError(error)
                 property_value = object_name.properties[property.value]
                 if isinstance(property_value, Number) or isinstance(property_value, Boolean):
                     new_value = setNumber(property_value.value) + 1
@@ -8328,7 +8402,11 @@ class Interpreter:
         if isinstance(object_name, Class):
             if type(property).__name__ == "Token":
                 if hasattr(object_name, "properties"):
-                    object_name.properties[property.value] = value
+                    if is_static(property.value):
+                        Program.printError(f"Warning: assignment to static property '{property.value}' \nCannot modify static property '{property.value}'")
+                    else:
+                        object_name.properties[property.value] = value
+                        
                 if property.value in class_methods:
                     error["message"] = f"'class' object property '{property.value}' is read-only"
                     raise Al_PropertyError(error)
@@ -9630,6 +9708,7 @@ class Interpreter:
         class_name = node.class_name.value
         constructor_args = node.class_constuctor_args
         inherits_class_name = node.inherits_class_name
+        class_fields_modifiers = node.class_fields_modifiers
         if inherits_class_name != None:
             if type(inherits_class_name).__name__ == 'list':
                 raise Al_RuntimeError({
@@ -9661,6 +9740,14 @@ class Interpreter:
         _properties = {}
         class_value = {}
         methods = {}
+        if class_fields_modifiers != None:
+            if len(class_fields_modifiers) > 0:
+                for modifier in class_fields_modifiers:
+                    name = modifier['name'].value
+                    value = res.register(self.visit(modifier['value'], context))
+                    if res.should_return(): return res
+                    methods = {**methods, **{name: value}}
+                    
         if node.methods != '' and node.methods != None:
             for method in node.methods:
                 method_name = method['name'].value
@@ -9671,11 +9758,11 @@ class Interpreter:
                 
                 methods = dict(methods, **{str(method_name): method_value})
                 class_value = Class(class_name, constructor_args, inherits_class_name,
-                                    methods, context).setContext(context).setPosition(node.pos_start, node.pos_end)
+                                    methods, class_fields_modifiers,context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
             class_value = Class(class_name, constructor_args, inherits_class_name,
-                                {}, context).setContext(context).setPosition(node.pos_start, node.pos_end)
+                                {},class_fields_modifiers, context).setContext(context).setPosition(node.pos_start, node.pos_end)
             context.symbolTable.set_object(class_name, class_value)
         return res.success(class_value)
 
@@ -9708,7 +9795,7 @@ class Interpreter:
                     # remove None from args
                     args = [x for x in args if x != None]
                 
-        builtin = value_to_call.name
+        name = value_to_call.name
         builtins = {
             'print': BuiltInFunction_Print,
             'println': BuiltInFunction_PrintLn,
@@ -9759,12 +9846,14 @@ class Interpreter:
         #         'exit': False
         #     })
         
-        if builtin in builtins:
-            if builtin == 'print' or builtin == 'println':
-                return builtins[builtin](args,node)
-            elif builtin in builtin_exceptions:
-                return builtins[builtin](args, node, context, None)
-            return builtins[builtin](args, node, context)
+            
+        if name in builtins:
+            if name == 'print' or name == 'println':
+                return builtins[name](args,node)
+            elif name in builtin_exceptions:
+                return builtins[name](args, node, context, None)
+            return builtins[name](args, node, context)
+        
         
         return_value = res.register(value_to_call.execute(args))
         

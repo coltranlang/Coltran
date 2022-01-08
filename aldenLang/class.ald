@@ -1,11 +1,31 @@
-let accounts = []
+class Employee(name, age)
+    @employee_db_id = "iobherbndfiuyirre" # @ means static variable and cannot be changed
+    url = "http://www.google.com" # url is a instance variable and can be changed
+    def create(self, name, age)
+        self.name = name
+        self.age = age
+    end
+    def __repr(self)
+        return fm"Employee(%{self.name}, %{self.age})"
+    end
+    def get_employee_db_id(self)
+        return self.@employee_db_id
+    end
+end
+
+let employee = Employee
+#employee.@employee_db_id = "changed" # This is a static variable, so a warning will be raised if you try to change it
+employee.url = "http://www.new.com" # this is not a static variable, so no value will be changed
+println(employee.@employee_db_id)
+println(employee.url)
 
 class Accounts(config)
+    accounts_list = []
     def __init(self)
     end
     def create_account(self, data)
-        accounts.append(data)
-        self.accounts = accounts
+        self.accounts_list.append(data)
+        self.accounts = self.accounts_list
     end
     def get_account(self, account_id)
         return self.accounts.find(def (account) -> account.id == account_id)
@@ -53,6 +73,9 @@ class Wallet()
     def get_balance(self)
         return fm"Your balance is $%{self.balance}"
     end
+    def __str(self)
+        return fm"Wallet balance: $%{self.balance}"
+    end
 end
 
 
@@ -63,6 +86,9 @@ class BankAccount() ~ Wallet
     def get_balance(self)
         return fm"Balance: $%{self.balance}"
     end
+    def __str(self)
+        return fm"Bank Account: $%{self.balance}"
+    end
 end
 
 
@@ -72,7 +98,6 @@ final config = {
     "client_secret": '35h9ew8734b34723wewe7te7'
 }
 
-let client = Client(config)
 
 let account_data1 = {
     "id": "12345",
@@ -85,10 +110,16 @@ let account_data2 = {
     "name": "Jane d Account",
     "balance": "200.00"
 }
+
+let client = Client(config)
 client.accounts.create_account(account_data1)
 client.accounts.create_account(account_data2)
-let account = client.accounts.get_account("12345")
-println(account)
+let account = client
+let david_account = client.accounts.get_account("12345")
+let jane_account = client.accounts.get_account("12346")
+println(david_account)
+println(jane_account)
+println(client.accounts.get_accounts())
 
 let wallet = Wallet()
 wallet.deposit(100)
@@ -100,11 +131,3 @@ let bank_account = BankAccount()
 bank_account.deposit(100)
 bank_account.withdraw(50)
 println(bank_account.get_balance())
-#Wallet += BankAccount
-#Wallet -= BankAccount
-#Wallet *= BankAccount
-#Wallet /= BankAccount
-#Wallet %= BankAccount
-#Wallet ^= BankAccount
-wallet.balance++
-println(wallet.balance)

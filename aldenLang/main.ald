@@ -379,6 +379,9 @@ class Person(fname, lname)
     def printname(self)
       println(self.fname, self.lname)
     end
+    def __repr(self)
+        return fm"Person(%{self.fname}, %{self.lname})"
+    end
 end
 
 class Student() ~ Person
@@ -404,7 +407,30 @@ println(l)
 let dic = {num1: 1, num2: 2, num3: 3}
 
 let count = 0
-in range(10) as i:
-    println(i)
-end
+# let x = range(1, 10)
+# in x as i:
+#     println(fm"I is %{i}")
+# end
 #println(range(1,10))
+class Employee(name, age)
+    @employee_db_id = "iobherbndfiuyirre" # This is a static variable that is shared by all instances of the class
+    url = "http://www.google.com"
+    def create(self, name, age)
+        self.name = name
+        self.age = age
+    end
+    def __repr(self)
+        return fm"Employee(%{self.name}, %{self.age})"
+    end
+    def get_employee_db_id(self)
+        return self.@employee_db_id
+    end
+    def get_url(self)
+        return self.url
+    end
+end
+
+
+let employee = Employee
+#employee.@employee_db_id = "changed" # This is a static variable, so a warning will be shown
+employee.url = "http://www.new.com" # this is not a static variable, so value will be changed

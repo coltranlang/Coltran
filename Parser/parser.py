@@ -95,6 +95,16 @@ def isOnlyLetters(text):
 def isFirstLetterUpper(text):
     return text[0].isupper()               
 
+
+def has_at_symbol(text):
+    if len(text) == 0:
+        return False
+    if text[0] == "@":
+        return True
+    return False
+
+
+
 operation_methods = {
     'PLUS_EQ': 'add',
     'MINUS_EQ': 'sub',
@@ -678,12 +688,13 @@ class ModuleObject:
 
 
 class ClassNode:
-    def __init__(self,class_name, class_constuctor_args,inherits_class_name, methods):
+    def __init__(self,class_name, class_constuctor_args,inherits_class_name, methods, class_fields_modifiers):
         self.id = class_name
         self.class_name = class_name
         self.class_constuctor_args = class_constuctor_args
         self.inherits_class_name = inherits_class_name
         self.methods = methods
+        self.class_fields_modifiers = class_fields_modifiers
         self.pos_start = self.class_name.pos_start
         self.pos_end = self.class_name.pos_end
         self.class_object = {
@@ -2767,9 +2778,9 @@ class Parser:
                           
     def class_def(self):
         res = ParseResult()
-        inherit_class = None
         inherit_class_name = None
         class_name = None
+        
         if self.current_token.matches(tokenList.TT_KEYWORD, 'class'):
             res.register_advancement()
             self.advance()
@@ -2921,18 +2932,20 @@ class Parser:
         res.register_advancement()
         self.advance()
         methods = None
-        
+        class_fields_modifiers = None
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
+            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods, class_fields_modifiers))
         while self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
+                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods, class_fields_modifiers))
+            if self.current_token.type == tokenList.TT_IDENTIFIER:
+                class_fields_modifiers = self.class_fields_modifiers()
             if self.current_token.matches(tokenList.TT_KEYWORD, "def"):
                 methods = self.set_methods()
             else:
@@ -2947,26 +2960,88 @@ class Parser:
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
+                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods, class_fields_modifiers))
+        if self.current_token.type == tokenList.TT_IDENTIFIER:
+            class_fields_modifiers = self.class_fields_modifiers()
+            
         if self.current_token.matches(tokenList.TT_KEYWORD, "def"):
             methods = self.set_methods()
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
+                return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods, class_fields_modifiers))
         if self.current_token.matches(tokenList.TT_KEYWORD, "end"):
             res.register_advancement()
             self.advance()
-            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
+            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods, class_fields_modifiers))
         if self.current_token.type == tokenList.TT_EOF:
-            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods))
+            return res.success(ClassNode(class_name, class_constuctor_args, inherit_class_name, methods, class_fields_modifiers))
+        
+        self.error_detected = True
         return res.failure(self.error['Syntax']({
             'pos_start': self.current_token.pos_start,
             'pos_end': self.current_token.pos_end,
             'message': "Expected 'end'",
             'exit': False
         }))
-       
+      
+    def class_fields_modifiers(self):
+        res = ParseResult()
+        class_fields = []
+        if self.current_token.type != tokenList.TT_IDENTIFIER:
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "Expected an identifier",
+                'exit': False
+            }))
+            
+        # class fields must start with @ 
+        while self.current_token.type == tokenList.TT_IDENTIFIER:
+            name = self.current_token
+            # if has_at_symbol(name.value) == False:
+            #     self.error_detected = True
+            #     return res.failure(self.error['Syntax']({
+            #         'pos_start': self.current_token.pos_start,
+            #         'pos_end': self.current_token.pos_end,
+            #         'message': "Expected '@' before identifier",
+            #         'exit': False
+            #     }))
+                    
+            self.skipLines()
+            
+            field = {
+                'name': name,
+                'value': None
+            }
+            class_fields.append(field)
+            if self.current_token.type != tokenList.TT_EQ:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected '='",
+                    'exit': False
+                }))
+            
+            self.skipLines()
+
+            expr = res.register(self.expr())
+            if res.error: return res
+            field['value'] = expr
+            if self.current_token.type != tokenList.TT_NEWLINE:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Expected a newline",
+                    'exit': False
+                }))
+            while self.current_token.type == tokenList.TT_NEWLINE:
+                self.skipLines()
+        return class_fields
+          
     def set_methods(self):
         res = ParseResult()
         
@@ -4458,42 +4533,43 @@ print(a,b)
 #                 count += 1
 #                 print(f"{i} * {j} * {k} = {i*j*k}")
 # print(count)
-r = 'name'
-li = [1,2,]
-d = {2:1, 3:2, 4:3}
-li2 = [4,5,6]
-new_li = [*li, *li2, 7, 8, 9]
-print(hasattr(d, "2"))
-num1 = 0
-class Test:
-    pass
-def greet(name):
-    pass
-try:
-    print(greet())
-except NameError as e:
-    print(f"Error: {e}")
-except Exception as e:
-    print(f"Exception: {e}")
-except TypeError as TypeError:
-    print(f"TypeError: {TypeError}")
-finally:
-    print("Finally")
-name = "Kenny"
-def greet(name):
-    return f"Hello, {name}"
+# r = 'name'
+# li = [1,2,]
+# d = {2:1, 3:2, 4:3}
+# li2 = [4,5,6]
+# new_li = [*li, *li2, 7, 8, 9]
+# print(hasattr(d, "2"))
+# num1 = 0
+# class Test:
+#     pass
+# def greet(name):
+#     pass
+# try:
+#     print(greet())
+# except NameError as e:
+#     print(f"Error: {e}")
+# except Exception as e:
+#     print(f"Exception: {e}")
+# except TypeError as TypeError:
+#     print(f"TypeError: {TypeError}")
+# finally:
+#     print("Finally")
+# name = "Kenny"
+# def greet(name):
+#     return f"Hello, {name}"
   
-pair = ("a", "e", "i", "o", "u", 'e')
-list = [1,2,3,4,5,6,7,8,9,10]
-dict = {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'}
-strn = "Hello, World!"
-class Employee:
-    pass
-data = {}
-if data or {}:
-    print("data is empty")
-else:
-    print("data is not empty")
+# pair = ("a", "e", "i", "o", "u", 'e')
+# list = [1,2,3,4,5,6,7,8,9,10]
+# dict = {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'}
+# strn = "Hello, World!"
+# class Employee:
+#     def create(self,name):
+#         return f"Hello, {name}"
+# data = {}
+# if data or {}:
+#     print("data is empty")
+# else:
+#     print("data is not empty")
 
 # print(f"'not' operator on true: %{not(True)}")  # false
 # print(f"'not' operator on false: %{not(False)}") # true
@@ -4511,12 +4587,15 @@ else:
 # print(f"'not' operator on builtin_method: %{not(strn.upper)}") # false
 # print(f"'not' operator on builtin_type: %{not(strn)}") # false
 # print(f"'not' operator on none: %{not(None)}") # false
-l = [1,2,3,4,5,6,7,8,9,10]
-l += {'name': 'Kenny'}
-print(l)
-num = 2
-num **= 0
-print("num is: %d" % num)
-x = range(10)
-for i in x:
-    print(i)
+# l = [1,2,3,4,5,6,7,8,9,10]
+# l += {'name': 'Kenny'}
+# print(l)
+# num = 2
+# num **= 0
+# print("num is: %d" % num)
+# x = range(1,10)
+# # for i in x:
+# #     print(i)
+
+# employee = Employee()
+# print(employee)
