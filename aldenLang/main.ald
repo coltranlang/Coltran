@@ -431,6 +431,3 @@ end
 let employee = Employee
 #employee.@employee_db_id = "changed" # This is a static variable, so a warning will be shown
 employee.url = "http://www.new.com" # this is not a static variable, so value will be changed
-
-let d = {name: "John", age: 21 ,0: 0}
-println(employee['name'])

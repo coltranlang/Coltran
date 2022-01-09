@@ -557,22 +557,12 @@ class DelNode:
    
 
 class AttemptNode:
-    def __init__(self, attempt_statement, catches, finally_statement):
+    def __init__(self, attempt_statement, catches, finally_statement, pos_start, pos_end):
         self.attempt_statement = attempt_statement
         self.catches = catches
         self.finally_statement = finally_statement
-        if self.finally_statement and self.finally_statement != {}:
-            self.pos_start = self.attempt_statement['pos_start']
-            self.pos_end = self.finally_statement['pos_end']
-        elif self.catches and len(self.catches) > 0:
-            self.pos_start = self.attempt_statement['pos_start']
-            for catch in self.catches:
-                if catch['pos_end']:
-                    self.pos_end = catch['pos_end']
-                    break
-        else:
-            self.pos_start = self.attempt_statement['pos_start']
-            self.pos_end = self.attempt_statement['pos_end']
+        self.pos_start = pos_start
+        self.pos_end = pos_end
         
 
 class FunctionNode:
@@ -3946,6 +3936,7 @@ class Parser:
         catches = []
         catch_statement = {}
         finally_statement = {}
+        pos_start = self.current_token.pos_start.copy()
         if not self.current_token.matches(tokenList.TT_KEYWORD, "attempt"):
             self.error_detected = True
             return res.failure(self.error['Syntax'](
@@ -4137,7 +4128,7 @@ class Parser:
                         'exit': False
                     }))
         self.skipLines()
-        attempt_node = AttemptNode(attempt_statement, catches, finally_statement)
+        attempt_node = AttemptNode(attempt_statement, catches, finally_statement, pos_start, self.current_token.pos_end)
         return res.success(attempt_node)        
     
     def get_expr(self):
@@ -4639,3 +4630,5 @@ LETTERS_SYMBOLS = LETTERS + SYMBOLS
 
 # employee = Employee()
 # print(employee)
+
+

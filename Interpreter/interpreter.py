@@ -340,22 +340,9 @@ class Program:
             else:
                 Program.printError(error)
                 
-        def Error(detail):
-            isDetail = {
-                'name': detail['name'],
-                'message': detail['message'],
-                'pos_start': detail['pos_start'],
-                'pos_end': detail['pos_end'],
-                'context': detail['context']
-            }
-            if detail['exit']:
-                Program.printErrorExit(Program.asStringTraceBack(isDetail))
-            else:
-                Program.printError(Program.asStringTraceBack(isDetail))
-
         def RuntimeError(detail):
             isDetail = {
-                'name': 'RuntimeError',
+                'name': detail['name'] if 'name' in detail else 'RuntimeError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -368,7 +355,7 @@ class Program:
 
         def ZeroDivisionError(detail):
             isDetail = {
-                'name': 'ZeroDivisionError',
+                'name': detail['name'] if 'name' in detail else 'ZeroDivisionError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -381,7 +368,7 @@ class Program:
 
         def NameError(detail):
             isDetail = {
-                'name': 'NameError',
+                'name': detail['name'] if 'name' in detail else 'NameError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -394,7 +381,7 @@ class Program:
                 
         def TypeError(detail):
             isDetail = {
-                'name': 'TypeError',
+                'name': detail['name'] if 'name' in detail else 'TypeError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -407,7 +394,7 @@ class Program:
                 
         def KeyError(detail):
             isDetail = {
-                'name': 'KeyError',
+                'name': detail['name'] if 'name' in detail else 'KeyError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -420,7 +407,7 @@ class Program:
                 
         def ValueError(detail):
             isDetail = {
-                'name': 'ValueError',
+                'name': detail['name'] if 'name' in detail else 'ValueError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -433,7 +420,7 @@ class Program:
          
         def PropertyError(detail):
             isDetail = {
-                'name': 'PropertyError',
+                'name': detail['name'] if 'name' in detail else 'PropertyError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -446,7 +433,7 @@ class Program:
                           
         def IndexError(detail):
             isDetail = {
-                'name': 'IndexError',
+                'name': name if 'name' in detail else 'IndexError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -459,7 +446,7 @@ class Program:
                 
         def GetError(detail):
             isDetail = {
-                'name': 'GetError',
+                'name': detail['name'] if 'name' in detail else 'GetError',
                 'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
@@ -473,7 +460,7 @@ class Program:
         
         def ModuleNotFoundError(detail):
             isDetail = {
-                'name': 'ModuleNotFoundError',
+                'name': detail['name'] if 'name' in detail else 'ModuleNotFoundError',
                 'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
@@ -496,7 +483,7 @@ class Program:
                                          
         def Exception(detail):
             isDetail = {
-                'name': 'Exception',
+                'name': detail['name'] if 'name' in detail else 'Exception',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -523,7 +510,6 @@ class Program:
                   
         methods = {
             'Default': Default,
-            'Error': Error,
             'RuntimeError': RuntimeError,
             'ZeroDivisionError': ZeroDivisionError,
             'NameError': NameError,
@@ -593,6 +579,21 @@ class Program:
                     return code
         except FileNotFoundError:
             return None
+
+    def createBuiltIn(name, value):
+        res = RuntimeResult()
+        lexer = Lexer(name, value)
+        tokens, error = lexer.make_tokens()
+        if error: return "", error
+        parser = Parser(tokens, name)
+        ast = parser.parse()
+        if ast.error: return "", ast.error
+        interpreter = Interpreter()
+        new_context = Context('<module>', None)
+        new_context.symbolTable = SymbolTable()
+        
+        result = interpreter.visit(ast.node, new_context)
+        return result.value
 
     def createModule(module_name, module, context):
         res = RuntimeResult()
@@ -1010,7 +1011,7 @@ class Value:
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"Illegal operation on {TypeOf(self).getType()} with {TypeOf(args).getType()}",
+            'message': f"'{TypeOf(self).getType()}' is not callable",
             'context': self.context
         }
         return RuntimeResult().failure(self.illegal_operation_typerror(error))
@@ -2764,8 +2765,8 @@ class BaseClass(Value):
     
     def is_true(self):
         return True
-    
-    
+  
+        
 class Function(BaseFunction):
     def __init__(self, name, body_node, arg_names, implicit_return, default_values, properties, type,context):
         super().__init__(name)
@@ -2889,7 +2890,6 @@ class Function(BaseFunction):
         return f"<Function {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
 
-
 class Class(BaseClass):
     def __init__(self, class_name, constructor_args, inherit_class_name, methods, class_fields_modifiers, context):
         super().__init__(class_name)
@@ -2910,12 +2910,33 @@ class Class(BaseClass):
     def execute(self, args):
         res = RuntimeResult()
         new_context = self.generate_new_context()
-        
         if self.inherit_class_name:
-            for key, value in self.inherit_class_name.properties.items():
-                if key not in self.properties:
-                    self.properties[key] = value
-            self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
+            if isinstance(self.inherit_class_name, BuiltInClass):
+                if self.inherit_class_name.inherit_class_name:
+                    for key, value in self.inherit_class_name.properties.items():
+                        
+                        if key not in self.inherit_class_name.properties:
+                            self.inherit_class_name.properties[key] = value
+                    self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
+                    self.inherit_class_name.properties = self.inherit_class_name.inherit_class_name.properties
+                for key, value in self.inherit_class_name.properties.items():
+                    if key not in self.properties:
+                        self.properties[key] = value
+                self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
+                self.properties = self.inherit_class_name.properties
+            else:
+                if self.inherit_class_name.inherit_class_name:
+                    for key, value in self.inherit_class_name.properties.items():
+                        
+                        if key not in self.inherit_class_name.properties:
+                            self.inherit_class_name.properties[key] = value
+                    self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
+                    self.properties = self.inherit_class_name.properties
+                for key, value in self.inherit_class_name.properties.items():
+                    if key not in self.properties:
+                        self.properties[key] = value
+                self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
+                self.properties = self.inherit_class_name.properties
 
         method_properties = dict({arg_name.value: arg_value for arg_name, arg_value in zip(
             self.constructor_args, args)}, **self.properties)
@@ -2934,7 +2955,7 @@ class Class(BaseClass):
                 self.properties[method_name] = method
                 self.properties = method_properties
                 
-                if method_name == '__init':
+                if method_name == 'init':
                     method_args = method.arg_names
                     if len(method_args) == 1:
                         method_args = method_args[1:]
@@ -2949,7 +2970,7 @@ class Class(BaseClass):
                     res.register(method.run(method_args, self, new_context))
                     if res.should_return(): return res
                 
-                if method_name == '__repr':
+                if method_name == 'str':
                     method_args = method.arg_names
                     if len(method_args) == 1:
                         method_args = method_args[1:]
@@ -3046,7 +3067,184 @@ class Class(BaseClass):
     def __repr__(self):
         return self.representation
     
+
+class BuiltInClass(BaseClass):
+    def __init__(self, class_name, constructor_args, inherit_class_name, methods, class_fields_modifiers, context):
+        super().__init__(class_name)
+        self.id = class_name
+        self.class_name = class_name
+        self.constructor_args = constructor_args
+        self.inherit_class_name = inherit_class_name
+        self.methods = methods
+        self.properties = methods
+        self.class_fields_modifiers = class_fields_modifiers
+        self.value = f"<Class {str(self.class_name)}>"
+        self.context = context
+        self.body_node = None 
+        self.representation = self.value
+               
+    
+    def execute(self, args):
+        res = RuntimeResult()
+        new_context = self.generate_new_context()
+        if self.inherit_class_name:
+            if isinstance(self.inherit_class_name, BuiltInClass):
+                if self.inherit_class_name.inherit_class_name:
+                    for key, value in self.inherit_class_name.properties.items():
+                        
+                        if key not in self.inherit_class_name.properties:
+                            self.inherit_class_name.properties[key] = value
+                    self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
+                    self.inherit_class_name.properties = self.inherit_class_name.inherit_class_name.properties
+                for key, value in self.inherit_class_name.properties.items():
+                    if key not in self.properties:
+                        self.properties[key] = value
+                self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
+                self.properties = self.inherit_class_name.properties
+            else:
+                if self.inherit_class_name.inherit_class_name:
+                    for key, value in self.inherit_class_name.properties.items():
+                        
+                        if key not in self.inherit_class_name.properties:
+                            self.inherit_class_name.properties[key] = value
+                    self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
+                    self.inherit_class_name.properties = self.inherit_class_name.inherit_class_name.properties
+                for key, value in self.inherit_class_name.properties.items():
+                    if key not in self.properties:
+                        self.properties[key] = value
+                self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
+                self.properties = self.inherit_class_name.properties
+
+        method_properties = dict({arg_name.value: arg_value for arg_name, arg_value in zip(
+            self.constructor_args, args)}, **self.properties)
+        self.method_properties = method_properties
+        self.check_args(self.constructor_args, args)
+        self.populate_args(self.constructor_args, args, self.context)     
+           
+        if res.should_return(): return res
         
+        if  self.properties == {}:
+            self.properties = method_properties
+        else:
+            for method_name, method in self.properties.items():
+                method.context = new_context
+                method = method.copy()
+                self.properties[method_name] = method
+                self.properties = method_properties
+                
+                if method_name == 'init':
+                    method_args = method.arg_names
+                    if len(method_args) == 1:
+                        method_args = method_args[1:]
+                    else:
+                        raise Al_RuntimeError({
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"{method_name} method cannot have any arguments",
+                            'context': self.context,
+                            'exit': False
+                        })
+                    res.register(method.run(method_args, self, new_context))
+                    if res.should_return(): return res
+                
+                if method_name == 'str':
+                    method_args = method.arg_names
+                    if len(method_args) == 1:
+                        method_args = method_args[1:]
+                    val = res.register(method.run(method_args, self, new_context))
+                    self.representation = val
+             
+        return res.success(self)
+    
+  
+    def set_method(self, key, value):
+        self.properties[key] = value
+        return self
+
+
+    def get_method(self, method_name):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Method '{method_name}' does not exist on class '{self.class_name}'",
+            'context': self.context,
+            'exit': False
+        }
+        if isinstance(method_name, String):
+            result = []
+            for key, value in self.properties:
+                if key == method_name.value:
+                    result.append(value)
+                    if len(result) == 0:
+                        return None, self.key_error(error, method_name)
+                    return value, None
+            return "none", self.key_error(error, method_name)
+
+    
+    def has_property(self, property_name):
+        return property_name in self.properties
+        
+   
+    def get_comparison_eq(self, other):
+        value = self.isSame(other)
+        return self.setTrueorFalse(True if value else False), None
+    
+    
+    def get_comparison_ne(self, other):
+        value = self.isSame(other)
+        return self.setTrueorFalse(False if value else True), None
+     
+    
+    def notted(self):
+        value = setNumber(self.value)
+        return self.setTrueorFalse(not value).setContext(self.context), None
+    
+    
+    def isSame(self, other):
+        if isinstance(other, Class):
+            _new_class = f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items()])}}}"
+            other_class = f"{{{', '.join([f'{k}: {v}' for k, v in other.properties.items()])}}}"
+            return _new_class == other_class
+        return False
+
+    
+    def merge(self, other):
+        if isinstance(other, Dict) or isinstance(other, Object):
+            for key, value in other.properties.items():
+                if key.startswith("__"):
+                    continue
+                else:
+                    self.properties[key] = value
+            return Dict(self.properties), None
+        elif isinstance(other, Class):
+            for key, value in other.properties.items():
+                if key.startswith("__"):
+                    continue
+                else:
+                    self.properties[key] = value
+            return Dict(self.properties), None
+        else:
+            error = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"can't merge '{TypeOf(self.value).getType()}' with '{TypeOf(other.value).getType()}'",
+                'context': self.context,
+                'exit': False
+            }
+            return None, self.illegal_operation_typerror(error, other)
+   
+    
+    def copy(self):
+        copy = BuiltInClass(self.class_name, self.constructor_args, self.inherit_class_name,
+                            self.properties, self.class_fields_modifiers, self.context)
+        copy.setContext(self.context)
+        copy.setPosition(self.pos_start, self.pos_end)
+        return copy
+
+    
+    def __repr__(self):
+        return self.representation
+            
 
 class ModuleObject(Value):
     def __init__(self, name, properties, type=None):
@@ -3213,7 +3411,8 @@ class BuiltInFunction(BaseFunction):
     def __init__(self, name):
         super().__init__(name)
         self.value = name
-
+    
+    
     def execute(self, args):
         res = RuntimeResult()
         exec_context = self.generate_new_context()
@@ -3340,46 +3539,7 @@ class BuiltInFunction(BaseFunction):
         return f"<{str(self.name)}()>, [ built-in function ]"
 
 
-class BuiltInClass(BaseClass):
-    def __init__(self, name, properties):
-        super().__init__(name)
-        self.properties = properties
-        self.value = name
 
-    def execute(self, args):
-        res = RuntimeResult()
-        exec_context = self.generate_new_context()
-        method_name = f'execute_{self.name}'
-        method = getattr(self, method_name, self.no_visit)
-        print(method)
-        res.register(self.check_and_populate_args(
-            method.constructor_args, args, exec_context))
-        if res.should_return():
-            return res
-
-        return_value = res.register(method(exec_context))
-        if res.should_return():
-            return res
-        return res.success(return_value)
-    
-    def no_visit(self, node, exec_context):
-        res = RuntimeResult()
-        raise Al_RuntimeError({
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"{self.name} is not a supported built-in function",
-            'context': self.context,
-            'exit': False
-        })
-
-    def copy(self):
-        copy = BuiltInClass(self.name, self.properties)
-        copy.setContext(self.context)
-        copy.setPosition(self.pos_start, self.pos_end)
-        return copy
-
-    def __repr__(self):
-        return f"<{str(self.name)}()>, [ built-in class ]"
  
 
         
@@ -4384,9 +4544,9 @@ builtin_variables = {
 }
 # Built-in class
 
-def BuiltInClass_Exception(args, node, context, type):
+def BuiltInClass_Exception(args, node, context, type, name=None):
     res = RuntimeResult()
-    scope = context.symbolTable.get_current_scope()
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_Exception('Exception',{
             'name': 'Exception',
@@ -4399,7 +4559,7 @@ def BuiltInClass_Exception(args, node, context, type):
     if type == "raise":
         if len(args) == 1 and isinstance(args[0], String):
             raise Al_Exception('Exception',{
-                'name': 'Exception',
+                'name': name if name else 'Exception',
                 'message': args[0].value,
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
@@ -4408,7 +4568,7 @@ def BuiltInClass_Exception(args, node, context, type):
             })
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
             raise Al_Exception('Exception',{
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String("Exception"),
+                'name': name if name else 'Exception',
                 'message': args[1].value, 
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
@@ -4424,11 +4584,7 @@ def BuiltInClass_Exception(args, node, context, type):
                 'exit': False
             })
     else:
-        # return exception object
-        if len(args) == 1 and isinstance(args[0], String):
-            return res.success(BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String(args[0].value)})))
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            return res.success(BuiltInClass("Exception", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+        return BuiltInClass.Exception
 
 
 def BuiltInClass_RuntimeError(args, node, context, type):
@@ -7781,8 +7937,8 @@ class Interpreter:
         
         elif isinstance(object_name, BuiltInClass):
             if type(object_key).__name__ == "Token":
-                if object_key.value in object_name.properties.properties:
-                    value = object_name.properties.properties[object_key.value]
+                if object_key.value in object_name.properties:
+                    value = object_name.properties[object_key.value]
                     return res.success(value)
                 else:
                     error["message"] = String(
@@ -7790,8 +7946,8 @@ class Interpreter:
                     raise Al_PropertyError(error)
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
-                    if object_key.node_to_call.value in object_name.properties.properties:
-                        value = object_name.properties.properties[object_key.node_to_call.value]
+                    if object_key.node_to_call.value in object_name.properties:
+                        value = object_name.properties[object_key.node_to_call.value]
                         args_node = object_key.args_nodes
                         args = []
                         
@@ -8412,8 +8568,8 @@ class Interpreter:
                     raise Al_PropertyError(error)
         
         elif isinstance(object_name, BuiltInClass):
-            if property.value in object_name.properties.properties:
-                object_name.properties.properties[property.value] = value
+            if property.value in object_name.properties:
+                object_name.properties[property.value] = value
             else:
                 error['name'] = String("TypeError")
                 error["message"] = f"cannot set '{property.value}' on immutable type '{TypeOf(object_name).getType()}'"
@@ -8561,7 +8717,7 @@ class Interpreter:
                     'exit': False
                 })
         
-        elif object_type == "dict":
+        elif object_type == "dict" or object_type == "object":
                 try:
                     get_value = index_value.properties[index.value]
                     if type_ == "=":
@@ -9436,13 +9592,12 @@ class Interpreter:
     
     def visit_RaiseNode(self, node, context):
         res = RuntimeResult()
-        scope = context.symbolTable.get_current_scope()
         if type(node.expression).__name__ != "CallNode":
             exception = res.register(self.visit(node.expression, context))
             if res.should_return(): return res
             if type(exception).__name__ == "BuiltInClass" and exception.name in builtin_exceptions:
-                args = [exception.properties.properties["name"],
-                        exception.properties.properties["message"]]
+                args = [exception.properties["message"]]
+                
                 if  exception.name in builtin_exceptions:
                     attr = builtin_exceptions[exception.name].__name__
                     attr_name = attr.split("Al_")[1]
@@ -9450,15 +9605,58 @@ class Interpreter:
                     if exception in globals():
                         return globals()[exception](args, node, context, "raise")
             else:
-                raise Al_TypeError({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'context': context,
-                    'message': f"exceptions must be of type Exception",
-                    'exit': False
-                })
+                if isinstance(exception, Class) or isinstance(exception, BuiltInClass):
+                    if exception.inherit_class_name.class_name not in builtin_exceptions:
+                        if exception.inherit_class_name.inherit_class_name.class_name in builtin_exceptions:
+                            if exception.properties["message"] == None or exception.properties["message"] == "":
+                                raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'context': context,
+                                'message': f"'{exception.class_name}' object is not callable",
+                                'exit': False
+                            })
+                            args = [exception.properties["message"]]
+                            # since this is a user defined exception, we just need to return the exception
+                            return BuiltInClass_Exception(args, node, context, "raise", exception.class_name)
+                        else:
+                            raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'context': context,
+                                'message': f"exceptions must be of type Exception",
+                                'exit': False
+                            })
+                    else:
+                        if exception.properties["message"] == None or exception.properties["message"] == "":
+                            raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'context': context,
+                                'message': f"'{exception.class_name}' object is not callable",
+                                'exit': False
+                            })
+                        args = [exception.properties["message"]]
+                        # since this is a user defined exception, we just need to return the exception
+                        return BuiltInClass_Exception(args, node, context, "raise", exception.class_name)
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': f"exceptions must be of type Exception",
+                        'exit': False
+                    })
         else:
             if type(node.expression.node_to_call).__name__ == "VarAccessNode":
+                if not hasattr(node.expression, 'node_to_call'):
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': f"type '{TypeOf(node.expression).getType()}'' is not callable",
+                        'exit': False
+                    })
                 name = node.expression.node_to_call.id.value
                 if not name in builtin_exceptions:
                     exception = context.symbolTable.get(name)
@@ -9479,7 +9677,6 @@ class Interpreter:
                             'exit': False
                         })
                 else:
-                    self.error_detected = True
                     args_nodes = node.expression.args_nodes
                     args = []
                     for arg_node in args_nodes:
@@ -9506,13 +9703,44 @@ class Interpreter:
                 exceptions_names.append(exception_name)
         for name in exceptions_names:
             if not name in builtin_exceptions:
-                raise Al_NameError({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'context': context,
-                    'message': f"name '{name}' is not defined",
-                    'exit': False
-                })
+                exceptionName = name
+                name = context.symbolTable.get(name)
+                if name == None:
+                    raise Al_NameError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'message': f"name '{exceptionName}' is not defined",
+                        'exit': False
+                    })
+                else:
+                    if isinstance(name, Class) or isinstance(name, BuiltInClass):
+                        if  name.inherit_class_name == None:
+                            raise Al_TypeError({
+                                'pos_start': [catch['pos_start'] for catch in catches][0] if len(catches) > 0 else node.pos_start,
+                                'pos_end': [catch['pos_end'] for catch in catches][0] if len(catches) > 0 else node.pos_end,
+                                'context': context,
+                                'message': f"exceptions must be of type Exception",
+                                'exit': False
+                            })
+                        if name.inherit_class_name.class_name not in builtin_exceptions:
+                            raise Al_TypeError({
+                                'pos_start': [catch['pos_start'] for catch in catches][0] if len(catches) > 0 else node.pos_start,
+                                'pos_end': [catch['pos_end'] for catch in catches][0] if len(catches) > 0 else node.pos_end,
+                                'context': context,
+                                'message': f"exceptions must be of type Exception",
+                                'exit': False
+                            })
+                        else:
+                            exception_name = name.inherit_class_name.class_name
+                    else:
+                        raise Al_TypeError({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'context': context,
+                            'message': f"exceptions must be of type Exception",
+                            'exit': False
+                        })
         try:
             value = res.register(self.visit(attempt_statement['body'], context))
             if res.should_return(): return res
@@ -9525,13 +9753,18 @@ class Interpreter:
                     exceptions_names.append(exception_name)
                 if catch != None and catch != {}:
                     if exception:
-                        exception_name = exception["name"].value
-                        exception_name_as = exception["as"]
-                        if attempt_exception.name == exception_name or exception_name == "Exception":
-                                exception_error = Dict({
+                        exception_error = Dict({
                                     'name': attempt_exception.name if isinstance(attempt_exception.name, String) else String(attempt_exception.name),
                                     'message': attempt_exception.message['message'] if isinstance(attempt_exception.message['message'], String) else String(attempt_exception.message['message']),
-                                })
+                        })        
+                        exception_name = exception["name"].value
+                        if not exception_name in builtin_exceptions:
+                            name = context.symbolTable.get(exception_name)
+                            exception_name =  "Exception"
+                            exception_error.properties["name"] = name.class_name if isinstance(name.class_name, String) else String(name.class_name)
+                        exception_name_as = exception["as"]
+                        if  attempt_exception.name == exception_name or exception_name == "Exception":
+                                
                                 if exception_name_as != None:
                                     context.symbolTable.set(exception_name_as.value, exception_error)
                                 try:
@@ -9679,6 +9912,7 @@ class Interpreter:
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
         class_name = node.class_name.value
+        
         constructor_args = node.class_constuctor_args
         inherits_class_name = node.inherits_class_name
         class_fields_modifiers = node.class_fields_modifiers
@@ -9703,13 +9937,16 @@ class Interpreter:
             if isinstance(inherits_class_name, dict):
                 inherits_class_name = inherits_class_name['value']
             if not isinstance(inherits_class_name, Class):
-                raise Al_TypeError({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"cannot inherit from non-class type '{TypeOf(inherits_class_name).getType()}'",
-                    'context': context,
-                    'exit': False
-                })
+                if isinstance(inherits_class_name, BuiltInClass):
+                    pass
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"cannot inherit from non-class type '{TypeOf(inherits_class_name).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
         _properties = {}
         class_value = {}
         methods = {}
@@ -9797,16 +10034,17 @@ class Interpreter:
             'isinstanceof': BuiltInFunction_IsinstanceOf,
             'hasProperty': BuiltInFunction_HasProperty,
             'delay': BuiltInFunction_Delay,
-            'Exception': BuiltInClass_Exception,
-            'RuntimeError': BuiltInClass_RuntimeError,
-            'NameError': BuiltInClass_NameError,
-            'TypeError': BuiltInClass_TypeError,
-            'ValueError': BuiltInClass_ValueError,
-            'KeyError': BuiltInClass_KeyError,
-            'IndexError': BuiltInClass_IndexError,
-            'PropertyError': BuiltInClass_PropertyError,
-            'GetError': BuiltInClass_GetError,
-            'ModuleNotFoundError': BuiltInClass_ModuleNotFoundError,
+            # 'Exception': BuiltInClass_Exception,
+            # 'RuntimeError': BuiltInClass_RuntimeError,
+            # 'NameError': BuiltInClass_NameError,
+            # 'TypeError': BuiltInClass_TypeError,
+            # 'ValueError': BuiltInClass_ValueError,
+            # 'KeyError': BuiltInClass_KeyError,
+            # 'IndexError': BuiltInClass_IndexError,
+            # 'PropertyError': BuiltInClass_PropertyError,
+            # 'GetError': BuiltInClass_GetError,
+            # 'ModuleNotFoundError': BuiltInClass_ModuleNotFoundError,
+            # 'KeyboardInterrupt': BuiltInClass_KeyboardInterrupt,
             'exit': BuiltInFunction_Exit
         }
         
@@ -9823,8 +10061,6 @@ class Interpreter:
         if name in builtins:
             if name == 'print' or name == 'println':
                 return builtins[name](args,node)
-            elif name in builtin_exceptions:
-                return builtins[name](args, node, context, None)
             return builtins[name](args, node, context)
         
         
@@ -9983,20 +10219,65 @@ BuiltInFunction.hasProperty = BuiltInFunction("hasProperty")
 BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
 BuiltInFunction.isFinite = BuiltInFunction("isFinite")
-BuiltInClass.Exception = BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String("")}))
-BuiltInClass.RuntimeError = BuiltInClass("RuntimeError", Dict({'name': String("RuntimeError"), 'message': String("")}))
-BuiltInClass.NameError = BuiltInClass("NameError", Dict({'name': String("NameError"), 'message': String("")}))
-BuiltInClass.TypeError = BuiltInClass("TypeError", Dict({'name': String("TypeError"), 'message': String("")}))
-BuiltInClass.IndexError = BuiltInClass("IndexError", Dict({'name': String("IndexError"), 'message': String("")}))
-BuiltInClass.ValueError = BuiltInClass("ValueError", Dict({'name': String("ValueError"), 'message': String("")}))
-BuiltInClass.PropertyError = BuiltInClass("PropertyError", Dict({'name': String("PropertyError"), 'message': String("")}))
-BuiltInClass.KeyError = BuiltInClass("KeyError", Dict({'name': String("KeyError"), 'message': String("")}))
-BuiltInClass.ZeroDivisionError = BuiltInClass("ZeroDivisionError", Dict({'name': String("ZeroDivisionError"), 'message': String("")}))
-BuiltInClass.GetError = BuiltInClass("GetError", Dict({'name': String("GetError"), 'message': String("")}))
-BuiltInClass.ModuleNotFoundError = BuiltInClass("ModuleNotFoundError", Dict({'name': String("ModuleNotFoundError"), 'message': String("")}))
-BuiltInClass.KeyboardInterrupt = BuiltInClass("KeyboardInterrupt", Dict({'name': String("KeyboardInterrupt"), 'message': String("")}))
 
- 
+
+
+
+
+# code for the built-in class exceptions
+#'class Exception(message)\nend\nclass RuntimeError()~Exception\nend'
+code_builtin_exception = 'class Exception(message)\nend'
+code_builtin_runtime = 'class RuntimeError(message)\nend'
+code_builtin_nameerror = 'class NameError(message)\nend'
+code_builtin_typeerror = 'class TypeError(message)\nend'
+code_builtin_indexerror = 'class IndexError(message)\nend'
+code_builtin_valueerror = 'class ValueError(message)\nend'
+code_builtin_propertyerror = 'class PropertyError(message)\nend'
+code_builtin_keyerror = 'class KeyError(message)\nend'
+code_builtin_zerodivisionerror = 'class ZeroDivisionError(message)\nend'
+code_builtin_geterror = 'class GetError(message)\nend'
+code_builtin_modulenotfounderror = 'class ModuleNotFoundError(message)\nend'
+code_builtin_keyboardinterrupt = 'class KeyboardInterrupt(message)\nend'
+builtin_exception = Program.createBuiltIn("Exception", code_builtin_exception).elements[0]
+builtin_exception_runtime = Program.createBuiltIn("RuntimeError", code_builtin_runtime).elements[0]
+builtin_exception_nameerror = Program.createBuiltIn("NameError", code_builtin_nameerror).elements[0]
+builtin_exception_typeerror = Program.createBuiltIn("TypeError", code_builtin_typeerror).elements[0]
+builtin_exception_indexerror = Program.createBuiltIn("IndexError", code_builtin_indexerror).elements[0]
+builtin_exception_valueerror = Program.createBuiltIn("ValueError", code_builtin_valueerror).elements[0]
+builtin_exception_propertyerror = Program.createBuiltIn("PropertyError", code_builtin_propertyerror).elements[0]
+builtin_exception_keyerror = Program.createBuiltIn("KeyError", code_builtin_keyerror).elements[0]
+builtin_exception_zerodivisionerror = Program.createBuiltIn("ZeroDivisionError", code_builtin_zerodivisionerror).elements[0]
+builtin_exception_geterror = Program.createBuiltIn("GetError", code_builtin_geterror).elements[0]
+builtin_exception_modulenotfounderror = Program.createBuiltIn("ModuleNotFoundError", code_builtin_modulenotfounderror).elements[0]
+builtin_exception_keyboardinterrupt = Program.createBuiltIn("KeyboardInterrupt", code_builtin_keyboardinterrupt).elements[0]
+exceptions_ = {
+    'Exception': builtin_exception,
+    'RuntimeError': builtin_exception_runtime,
+    'NameError': builtin_exception_nameerror,
+    'TypeError': builtin_exception_typeerror,
+    'IndexError': builtin_exception_indexerror,
+    'ValueError': builtin_exception_valueerror,
+    'PropertyError': builtin_exception_propertyerror,
+    'KeyError': builtin_exception_keyerror,
+    'ZeroDivisionError': builtin_exception_zerodivisionerror,
+    'GetError': builtin_exception_geterror,
+    'ModuleNotFoundError': builtin_exception_modulenotfounderror,
+    'KeyboardInterrupt': builtin_exception_keyboardinterrupt
+}
+#class_name, constructor_args, inherit_class_name, methods, class_fields_modifiers, context
+BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.constructor_args, builtin_exception.inherit_class_name, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
+BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.constructor_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
+BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.constructor_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context) 
+BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.constructor_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
+BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.constructor_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
+BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.constructor_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
+BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.constructor_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
+BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.constructor_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
+BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.constructor_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
+BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.constructor_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
+BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.constructor_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
+BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.constructor_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
+
 Types.Number = Types("Number")
 Types.String = Types("String")
 Types.Boolean = Types("Boolean")

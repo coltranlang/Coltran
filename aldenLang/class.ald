@@ -80,7 +80,7 @@ end
 
 
 class BankAccount() ~ Wallet
-    def __init(self)
+    def init(self)
         self.balance = 0
     end
     def get_balance(self)
@@ -131,10 +131,33 @@ let bank_account = BankAccount()
 bank_account.deposit(100)
 bank_account.withdraw(50)
 println(bank_account.get_balance())
-let d = {
-    100_00: "David",
-    "age": "25",
-    "address": "123 Main St",
-    "phone": "555-555-5555"
-}
-println(d[2])
+
+class Test()
+    def init(self)
+        self.name = "Test"
+    end
+    def str(self)
+        return fm"Test: %{self.name}"
+    end
+end
+
+
+class MyCustomException() ~ NameError
+    def init(self)
+        self.name = "MyCustomException"
+    end
+end
+
+let custom_exception = MyCustomException("my custom exception")
+
+attempt:
+    raise custom_exception
+catch Test as e:
+    println(fm"MyCustomException: %{e.name.upperCase()}")
+catch:
+    println("Catch all")
+
+finally:
+    println("Finally")
+    
+end
