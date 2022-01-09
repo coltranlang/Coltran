@@ -4631,4 +4631,14 @@ LETTERS_SYMBOLS = LETTERS + SYMBOLS
 # employee = Employee()
 # print(employee)
 
+# class School:
+#     def __init__(self, name, address):
+#         self.name = name
+#         self.address = address
+
+# class Student(School):
+#     def __init__(self, name, address, school):
+#         super().__init__(name, address)
+#         self.school = school
+
 

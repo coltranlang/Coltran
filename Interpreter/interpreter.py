@@ -433,7 +433,7 @@ class Program:
                           
         def IndexError(detail):
             isDetail = {
-                'name': name if 'name' in detail else 'IndexError',
+                'name': detail['name'] if 'name' in detail else 'IndexError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -2891,12 +2891,13 @@ class Function(BaseFunction):
 
 
 class Class(BaseClass):
-    def __init__(self, class_name, constructor_args, inherit_class_name, methods, class_fields_modifiers, context):
+    def __init__(self, class_name, constructor_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context):
         super().__init__(class_name)
         self.id = class_name
         self.class_name = class_name
         self.constructor_args = constructor_args
         self.inherit_class_name = inherit_class_name
+        self.inherited_from = inherited_from
         self.methods = methods
         self.properties = methods
         self.class_fields_modifiers = class_fields_modifiers
@@ -2910,33 +2911,55 @@ class Class(BaseClass):
     def execute(self, args):
         res = RuntimeResult()
         new_context = self.generate_new_context()
-        if self.inherit_class_name:
-            if isinstance(self.inherit_class_name, BuiltInClass):
-                if self.inherit_class_name.inherit_class_name:
-                    for key, value in self.inherit_class_name.properties.items():
+        print(self.class_name, "inherited_from",
+              self.inherit_class_name.inherited_from)
+        if isinstance(self.inherit_class_name, BuiltInClass):
+            pass
+        else:
+            # we need to suport nested inheritance e.g class A extends B extends C and the top class is A
+            # we need to check if the class A inherits from B and if it inherits from C
+            # we need to check if the class B inherits from C
+            # we need to check if the class C inherits from A
+            # we need to check if the class C inherits from B
+            while self.inherit_class_name != None:
+                print("inherit_class_name", self.inherit_class_name, self.class_name)
+            for key, value in self.inherit_class_name.properties.items():
+                if key not in self.inherit_class_name.properties:
+                    self.properties[key] = value
+            self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
+            new_context.symbolTable.set("super", self.inherit_class_name)
+            # since the inherited class is not a executed yet, we need to set each inherited class parameter to args 
+            for i in range(len(self.inherit_class_name.constructor_args)):
+                self.inherit_class_name.properties[self.inherit_class_name.constructor_args[i].value] = args[i]
+        
+            #print(self.inherit_class_name.properties)
+        # if self.inherit_class_name:
+        #     if isinstance(self.inherit_class_name, BuiltInClass):
+        #         if self.inherit_class_name.inherit_class_name:
+        #             for key, value in self.inherit_class_name.properties.items():
                         
-                        if key not in self.inherit_class_name.properties:
-                            self.inherit_class_name.properties[key] = value
-                    self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
-                    self.inherit_class_name.properties = self.inherit_class_name.inherit_class_name.properties
-                for key, value in self.inherit_class_name.properties.items():
-                    if key not in self.properties:
-                        self.properties[key] = value
-                self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
-                self.properties = self.inherit_class_name.properties
-            else:
-                if self.inherit_class_name.inherit_class_name:
-                    for key, value in self.inherit_class_name.properties.items():
+        #                 if key not in self.inherit_class_name.properties:
+        #                     self.inherit_class_name.properties[key] = value
+        #             self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
+        #             self.inherit_class_name.properties = self.inherit_class_name.inherit_class_name.properties
+        #         for key, value in self.inherit_class_name.properties.items():
+        #             if key not in self.properties:
+        #                 self.properties[key] = value
+        #         self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
+        #         self.properties = self.inherit_class_name.properties
+        #     else:
+        #         if self.inherit_class_name.inherit_class_name:
+        #             for key, value in self.inherit_class_name.properties.items():
                         
-                        if key not in self.inherit_class_name.properties:
-                            self.inherit_class_name.properties[key] = value
-                    self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
-                    self.properties = self.inherit_class_name.properties
-                for key, value in self.inherit_class_name.properties.items():
-                    if key not in self.properties:
-                        self.properties[key] = value
-                self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
-                self.properties = self.inherit_class_name.properties
+        #                 if key not in self.inherit_class_name.properties:
+        #                     self.inherit_class_name.properties[key] = value
+        #             self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
+        #             self.properties = self.inherit_class_name.properties
+        #         for key, value in self.inherit_class_name.properties.items():
+        #             if key not in self.properties:
+        #                 self.properties[key] = value
+        #         self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
+        #         self.properties = self.inherit_class_name.properties
 
         method_properties = dict({arg_name.value: arg_value for arg_name, arg_value in zip(
             self.constructor_args, args)}, **self.properties)
@@ -3058,7 +3081,7 @@ class Class(BaseClass):
    
     
     def copy(self):
-        copy = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.properties, self.class_fields_modifiers, self.context)
+        copy = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherited_from, self.properties, self.class_fields_modifiers, self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -8698,7 +8721,7 @@ class Interpreter:
                     return res.success(get_value)
                 except IndexError:
                     raise Al_IndexError({
-                        'name': String("IndexError"),
+                        'name': "IndexError",
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"pair index out of range",
@@ -9916,6 +9939,7 @@ class Interpreter:
         constructor_args = node.class_constuctor_args
         inherits_class_name = node.inherits_class_name
         class_fields_modifiers = node.class_fields_modifiers
+        inherited_from = None
         if inherits_class_name != None:
             if type(inherits_class_name).__name__ == 'list':
                 raise Al_RuntimeError({
@@ -9925,7 +9949,17 @@ class Interpreter:
                     'context': context,
                     'exit': False
                 })
-            inherits_class_name = context.symbolTable.get(inherits_class_name.value) if hasattr(inherits_class_name, 'value') else context.symbolTable.get(inherits_class_name)
+            inherits_class_name_ = inherits_class_name.value if hasattr(inherits_class_name, 'value') else inherits_class_name
+            inherits_class_name = context.symbolTable.get(inherits_class_name_)
+            inherited_from = inherits_class_name
+            if inherits_class_name_ == class_name:
+                raise Al_RuntimeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"a class cannot inherit from itself",
+                    'context': context,
+                    'exit': False
+                })
             if inherits_class_name == None:
                 raise Al_NameError({
                     'pos_start': node.pos_start,
@@ -9936,9 +9970,10 @@ class Interpreter:
                 })
             if isinstance(inherits_class_name, dict):
                 inherits_class_name = inherits_class_name['value']
+                inherited_from = inherits_class_name
             if not isinstance(inherits_class_name, Class):
                 if isinstance(inherits_class_name, BuiltInClass):
-                    pass
+                    inherited_from = inherits_class_name
                 else:
                     raise Al_TypeError({
                         'pos_start': node.pos_start,
@@ -9967,11 +10002,11 @@ class Interpreter:
                 if res.should_return(): return res
                 
                 methods = dict(methods, **{str(method_name): method_value})
-                class_value = Class(class_name, constructor_args, inherits_class_name,
+                class_value = Class(class_name, constructor_args, inherits_class_name,inherited_from,
                                     methods, class_fields_modifiers,context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
-            class_value = Class(class_name, constructor_args, inherits_class_name,
+            class_value = Class(class_name, constructor_args, inherits_class_name,inherited_from,
                                 {},class_fields_modifiers, context).setContext(context).setPosition(node.pos_start, node.pos_end)
             context.symbolTable.set_object(class_name, class_value)
         return res.success(class_value)
