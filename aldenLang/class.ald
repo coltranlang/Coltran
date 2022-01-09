@@ -5,11 +5,11 @@ class Employee(name, age)
         self.name = name
         self.age = age
     end
-    def __repr(self)
-        return fm"Employee(%{self.name}, %{self.age})"
-    end
     def get_employee_db_id(self)
         return self.@employee_db_id
+    end
+    def str(self)
+        return fm"Employee(%{self.name}, %{self.age})"
     end
 end
 
@@ -21,7 +21,7 @@ println(employee.url)
 
 class Accounts(config)
     accounts_list = []
-    def __init(self)
+    def init(self)
     end
     def create_account(self, data)
         self.accounts_list.append(data)
@@ -37,7 +37,7 @@ end
 
 
 class Client(config)
-    def __init(self)
+    def init(self)
         if not config.has_key("client_id"):
             raise KeyError("Client ID is required")
         end
@@ -51,14 +51,14 @@ class Client(config)
     def get_config(self)
         return self.config
     end
-    def __str(self)
+    def str(self)
         return fm"Client ID: %{self.client_id}, Client Secret: %{self.client_secret}"
     end
 end
 
 
 class Wallet()
-    def __init(self)
+    def init(self)
         self.balance = 0
     end
     def deposit(self, amount)
@@ -73,7 +73,7 @@ class Wallet()
     def get_balance(self)
         return fm"Your balance is $%{self.balance}"
     end
-    def __str(self)
+    def str(self)
         return fm"Wallet balance: $%{self.balance}"
     end
 end
@@ -86,7 +86,7 @@ class BankAccount() ~ Wallet
     def get_balance(self)
         return fm"Balance: $%{self.balance}"
     end
-    def __str(self)
+    def str(self)
         return fm"Bank Account: $%{self.balance}"
     end
 end
@@ -131,3 +131,10 @@ let bank_account = BankAccount()
 bank_account.deposit(100)
 bank_account.withdraw(50)
 println(bank_account.get_balance())
+let d = {
+    100_00: "David",
+    "age": "25",
+    "address": "123 Main St",
+    "phone": "555-555-5555"
+}
+println(d[2])

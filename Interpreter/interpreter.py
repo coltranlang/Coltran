@@ -8499,7 +8499,6 @@ class Interpreter:
         if res.should_return(): return res
         object_type = TypeOf(index_value).getType()
         index_type = TypeOf(index).getType()
-        scope = context.symbolTable.get_current_scope()
         if object_type == "list":
             if index_type == "int":
                 try:
@@ -8562,41 +8561,7 @@ class Interpreter:
                     'exit': False
                 })
         
-        elif object_type == "object":
-            if index_type == "string":
-                try:
-                    get_value = index_value.properties[index.value]
-                    if type_ == "=":
-                        raise Al_TypeError({
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'message': f"immutable object does not support item assignment",
-                                'context': context,
-                                'exit': False
-                            })
-                    return res.success(get_value)
-                except KeyError:
-                    raise Al_KeyError({
-                        'name': String("KeyError"),
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"'{index.value}'",
-                        'context': context,
-                        'exit': False
-                    })
-                except AttributeError:
-                    pass
-            else:
-                raise Al_TypeError({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"object indices must be strings, not {index_type}",
-                    'context': context,
-                    'exit': False
-                })
-        
         elif object_type == "dict":
-            if index_type == "string":
                 try:
                     get_value = index_value.properties[index.value]
                     if type_ == "=":
@@ -8604,10 +8569,27 @@ class Interpreter:
                     return res.success(get_value)
                 except KeyError:
                     raise Al_KeyError({
-                        'name': String("KeyError"),
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
-                        'message': f"'{index.value}'",
+                        'message': f"{index}",
+                        'context': context,
+                        'exit': False
+                    })
+                except AttributeError:
+                    pass
+        
+        elif object_type == "string":
+            if index_type == "int":
+                try:
+                    get_value = index_value.value[index.value]
+                    if type_ == "=":
+                        index_value.value[index.value] = value_
+                    return res.success(String(get_value))
+                except IndexError:
+                    raise Al_IndexError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': "string index out of range",
                         'context': context,
                         'exit': False
                     })
@@ -8617,29 +8599,20 @@ class Interpreter:
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"object indices must be strings, not {index_type}",
+                    'message': "string indices must be integers",
                     'context': context,
                     'exit': False
                 })
-        
-        elif object_type == "string":
-            try:
-                get_value = index_value.value[index.value]
-                if type_ == "=":
-                    index_value.value[index.value] = value_
-                return res.success(String(get_value))
-            except IndexError:
-                raise Al_IndexError({
-                    'name': String("IndexError"),
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"string index out of range",
-                    'context': context,
-                    'exit': False
-                })
-            except AttributeError:
-                pass
 
+        else:
+            raise Al_TypeError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"'{node.name.id.value}' object is not subscriptable" if hasattr(node.name, 'id') and hasattr(node.name.id, 'value') else f"'{TypeOf(index_value).getType()}' object is not subscriptable",
+                'context': context,
+                'exit': False
+            })
+        
 
     def visit_SliceNode(self, node, context):
         res = RuntimeResult()
@@ -9780,7 +9753,7 @@ class Interpreter:
             raise Al_NameError({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': "'{}' is not callable".format(node.node_to_call.name.value),
+                'message': f"'{node.node_to_call.name.value}' is not callable" if hasattr(node.node_to_call, 'name') and hasattr(node.node_to_call.name, 'value') else f"type '{TypeOf(value_to_call).getType()}' is not callable",
                 'context': context,
                 'exit': False
             })
@@ -10098,8 +10071,4 @@ symbolTable_.set('GetError', BuiltInClass.GetError)
 symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
 symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
 symbolTable_.setSymbol()
-name = "Kenny"
-try:
-    print(f"Hello {name['g']}!")
-except:
-    print('Except!')
+

@@ -46,6 +46,7 @@ TT_RSHIFT_EQ = 'RSHIFT_EQ'
 TT_AND = 'AND'
 TT_NOT_IN = 'NOT_IN'
 TT_COLON = 'COLON'
+TT_DOUBLE_COLON = 'DOUBLE_COLON'
 TT_SEMICOLON = 'SEMICOLON'
 TT_IDENTIFIER = 'IDENTIFIER'
 TT_OBJECT_REF = 'OBJECT_REF'
@@ -82,6 +83,8 @@ TT_SLASH = 'SLASH'
 TT_SPREAD = 'SPREAD'
 TT_MERGE = 'MERGE'
 TT_TILDE = 'TILDE'
+
+
 NOT_ALLOWED_OBJECTS_KEYS = [
      'let',
     'final',
@@ -201,7 +204,7 @@ KEYWORDS = [
     'break',
     'fm',
     'raise',
-    'del'
+    'del',
 ]
 
 TYPES = [

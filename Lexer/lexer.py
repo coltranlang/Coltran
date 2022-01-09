@@ -165,8 +165,7 @@ class Lexer:
             elif self.current_char == '^':
                 tokens.append(self.make_power_or_power_equal())
             elif self.current_char == ':':
-                tokens.append(Token(tokenList.TT_COLON, pos_start=self.pos))
-                self.advance()
+                tokens.append(self.make_colon_or_type_assoc())
             elif self.current_char == '|':
                 tokens.append(self.make_pipe_merge())
             elif self.current_char == '.':
@@ -584,6 +583,15 @@ class Lexer:
             })
         self.advance()
         return Token(tokenList.TT_BACKTICK_STRING, string, pos_start, self.pos)    
+      
+    def make_colon_or_type_assoc(self):
+        pos_start = self.pos.copy()
+        self.advance()
+        if self.current_char == ':':
+            self.advance()
+            return Token(tokenList.TT_DOUBLE_COLON, '::', pos_start, self.pos)
+        else:
+            return Token(tokenList.TT_COLON, ':', pos_start, self.pos)
       
     def make_pipe_merge(self):
         tok_type = tokenList.TT_PIPE

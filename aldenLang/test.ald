@@ -930,6 +930,19 @@ def @status()
 end
 let type, status, message = @status()
 print(type + ' ' + status + ' ' + message + '\n')
+
+line(80)
+# Workaround for accessing the dict properties 
+let d = {name: "John", amount: 1000, calculate_salary: def () -> d.amount * 12, greet: def () -> "Hello " + d.name}
+println(d.calculate_salary(), d.greet())
+line(81)
+# List reverse with slice
+let list = [1,2,3,4,5,6,7,8,9,10]
+println(list[::-1])
+line(82)
+# List creation with in loop
+let list_squares = in range(0, 10) as x: x * x
+println(list_squares)
 #println(dic_user["name"]) # error
 # def @makeList(item, list=[])
 #     list.append(item)

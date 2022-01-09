@@ -375,38 +375,35 @@
 # class Test()
 # end
 
-class Person(fname, lname)
-    def printname(self)
-      println(self.fname, self.lname)
-    end
-    def __repr(self)
-        return fm"Person(%{self.fname}, %{self.lname})"
-    end
-end
+# class Person(fname, lname)
+#     def printname(self)
+#       println(self.fname, self.lname)
+#     end
+#     def __repr(self)
+#         return fm"Person(%{self.fname}, %{self.lname})"
+#     end
+# end
 
-class Student() ~ Person
-    def __init(self)
-        self.age = 21
-    end
-    def printname(self)
-      println(fm"Hello, %{self.fname} %{self.lname}, you are %{self.age} years old")
-    end 
-end
+# class Student() ~ Person
+#     def __init(self)
+#         self.age = 21
+#     end
+#     def printname(self)
+#       println(fm"Hello, %{self.fname} %{self.lname}, you are %{self.age} years old")
+#     end 
+# end
 
-let p = Person("John", "Doe")
-let s1 = Student("John", "Doe")
-p.printname()
-s1.printname()
-object Name
-    id: 2
-end
-let l = [1,2,3,4,5,6,7,8,9,10]
-l += {'name': 'Kenny'}
-println(l)
+# let p = Person("John", "Doe")
+# let s1 = Student("John", "Doe")
+# p.printname()
+# s1.printname()
+# let l = [1,2,3,4,5,6,7,8,9,10]
+# l += {'name': 'Kenny'}
+# println(l)
 
-let dic = {num1: 1, num2: 2, num3: 3}
+# let dic = {num1: 1, num2: 2, num3: 3}
 
-let count = 0
+# let count = 0
 # let x = range(1, 10)
 # in x as i:
 #     println(fm"I is %{i}")
@@ -419,7 +416,7 @@ class Employee(name, age)
         self.name = name
         self.age = age
     end
-    def __repr(self)
+    def repr(self)
         return fm"Employee(%{self.name}, %{self.age})"
     end
     def get_employee_db_id(self)
@@ -434,3 +431,6 @@ end
 let employee = Employee
 #employee.@employee_db_id = "changed" # This is a static variable, so a warning will be shown
 employee.url = "http://www.new.com" # this is not a static variable, so value will be changed
+
+let d = {name: "John", age: 21 ,0: 0}
+println(employee['name'])
