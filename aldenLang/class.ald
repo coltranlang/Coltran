@@ -1,85 +1,89 @@
-# class Employee(name, age)
-#     @employee_db_id = "iobherbndfiuyirre" # @ means static variable and cannot be changed
-#     url = "http://www.google.com" # url is a instance variable and can be changed
-#     def create(self, name, age)
-#         self.name = name
-#         self.age = age
-#     end
-#     def get_employee_db_id(self)
-#         return self.@employee_db_id
-#     end
-#     def str(self)
-#         return fm"Employee(%{self.name}, %{self.age})"
-#     end
-# end
+class Employee
+    @employee_db_id = "iobherbndfiuyirre" # @ means static variable and cannot be changed
+    url = "http://www.google.com" # url is a instance variable and can be changed
+    def init(self)
+        self.name = name
+        self.age = age
+    end
+    def create(self, name, age)
+        self.name = name
+        self.age = age
+    end
+    def get_employee_db_id(self)
+        return self.@employee_db_id
+    end
+    def str(self)
+        return fm"Employee(%{self.name}, %{self.age})"
+    end
+end
 
-# let employee = Employee
-# #employee.@employee_db_id = "changed" # This is a static variable, so a warning will be raised if you try to change it
-# employee.url = "http://www.new.com" # this is not a static variable, so no value will be changed
-# println(employee.@employee_db_id)
-# println(employee.url)
+let employee = Employee
+#employee.@employee_db_id = "changed" # This is a static variable, so a warning will be raised if you try to change it
+employee.url = "http://www.new.com" # this is not a static variable, so no value will be changed
+println(employee.@employee_db_id)
+println(employee.url)
 
-# class Accounts(config)
-#     accounts_list = []
-#     def init(self)
-#     end
-#     def create_account(self, data)
-#         self.accounts_list.append(data)
-#         self.accounts = self.accounts_list
-#     end
-#     def get_account(self, account_id)
-#         return self.accounts.find(def (account) -> account.id == account_id)
-#     end
-#     def get_accounts(self)
-#         return self.accounts
-#     end
-# end
-
-
-# class Client(config)
-#     def init(self)
-#         if not config.has_key("client_id"):
-#             raise KeyError("Client ID is required")
-#         end
-#         if not config.has_key("client_secret"):
-#             raise KeyError("Client Secret is required")
-#         end
-#         self.client_id = config["client_id"]
-#         self.client_secret = config["client_secret"]
-#         self.accounts = Accounts(config)
-#     end
-#     def get_config(self)
-#         return self.config
-#     end
-#     def str(self)
-#         return fm"Client ID: %{self.client_id}, Client Secret: %{self.client_secret}"
-#     end
-# end
+class Accounts()
+    accounts_list = []
+    def init(self, config)
+    end
+    def create_account(self, data)
+        self.accounts_list.append(data)
+        self.accounts = self.accounts_list
+    end
+    def get_account(self, account_id)
+        return self.accounts.find(def (account) -> account.id == account_id)
+    end
+    def get_accounts(self)
+        return self.accounts
+    end
+end
 
 
-# class Wallet()
-#     def init(self)
-#         self.balance = 0
-#     end
-#     def deposit(self, amount)
-#         self.balance += amount
-#     end
-#     def withdraw(self, amount)
-#         if self.balance < amount:
-#             raise ValueError("Insufficient funds")
-#         end
-#         self.balance -= amount
-#     end
-#     def get_balance(self)
-#         return fm"Your balance is $%{self.balance}"
-#     end
-#     def str(self)
-#         return fm"Wallet balance: $%{self.balance}"
-#     end
-# end
+class Client()
+    def init(self, config)
+        if not config.has_key("client_id"):
+            raise KeyError("Client ID is required")
+        end
+        if not config.has_key("client_secret"):
+            raise KeyError("Client Secret is required")
+        end
+        self.client_id = config["client_id"]
+        self.client_secret = config["client_secret"]
+        self.accounts = Accounts(config)
+    end
+    def get_config(self)
+        return self.config
+    end
+    def str(self)
+        return fm"Client ID: %{self.client_id}, Client Secret: %{self.client_secret}"
+    end
+end
 
 
-# class BankAccount() ~ Wallet
+class Wallet()
+    def init(self)
+        self.balance = 0
+    end
+    def deposit(self, amount)
+        self.balance += amount
+    end
+    def withdraw(self, amount)
+        if self.balance < amount:
+            raise ValueError("Insufficient funds")
+        end
+        self.balance -= amount
+    end
+    def get_balance(self)
+        return fm"Your balance is $%{self.balance}"
+    end
+    def str(self)
+        return fm"Wallet balance: $%{self.balance}"
+    end
+end
+
+
+# class BankAccount(Wallet)
 #     def init(self)
 #         self.balance = 0
 #     end
@@ -93,99 +97,41 @@
 
 
 
-# final config = {
-#     "client_id": "isodnosd6eebecwye53283",
-#     "client_secret": '35h9ew8734b34723wewe7te7'
-# }
+final config = {
+    "client_id": "isodnosd6eebecwye53283",
+    "client_secret": '35h9ew8734b34723wewe7te7'
+}
 
 
-# let account_data1 = {
-#     "id": "12345",
-#     "name": "David s Account",
-#     "balance": "100.00"
-# }
+let account_data1 = {
+    "id": "12345",
+    "name": "David s Account",
+    "balance": "100.00"
+}
 
-# let account_data2 = {
-#     "id": "12346",
-#     "name": "Jane d Account",
-#     "balance": "200.00"
-# }
+let account_data2 = {
+    "id": "12346",
+    "name": "Jane d Account",
+    "balance": "200.00"
+}
 
-# let client = Client(config)
-# client.accounts.create_account(account_data1)
-# client.accounts.create_account(account_data2)
-# let account = client
-# let david_account = client.accounts.get_account("12345")
-# let jane_account = client.accounts.get_account("12346")
-# println(david_account)
-# println(jane_account)
-# println(client.accounts.get_accounts())
+let client = Client(config)
+client.accounts.create_account(account_data1)
+client.accounts.create_account(account_data2)
+let account = client
+let david_account = client.accounts.get_account("12345")
+let jane_account = client.accounts.get_account("12346")
+println(david_account)
+println(jane_account)
+println(client.accounts.get_accounts())
 
-# let wallet = Wallet()
-# wallet.deposit(100)
-# wallet.withdraw(50)
-# wallet.withdraw(18.50)
-# println(wallet.get_balance())
+let wallet = Wallet()
+wallet.deposit(100)
+wallet.withdraw(50)
+wallet.withdraw(18.50)
+println(wallet.get_balance())
 
 # let bank_account = BankAccount()
 # bank_account.deposit(100)
 # bank_account.withdraw(50)
 # println(bank_account.get_balance())
-
-
-# class MyCustomException() ~ NameError
-#     def init(self)
-#         self.name = "MyCustomException"
-#     end
-# end
-
-# let custom_exception = MyCustomException("my custom exception")
-
-# attempt:
-#     raise custom_exception
-# catch MyCustomException as e:
-#     println(fm"MyCustomException: %{e}")
-# catch:
-#     println("Catch all")
-# finally:
-#     println("Finally")
-# end
-
-class School(name, address)
-    def get_name(self)
-        return self.name
-    end
-    def greet(self)
-        println(fm"You are in %{self.name} school")
-    end
-end
-
-class Student() ~ School
-    def init(self)
-        println("Student init")
-    end
-    def greet(self)
-        super.greet()
-        return fm"Hello, I am in %{self.name}"
-    end
-    def str(self)
-        return fm"Student %{self.name}",
-    end
-end
-
-class David() ~ Student
-    def init(self)
-        println("Teacher init")
-    end
-    def greet(self)
-        super.greet()
-        return fm"Greeting in %{self.name}"
-    end
-    def str(self)
-        return fm"Teacher %{self.name}",
-    end
-end
-
-let student = Student("John's School", "123 Main St.")
-let teacher = David("John's School", "123 Main St.")
-println(student.greet(), teacher.greet())

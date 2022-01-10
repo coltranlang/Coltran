@@ -409,25 +409,43 @@
 #     println(fm"I is %{i}")
 # end
 #println(range(1,10))
-class Employee(name, age)
-    @employee_db_id = "iobherbndfiuyirre" # This is a static variable that is shared by all instances of the class
-    url = "http://www.google.com"
-    def create(self, name, age)
-        self.name = name
-        self.age = age
-    end
-    def repr(self)
-        return fm"Employee(%{self.name}, %{self.age})"
-    end
-    def get_employee_db_id(self)
-        return self.@employee_db_id
-    end
-    def get_url(self)
-        return self.url
-    end
-end
 
 
-let employee = Employee
-#employee.@employee_db_id = "changed" # This is a static variable, so a warning will be shown
-employee.url = "http://www.new.com" # this is not a static variable, so value will be changed
+# class MyCustomException() ~ NameError
+#     def init(self)
+#         self.name = "MyCustomException"
+#     end
+# end
+
+# let custom_exception = MyCustomException("my custom exception")
+
+# attempt:
+#     raise custom_exception
+# catch MyCustomException as e:
+#     println(fm"MyCustomException: %{e}")
+# catch:
+#     println("Catch all")
+# finally:
+#     println("Finally")
+# end
+
+# class Rectangle()
+#     def init(self, width, height)
+#         self.width = width
+#         self.height = height
+#     end
+#     def area(self)
+#         return self.width * self.height
+#     end
+# end
+
+# class Square(Rectangle)
+#     def init(self, width)
+#         super(width, width)
+#     end
+# end
+
+# let square = Square(5)
+# println(square.area())
+
+raise Exception("Exception")

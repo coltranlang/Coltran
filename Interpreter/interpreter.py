@@ -2815,7 +2815,7 @@ class Function(BaseFunction):
         return res.success(return_value)
 
     # only class Function calls this method
-    def run(self, args, class_name, context=None):
+    def run(self, args, class_name, context=None, Klass=None):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
@@ -2824,10 +2824,9 @@ class Function(BaseFunction):
         if len(self.arg_names) == 1 and len(args) == 0:
             args = [class_name]
         
-        
         self.args = args
         res.register(self.run_check_and_populate_args(
-            self.arg_names, args, exec_context))
+            self.arg_names, args, exec_context, Klass))
         if res.should_return():
             return res
         
@@ -2842,33 +2841,38 @@ class Function(BaseFunction):
         #         return res.success(None)
         return res.success(return_value)
     
-    def run_check_and_populate_args(self, arg_names, args, exec_ctx):
+    def run_check_and_populate_args(self, arg_names, args, exec_ctx, Klass=None):
         res = RuntimeResult()
-        res.register(self.run_check_args(arg_names, args))
+        res.register(self.run_check_args(arg_names, args, Klass))
         if res.should_return(): return res
         self.run_populate_args(arg_names, args, exec_ctx)
         return res.success(None)
     
-    def run_check_args(self, arg_names, args):
+    def run_check_args(self, arg_names, args, klass_=None):
         res = RuntimeResult()
-        
+        error1 = {
+            'pos_start': klass_.pos_start if klass_ else self.pos_start,
+            'pos_end': klass_.pos_end if klass_ else self.pos_end,
+            'message': f"{len(args) -1} argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names) - 1 if len(arg_names) > 0 else 0}",
+            'context': klass_.context if klass_ else self.context,
+            'exit': False
+        }
+        error2 = {
+            'pos_start': klass_.pos_start if klass_ else self.pos_start,
+            'pos_end': klass_.pos_end if klass_ else self.pos_end,
+            'message': f"{len(args) -1 if len(args) > 0 else 0} few argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names) - 1 }",
+            'context': klass_.context if klass_ else self.context,
+            'exit': False
+        }
         if len(args) > len(arg_names):
-            raise Al_RuntimeError({
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"{len(args) -1} argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names) - 1 if len(arg_names) > 0 else 0}",
-                'context': self.context,
-                'exit': False
-            })
+            if klass_:
+                error1['message'] = f"{len(args) -1} argument(s) given, but {klass_.class_name if klass_.class_name != 'none' else 'anonymous'}() expects {len(arg_names) - 1 if len(arg_names) > 0 else 0}"
+            raise Al_RuntimeError(error1)
 
         if len(args) < len(arg_names):
-            raise Al_RuntimeError({
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"{len(args) -1 if len(args) > 0 else 0} few argument(s) given, but {self.name if self.name != 'none' else 'anonymous'}() expects {len(arg_names) - 1 }",
-                'context': self.context,
-                'exit': False
-            })
+            if klass_:
+                error2['message'] = f"{len(args) -1 if len(args) > 0 else 0} few argument(s) given, but {klass_.class_name if klass_.class_name != 'none' else 'anonymous'}() expects {len(arg_names) - 1 }"
+            raise Al_RuntimeError(error2)
         return res.success(None)
     
     def run_populate_args(self, arg_names, args, exec_context):
@@ -2891,11 +2895,11 @@ class Function(BaseFunction):
 
 
 class Class(BaseClass):
-    def __init__(self, class_name, constructor_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context):
+    def __init__(self, class_name, class_args,inherit_class_name, inherited_from, methods, class_fields_modifiers, context):
         super().__init__(class_name)
         self.id = class_name
         self.class_name = class_name
-        self.constructor_args = constructor_args
+        self.class_args = class_args
         self.inherit_class_name = inherit_class_name
         self.inherited_from = inherited_from
         self.methods = methods
@@ -2905,101 +2909,62 @@ class Class(BaseClass):
         self.context = context
         self.body_node = None 
         self.representation = self.value
-        
-               
+        args = []
+        for arg in self.class_args:
+            args.append(arg.value) if hasattr(arg, "value") else args.append(arg)
+        self.class_args = args
     
     def execute(self, args):
         res = RuntimeResult()
         new_context = self.generate_new_context()
-        print(self.class_name, "inherited_from",
-              self.inherit_class_name.inherited_from)
-        if isinstance(self.inherit_class_name, BuiltInClass):
-            pass
-        else:
-            # we need to suport nested inheritance e.g class A extends B extends C and the top class is A
-            # we need to check if the class A inherits from B and if it inherits from C
-            # we need to check if the class B inherits from C
-            # we need to check if the class C inherits from A
-            # we need to check if the class C inherits from B
-            while self.inherit_class_name != None:
-                print("inherit_class_name", self.inherit_class_name, self.class_name)
-            for key, value in self.inherit_class_name.properties.items():
-                if key not in self.inherit_class_name.properties:
-                    self.properties[key] = value
-            self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
-            new_context.symbolTable.set("super", self.inherit_class_name)
-            # since the inherited class is not a executed yet, we need to set each inherited class parameter to args 
-            for i in range(len(self.inherit_class_name.constructor_args)):
-                self.inherit_class_name.properties[self.inherit_class_name.constructor_args[i].value] = args[i]
-        
-            #print(self.inherit_class_name.properties)
-        # if self.inherit_class_name:
-        #     if isinstance(self.inherit_class_name, BuiltInClass):
-        #         if self.inherit_class_name.inherit_class_name:
-        #             for key, value in self.inherit_class_name.properties.items():
-                        
-        #                 if key not in self.inherit_class_name.properties:
-        #                     self.inherit_class_name.properties[key] = value
-        #             self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
-        #             self.inherit_class_name.properties = self.inherit_class_name.inherit_class_name.properties
-        #         for key, value in self.inherit_class_name.properties.items():
-        #             if key not in self.properties:
-        #                 self.properties[key] = value
-        #         self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
-        #         self.properties = self.inherit_class_name.properties
-        #     else:
-        #         if self.inherit_class_name.inherit_class_name:
-        #             for key, value in self.inherit_class_name.properties.items():
-                        
-        #                 if key not in self.inherit_class_name.properties:
-        #                     self.inherit_class_name.properties[key] = value
-        #             self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
-        #             self.properties = self.inherit_class_name.properties
-        #         for key, value in self.inherit_class_name.properties.items():
-        #             if key not in self.properties:
-        #                 self.properties[key] = value
-        #         self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
-        #         self.properties = self.inherit_class_name.properties
-
-        method_properties = dict({arg_name.value: arg_value for arg_name, arg_value in zip(
-            self.constructor_args, args)}, **self.properties)
-        self.method_properties = method_properties
-        self.check_args(self.constructor_args, args)
-        self.populate_args(self.constructor_args, args, self.context)     
-           
-        if res.should_return(): return res
-        
-        if  self.properties == {}:
-            self.properties = method_properties
-        else:
+        # if self.properties == {}:
+        #     self.properties = method_properties
+        class_args = []
+        new_args = []
+        method_properties = dict({arg_name: arg_value for arg_name, arg_value in zip(
+            self.class_args, args)}, **self.properties)
+        self.properties = method_properties
+        if len(self.properties) > 0:
+            method_ = None
             for method_name, method in self.properties.items():
                 method.context = new_context
-                method = method.copy()
-                self.properties[method_name] = method
-                self.properties = method_properties
-                
-                if method_name == 'init':
+                method.context.symbolTable.set(
+                    "super", self.inherit_class_name) if self.inherit_class_name != None else None
+                if method_name == "init":
+                    method_ = method
                     method_args = method.arg_names
-                    if len(method_args) == 1:
-                        method_args = method_args[1:]
-                    else:
-                        raise Al_RuntimeError({
-                            'pos_start': self.pos_start,
-                            'pos_end': self.pos_end,
-                            'message': f"{method_name} method cannot have any arguments",
-                            'context': self.context,
-                            'exit': False
-                        })
-                    res.register(method.run(method_args, self, new_context))
-                    if res.should_return(): return res
+                    class_args = method_args
+                    # remove self from args
+                    if len(method_args) > 0:
+                        if method_args[0] == "self":
+                            method_args = method_args[1:]
+                            class_args = method_args
+                            # add class_args to self.properties
+                            
                 
-                if method_name == 'str':
-                    method_args = method.arg_names
-                    if len(method_args) == 1:
-                        method_args = method_args[1:]
-                    val = res.register(method.run(method_args, self, new_context))
-                    self.representation = val
-             
+            if method_ != None:
+                res.register(method_.run(args, self, new_context, self))
+        
+        self.check_args(class_args, args)
+        self.populate_args(class_args, args, self.context)    
+        
+        if self.inherit_class_name != None:
+            
+            if isinstance(self.inherit_class_name, BuiltInClass):
+                pass
+            else:
+                pass
+                # for key, value in self.properties.items():
+                #     if key not in self.properties:
+                #         self.inherit_class_name.properties[key] = value
+                # while self.inherit_class_name != None:
+                #     print("inherit_class_name", self.inherit_class_name, self.class_name)
+                #class_args = self.inherit_class_name.class_args + class_args
+                # since the inherited class is not a executed yet, we need to set each inherited class parameter to args 
+                # for i in range(len(self.inherit_class_name.class_args)):
+                #     self.inherit_class_name.properties[self.inherit_class_name.class_args[i]] = args[i]
+                
+                #print(self.properties,"==",self.inherit_class_name.properties)
         return res.success(self)
     
   
@@ -3081,7 +3046,7 @@ class Class(BaseClass):
    
     
     def copy(self):
-        copy = Class(self.class_name, self.constructor_args, self.inherit_class_name, self.inherited_from, self.properties, self.class_fields_modifiers, self.context)
+        copy = Class(self.class_name, self.class_args,self.inherit_class_name, self.inherited_from, self.properties, self.class_fields_modifiers, self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -3092,91 +3057,78 @@ class Class(BaseClass):
     
 
 class BuiltInClass(BaseClass):
-    def __init__(self, class_name, constructor_args, inherit_class_name, methods, class_fields_modifiers, context):
+    def __init__(self, class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context):
         super().__init__(class_name)
         self.id = class_name
         self.class_name = class_name
-        self.constructor_args = constructor_args
+        self.class_args = class_args
         self.inherit_class_name = inherit_class_name
+        self.inherited_from = inherited_from
         self.methods = methods
         self.properties = methods
         self.class_fields_modifiers = class_fields_modifiers
         self.value = f"<Class {str(self.class_name)}>"
         self.context = context
-        self.body_node = None 
+        self.body_node = None
         self.representation = self.value
-               
-    
+        args = []
+        for arg in self.class_args:
+            args.append(arg.value) if hasattr(
+                arg, "value") else args.append(arg)
+        self.class_args = args
+
     def execute(self, args):
         res = RuntimeResult()
         new_context = self.generate_new_context()
-        if self.inherit_class_name:
-            if isinstance(self.inherit_class_name, BuiltInClass):
-                if self.inherit_class_name.inherit_class_name:
-                    for key, value in self.inherit_class_name.properties.items():
-                        
-                        if key not in self.inherit_class_name.properties:
-                            self.inherit_class_name.properties[key] = value
-                    self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
-                    self.inherit_class_name.properties = self.inherit_class_name.inherit_class_name.properties
-                for key, value in self.inherit_class_name.properties.items():
-                    if key not in self.properties:
-                        self.properties[key] = value
-                self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
-                self.properties = self.inherit_class_name.properties
-            else:
-                if self.inherit_class_name.inherit_class_name:
-                    for key, value in self.inherit_class_name.properties.items():
-                        
-                        if key not in self.inherit_class_name.properties:
-                            self.inherit_class_name.properties[key] = value
-                    self.inherit_class_name.constructor_args = self.inherit_class_name.inherit_class_name.constructor_args + self.inherit_class_name.constructor_args
-                    self.inherit_class_name.properties = self.inherit_class_name.inherit_class_name.properties
-                for key, value in self.inherit_class_name.properties.items():
-                    if key not in self.properties:
-                        self.properties[key] = value
-                self.constructor_args = self.inherit_class_name.constructor_args + self.constructor_args
-                self.properties = self.inherit_class_name.properties
-
-        method_properties = dict({arg_name.value: arg_value for arg_name, arg_value in zip(
-            self.constructor_args, args)}, **self.properties)
-        self.method_properties = method_properties
-        self.check_args(self.constructor_args, args)
-        self.populate_args(self.constructor_args, args, self.context)     
-           
-        if res.should_return(): return res
-        
-        if  self.properties == {}:
-            self.properties = method_properties
-        else:
+        # if self.properties == {}:
+        #     self.properties = method_properties
+        class_args = []
+        new_args = []
+        method_properties = dict({arg_name: arg_value for arg_name, arg_value in zip(
+            self.class_args, args)}, **self.properties)
+        self.properties = method_properties
+        if len(self.properties) > 0:
+            method_ = None
             for method_name, method in self.properties.items():
                 method.context = new_context
-                method = method.copy()
-                self.properties[method_name] = method
-                self.properties = method_properties
-                
-                if method_name == 'init':
+                method.context.symbolTable.set(
+                    "super", self.inherit_class_name) if self.inherit_class_name != None else None
+                if method_name == "init":
+                    method_ = method
                     method_args = method.arg_names
-                    if len(method_args) == 1:
-                        method_args = method_args[1:]
-                    else:
-                        raise Al_RuntimeError({
-                            'pos_start': self.pos_start,
-                            'pos_end': self.pos_end,
-                            'message': f"{method_name} method cannot have any arguments",
-                            'context': self.context,
-                            'exit': False
-                        })
-                    res.register(method.run(method_args, self, new_context))
-                    if res.should_return(): return res
-                
-                if method_name == 'str':
-                    method_args = method.arg_names
-                    if len(method_args) == 1:
-                        method_args = method_args[1:]
-                    val = res.register(method.run(method_args, self, new_context))
-                    self.representation = val
-             
+                    class_args = method_args
+                    # remove self from args
+                    if len(method_args) > 0:
+                        if method_args[0] == "self":
+                            method_args = method_args[1:]
+                            class_args = method_args
+                            # add class_args to self.properties
+                    if len(method_args) == 1 and method_args[0] == "self":
+                        print("self")
+
+            if method_ != None:
+                res.register(method_.run(args, self, new_context))
+
+            self.check_args(class_args, args)
+            self.populate_args(class_args, args, self.context)
+
+        if self.inherit_class_name != None:
+
+            if isinstance(self.inherit_class_name, BuiltInClass):
+                pass
+            else:
+                pass
+                # for key, value in self.properties.items():
+                #     if key not in self.properties:
+                #         self.inherit_class_name.properties[key] = value
+                # while self.inherit_class_name != None:
+                #     print("inherit_class_name", self.inherit_class_name, self.class_name)
+                #class_args = self.inherit_class_name.class_args + class_args
+                # since the inherited class is not a executed yet, we need to set each inherited class parameter to args
+                # for i in range(len(self.inherit_class_name.class_args)):
+                #     self.inherit_class_name.properties[self.inherit_class_name.class_args[i]] = args[i]
+
+                #print(self.properties,"==",self.inherit_class_name.properties)
         return res.success(self)
     
   
@@ -3258,7 +3210,7 @@ class BuiltInClass(BaseClass):
    
     
     def copy(self):
-        copy = BuiltInClass(self.class_name, self.constructor_args, self.inherit_class_name,
+        copy = BuiltInClass(self.class_name, self.class_args, self.inherit_class_name,
                             self.properties, self.class_fields_modifiers, self.context)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
@@ -7158,6 +7110,9 @@ class Interpreter:
                 'exit': False
             } 
             self.error_detected = True
+            if var_name == "super":
+                exception_details['message'] = "cannot use 'super' outside of a class or no superclass exists"
+                raise Al_RuntimeError(exception_details)
             raise Al_NameError(exception_details)
            
         
@@ -8541,6 +8496,7 @@ class Interpreter:
         object_name = res.register(self.visit(node.name, context))
         property = node.property
         value = res.register(self.visit(node.value, context))
+        #print(object_name, property, value)
         operation = node.type_
         error = {
             "pos_start": node.pos_start,
@@ -9935,9 +9891,8 @@ class Interpreter:
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
         class_name = node.class_name.value
-        
-        constructor_args = node.class_constuctor_args
         inherits_class_name = node.inherits_class_name
+        class_args = []
         class_fields_modifiers = node.class_fields_modifiers
         inherited_from = None
         if inherits_class_name != None:
@@ -9996,19 +9951,27 @@ class Interpreter:
         if node.methods != '' and node.methods != None:
             for method in node.methods:
                 method_name = method['name'].value
+                if method_name == 'init':
+                    for arg in method['args']:
+                        class_args.append(arg)
+                        if len(class_args) > 0:
+                            if class_args[0].value == 'self':
+                                class_args.pop(0)
                 method_value = res.register(
                     self.visit(method['value'], context))
                 
                 if res.should_return(): return res
                 
                 methods = dict(methods, **{str(method_name): method_value})
-                class_value = Class(class_name, constructor_args, inherits_class_name,inherited_from,
+                class_value = Class(class_name, class_args,inherits_class_name,inherited_from,
                                     methods, class_fields_modifiers,context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
         else:
-            class_value = Class(class_name, constructor_args, inherits_class_name,inherited_from,
+            class_value = Class(class_name, class_args,inherits_class_name, inherited_from,
                                 {},class_fields_modifiers, context).setContext(context).setPosition(node.pos_start, node.pos_end)
             context.symbolTable.set_object(class_name, class_value)
+        
+           
         return res.success(class_value)
 
    
@@ -10261,18 +10224,18 @@ BuiltInFunction.isFinite = BuiltInFunction("isFinite")
 
 # code for the built-in class exceptions
 #'class Exception(message)\nend\nclass RuntimeError()~Exception\nend'
-code_builtin_exception = 'class Exception(message)\nend'
-code_builtin_runtime = 'class RuntimeError(message)\nend'
-code_builtin_nameerror = 'class NameError(message)\nend'
-code_builtin_typeerror = 'class TypeError(message)\nend'
-code_builtin_indexerror = 'class IndexError(message)\nend'
-code_builtin_valueerror = 'class ValueError(message)\nend'
-code_builtin_propertyerror = 'class PropertyError(message)\nend'
-code_builtin_keyerror = 'class KeyError(message)\nend'
-code_builtin_zerodivisionerror = 'class ZeroDivisionError(message)\nend'
-code_builtin_geterror = 'class GetError(message)\nend'
-code_builtin_modulenotfounderror = 'class ModuleNotFoundError(message)\nend'
-code_builtin_keyboardinterrupt = 'class KeyboardInterrupt(message)\nend'
+code_builtin_exception = 'class Exception()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_runtime = 'class RuntimeError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_nameerror = 'class NameError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_typeerror = 'class TypeError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_indexerror = 'class IndexError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_valueerror = 'class ValueError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_propertyerror = 'class PropertyError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_keyerror = 'class KeyError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_zerodivisionerror = 'class ZeroDivisionError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_geterror = 'class GetError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_modulenotfounderror = 'class ModuleNotFoundError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef init(self,message)\n\tself.message = message\nend\nend'
 builtin_exception = Program.createBuiltIn("Exception", code_builtin_exception).elements[0]
 builtin_exception_runtime = Program.createBuiltIn("RuntimeError", code_builtin_runtime).elements[0]
 builtin_exception_nameerror = Program.createBuiltIn("NameError", code_builtin_nameerror).elements[0]
@@ -10299,19 +10262,19 @@ exceptions_ = {
     'ModuleNotFoundError': builtin_exception_modulenotfounderror,
     'KeyboardInterrupt': builtin_exception_keyboardinterrupt
 }
-#class_name, constructor_args, inherit_class_name, methods, class_fields_modifiers, context
-BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.constructor_args, builtin_exception.inherit_class_name, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
-BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.constructor_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
-BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.constructor_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context) 
-BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.constructor_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
-BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.constructor_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
-BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.constructor_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
-BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.constructor_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
-BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.constructor_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
-BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.constructor_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
-BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.constructor_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
-BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.constructor_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
-BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.constructor_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
+#class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context
+BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.class_args, builtin_exception.inherit_class_name, builtin_exception.inherited_from, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
+BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.class_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.inherited_from, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
+BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.class_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.inherited_from, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context) 
+BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.class_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.inherited_from, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
+BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.class_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.inherited_from, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
+BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.class_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.inherited_from, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
+BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.class_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.inherited_from,  builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
+BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.class_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.inherited_from, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
+BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.class_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.inherited_from,  builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
+BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.class_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.inherited_from, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
+BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.class_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.inherited_from, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
+BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.class_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.inherited_from, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
 
 Types.Number = Types("Number")
 Types.String = Types("String")
