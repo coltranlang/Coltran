@@ -4601,12 +4601,23 @@ LETTERS_SYMBOLS = LETTERS + SYMBOLS
 # employee = Employee()
 # print(employee)
 
-class School:
-    def __init__(self, name, address):
+class Animal:
+    animals = []
+    def __init__(self, name):
         self.name = name
-        self.address = address
+    def eat(self):
+        print(f"{self.name} is eating")
+    def set_animals(self):
+        self.animals.append(self.name)
+    
+    def get_animals(self):
+        return self.animals
+        
+animal = Animal("Dog")
+animal2 = Animal("Cat")
+animal3 = Animal("Bird")
+animal.set_animals()
+animal2.set_animals()
+animal3.set_animals()
+print(animal.get_animals())
 
-class Student(School):
-    def __init__(self, name, address, school):
-        super().__init__(name, address)
-        self.school = school

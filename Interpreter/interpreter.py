@@ -2921,9 +2921,6 @@ class Class(BaseClass):
         #     self.properties = method_properties
         class_args = []
         new_args = []
-        method_properties = dict({arg_name: arg_value for arg_name, arg_value in zip(
-            self.class_args, args)}, **self.properties)
-        self.properties = method_properties
         if len(self.properties) > 0:
             method_ = None
             for method_name, method in self.properties.items():
@@ -2965,6 +2962,8 @@ class Class(BaseClass):
                 #     self.inherit_class_name.properties[self.inherit_class_name.class_args[i]] = args[i]
                 
                 #print(self.properties,"==",self.inherit_class_name.properties)
+        # return a new class instance
+        
         return res.success(self)
     
   
@@ -3084,9 +3083,9 @@ class BuiltInClass(BaseClass):
         #     self.properties = method_properties
         class_args = []
         new_args = []
-        method_properties = dict({arg_name: arg_value for arg_name, arg_value in zip(
-            self.class_args, args)}, **self.properties)
-        self.properties = method_properties
+        # method_properties = dict({arg_name: arg_value for arg_name, arg_value in zip(
+        #     self.class_args, args)}, **self.properties)
+        # self.properties = method_properties
         if len(self.properties) > 0:
             method_ = None
             for method_name, method in self.properties.items():
@@ -7848,7 +7847,7 @@ class Interpreter:
         object_key = node.property
         #print(type(object_name).__name__, type(object_key).__name__, object_key)
         error = {
-            'name': String('PropertyError'),
+            'name': 'PropertyError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             "message": "",
@@ -7866,7 +7865,7 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = String(f"Export has no member '{object_key.id.value}'")
                         else:
-                            error["message"] = f"'{object_name.name}' has no method '{object_key.id.value}'"
+                            error["message"] = f"'{object_name.name}' object has no method '{object_key.id.value}'"
                         raise Al_PropertyError(error)
             
             if type(object_key).__name__ == "Token":
@@ -7878,7 +7877,7 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = String(f"Export has no member '{object_key.value}'")
                         else:
-                            error["message"] = f"'{object_name.name}' has no property '{object_key.value}'"
+                            error["message"] = f"'{object_name.name}' object has no property '{object_key.value}'"
                         raise Al_PropertyError(error)
             
             elif type(object_key).__name__ == "CallNode":
@@ -7908,7 +7907,7 @@ class Interpreter:
                             else:
                                 self.error_detected = True
                                 error["message"] = String(
-                                    f"'{object_name.name}' has no method '{object_key.node_to_call.value}'")
+                                    f"'{object_name.name}' object has no method '{object_key.node_to_call.value}'")
                             raise Al_PropertyError(error)
                     # else:
                     #     raise Al_PropertyError(error)
@@ -7920,7 +7919,7 @@ class Interpreter:
                     return res.success(value)
                 else:
                     error["message"] = String(
-                        f"{object_name.name} has no property {object_key.value}")
+                        f"'{object_name.name}' object has no property {object_key.value}")
                     raise Al_PropertyError(error)
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -7942,10 +7941,10 @@ class Interpreter:
                         else:
                             return res.success(return_value)
                     else:
-                        error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
+                        error["message"] = f"'{object_name.name}' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
                 else:
-                    error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
+                    error["message"] = f"'{object_name.name}' object has no property '{object_key.node_to_call.value}'"
                     raise Al_PropertyError(error)
             else:
                 error["message"] = f"'{object_key.node_to_call.value}'"
@@ -7961,7 +7960,7 @@ class Interpreter:
                         value = object_name.properties[object_key.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"'{node.name.id.value}' has no property '{object_key.id.value}'"
+                        error["message"] = f"'{node.name.id.value}' object has no property '{object_key.id.value}'"
                         raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "CallNode":
@@ -7970,7 +7969,7 @@ class Interpreter:
                         if object_key.node_to_call.value in object_name.properties:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, Object):
-                                error["message"] = f"'{object_key.node_to_call.value}' is not callable"
+                                error["message"] = f"'{object_key.node_to_call.value}' object is not callable"
                                 raise Al_PropertyError(error)
                             else:
                                 args_node = object_key.args_nodes
@@ -8499,6 +8498,7 @@ class Interpreter:
         #print(object_name, property, value)
         operation = node.type_
         error = {
+            "name": "PropertyError",
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             "message": "",

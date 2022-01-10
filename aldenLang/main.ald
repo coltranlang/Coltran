@@ -448,4 +448,26 @@
 # let square = Square(5)
 # println(square.area())
 
-raise Exception("Exception")
+class Animal
+    animals = []
+    def init(self, name)
+        self.name = name
+    end
+    def eat(self)
+        println(fm"%{self.name} is eating")
+    end
+    def set_animals(self)
+        self.animals.append(self.name)
+    end
+    def get_animals(self)
+        return self.animals
+    end
+end
+
+let animal = Animal("Dog")
+animal.set_animals()
+let animal2 = Animal("Cat")
+animal2.set_animals()
+let animal3 = Animal("Bird")
+animal3.set_animals()
+println(animal.get_animals()) # ['Dog', 'Cat', 'Bird']
