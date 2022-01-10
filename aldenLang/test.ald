@@ -100,7 +100,11 @@ println(@add(1, 2))
 
 
 # test for class type
-class Car(name, color)
+class Car
+    def init(self, name, color)
+        self.name = name
+        self.color = color
+    end
     def getName(self)
         println("Car name is " + self.name)
     end
@@ -381,13 +385,17 @@ def @test(a, b)
 end
 @test.call = def () -> println("I was just called")
 @test.call()
-class Person(fname, lname)
+class Person()
+    def init(self, fname, lname)
+        self.firstName = fname
+        self.lastName = lname
+    end
     def getName(self)
-        println(fm"My name is %{self.fname}")
+        println(fm"My name is %{self.firstName}")
     end
 end
 def @getFullName(self)
-    println(fm"My full name is %{self.fname} %{self.lname}")
+    println(fm"My full name is %{self.firstName} %{self.lastName}")
 end
 let person = Person("David", "Michael")
 # set getFullName as the def of person
@@ -707,7 +715,7 @@ match bool:
 end
 
 
-class TestMatch()
+class TestMatch
     def test()
     end
 end
@@ -914,8 +922,8 @@ object ObDic
     verfied: true
     type: "object"
 end
-class Dic(name, age, email, hobby, verfied)
-    def __init(self)
+class Dic
+    def init(self, name, age, email, hobby, verfied)
         self.name = "ken"
     end
 end
