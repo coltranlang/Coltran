@@ -4797,4 +4797,4 @@ def greet(name, age=None, email=""):
     print("SENDING EMAIL")
     print(f"Hello, {name}, you are {age} years old and your email is {email}")
 
-greet("John",'21', email="test")
+greet("John",'21')

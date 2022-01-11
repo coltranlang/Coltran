@@ -2835,12 +2835,20 @@ class Function(BaseFunction):
                 default_values[name] = value
                 
         if len(default_values) > 0:
+            keys = []
             len_expected = len(self.arg_names) - len(default_values)
             len_given = len(args)
             len_default = len(default_values)
-            if len_given == len_expected:
-                for key, value in default_values.items():
-                    args.append(value)
+            try:
+                for key in default_values:
+                    keys.append(key)
+                if len_given == len_expected :
+                    for key, value in default_values.items():
+                        if key in self.arg_names:
+                            args.append(value)
+                            print("oops")
+            except:
+                print("oops")
             # elif len_given > len_expected:
             #     for key, value in default_values.items():
             #         for i in range(self.arg_names.index(key), len_given):
@@ -2860,7 +2868,7 @@ class Function(BaseFunction):
                 
                 
         
-        print(args)       
+        print(args)    
         #     if len(self.arg_names) > 0:
         #         for i in range(len(self.arg_names)):
         #             for key, value in keyword_args.items():
@@ -2949,7 +2957,6 @@ class Function(BaseFunction):
                 len_args_expected = len(self.arg_names)
             else:
                 len_args_expected = len(self.arg_names) - len(self.default_values)
-            print(len_args_expected, len_args_given)
         res = RuntimeResult()
         if  len_args_given > len_args_expected:
             if len_args_expected == 0:

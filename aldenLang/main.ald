@@ -496,9 +496,9 @@ println(animal.get_animals()) # ['Dog', 'Cat', 'Bird']
 
 # keyword arguments
 
-def @greet()
+def @greet(name, age=30, email="default")
     println("SENDING EMAIL")
     println(fm"Hello, %{name}, you are %{age} years old and your email is %{email}")
 end
 
-@greet('')
+@greet("John",24)
