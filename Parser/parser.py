@@ -659,27 +659,14 @@ class ClassNode:
 
 
 class CallNode:
-    def __init__(self, node_to_call, args_nodes, owner=None, type=None):
+    def __init__(self, node_to_call, args_nodes, keyword_args_list=None):
         self.id = node_to_call
         self.node_to_call = node_to_call
         self.args_nodes = args_nodes
-        self.type = type
-        self.owner = owner
+        self.keyword_args_list = keyword_args_list
         self.pos_start = self.node_to_call.pos_start
-        if len(self.args_nodes) > 0:
-            if hasattr(self.args_nodes[len(self.args_nodes) - 1], 'pos_end'):
-                self.pos_end = self.args_nodes[len(self.args_nodes) - 1].pos_end 
-            else:
-                res = ParseResult()
-                return res.failure(Program.error()['Syntax']({
-                    'message': 'Invalid syntax, expected end of expression.',
-                    'pos_start': self.pos_start,
-                    'pos_end': self.pos_start,
-                    'exit': False
-                }))
-                #\ if self.args_nodes[len(self.args_nodes) - 1] else 0
-        else:
-            self.pos_end = self.node_to_call.pos_end
+        self.pos_end = self.node_to_call.pos_end
+        
     def __repr__(self):
         return f'{self.node_to_call}({self.args_nodes})'
 
@@ -791,6 +778,13 @@ class Parser:
         # else:
         #     sys.exit(1)
 
+    def peek(self, step=1):
+        self.tok_index += step
+        if self.tok_index < len(self.tokens):
+            self.update_current_tok()
+            return self.current_token
+        return self.current_token
+        
     def reverse(self, count=1):
         self.tok_index -= count
         self.update_current_tok()
@@ -1148,7 +1142,7 @@ class Parser:
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
-                'message': "Invalid syntax or unexpected token",
+                'message': "invalid syntax or unexpected token",
                 'exit': False
             }))
         return res.success(node)
@@ -1294,15 +1288,43 @@ class Parser:
     def finish_call(self, atom):
         res = ParseResult()
         arg_nodes = []
+        keyword_args = {}
+        keyword_args_list = []
         if self.current_token.type == tokenList.TT_LPAREN:
-            res.register_advancement()
-            self.advance()
+            self.skipLines()
             if self.current_token.type == tokenList.TT_RPAREN:
-                res.register_advancement()
-                self.advance()
+                self.skipLines()
                 
             else:
-                arg_nodes.append(res.register(self.expr()))
+                # keyword arguments
+                if self.current_token.type == tokenList.TT_IDENTIFIER:
+                    keyword_args = {
+                        'name': self.current_token.value,
+                        'value': ''
+                    }
+                    self.skipLines()
+                    if self.current_token.type == tokenList.TT_EQ:
+                        self.skipLines()
+                        keyword_args['value'] = res.register(self.expr())
+                        if res.error: return res
+                        keyword_args_list.append(keyword_args)
+                        
+                        if keyword_args['value'] == None or keyword_args['value'] == '':
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "invalid syntax",
+                                'exit': False
+                            }))
+                        if res.error: return res
+                        self.reverse()
+                    else:
+                        self.reverse()
+                        
+                        
+                expr = res.register(self.expr())
+                arg_nodes.append(expr)
                 if res.error:
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -1311,23 +1333,80 @@ class Parser:
                         'message': f"Expected ')'",
                         'exit': False
                     }))
-                if self.current_token.type == tokenList.TT_EQ:
-                    res.register_advancement()
-                    self.advance()
-                    value = res.register(self.expr())
-                    if res.error: return res
-                    arg_nodes[-1] = value
+                    
                 while self.current_token.type == tokenList.TT_COMMA:
-                    res.register_advancement()
-                    self.advance()
+                    self.skipLines()
+                    if self.current_token.type == tokenList.TT_IDENTIFIER:
+                        keyword_args = {
+                            'name': self.current_token.value,
+                            'value': ''
+                        }
+                        self.skipLines()
+                        if self.current_token.type == tokenList.TT_EQ:
+                            self.skipLines()
+                            keyword_args['value'] = res.register(self.expr())
+                            if res.error: return res
+                            keyword_args_list.append(keyword_args)
+                            if keyword_args['value'] == None or keyword_args['value'] == '':
+                                self.error_detected = True
+                                return res.failure(self.error['Syntax']({
+                                    'pos_start': self.current_token.pos_start,
+                                    'pos_end': self.current_token.pos_end,
+                                    'message': "invlaid syntax",
+                                    'exit': False
+                                }))
+                            if res.error: return res
+                            duplicate_key = None
+                            is_duplicate = False
+                            keys_count = []
+                            for key in keyword_args_list:
+                                first_key = key['name']
+                                keys_count.append(first_key)
+                            for key in keys_count:
+                                if keys_count.count(key) > 1:
+                                    duplicate_key = key
+                                    is_duplicate = True
+                                    break
+                            if is_duplicate:
+                                self.error_detected = True
+                                return res.failure(self.error['Syntax']({
+                                    'pos_start': self.current_token.pos_start,
+                                    'pos_end': self.current_token.pos_end,
+                                    'message': f"repeated keyword argument: '{duplicate_key}'",
+                                    'exit': False
+                                }))
+                            self.reverse()
+                        else:
+                            if len(keyword_args_list) > 0:
+                                self.error_detected = True
+                                return res.failure(self.error['Syntax']({
+                                    'pos_start': self.current_token.pos_start,
+                                    'pos_end': self.current_token.pos_end,
+                                    'message': "positional argument cannot follow keyword argument",
+                                    'exit': False
+                                }))
+                            self.reverse()
+                    else:
+                        if len(keyword_args_list) > 0:
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "positional argument cannot follow keyword argument",
+                                'exit': False
+                            }))
+                        for arg in arg_nodes:
+                            if arg == None or arg == '':
+                                self.error_detected = True
+                                return res.failure(self.error['Syntax']({
+                                    'pos_start': self.current_token.pos_start,
+                                    'pos_end': self.current_token.pos_end,
+                                    'message': "invlaid syntax",
+                                    'exit': False
+                                }))
                     arg_nodes.append(res.register(self.expr()))
-                    if res.error: return res
-                    if self.current_token.type == tokenList.TT_EQ:
-                        res.register_advancement()
-                        self.advance()
-                        value = res.register(self.expr())
-                        if res.error: return res
-                        arg_nodes[-1] = value
+                    
+                
                 if self.current_token.type != tokenList.TT_RPAREN:
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -1336,11 +1415,14 @@ class Parser:
                         'message': "Expected ',' or ')'",
                         'exit': False
                     }))
-                res.register_advancement()
-                self.advance()
-                if res.error: 
-                    self.error_detected = True
-                    return res
+                
+                self.skipLines()
+                
+                
+              
+        return res.success(CallNode(atom, arg_nodes, keyword_args_list))
+                
+                
                 # if self.current_token.type != tokenList.TT_NEWLINE and self.current_token.type != tokenList.TT_RPAREN and self.current_token.type != tokenList.TT_EOF:
                 #     return res.failure(self.error['Syntax']({
                 #         'pos_start': self.current_token.pos_start,
@@ -1355,7 +1437,6 @@ class Parser:
                 #         'message': "Unmatched ')'",
                 #         'exit': False
                 #     }))
-        return res.success(CallNode(atom, arg_nodes))
          
     def atom(self):
         res = ParseResult()
@@ -1368,10 +1449,6 @@ class Parser:
             res.register_advancement()
             self.advance()
             return res.success(StringNode(tok))
-        elif tok.type == tokenList.TT_OBJECT_REF:
-            res.register_advancement()
-            self.advance()
-            return res.success(ObjectRefNode(tok))
         elif tok.type == tokenList.TT_IDENTIFIER:
             res.register_advancement()
             self.advance()
@@ -1399,7 +1476,7 @@ class Parser:
             return res.failure(self.error['Syntax']({
                 'pos_start': tok.pos_start,
                 'pos_end': tok.pos_end,
-                'message': f"Invalid syntax or unexpected token",
+                'message': f"invalid syntax or unexpected token",
                 'exit': False
             }))
         elif tok.type == tokenList.TT_LSQBRACKET:
@@ -1433,10 +1510,10 @@ class Parser:
                 return res
             return res.success(while_expr)
         elif tok.matches(tokenList.TT_KEYWORD, 'def'):
-            def_expr = res.register(self.def_expr())
+            function_expr = res.register(self.function_expr())
             if res.error:
                    return res
-            return res.success(def_expr)
+            return res.success(function_expr)
         elif tok.matches(tokenList.TT_KEYWORD, 'object'):
             object_expr = res.register(self.object_def())
             if res.error:
@@ -2197,7 +2274,7 @@ class Parser:
 
         return res.success(WhileNode(condition, body))
 
-    def def_expr(self):
+    def function_expr(self):
         res = ParseResult()
         default_values = {}
         default_values_list = []
@@ -2257,29 +2334,27 @@ class Parser:
 
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             arg_name_tokens.append(self.current_token)
-            # if len(arg_name_tokens) > 0:
-            #     arg_name_tokens[0] = class_name_token
-            res.register_advancement()
-            self.advance()
+            default_values ={
+                'name': self.current_token.value,
+                'value': ''
+            }
+            
+            self.skipLines()
             
             if self.current_token.type == tokenList.TT_EQ:
-                # a default value cannot be followed by a non-default value e.g if a has a default value of 1 and b has no default value, b cannot be followed by a default value, default values must be at the end of the argument list
-                res.register_advancement()
-                self.advance()
-                default_values = {
-                    'name': arg_name_tokens[0].value,
-                    'value': res.register(self.expr())
-                }
+                self.skipLines()
+                default_values['value'] = res.register(self.expr())
                 default_values_list.append(default_values)
                 if default_values['value'] == None or default_values['value'] == '':
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "Expected a value",
+                        'message': "invalid syntax",
                         'exit': False
                     }))
                 if res.error: return res
+                
             while self.current_token.type == tokenList.TT_COMMA:
                 res.register_advancement()
                 self.advance()
@@ -2291,6 +2366,10 @@ class Parser:
                         'message': "Expected an identifier",
                         'exit': False
                     }))
+                default_values = {
+                    'name': self.current_token.value,
+                    'value': ''
+                }
                 arg_name_tokens.append(self.current_token)
                 
                 # if len(arg_name_tokens) > 20:
@@ -2301,25 +2380,51 @@ class Parser:
                 #         'message': "Cannot have more than 12 arguments",
                 #         'exit': False
                 #     }))
-                res.register_advancement()
-                self.advance()
+                self.skipLines()
+                
+                # named arguments cannot be followed by a default value
                 if self.current_token.type == tokenList.TT_EQ:
-                    res.register_advancement()
-                    self.advance()
-                    default_values = {
-                        'name': arg_name_tokens[-1].value,
-                        'value': res.register(self.expr())
-                    }
+                    self.skipLines()
+                    default_values['value'] = res.register(self.expr())
                     default_values_list.append(default_values)
                     if default_values['value'] == None or default_values['value'] == '':
                         self.error_detected = True
                         return res.failure(self.error['Syntax']({
                             'pos_start': self.current_token.pos_start,
                             'pos_end': self.current_token.pos_end,
-                            'message': "Expected a value",
+                            'message': "invalid syntax",
                             'exit': False
                         }))
                     if res.error: return res
+                    duplicate_key = None
+                    is_duplicate = False
+                    keys_count = []
+                    for key in default_values_list:
+                        first_key = key['name']
+                        keys_count.append(first_key)
+                    for key in keys_count:
+                        if keys_count.count(key) > 1:
+                            duplicate_key = key
+                            is_duplicate = True
+                            break
+                    if is_duplicate:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': f"duplicate argument: '{duplicate_key}' in function definition",
+                            'exit': False
+                        }))
+                else:
+                    if len(default_values_list) > 0:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "non-default argument cannot be followed by a default argument",
+                            'exit': False
+                        }))
+                        
             if self.current_token.type != tokenList.TT_RPAREN:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -2337,8 +2442,7 @@ class Parser:
                     'message': "Expected an identifier or ')'",
                     'exit': False
                 }))
-        res.register_advancement()
-        self.advance()
+        self.skipLines()
         if self.current_token.type == tokenList.TT_ARROW:
             res.register_advancement()
             self.advance()
@@ -3022,6 +3126,8 @@ class Parser:
     def set_methods(self):
         res = ParseResult()
         methods = []
+        default_values = {}
+        default_values_list = []
         while self.current_token.matches(tokenList.TT_KEYWORD, "def"):
             res.register_advancement()
             self.advance()
@@ -3049,12 +3155,30 @@ class Parser:
             self.advance()
             args_list = []
             if self.current_token.type == tokenList.TT_IDENTIFIER:
+                default_values = {
+                    'name': self.current_token.value,
+                    'value': ''
+                }
                 args_list.append(self.current_token)
-                res.register_advancement()
-                self.advance()
+                self.skipLines()
+                
+                if self.current_token.type == tokenList.TT_EQ:
+                    self.skipLines()
+                    default_values['value'] = res.register(self.expr())
+                    default_values_list.append(default_values)
+                    if default_values['value'] == None or default_values['value'] == '':
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "invalid syntax",
+                            'exit': False
+                        }))
+                    if res.error: return res
                 while self.current_token.type == tokenList.TT_COMMA:
                     res.register_advancement()
                     self.advance()
+                    
                     if self.current_token.type != tokenList.TT_IDENTIFIER:
                         self.error_detected = True
                         return res.failure(self.error['Syntax']({
@@ -3063,7 +3187,12 @@ class Parser:
                             'message': "Expected an identifier",
                             'exit': False
                         }))
+                    default_values = {
+                        'name': self.current_token.value,
+                        'value': ''
+                    }
                     args_list.append(self.current_token)
+                    
                     self.skipLines()
                     # if len(args_list) > 20:
                     #     self.error_detected = True
@@ -3073,6 +3202,48 @@ class Parser:
                     #     'message': "Cannot have more than 12 arguments",
                     #     'exit': False
                     # }))
+                    
+                    if self.current_token.type == tokenList.TT_EQ:
+                        self.skipLines()
+                        default_values['value'] = res.register(self.expr())
+                        default_values_list.append(default_values)
+                        if default_values['value'] == None or default_values['value'] == '':
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "invalid syntax",
+                                'exit': False
+                            }))
+                        if res.error: return res
+                        duplicate_key = None
+                        is_duplicate = False
+                        keys_count = []
+                        for key in default_values_list:
+                            first_key = key['name']
+                            keys_count.append(first_key)
+                        for key in keys_count:
+                            if keys_count.count(key) > 1:
+                                duplicate_key = key
+                                is_duplicate = True
+                                break
+                        if is_duplicate:
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': f"duplicate argument: '{duplicate_key}' in method '{method_name.value}'",
+                                'exit': False
+                            }))
+                    else:
+                        if len(default_values_list) > 0:
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "non-default argument cannot be followed by a default argument",
+                                'exit': False
+                            }))
                 if self.current_token.type != tokenList.TT_RPAREN:
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -3123,7 +3294,7 @@ class Parser:
                 self.advance()
                 methods.append({
                     'name': method_name,
-                    'value': FunctionNode(method_name, args_list, body, False, [],"method"),
+                    'value': FunctionNode(method_name, args_list, body, False, default_values_list, "method"),
                     'args': args_list,
                     'pos_start': method_name.pos_start,
                     'pos_end': body.pos_end
@@ -3153,6 +3324,7 @@ class Parser:
         # ini_args = []
         # for method in self.methods:
         #     if method['name'].value == "init":
+        
         return methods
     
     def match_expr(self):
@@ -4620,4 +4792,9 @@ animal.set_animals()
 animal2.set_animals()
 animal3.set_animals()
 print(animal.get_animals())
+print(dict(key="name", value="Bob", age=23))
+def greet(name, age=None, email=""):
+    print("SENDING EMAIL")
+    print(f"Hello, {name}, you are {age} years old and your email is {email}")
 
+greet("John",'21', email="test")

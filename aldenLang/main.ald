@@ -471,3 +471,34 @@ animal2.set_animals()
 let animal3 = Animal("Bird")
 animal3.set_animals()
 println(animal.get_animals()) # ['Dog', 'Cat', 'Bird']
+
+# let ids = [1, 2, 3, 4, 5]
+# let names = ("John", "Bob", "Mary", "Jane")
+
+# # x = zip(ids, names)
+# # println(x) # <Function zip <Function zip()>,[iterators]>
+# # println(dict(x)) # {1: 'John', 2: 'Bob', 3: 'Mary', 4: 'Jane', 5: 'Tom'}
+# println(dict()) # {1: 'John', 2: 'Bob', 3: 'Mary', 4: 'Jane', 5: 'Tom'}
+
+# class Person()
+#     def init(self, name, age=21, email=)
+#         self.name = name
+#         self.age = age
+#         self.email = email
+#     end
+#     def greet(self)
+#         @greet(self.name, self.age, self.email)
+#     end
+# end
+
+# let person = Person("John", "john@email.com")
+# person.greet()
+
+# keyword arguments
+
+def @greet()
+    println("SENDING EMAIL")
+    println(fm"Hello, %{name}, you are %{age} years old and your email is %{email}")
+end
+
+@greet('')
