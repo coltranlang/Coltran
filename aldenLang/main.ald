@@ -496,12 +496,12 @@ println(animal.get_animals()) # ['Dog', 'Cat', 'Bird']
 
 # keyword arguments
 
-def @greet(name, age=none, email=none, hobby=none, verified=false, test=0)
-    println("SENDING EMAIL")
-    println(fm"Hello, %{name}, your age is %{age} and your email is %{email}, and your hobby is %{hobby}, and you are %{verified} and your test is %{test}")
-end
+# def @greet(name, age=none, email=none, hobby=none, verified=false, score=0)
+#     println("SENDING EMAIL")
+#     println(fm"Hello, %{name}, your age is %{age} and your email is %{email}, and your hobby is %{hobby}, and you are %{verified} and your test is %{score}")
+# end
 
-@greet("Kenny")
+# @greet("Kenny")
 
 # def @greet(options)
 #     let (name, age, email, hobby, verified, test) = options
@@ -513,6 +513,12 @@ end
 # def @multiply(x, y=1)
 #     return x * y
 # end
+
+def @varargs(a,*args,b,c)
+    print(args,a,b)
+end
+
+@varargs(1,2,3,4,5,6,7,8,9,10,11,12,13) 
 
 # @multiply(2, 3) # 6
 # let d = {'name': 'John', 'age': 21,}

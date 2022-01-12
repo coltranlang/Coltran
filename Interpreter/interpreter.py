@@ -218,6 +218,24 @@ def is_static(string):
         return False
     return string[0] == '@'          
 
+def is_varags(string):
+    if len(string) == 0:
+        return False
+    return string[0] == '*'
+
+def is_kwargs(string):
+    if len(string) == 0:
+        return False
+    return string[0] == '**'
+
+def split_varargs(string):
+    if is_varags(string):
+        return string[1:]
+
+def split_kwargs(string):
+    if is_kwargs(string):
+        return string[2:]
+
 
 class Regex:
         def __init__(self):
@@ -2952,6 +2970,23 @@ class Function(BaseFunction):
         #         return_value.value = NoneType.none
         return res.success(return_value)
 
+
+    def make_missing_args(self, missing_args, len_args):
+        missing_args_name = ''
+        if len(missing_args) > 1:
+            for i in range(len(missing_args)):
+                if i == len(missing_args) - 2:
+                    missing_args_name += f"'{missing_args[i]}'" + " and "
+                elif i == len(missing_args) - 1:
+                    missing_args_name += f"'{missing_args[i]}'"
+                else:
+                    missing_args_name += f"'{missing_args[i]}'" + ", "
+        elif len(missing_args) == 1:
+            missing_args_name += f"'{missing_args[0]}'"
+        if len(missing_args) == 0:
+            missing_args_name = f"but {len_args} {'was' if len_args == 1 or len_args == 0 else 'were'} given"
+            
+        return missing_args_name
     
     def check_args(self,args):
         res = RuntimeResult()
@@ -3005,18 +3040,34 @@ class Function(BaseFunction):
         }
         
         if default_values == {} or default_values == None:
-            
+            has_var_args = False
             if len(args) > len(self.arg_names):
-                exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given"
-                
-                raise Al_ArgumentError(exception_details)
+                len_arg_names = len(self.arg_names)
+                len_args = len(args)
+                for i in range(len(self.arg_names)):
+                    if is_varags(self.arg_names[i]):
+                        has_var_args = True
+                if not has_var_args:
+                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given"
+                    
+                    raise Al_ArgumentError(exception_details)
             
             
             
             if len(args) < len(self.arg_names):
-                exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given"
+                has_var_args = False
+                new_args_names = self.arg_names
+                for i in range(len(args)):
+                    if  is_varags(self.arg_names[i]):
+                        has_var_args = True
+                        new_args_names.pop(i)
+                        missing_args_name = self.make_missing_args(new_args_names, len_args)
+                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len(new_args_names)} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                        raise Al_ArgumentError(exception_details)
+                if not has_var_args:
+                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given"
                 
-                raise Al_ArgumentError(exception_details)
+                    raise Al_ArgumentError(exception_details)
         
         else:
             if len(args) > len_expected:   
@@ -3049,6 +3100,8 @@ class Function(BaseFunction):
         interpreter = Interpreter()
         default_values = {}
         len_expected = len(self.arg_names)
+        has_var_args = False
+        new_args_names = self.arg_names
         if len(self.default_values) > 0:
             for default_value in self.default_values:
                 name = default_value['name']
@@ -3057,6 +3110,7 @@ class Function(BaseFunction):
                 len_expected = len(self.arg_names) - len(default_values)
                 
         len_args = len(args)
+        len_arg_names = len(self.arg_names)
         if len_args == 0:
             len_args = "none"
         was_or_were = "was" if len_args == 1 or len_args == 0 or len_args == "none" else "were"
@@ -3199,17 +3253,126 @@ class Function(BaseFunction):
         
         
         if len(args) == len(self.arg_names):
+            var_args = []
+            remaining_args = []
+            exception_details = {
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given",
+                'context': self.context,
+                'exit': False
+            }
+            has_var_args = False
             for i in range(len(args)):
+                if  is_varags(self.arg_names[i]):
+                    has_var_args = True
+                    last_positional_arg = len_arg_names - 1
+                    for j in range(len_arg_names):
+                        if last_positional_arg == j:
+                            print(self.arg_names[j], "is last positional arg")
+                            start_index = self.arg_names.index(self.arg_names[j])
+                            var_args = args[start_index:len_args]
+                            # get the remaining args starting from where the start index starts e.g a, b, c, *args = [1,2,3,4,5] and d,e,f,g= [7,8,9,10]
+                            remaining_args = args[0:start_index]
+                            len_remaining_args = len(remaining_args)
+                            len_arg_names_remaining = len_arg_names - 1
+                            var_name = split_varargs(self.arg_names[j])
+                            var_value = Pair(var_args)
+                            var_value.setContext(exec_context)
+                            exec_context.symbolTable.set(var_name, var_value)
+                            for k in range(len_remaining_args):
+                                arg_name = self.arg_names[k]
+                                arg_value = remaining_args[k]
+                                arg_value.setContext(exec_context)
+                                exec_context.symbolTable.set(arg_name, arg_value)
+                        else:
+                            new_args_names.pop(i)
+                            missing_args_name = self.make_missing_args(new_args_names, len_args)
+                            exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len(new_args_names)} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                            raise Al_ArgumentError(exception_details)
+                    
+            if not has_var_args:
                 arg_name = self.arg_names[i]
                 arg_value = args[i]
                 arg_value.setContext(exec_context)
                 exec_context.symbolTable.set(arg_name, arg_value)
         else:
-            for i in range(len(args)):
-                arg_name = self.arg_names[i]
-                arg_value = args[i]
-                arg_value.setContext(exec_context)
-                exec_context.symbolTable.set(arg_name, arg_value)
+            len_arg_names = len(self.arg_names)
+            len_args = len(args)
+            new_args_names = [name for name in self.arg_names if is_varags(name) == False]
+            var_args = []
+            has_var_args = False
+            remaining_args = []
+            has_remaining_args = False
+            if len_args > len_arg_names:
+                for i in range(len(self.arg_names)):
+                    first_positional_arg = i
+                    last_positional_arg = len_arg_names - 1
+                    if  is_varags(self.arg_names[i]):
+                            has_var_args = True
+                            # check if *args is the first positional arg and last positional arg
+                            if len_arg_names == 1:
+                                var_args = args[self.arg_names.index(self.arg_names[i]):]
+                                var_name = split_varargs(self.arg_names[i])
+                                var_value = Pair(var_args)
+                                var_value.setContext(exec_context)
+                                exec_context.symbolTable.set(var_name, var_value)
+                                print(var_name, var_value)
+                            else:     
+                                # check if *args is the first positional arg and the remaining will get the values e,g *args, a, b, c
+                                if first_positional_arg == 0:
+                                    start_index = self.arg_names.index(self.arg_names[i])
+                                    var_args = args[start_index:len_args - len_arg_names + 1]
+                                    # get the remaining args starting from where the start index stops e.g *args = [1,2,3,4,5] and b,c,d,e= [7,8,9,10]
+                                    remaining_args = args[len_args - len_arg_names + 1:]
+                                    len_remaining_args = len(remaining_args)
+                                    len_arg_names_remaining = len_arg_names - 1
+                                    var_name = split_varargs(self.arg_names[i])
+                                    var_value = Pair(var_args)
+                                    var_value.setContext(exec_context)
+                                    exec_context.symbolTable.set(var_name, var_value)
+                                    has_remaining_args = True
+                                    print(var_args, "is var_args1", len_remaining_args, len_arg_names_remaining)
+                                # check if *args is the last positional arg and the remaining will get the values e,g a, b, c, *args
+                                if last_positional_arg == i:
+                                    start_index = self.arg_names.index(self.arg_names[i])
+                                    var_args = args[start_index:len_args]
+                                    # get the remaining args starting from where the start index starts e.g a, b, c, *args = [1,2,3,4,5] and d,e,f,g= [7,8,9,10]
+                                    remaining_args = args[0:start_index]
+                                    len_remaining_args = len(remaining_args)
+                                    len_arg_names_remaining = len_arg_names - 1
+                                    var_name = split_varargs(self.arg_names[i])
+                                    var_value = Pair(var_args)
+                                    var_value.setContext(exec_context)
+                                    exec_context.symbolTable.set(var_name, var_value)
+                                    has_remaining_args = True
+                                    print(start_index, var_args, "is var_args2", len_remaining_args, len_arg_names_remaining)
+                                # check if *args is in the middle and the remaining will get the values e,g a, *args, b, c
+                                else:
+                                    # if the *args is in the middle and the remaining will get the values e,g a, b, *args,c if args = [1,2,3,4,5,6,7,8,9,10,11,12] then a = 1,  b= 2, *args = [3,4,5,6,7,8,9,10,11] and c = 12
+                                    start_index = self.arg_names.index(self.arg_names[i])
+                                    var_args = args[start_index:len_args - len_arg_names + len_arg_names -1]
+                                    # remaining args should start from the beginning of the args and skip the var_args and get the remaining args e.g c = 12, a = 1, b = 2, *args = [3,4,5,6,7,8,9,10,11]
+                                    remaining_args = args[0:start_index]
+                                    len_remaining_args = len(remaining_args)
+                                    len_arg_names_remaining = len_arg_names - 1
+                                    print(start_index, var_args, "is var_args3", len_remaining_args, len_arg_names_remaining)
+                    
+                    if has_remaining_args:
+                        print(remaining_args, "remaining_args true")
+                        for k in range(len_remaining_args):
+                            arg_name = new_args_names[k]
+                            arg_value = remaining_args[k]
+                            arg_value.setContext(exec_context)
+                            exec_context.symbolTable.set(arg_name, arg_value)
+                    print(var_args, remaining_args, "is var_args4 and remaining_args")
+                
+                if not has_var_args:
+                    for i in range(len(args)):
+                        arg_name = self.arg_names[i]
+                        arg_value = args[i]
+                        arg_value.setContext(exec_context)
+                        exec_context.symbolTable.set(arg_name, arg_value)
         
         if len(keyword_args) > 0:
             for key, value in keyword_args.items():
@@ -9283,7 +9446,7 @@ class Interpreter:
         end_type = TypeOf(end).getType()
         if object_type == "list":
             if type_ == "double_colon":
-                if not step:
+                if not step or step:
                     if start_type == "int" and end_type == "int":
                         try:
                             get_value = index_value.elements[start.value::end.value]
@@ -9301,6 +9464,14 @@ class Interpreter:
                         return res.success(List(index_value.elements[::]))
                     elif start_type == "NoneType" and end_type == "int":
                         try:
+                            if end.value == 0:
+                                raise Al_ValueError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"slice step cannot be zero",
+                                    'context': context,
+                                    'exit': False
+                                })
                             get_value = index_value.elements[::end.value]
                             return res.success(List(get_value))
                         except IndexError:
@@ -9312,6 +9483,7 @@ class Interpreter:
                                 'context': context,
                                 'exit': False
                             })
+                            
                     elif start_type == "int" and end_type == "NoneType":
                         try:
                             get_value = index_value.elements[start.value::]
@@ -9334,7 +9506,17 @@ class Interpreter:
                             'context': context,
                             'exit': False
                         })
+                # else:
+                #     print("step", step)
             else:
+                if step and step.value == 0:
+                    raise Al_ValueError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"slice step cannot be zero",
+                        'context': context,
+                        'exit': False
+                    })
                 if start_type == "int" and end_type == "int":
                     try:
                         get_value = index_value.elements[start.value:end.value]
@@ -9388,6 +9570,14 @@ class Interpreter:
                         return res.success(Pair(index_value.elements[::]))
                     elif start_type == "NoneType" and end_type == "int":
                         try:
+                            if end.value == 0:
+                                raise Al_ValueError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"slice step cannot be zero",
+                                    'context': context,
+                                    'exit': False
+                                })
                             get_value = index_value.elements[::end.value]
                             return res.success(Pair(get_value))
                         except IndexError:
@@ -9474,6 +9664,14 @@ class Interpreter:
                         return res.success(String(index_value.value[::]))
                     elif start_type == "NoneType" and end_type == "int":
                         try:
+                            if end.value == 0:
+                                raise Al_ValueError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"slice step cannot be zero",
+                                    'context': context,
+                                    'exit': False
+                                })
                             get_value = index_value.value[::end.value]
                             return res.success(String(get_value))
                         except IndexError:
@@ -10292,7 +10490,8 @@ class Interpreter:
         res = RuntimeResult()
         def_name = node.def_name_token.value if node.def_name_token else "none"
         body_node = node.body_node
-        arg_names = [arg_name.value for arg_name in node.args_name_tokens]
+        arg_names = [arg_name.value if isinstance(
+            arg_name, Token) else arg_name.tok.value for arg_name in node.args_name_tokens]
         _properties = {}
         defualt_values = node.default_values
         _type = node.type
