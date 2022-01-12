@@ -496,9 +496,17 @@ println(animal.get_animals()) # ['Dog', 'Cat', 'Bird']
 
 # keyword arguments
 
-def @greet(name, age=30, email="default")
+def @greet(name="Micheal", age=none, email=none, hobby=none, verified=false, test="")
     println("SENDING EMAIL")
-    println(fm"Hello, %{name}, you are %{age} years old and your email is %{email}")
+    println(fm"Hello, %{name}, you are %{age} years old and your email is %{email}, and your hobby is %{hobby}, and you are %{verified} and your test is %{test}")
 end
 
-@greet("John",24)
+@greet("Bob",hobby="John", verified="test@email")
+
+# def @multiply(x, y=1)
+#     return x * y
+# end
+
+# @multiply(2, 3) # 6
+# let d = {'name': 'John', 'age': 21,}
+# println(len(d))

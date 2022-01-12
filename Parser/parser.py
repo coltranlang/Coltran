@@ -1417,7 +1417,15 @@ class Parser:
                     }))
                 
                 self.skipLines()
-                
+                for arg in arg_nodes:
+                    if arg == None or arg == '':
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "invlaid syntax",
+                            'exit': False
+                        }))
                 
               
         return res.success(CallNode(atom, arg_nodes, keyword_args_list))
@@ -4793,8 +4801,9 @@ animal2.set_animals()
 animal3.set_animals()
 print(animal.get_animals())
 print(dict(key="name", value="Bob", age=23))
-def greet(name, age=None, email=""):
+def greet(name="Micheal", age=None, email=None, hobby=None, verified=False, test=""):
     print("SENDING EMAIL")
-    print(f"Hello, {name}, you are {age} years old and your email is {email}")
+    print(f"Hello, %{name}, you are %{age} years old and your email is %{email}, and your hobby is %{hobby}, and you are %{verified} and your test is %{test}")
 
-greet("John",'21')
+
+greet("Bob",22,22,"rr",test="John", verified="test@email")

@@ -2816,8 +2816,6 @@ class Function(BaseFunction):
         self.value = f"<Function {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
         
     def execute(self, args, keyword_args_list):
-        
-        print(len(args), len(self.arg_names), args)
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
@@ -2834,30 +2832,7 @@ class Function(BaseFunction):
                 value = res.register(interpreter.visit(default_value['value'], exec_context))
                 default_values[name] = value
                 
-        if len(default_values) > 0:
-            keys = []
-            len_expected = len(self.arg_names) - len(default_values)
-            len_given = len(args)
-            len_default = len(default_values)
-            try:
-                for key in default_values:
-                    keys.append(key)
-                if len_given == len_expected :
-                    for key, value in default_values.items():
-                        if key in self.arg_names:
-                            args.append(value)
-                            print("oops")
-            except:
-                print("oops")
-            # elif len_given > len_expected:
-            #     for key, value in default_values.items():
-            #         for i in range(self.arg_names.index(key), len_given):
-            #             try:
-            #                 v = res.register(interpreter.visit(self.default_values[i]['value'], exec_context))
-            #                 args.append(v)
-            #             except:
-            #                 args = args - [default_values]
-                #print(len_given, len_expected, "gg")
+        
 
         if len(keyword_args_list) > 0:
             
@@ -2866,47 +2841,41 @@ class Function(BaseFunction):
                 value = res.register(interpreter.visit(keyword_arg['value'], exec_context))
                 keyword_args[name] = value
                 
-                
-        
-        print(args)    
-        #     if len(self.arg_names) > 0:
-        #         for i in range(len(self.arg_names)):
-        #             for key, value in keyword_args.items():
-        #                 if self.arg_names[i] == key:
-        #                     new_args.append(value)
-        #                 elif key not in self.arg_names:
-        #                     raise Al_TypeError({
-        #                         'pos_start': self.pos_start,
-        #                         'pos_end': self.pos_end,
-        #                         'message': f"{self.name}() got an unexpected keyword argument '{key}'",
-        #                         'context': self.context,
-        #                         'exit': False
-        #                     })
-        #                 else:
-        #                     for key, value in keyword_args.items():
-        #                         if key in self.arg_names:
-        #                             if key not in default_values:
-        #                                 raise Al_ValueError({
-        #                                     'pos_start': self.pos_start,
-        #                                     'pos_end': self.pos_end,
-        #                                     'message': f"{self.name}() got multiple values for argument '{key}'",
-        #                                     'context': self.context,
-        #                                     'exit': False
-        #                                 })
+            if len(self.arg_names) > 0:
+                for i in range(len(self.arg_names)):
+                    for key, value in keyword_args.items():
+                        if self.arg_names[i] == key:
+                            new_args.append(value)
+                        elif key not in self.arg_names:
+                            raise Al_TypeError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"{self.name}() got an unexpected keyword argument '{key}'",
+                                'context': self.context,
+                                'exit': False
+                            })
+                        else:
+                            for key, value in keyword_args.items():
+                                if key in self.arg_names:
+                                    if key not in default_values:
+                                        raise Al_ValueError({
+                                            'pos_start': self.pos_start,
+                                            'pos_end': self.pos_end,
+                                            'message': f"{self.name}() got multiple values for argument '{key}'",
+                                            'context': self.context,
+                                            'exit': False
+                                        })
                                     
                         
                             
-        #         if len(args) > 0:
-        #             if len(args) > len(keyword_args_list):
-        #                 for i in range(len(args)):
-        #                     if i < len(self.arg_names) and self.arg_names[i] not in keyword_args:
-        #                         new_args.insert(i, args[i])
+                if len(args) > 0:
+                    if len(args) > len(keyword_args_list):
+                        for i in range(len(args)):
+                            if i < len(self.arg_names) and self.arg_names[i] not in keyword_args:
+                                new_args.insert(i, args[i])     
                 
-        #         args_given = len(new_args)     
-                
-        # else:
-        #     new_args = args  
-        #     args_given = len(new_args)
+        else:
+            new_args = args  
         
         
         # if len(self.default_values) > 0:
@@ -2926,14 +2895,11 @@ class Function(BaseFunction):
          
         
         
+        print(new_args,args, "is this") 
+        args = new_args    
          
-            
-        # args = new_args 
-        # print(len(args), len(self.arg_names), args, new_args)
-        # print(f"args given: {args_given}", f"args expected: {args_expected}")    
-        
-        self.checkargs(self.arg_names, args)
-        self.populateargs(self.arg_names, args, exec_context)
+        self.check_args(args)
+        self.populate_args(keyword_args,args, exec_context)
         
         if res.should_return():
             return res
@@ -2946,50 +2912,282 @@ class Function(BaseFunction):
         #         return_value.value = NoneType.none
         return res.success(return_value)
 
-
-
-    def checkargs(self, args_names, args):
-        len_args_given = len(args)
-        len_args_expected = len(args_names)
-        defaul_values = self.default_values
-        if defaul_values != None and len(defaul_values) > 0:
-            if len_args_given == len_args_expected:
-                len_args_expected = len(self.arg_names)
-            else:
-                len_args_expected = len(self.arg_names) - len(self.default_values)
+    
+    def check_args(self,args):
         res = RuntimeResult()
-        if  len_args_given > len_args_expected:
-            if len_args_expected == 0:
-                raise Al_RuntimeError({
+        interpreter = Interpreter()
+        exec_context = self.generate_new_context()
+        default_values = {}
+        len_args = len(args)
+        if len_args == 0:
+            len_args = "none"
+        was_or_were = "was" if len_args == 1 or len_args == 0 or len_args == "none" else "were"
+        len_expected = len(self.arg_names)
+        
+        if len(self.default_values) > 0:
+            for default_value in self.default_values:
+                name = default_value['name']
+                value = res.register(interpreter.visit(default_value['value'], exec_context))
+                default_values[name] = value
+                len_expected = len(self.arg_names) - len(default_values)
+        
+        missing_args = []
+        missing_args_name = ""
+        keys = []
+        
+        for key, value in default_values.items():
+            keys.append(key)
+        
+        for i in range(len(self.arg_names)):
+            if self.arg_names[i] not in keys:
+                missing_args.append(self.arg_names[i])
+        
+        if len(missing_args) > 1:
+            for i in range(len(missing_args)):
+                if i == len(missing_args) - 2:
+                    missing_args_name += f"'{missing_args[i]}'" + " and "
+                elif i == len(missing_args) - 1:
+                    missing_args_name += f"'{missing_args[i]}'"
+                else:
+                    missing_args_name += f"'{missing_args[i]}'" + ", "
+        elif len(missing_args) == 1:
+            missing_args_name += f"'{missing_args[0]}'"
+        if len(missing_args) == 0:
+            missing_args_name = f"but {len_args} {'was' if len(args) == 1 or len(args) == 0 else 'were'} given"
+       
+       
+        exception_details = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len(args)} {'was' if len(args) == 1 or len(args) == 0 else 'were'} given",
+            'context': self.context,
+            'exit': False
+        }
+        
+        if default_values == {} or default_values == None:
+            
+            if len(args) > len(self.arg_names):
+                exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                
+                raise Al_TypeError(exception_details)
+            
+            
+            
+            if len(args) < len(self.arg_names):
+                exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                
+                raise Al_TypeError(exception_details)
+        
+        else:
+            if len(args) > len_expected:   
+                if  len(args) > len_expected and len(self.arg_names) == 0:
+                    exception_details['message'] = f"{self.name}() takes 0 positional arguments but {len_args} {was_or_were} given"
+                    raise Al_TypeError(exception_details)
+                
+                if len(missing_args) == 0:
+                    if len(args) > len(self.arg_names):
+                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                        raise Al_TypeError(exception_details)
+                    else:
+                        return res.success(None)
+                else:
+                    if len(args) > len(self.arg_names):
+                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() expected {len_expected} positional arguments"
+                        raise Al_TypeError(exception_details)
+            
+            if len(args) < len_expected:
+                exception_details['message'] = f"{self.name}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                raise Al_TypeError(exception_details)
+        
+        
+        
+        
+        return res.success(None)
+
+    def populate_args(self, keyword_args, args, exec_context):
+        res = RuntimeResult()
+        interpreter = Interpreter()
+        default_values = {}
+        len_expected = len(self.arg_names)
+        if len(self.default_values) > 0:
+            for default_value in self.default_values:
+                name = default_value['name']
+                value = res.register(interpreter.visit(default_value['value'], exec_context))
+                default_values[name] = value
+                len_expected = len(self.arg_names) - len(default_values)
+                
+        len_args = len(args)
+        if len_args == 0:
+            len_args = "none"
+        was_or_were = "was" if len_args == 1 or len_args == 0 or len_args == "none" else "were"
+        len_expected = len(self.arg_names)
+
+        if len(self.default_values) > 0:
+            for default_value in self.default_values:
+                name = default_value['name']
+                value = res.register(interpreter.visit(
+                    default_value['value'], exec_context))
+                default_values[name] = value
+                len_expected = len(self.arg_names) - len(default_values)
+
+        missing_args = []
+        missing_args_name = ""
+        keys = []
+
+        for key, value in default_values.items():
+            keys.append(key)
+
+        for i in range(len(self.arg_names)):
+            if self.arg_names[i] not in keys:
+                missing_args.append(self.arg_names[i])
+
+        if len(missing_args) > 1:
+            for i in range(len(missing_args)):
+                if i == len(missing_args) - 2:
+                    missing_args_name += f"'{missing_args[i]}'" + " and "
+                elif i == len(missing_args) - 1:
+                    missing_args_name += f"'{missing_args[i]}'"
+                else:
+                    missing_args_name += f"'{missing_args[i]}'" + ", "
+        elif len(missing_args) == 1:
+            missing_args_name += f"'{missing_args[0]}'"
+        if len(missing_args) == 0:
+            missing_args_name = f"but {len_args} {'was' if len(args) == 1 or len(args) == 0 else 'were'} given"
+        
+        if len(keyword_args) > 0:
+            print(len(keyword_args), len(args))
+            if len(keyword_args) > len(args):
+                if len(args) > 1:
+                    args.pop(0)
+            elif len(keyword_args) == len(args):
+                args = []
+            
+            else:
+                args_index_default = len(args) - len(keyword_args)
+                if args_index_default - len(keyword_args) == 1:
+                    new_args = []
+                    # remove duplicate in args
+                    for i in range(len(args)):
+                        if i == 0:
+                            new_args.append(args[i])
+                        else:
+                            if args[i] != args[i-1]:
+                                new_args.append(args[i])
+                args = new_args
+                print(args)       
+                    #args = args[:args]
+                if len(args) > len(keyword_args):
+                    args_index_default = len(args) - len(keyword_args)
+                    args_index = args_index_default - 1
+                    for key, value in keyword_args.items():
+                            # get position of key in keyword_args
+                            key_pos = self.arg_names.index(key)
+                            # check if key pos exists in args
+                            print(args_index_default, key_pos, "kk")
+                            if key_pos in range(len(args) - 1)  and key_pos != args_index_default:
+                                    raise Al_ValueError({
+                                        'pos_start': self.pos_start,
+                                        'pos_end': self.pos_end,
+                                        'message': f"{self.name if self.name != 'none' else 'anonymous'}() got multiple values for argument '{key}'",
+                                        'context': self.context,
+                                        'exit': False
+                                    })
+                            # key_index = self.arg_names.index(key)
+                            # new_arg_index = self.arg_names.index(key)
+                           # print(key_pos,key_index, args_index,new_arg_index,args, key)
+                            # if key_index == args_index:
+                            #     raise Al_ValueError({
+                            #         'pos_start': self.pos_start,
+                            #         'pos_end': self.pos_end,
+                            #         'message': f"{self.name if self.name != 'none' else 'anonymous'}() got multiple values for argument '{key}'",
+                            #         'context': self.context,
+                            #         'exit': False
+                            #     })
+                        # except:
+                        #     raise Al_ValueError({
+                        #         'pos_start': self.pos_start,
+                        #         'pos_end': self.pos_end,
+                        #         'message':  f"{self.name if self.name != 'none' else 'anonymous' }() got an unexpected keyword argument '{key}'",
+                        #         'context': self.context,
+                        #         'exit': False
+                        #     })
+                    # raise Al_ValueError({
+                    #     'pos_start': self.pos_start,
+                    #     'pos_end': self.pos_end,
+                    #     'message': f"{self.name if self.name != 'none' else 'anonymous'}() got multiple values for argument '{key}'",
+                    #     'context': self.context,
+                    #     'exit': False
+                    # })
+        
+        if len(args) == len_expected:
+            for i in range(len(args)):
+                arg_name = self.arg_names[i]
+                arg_value = args[i]
+                arg_value.setContext(exec_context)
+                exec_context.symbolTable.set(arg_name, arg_value)
+            for i in range(len(args), len(self.arg_names)):
+                arg_name = self.arg_names[i]
+                arg_value = default_values[arg_name]
+                arg_value.setContext(exec_context)
+                exec_context.symbolTable.set(arg_name, arg_value)
+        else:
+            
+            for key, value in default_values.items():
+                for i in range(len(args)):
+                    if self.arg_names[i] == key:
+                        arg_name = self.arg_names[i]
+                        arg_value = args[i]
+                        arg_value.setContext(exec_context)
+                        exec_context.symbolTable.set(arg_name, arg_value)
+            try:
+                for i in range(len(args), len(self.arg_names)):
+                    arg_name = self.arg_names[i]
+                    arg_value = default_values[arg_name]
+                    arg_value.setContext(exec_context)
+                    exec_context.symbolTable.set(arg_name, arg_value)
+            except Exception as e:
+                raise Al_ValueError({
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"{self.name if self.name != 'none' else 'anonymous'}() requires no arguments",
+                    'message': f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} ",
                     'context': self.context,
                     'exit': False
                 })
-            raise Al_RuntimeError({
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_args_expected} required positional argument",
-                'context': self.context,
-                'exit': False
-            })
-
-        if len_args_given < len_args_expected:
-            raise Al_RuntimeError({
-                 'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"{self.name}() missing {len_args_expected} required positional argument",
-                'context': self.context,
-                'exit': False
-            })
-        return res.success(None)
-
-    def populateargs(self, arg_names, args, exec_context):
-        for i in range(len(args)):
-            arg_name = arg_names[i]
-            arg_value = args[i]
-            exec_context.symbolTable.set(arg_name, arg_value)
+        
+        
+        if len(args) == len(self.arg_names):
+            for i in range(len(args)):
+                arg_name = self.arg_names[i]
+                arg_value = args[i]
+                arg_value.setContext(exec_context)
+                exec_context.symbolTable.set(arg_name, arg_value)
+        else:
+            for i in range(len(args)):
+                arg_name = self.arg_names[i]
+                arg_value = args[i]
+                arg_value.setContext(exec_context)
+                exec_context.symbolTable.set(arg_name, arg_value)
+        
+        if len(keyword_args) > 0:
+            for key, value in keyword_args.items():
+                value.setContext(exec_context)
+                if key in self.arg_names:
+                    exec_context.symbolTable.set(key, value)
+                    # the rest of the arg_names should be default values
+                    if len(self.arg_names) > len(args):
+                        for name in self.arg_names:
+                            if name not in keyword_args:
+                                if len(self.default_values) > 0:
+                                    if name in self.default_values:
+                                        exec_context.symbolTable.set(name, default_values[name])
+                else:
+                    raise Al_TypeError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"{self.name if self.name != 'none' else 'anonymous' }() got an unexpected keyword argument '{key}'",
+                        'context': self.context,
+                        'exit': False
+                    })
 
 
 
