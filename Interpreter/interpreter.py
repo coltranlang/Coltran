@@ -387,6 +387,22 @@ class Program:
                 Program.printErrorExit(Program.asStringTraceBack(isDetail))
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
+           
+        def ArgumentError(detail):
+            if 'name' in detail:
+                if isinstance(detail['name'], String):
+                    detail['name'] = detail['name'].value
+            isDetail = {
+                'name': detail['name'] if 'name' in detail else 'ArgumentError',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
                 
         def TypeError(detail):
             if 'name' in detail:
@@ -546,6 +562,7 @@ class Program:
             'RuntimeError': RuntimeError,
             'ZeroDivisionError': ZeroDivisionError,
             'NameError': NameError,
+            'ArgumentError': ArgumentError,
             'TypeError': TypeError,
             'KeyError': KeyError,
             'ValueError': ValueError,
@@ -756,6 +773,14 @@ class Al_NameError(Al_Exception):
         
     def __repr__(self):
         return f"<NameError {self.message}>"
+    
+    
+class Al_ArgumentError(Al_Exception):
+    def __init__(self,message):
+        super().__init__("ArgumentError", message)
+        
+    def __repr__(self):
+        return f"<ArgumentError {self.message}>"
 
 
 class Al_KeyError(Al_Exception):
@@ -835,6 +860,7 @@ builtin_exceptions = {
     'Exception': Al_Exception,
     'RuntimeError': Al_RuntimeError,
     'NameError': Al_NameError,
+    'ArgumentError': Al_ArgumentError,
     'TypeError': Al_TypeError,
     'IndexError': Al_IndexError,
     'ValueError': Al_ValueError,
@@ -2824,6 +2850,7 @@ class Function(BaseFunction):
         len_given = 0
         keyword_args = {}
         default_values = {}
+        old_args = args
         new_args = []
         # default values
         if len(self.default_values) > 0:
@@ -2847,32 +2874,45 @@ class Function(BaseFunction):
                         if self.arg_names[i] == key:
                             new_args.append(value)
                         elif key not in self.arg_names:
-                            raise Al_TypeError({
+                            raise Al_ArgumentError({
                                 'pos_start': self.pos_start,
                                 'pos_end': self.pos_end,
                                 'message': f"{self.name}() got an unexpected keyword argument '{key}'",
                                 'context': self.context,
                                 'exit': False
                             })
-                        else:
-                            for key, value in keyword_args.items():
-                                if key in self.arg_names:
-                                    if key not in default_values:
-                                        raise Al_ValueError({
-                                            'pos_start': self.pos_start,
-                                            'pos_end': self.pos_end,
-                                            'message': f"{self.name}() got multiple values for argument '{key}'",
-                                            'context': self.context,
-                                            'exit': False
-                                        })
+                        # else:
+                        #     for key, value in keyword_args.items():
+                        #         if key in self.arg_names:
+                        #             if key not in default_values:
+                        #                 # checkif key is at the right index of non default values
+                        #                 if len(keyword_args) > 0:
+                        #                     for i in range(len(self.arg_names)):
+                        #                         if self.arg_names[i] == key:
+                        #                             print(self.arg_names[i], key)
+                        #                 raise Al_ValueError({
+                        #                     'pos_start': self.pos_start,
+                        #                     'pos_end': self.pos_end,
+                        #                     'message': f"{self.name}() got multiple values for argument '{key}'",
+                        #                     'context': self.context,
+                        #                     'exit': False
+                        #                 })
                                     
                         
-                            
+                
+                len_old_args = len(args) - len(keyword_args)            
                 if len(args) > 0:
-                    if len(args) > len(keyword_args_list):
-                        for i in range(len(args)):
-                            if i < len(self.arg_names) and self.arg_names[i] not in keyword_args:
-                                new_args.insert(i, args[i])     
+                    for i in range(len_old_args):
+                        new_args.insert(i, args[i])
+                    #new_args.insert(0, args[0])
+
+                if len(keyword_args) > 0:
+                    for i in range(len(self.arg_names)):
+                        if self.arg_names[i] in keyword_args:
+                            index_key = self.arg_names.index(self.arg_names[i])
+                            args_index = len_old_args - 1
+                            print(index_key, "rttt", args_index)
+                            print(self.arg_names[i], keyword_args[self.arg_names[i]])        
                 
         else:
             new_args = args  
@@ -2959,7 +2999,7 @@ class Function(BaseFunction):
         exception_details = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len(args)} {'was' if len(args) == 1 or len(args) == 0 else 'were'} given",
+            'message': f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given",
             'context': self.context,
             'exit': False
         }
@@ -2967,37 +3007,37 @@ class Function(BaseFunction):
         if default_values == {} or default_values == None:
             
             if len(args) > len(self.arg_names):
-                exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given"
                 
-                raise Al_TypeError(exception_details)
+                raise Al_ArgumentError(exception_details)
             
             
             
             if len(args) < len(self.arg_names):
-                exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given"
                 
-                raise Al_TypeError(exception_details)
+                raise Al_ArgumentError(exception_details)
         
         else:
             if len(args) > len_expected:   
                 if  len(args) > len_expected and len(self.arg_names) == 0:
                     exception_details['message'] = f"{self.name}() takes 0 positional arguments but {len_args} {was_or_were} given"
-                    raise Al_TypeError(exception_details)
+                    raise Al_ArgumentError(exception_details)
                 
                 if len(missing_args) == 0:
                     if len(args) > len(self.arg_names):
-                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
-                        raise Al_TypeError(exception_details)
+                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given"
+                        raise Al_ArgumentError(exception_details)
                     else:
                         return res.success(None)
                 else:
                     if len(args) > len(self.arg_names):
                         exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() expected {len_expected} positional arguments"
-                        raise Al_TypeError(exception_details)
+                        raise Al_ArgumentError(exception_details)
             
             if len(args) < len_expected:
-                exception_details['message'] = f"{self.name}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
-                raise Al_TypeError(exception_details)
+                exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given"
+                raise Al_ArgumentError(exception_details)
         
         
         
@@ -3055,17 +3095,15 @@ class Function(BaseFunction):
             missing_args_name = f"but {len_args} {'was' if len(args) == 1 or len(args) == 0 else 'were'} given"
         
         if len(keyword_args) > 0:
-            print(len(keyword_args), len(args))
             if len(keyword_args) > len(args):
                 if len(args) > 1:
                     args.pop(0)
             elif len(keyword_args) == len(args):
                 args = []
-            
             else:
+                new_args = []
                 args_index_default = len(args) - len(keyword_args)
                 if args_index_default - len(keyword_args) == 1:
-                    new_args = []
                     # remove duplicate in args
                     for i in range(len(args)):
                         if i == 0:
@@ -3073,9 +3111,7 @@ class Function(BaseFunction):
                         else:
                             if args[i] != args[i-1]:
                                 new_args.append(args[i])
-                args = new_args
-                print(args)       
-                    #args = args[:args]
+                       
                 if len(args) > len(keyword_args):
                     args_index_default = len(args) - len(keyword_args)
                     args_index = args_index_default - 1
@@ -3083,15 +3119,15 @@ class Function(BaseFunction):
                             # get position of key in keyword_args
                             key_pos = self.arg_names.index(key)
                             # check if key pos exists in args
-                            print(args_index_default, key_pos, "kk")
-                            if key_pos in range(len(args) - 1)  and key_pos != args_index_default:
-                                    raise Al_ValueError({
-                                        'pos_start': self.pos_start,
-                                        'pos_end': self.pos_end,
-                                        'message': f"{self.name if self.name != 'none' else 'anonymous'}() got multiple values for argument '{key}'",
-                                        'context': self.context,
-                                        'exit': False
-                                    })
+                            # print(args_index_default, key_pos, "kk")
+                            # if key_pos in range(len(args) - 1)  and key_pos != args_index_default:
+                            #         raise Al_ValueError({
+                            #             'pos_start': self.pos_start,
+                            #             'pos_end': self.pos_end,
+                            #             'message': f"{self.name if self.name != 'none' else 'anonymous'}() got multiple values for argument '{key}'",
+                            #             'context': self.context,
+                            #             'exit': False
+                            #         })
                             # key_index = self.arg_names.index(key)
                             # new_arg_index = self.arg_names.index(key)
                            # print(key_pos,key_index, args_index,new_arg_index,args, key)
@@ -3128,7 +3164,7 @@ class Function(BaseFunction):
             for i in range(len(args), len(self.arg_names)):
                 arg_name = self.arg_names[i]
                 arg_value = default_values[arg_name]
-                arg_value.setContext(exec_context)
+                arg_value.setContext(exec_context) 
                 exec_context.symbolTable.set(arg_name, arg_value)
         else:
             
@@ -3139,6 +3175,7 @@ class Function(BaseFunction):
                         arg_value = args[i]
                         arg_value.setContext(exec_context)
                         exec_context.symbolTable.set(arg_name, arg_value)
+                        
             try:
                 for i in range(len(args), len(self.arg_names)):
                     arg_name = self.arg_names[i]
@@ -3146,13 +3183,19 @@ class Function(BaseFunction):
                     arg_value.setContext(exec_context)
                     exec_context.symbolTable.set(arg_name, arg_value)
             except Exception as e:
-                raise Al_ValueError({
-                    'pos_start': self.pos_start,
-                    'pos_end': self.pos_end,
-                    'message': f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} ",
-                    'context': self.context,
-                    'exit': False
-                })
+                for i in range(len(args)):
+                    arg_name = self.arg_names[i]
+                    arg_value = args[i]
+                    arg_value.setContext(exec_context)
+                    exec_context.symbolTable.set(arg_name, arg_value)
+                
+                # raise Al_ValueError({
+                #     'pos_start': self.pos_start,
+                #     'pos_end': self.pos_end,
+                #     'message': f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} ",
+                #     'context': self.context,
+                #     'exit': False
+                # })
         
         
         if len(args) == len(self.arg_names):
@@ -3180,6 +3223,7 @@ class Function(BaseFunction):
                                 if len(self.default_values) > 0:
                                     if name in self.default_values:
                                         exec_context.symbolTable.set(name, default_values[name])
+                           
                 else:
                     raise Al_TypeError({
                         'pos_start': self.pos_start,
@@ -4528,11 +4572,7 @@ def BuiltInFunction_Zip(args, node, context):
     # zip takes any number of iterables as arguments and returns a list of tuples, where the i-th tuple contains the i-th element from each of the argument sequences or iterables.
     # zip can accept multiple iterables, but the resulting list is truncated to the length of the shortest input iterable. 
     
-    
-    
-    
-    
-    
+        
 def BuiltInFunction_Max(args, node, context):
     res = RuntimeResult()
     if len(args) > 2:
@@ -5079,7 +5119,7 @@ def BuiltInClass_NameError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but NameError takes 1 or 2 arguments",
@@ -5092,6 +5132,51 @@ def BuiltInClass_NameError(args, node, context, type):
             return res.success(BuiltInClass("NameError", Dict({'name': String("NameError"), 'message': String(args[0].value)})))
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
             return res.success(BuiltInClass("NameError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+
+def BuiltInClass_ArgumentError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ArgumentError({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'ArgumentError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_ArgumentError({
+                'name': 'ArgumentError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_ArgumentError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ArgumentError'),
+                'message': args[1].value, 
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_ArgumentError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but ArgumentError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("ArgumentError", Dict({'name': String("ArgumentError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("ArgumentError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
 def BuiltInClass_TypeError(args, node, context, type):
@@ -5125,7 +5210,7 @@ def BuiltInClass_TypeError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but TypeError takes 1 or 2 arguments",
@@ -5170,7 +5255,7 @@ def BuiltInClass_IndexError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but IndexError takes 1 or 2 arguments",
@@ -5215,7 +5300,7 @@ def BuiltInClass_ValueError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but ValueError takes 1 or 2 arguments",
@@ -7605,10 +7690,10 @@ class Interpreter:
                                 context.symbolTable.set(var_name, new_value, "let")
                             else:
                                 raise Al_TypeError({
-                                    'name': String('TypeError'),
+                                    'name': 'TypeError',
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': String(f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'"),
+                                    'message': f"unsupported '+=' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
                                     'context': context,
                                     'exit': False
                                 })
@@ -8260,13 +8345,7 @@ class Interpreter:
                                 'exit': False
                             })
                         else:
-                            raise Al_TypeError({
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'message': f"unsupported '{operation}' operation for '{TypeOf(v['value']).getType()}' and '{TypeOf(value).getType()}'",
-                                'context': context,
-                                'exit': False
-                            })
+                            context.symbolTable.set(var_name, value, "let")
                   
         else:
             raise Al_NameError({
@@ -10672,6 +10751,7 @@ BuiltInFunction.isFinite = BuiltInFunction("isFinite")
 code_builtin_exception = 'class Exception()\ndef init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_runtime = 'class RuntimeError()\ndef init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_nameerror = 'class NameError()\ndef init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_argumenterror = 'class ArgumentError()\ndef init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_typeerror = 'class TypeError()\ndef init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_indexerror = 'class IndexError()\ndef init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_valueerror = 'class ValueError()\ndef init(self,message)\n\tself.message = message\nend\nend'
@@ -10684,6 +10764,7 @@ code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef init(self,messa
 builtin_exception = Program.createBuiltIn("Exception", code_builtin_exception).elements[0]
 builtin_exception_runtime = Program.createBuiltIn("RuntimeError", code_builtin_runtime).elements[0]
 builtin_exception_nameerror = Program.createBuiltIn("NameError", code_builtin_nameerror).elements[0]
+builtin_exception_argumenterror = Program.createBuiltIn("ArgumentError", code_builtin_argumenterror).elements[0]
 builtin_exception_typeerror = Program.createBuiltIn("TypeError", code_builtin_typeerror).elements[0]
 builtin_exception_indexerror = Program.createBuiltIn("IndexError", code_builtin_indexerror).elements[0]
 builtin_exception_valueerror = Program.createBuiltIn("ValueError", code_builtin_valueerror).elements[0]
@@ -10697,6 +10778,7 @@ exceptions_ = {
     'Exception': builtin_exception,
     'RuntimeError': builtin_exception_runtime,
     'NameError': builtin_exception_nameerror,
+    'ArgumentError': builtin_exception_argumenterror,
     'TypeError': builtin_exception_typeerror,
     'IndexError': builtin_exception_indexerror,
     'ValueError': builtin_exception_valueerror,
@@ -10711,6 +10793,7 @@ exceptions_ = {
 BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.class_args, builtin_exception.inherit_class_name, builtin_exception.inherited_from, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
 BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.class_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.inherited_from, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
 BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.class_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.inherited_from, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context) 
+BuiltInClass.ArgumentError = BuiltInClass(builtin_exception_argumenterror.class_name, builtin_exception_argumenterror.class_args, builtin_exception_argumenterror.inherit_class_name, builtin_exception_argumenterror.inherited_from, builtin_exception_argumenterror.methods, builtin_exception_argumenterror.class_fields_modifiers, builtin_exception_argumenterror.context)
 BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.class_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.inherited_from, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
 BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.class_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.inherited_from, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
 BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.class_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.inherited_from, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
@@ -10786,6 +10869,7 @@ symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
 symbolTable_.set('Exception', BuiltInClass.Exception)
 symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
 symbolTable_.set('NameError', BuiltInClass.NameError)
+symbolTable_.set('ArgumentError', BuiltInClass.ArgumentError)
 symbolTable_.set('TypeError', BuiltInClass.TypeError)
 symbolTable_.set('IndexError', BuiltInClass.IndexError)
 symbolTable_.set('ValueError', BuiltInClass.ValueError)

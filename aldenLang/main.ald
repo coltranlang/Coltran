@@ -496,13 +496,20 @@ println(animal.get_animals()) # ['Dog', 'Cat', 'Bird']
 
 # keyword arguments
 
-def @greet(name="Micheal", age=none, email=none, hobby=none, verified=false, test="")
+def @greet(name, age=none, email=none, hobby=none, verified=false, test=0)
     println("SENDING EMAIL")
-    println(fm"Hello, %{name}, you are %{age} years old and your email is %{email}, and your hobby is %{hobby}, and you are %{verified} and your test is %{test}")
+    println(fm"Hello, %{name}, your age is %{age} and your email is %{email}, and your hobby is %{hobby}, and you are %{verified} and your test is %{test}")
 end
 
-@greet("Bob",hobby="John", verified="test@email")
+@greet("Kenny")
 
+# def @greet(options)
+#     let (name, age, email, hobby, verified, test) = options
+#     println("SENDING EMAIL")
+#     println(fm"Hello, %{name}, your age is %{age} and your email is %{email}, and your hobby is %{hobby}, and you are %{verified} and your test is %{test}")
+# end
+
+# @greet({name: "John", age: 21, email: "test@email.com", hobby: "Playing soccer", verified: true, test: "test"})
 # def @multiply(x, y=1)
 #     return x * y
 # end
@@ -510,3 +517,22 @@ end
 # @multiply(2, 3) # 6
 # let d = {'name': 'John', 'age': 21,}
 # println(len(d))
+
+# let missing_args = ['name']
+# let missing_args_name = ''
+
+
+
+# if len(missing_args) > 1:
+#     in range(len(missing_args)) as i:
+#         if  i == len(missing_args) - 2:
+#             missing_args_name += fm"'{missing_args[i]}'" + " and "
+#         elif i == len(missing_args) - 1:
+#             missing_args_name += f"'{missing_args[i]}'"
+#         else:
+#             missing_args_name += fm"'{missing_args[i]}'" + ", "
+#         end
+        
+# elif len(missing_args) == 1:
+#     missing_args_name += fm"'{missing_args[0]}'"
+# end

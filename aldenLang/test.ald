@@ -350,7 +350,7 @@ let verified = if age >= 18 : true else : false
 if verified:
     line(37)
     println("You are verified")
-else :
+else:
     line(37)
     println("You are not verified")
 end
@@ -873,7 +873,7 @@ println(filtered)
 line(74)
 # Filtering out all prime numbers
 def @isPrime(num) 
-   for i = 2 to num:
+    for i = 2 to num:
         if num % i == 0:
             return false
         end

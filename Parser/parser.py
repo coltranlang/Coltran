@@ -4801,9 +4801,9 @@ animal2.set_animals()
 animal3.set_animals()
 print(animal.get_animals())
 print(dict(key="name", value="Bob", age=23))
-def greet(name="Micheal", age=None, email=None, hobby=None, verified=False, test=""):
+def greet(name, age, email=None, hobby=None, verified=False, test=""):
     print("SENDING EMAIL")
     print(f"Hello, %{name}, you are %{age} years old and your email is %{email}, and your hobby is %{hobby}, and you are %{verified} and your test is %{test}")
 
 
-greet("Bob",22,22,"rr",test="John", verified="test@email")
+greet("Bob",age=25)
