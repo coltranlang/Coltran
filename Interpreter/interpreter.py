@@ -560,6 +560,23 @@ class Program:
             else:
                 Program.printError(error)
 
+        def RecursionError(detail):
+            if 'name' in detail:
+                if isinstance(detail['name'], String):
+                    detail['name'] = detail['name'].value
+            isDetail = {
+                'name': detail['name'] if 'name' in detail else 'RecursionError',
+                'type': 'invalid syntax',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+
         def Exception(detail):
             if 'name' in detail:
                 if isinstance(detail['name'], String):
@@ -604,6 +621,7 @@ class Program:
             'GetError': GetError,
             'ModuleNotFoundError': ModuleNotFoundError,
             'KeyboardInterrupt': KeyboardInterrupt,
+            'RecursionError': RecursionError,
             'Exception': Exception,
             'Warning': Warning
         }
@@ -879,6 +897,14 @@ class Al_KeyboardInterrupt(Al_Exception):
         return f"<KeyboardInterrupt {self.message}>"
 
 
+class Al_RecursionError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("RecursionError", message)
+
+    def __repr__(self):
+        return f"<RecursionError {self.message}>"
+
+
 class Al_Warning(Al_Exception):
     def __init__(self, message):
         super().__init__("Warning", message)
@@ -900,7 +926,8 @@ builtin_exceptions = {
     'ZeroDivisionError': Al_ZeroDivisionError,
     'GetError': Al_GetError,
     'ModuleNotFoundError': Al_ModuleNotFoundError,
-    'KeyboardInterrupt': Al_KeyboardInterrupt
+    'KeyboardInterrupt': Al_KeyboardInterrupt,
+    'RecursionError': Al_RecursionError,
 }
 
 
@@ -3997,9 +4024,24 @@ class Function(BaseFunction):
                     else:
                         return res.success(None)
                 else:
+                    non_var_ags = []
+                    values = []
                     if len(args) > len(self.arg_names):
+                        # for i in range(len(self.arg_names)):
+                        #         non_var_ags.append(self.arg_names[i])
+                        #         non_var_ags.reverse()
+                        #         if len(default_values) > 0:
+                        #             if self.arg_names[i] in default_values:
+                        #                 values.append(default_values[self.arg_names[i]])
+                        #         if is_varags(self.arg_names[i]):
+                        #             first_positional_arg = self.arg_names.index(self.arg_names[i])
+                        #             if first_positional_arg == 0:
+                        #                 start_index = self.arg_names.index(self.arg_names[i]) + 1
+                        #                 var_args = args[start_index:len_args]
+                        #                 print(var_args)
                         exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() expected {len_expected} positional arguments"
                         raise Al_ArgumentError(exception_details)
+                    
 
             if len(args) < len_expected:
                 has_var_args = False
@@ -6723,7 +6765,7 @@ def BuiltInClass_Exception(args, node, context, type, name=None):
     res = RuntimeResult()
     
     if len(args) == 0 or len(args) > 2:
-        raise Al_Exception('Exception',{
+        raise Al_ArgumentError('Exception',{
             'name': 'Exception',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -6765,7 +6807,7 @@ def BuiltInClass_Exception(args, node, context, type, name=None):
 def BuiltInClass_RuntimeError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_RuntimeError({
+        raise Al_ArgumentError({
             'name': 'RuntimeError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -6811,7 +6853,7 @@ def BuiltInClass_RuntimeError(args, node, context, type):
 def BuiltInClass_NameError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_NameError({
+        raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"'NameError' takes 1 or 2 arguments",
@@ -6901,7 +6943,7 @@ def BuiltInClass_ArgumentError(args, node, context, type):
 def BuiltInClass_TypeError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_TypeError({
+        raise Al_ArgumentError({
             'name': 'TypeError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -6947,7 +6989,7 @@ def BuiltInClass_TypeError(args, node, context, type):
 def BuiltInClass_IndexError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_IndexError({
+        raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"'IndexError' takes 1 or 2 arguments",
@@ -6992,7 +7034,7 @@ def BuiltInClass_IndexError(args, node, context, type):
 def BuiltInClass_ValueError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_ValueError({
+        raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"'ValueError' takes 1 or 2 arguments",
@@ -7037,7 +7079,7 @@ def BuiltInClass_ValueError(args, node, context, type):
 def BuiltInClass_PropertyError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_PropertyError({
+        raise Al_ArgumentError({
             'name': 'PropertyError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -7083,7 +7125,7 @@ def BuiltInClass_PropertyError(args, node, context, type):
 def BuiltInClass_KeyError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_KeyError({
+        raise Al_ArgumentError({
             'name': 'KeyError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -7129,7 +7171,7 @@ def BuiltInClass_KeyError(args, node, context, type):
 def BuiltInClass_ZeroDivisionError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_ZeroDivisionError({
+        raise Al_ArgumentError({
             'name': 'ZeroDivisionError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -7175,7 +7217,7 @@ def BuiltInClass_ZeroDivisionError(args, node, context, type):
 def BuiltInClass_GetError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_GetError({
+        raise Al_ArgumentError({
             'name': 'GetError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -7221,7 +7263,7 @@ def BuiltInClass_GetError(args, node, context, type):
 def BuiltInClass_ModuleNotFoundError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_ModuleNotFoundError({
+        raise Al_ArgumentError({
             'name': 'ModuleNotFoundError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -7267,7 +7309,7 @@ def BuiltInClass_ModuleNotFoundError(args, node, context, type):
 def BuiltInClass_KeyboardInterrupt(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
-        raise Al_KeyboardInterrupt({
+        raise Al_ArgumentError({
             'name': 'KeyboardInterrupt',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -7310,7 +7352,50 @@ def BuiltInClass_KeyboardInterrupt(args, node, context, type):
             return res.success(BuiltInClass("KeyboardInterrupt", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-
+def BuiltInClass_RecursionError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ArgumentError({
+            'name': 'RecursionError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'RecursionError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_RecursionError({
+                'name': 'RecursionError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_RecursionError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('RecursionError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_ArgumentError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but RecursionError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("RecursionError", Dict({'name': String("RecursionError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("RecursionError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
 
@@ -8116,9 +8201,10 @@ class BuiltInMethod_String(Value):
 
 class BuiltInMethod_List(Value):
    
-    def __init__(self, type, name, args, node, context, keyword_args=None):
+    def __init__(self, type, name, args, node, context, var_name=None,keyword_args=None):
         super().__init__()
         self.type = type
+        self.var_name = var_name
         self.name = name
         self.args = args
         self.node = node
@@ -8247,7 +8333,9 @@ class BuiltInMethod_List(Value):
             new_list = []
             for el in self.name.elements:
                 new_list.insert(0, el)
-            return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            value = List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            self.context.symbolTable.set(self.var_name, value)
+            return value
                 
         else:
             raise Al_RuntimeError({
@@ -10117,8 +10205,9 @@ class Interpreter:
         res = RuntimeResult()
         value = ""
         object_name = res.register(self.visit(node.name, context)) 
+        var_name = node.name.value if hasattr(node.name, 'value') else node.name.id.value if hasattr(node.name, 'id') and hasattr(node.name.id, 'value') else node.name
         object_key = node.property
-        # print(type(object_name).__name__, type(object_key).__name__, object_key)
+        #print(type(object_name).__name__, type(object_key).__name__, object_key)
         error = {
             'name': 'PropertyError',
             "pos_start": node.pos_start,
@@ -10460,7 +10549,7 @@ class Interpreter:
                                 self.visit(arg, context)))
                             if res.should_return(): return res
                         value = BuiltInMethod_List(
-                            object_key.node_to_call.value, object_name, args, node, context, object_key.keyword_args_list)
+                            object_key.node_to_call.value, object_name, args, node, context, var_name,object_key.keyword_args_list)
                         return res.success(value.name)
                     if  object_key.node_to_call.value in object_name.properties.properties:
                             value = object_name.properties.properties[object_key.node_to_call.value]
@@ -11597,7 +11686,7 @@ class Interpreter:
             if res.should_return():
                 return res
             end_value = res.register(self.visit(node.end_value_node, context))
-            if res.should_return():
+            if res.should_return() : 
                 return res
             if node.step_value_node:
                 step_value = res.register(
@@ -11691,6 +11780,8 @@ class Interpreter:
             if isinstance(iterable_node, Object) or isinstance(iterable_node, Dict):
                 end_value = iterable_node.get_length()
                 values = []
+                if res.should_return() : 
+                    return res
                 for i in range(end_value):
                     if len(iterators) == 1:
                         if type(iterators[0]).__name__ == "VarAccessNode":
@@ -11701,7 +11792,14 @@ class Interpreter:
                             context.symbolTable.set(iterators[0].id.value, Pair(new_pair))
                             value = res.register(self.visit(node.body_node, context))
                             elements.append(value)
+                            if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                                return res
                             
+                            if res.loop_continue:
+                                continue
+
+                            if res.loop_break:
+                                break
                         else:
                                 raise Al_TypeError({
                                     'pos_start': node.pos_start,
@@ -11720,6 +11818,7 @@ class Interpreter:
                             context.symbolTable.set(iterators[1].id.value, value)
                             value = res.register(self.visit(node.body_node, context))
                             elements.append(value)
+                            
                         else:
                             raise Al_TypeError({
                                 'pos_start': node.pos_start,
@@ -11731,12 +11830,22 @@ class Interpreter:
             
             elif isinstance(iterable_node, List):
                 end_value = len(iterable_node.elements)
+                if res.should_return() :
+                    return res
                 for i in range(end_value):
                     if len(iterators) == 1:
                         if type(iterators[0]).__name__ == "VarAccessNode":
                             context.symbolTable.set(iterators[0].id.value, iterable_node.elements[i])
                             value = res.register(self.visit(node.body_node, context))
                             elements.append(value)
+                            if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                                return res
+                            
+                            if res.loop_continue:
+                                continue
+
+                            if res.loop_break:
+                                break
                         else:
                             raise Al_TypeError({
                                 'pos_start': node.pos_start,
@@ -11756,12 +11865,22 @@ class Interpreter:
             
             elif isinstance(iterable_node, Pair):
                 end_value = len(iterable_node.elements)
+                if res.should_return() :
+                    return res
                 for i in range(end_value):
                     if len(iterators) == 1:
                         if type(iterators[0]).__name__ == "VarAccessNode":
                             context.symbolTable.set(iterators[0].id.value, iterable_node.elements[i])
                             value = res.register(self.visit(node.body_node, context))
                             elements.append(value)
+                            if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                                return res
+                            
+                            if res.loop_continue:
+                                continue
+
+                            if res.loop_break:
+                                break
                         else:
                             raise Al_TypeError({
                                 'pos_start': node.pos_start,
@@ -11781,6 +11900,8 @@ class Interpreter:
             
             elif isinstance(iterable_node, String):
                 end_value = len(iterable_node.value)
+                if res.should_return() :
+                    return res
                 for i in range(end_value):
                     if len(iterators) == 1:
                         if type(iterators[0]).__name__ == "VarAccessNode":
@@ -11788,6 +11909,14 @@ class Interpreter:
                             context.symbolTable.set(iterators[0].id.value, String(new_list[i]))
                             value = res.register(self.visit(node.body_node, context))
                             elements.append(value)
+                            if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                                return res
+
+                            if res.loop_continue:
+                                continue
+
+                            if res.loop_break:
+                                break
                         else:
                             raise Al_TypeError({
                                 'pos_start': node.pos_start,
@@ -12393,8 +12522,8 @@ class Interpreter:
             return res
         return_value = return_value.copy().setPosition(
             node.pos_start, node.pos_end).setContext(context) if hasattr(return_value, 'copy') else return_value
-        if isinstance(return_value, NoneType):
-            return res.noreturn()
+        # if isinstance(return_value, NoneType):
+        #     return res.noreturn()
         return res.success(return_value)
          
     
@@ -12486,17 +12615,38 @@ class Interpreter:
     
     def visit_ReturnNode(self, node, context):
         res = RuntimeResult()
-        
+        return_value = None
         if node.node_to_return:
-            value = res.register(self.visit(node.node_to_return, context))
-            if value is None: value = NoneType.none
-            if res.should_return(): return res
+            try:
+                value = res.register(self.visit(node.node_to_return, context))
+                if value is None: value = NoneType.none
+                if res.should_return(): return res
+                return_value = value 
+            except RecursionError:
+                raise Al_RecursionError(
+                    {
+                        "pos_start": node.pos_start,
+                        "pos_end": node.pos_end,
+                        "message": "'RecursionError': maximum recursion depth exceeded",
+                        "context": context,
+                        "exit": False
+                    })
+            except:
+                # create a loop for the error
+                raise Al_RecursionError({
+                   'pos_start': node.pos_start,
+                   'pos_end': node.pos_end,
+                   'message': f"'RecursionError': too many function calls",
+                   'context': context,
+                   'exit': False
+                })
         else:
-            value = NoneType.none
-        if value is None:  value = NoneType.none
-        if isinstance(value, NoneType):
+            return_value = NoneType.none
+        if return_value is None:  return_value = NoneType.none
+        if isinstance(return_value, NoneType):
             return res.noreturn()
-        return res.success_return(value)
+        
+        return res.success_return(return_value)
 
     
     def visit_ContinueNode(self, node, context):

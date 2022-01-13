@@ -552,7 +552,6 @@ class Splat()
 end
 let splat = Splat("John", 21)
 splat.greet()
-println(len([]))
 # def @varargs(*args,a,b,c,d,e,f)
 #     print(args,a,b,c,d,e,f)
 # end
@@ -581,3 +580,13 @@ println(len([]))
 # elif len(missing_args) == 1:
 #     missing_args_name += fm"'{missing_args[0]}'"
 # end
+# *args
+
+def @join_sep(*args, sep=",")
+    let nums = ''
+    in args as arg:
+        nums += str(arg) + sep
+    end
+    return nums
+end
+println(@join_sep('-', 1))

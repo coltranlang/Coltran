@@ -953,10 +953,61 @@ let list_squares = in range(0, 10) as x: x * x
 println(list_squares)
 line(83)
 # *args
-def @sum(*args)
-    return args.reduce(def (a, b) -> a + b)
+def @join(*args)
+    let nums = ''
+    in args as arg:
+        nums += str(arg) + ', '
+    end
+    return nums
 end
-println(@sum(1,2,3,4,5,6,7,8,9,10))
+println(@join(1,2,3,4,5,6,7,8,9,10))
+line(84)
+# *args
+def @join_sep(sep, *args)
+    let nums = ''
+    in args as arg:
+        nums += str(arg) + sep
+    end
+    return nums
+end
+println(@join_sep('-', 1,2,3,4,5,6,7,8,9,10))
+line(85)
+# optional args with default values
+def @join_sep(sep, *args, end_)
+    let nums = ''
+    in args as arg:
+        nums += str(arg) + sep
+    end
+    return nums + end_
+end
+println(@join_sep('-', 1,2,3,4,5,6,7,8,9,10, end_ = '::'))
+line(86)
+# default values
+def @greeter(name, greeting = 'Hello')
+    return greeting + ' ' + name
+end
+println(@greeter('John'))
+println(@greeter('John', 'Hi'))
+def @sum(x,y=2)
+    return x + y
+end
+println(@sum(1))
+println(@sum(1,3))
+line(87)
+# class 
+class Program
+    def error()
+        def @ModuleError(message)
+            println(fm"ModuleError: %{message}")
+        end
+        let methods = {
+            'ModuleError': @ModuleError
+        }
+        return methods
+    end
+end
+
+Program().error()['ModuleError']("cannot find module 'os'")
 #println(dic_user["name"]) # error
 # def @makeList(item, list=[])
 #     list.append(item)

@@ -776,6 +776,7 @@ class Parser:
         self.tok_index = -1
         self.error = Program.error()
         self.error_detected = False
+        self.scope = ''
         self.advance()
 
     def advance(self):
@@ -1144,6 +1145,7 @@ class Parser:
             if res.error:
                 return res
             return res.success(VarAssignNode(var_name, expr, variable_keyword_token))
+        
         node = res.register(self.binaryOperation(
             self.comp_expr, ((tokenList.TT_KEYWORD, 'and'), (tokenList.TT_KEYWORD, 'or'), (tokenList.TT_KEYWORD, 'in'), (tokenList.TT_KEYWORD, 'notin'))))
         if res.error:
@@ -1155,7 +1157,7 @@ class Parser:
                 'exit': False
             }))
         return res.success(node)
-
+    
     def comp_expr(self):
         res = ParseResult()
         if self.current_token.matches(tokenList.TT_KEYWORD, 'not'):
@@ -1470,6 +1472,14 @@ class Parser:
             res.register_advancement()
             self.advance()
             if self.current_token.type == tokenList.TT_EQ:
+                if self.scope == "if":   
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "invalid syntax",
+                        'exit': False
+                    }))
                 res.register_advancement()
                 self.advance()
                 expr = res.register(self.expr())
@@ -1507,6 +1517,7 @@ class Parser:
                 return res
             return res.success(dict_expr)
         elif tok.matches(tokenList.TT_KEYWORD, 'if'):
+            self.scope = "if"
             if_expression = res.register(self.if_expr())
             if res.error:
                 return res
@@ -1723,6 +1734,7 @@ class Parser:
     def if_expr(self):
         res = ParseResult()
         all_cases = res.register(self.if_expr_cases('if'))
+        self.scope = "if"
         if res.error:
             self.error_detected = True
             return res
@@ -1848,6 +1860,7 @@ class Parser:
         self.advance()
 
         condition = res.register(self.expr())
+        
         if condition == "":
             self.error_detected = True
             return res.failure(self.error['Syntax'](
@@ -4954,3 +4967,9 @@ class Person:
         self.age = args[1] 
 
 person = Person("Bob",23)
+def join_sep(*args, sep=","):
+    nums = ''
+    for arg in args:
+        nums += str(arg) + sep
+    return nums
+print(join_sep('-',1,2,3,4,5))
