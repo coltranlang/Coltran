@@ -29,7 +29,7 @@
 
 # File:
 #   Parser/parser.py
-# Author: 
+# Author:
 #   Kehinde Akinsanya
 # Created:
 #   October 28, 2021
@@ -77,7 +77,7 @@ class Regex:
             star_token = Token(tokenList.TT_STAR, None, pos_start, pos_end)
             question_token = Token(tokenList.QUESTION, None, pos_start, pos_end)
             pipe_token = Token(tokenList.TT_PIPE, None, pos_start, pos_end)
-            
+
         def compile(self, pattern):
             self.pattern = re.compile(pattern)
             return self
@@ -93,7 +93,7 @@ def isOnlyLetters(text):
     return text.isalpha()
 
 def isFirstLetterUpper(text):
-    return text[0].isupper()               
+    return text[0].isupper()
 
 
 def has_at_symbol(text):
@@ -113,8 +113,17 @@ operation_methods = {
     'FLOOR_DIV_EQ': 'floor_div',
     'MOD_EQ': 'mod',
     'POWER_EQ': 'pow'
-}    
+}
 
+def is_varags(string):
+    if len(string) == 0:
+        return False
+    return string[0] == '*'
+
+def is_kwargs(string):
+    if len(string) == 0:
+        return False
+    return string[0] == '**'
 
 class Program:
     def error():
@@ -140,7 +149,7 @@ class Program:
         def Runtime(options):
             error = f'RuntimeError: {options["originator"]}, line {options["line"]}'
             Program.printErrorExit(error)
-            
+
         def NameError(detail):
             isDetail = {
                 'name': 'NameError',
@@ -153,7 +162,7 @@ class Program:
                 Program.printErrorExit(Program.asString(isDetail))
             else:
                 Program.printError(Program.asString(isDetail))
-            
+
         def KeyError(detail):
             isDetail = {
                 'name': 'KeyError',
@@ -166,7 +175,7 @@ class Program:
                 Program.printErrorExit(Program.asString(isDetail))
             else:
                 Program.printError(Program.asString(isDetail))
-                
+
         def ValueError(detail):
             isDetail = {
                 'name': 'ValueError',
@@ -248,7 +257,7 @@ class StringInterpNode:
         self.inter_pv = inter_pv
         self.pos_start = pos_start
         self.pos_end = pos_end
-        
+
     def __repr__(self):
         return f'{self.values_to_replace}'
 
@@ -266,13 +275,13 @@ class PairNode:
         self.pos_start = pos_start
         self.pos_end = pos_end
 
-       
+
 class PipeNode:
     def __init__(self, elements, pos_start, pos_end):
         self.elements = elements
         self.pos_start = pos_start
-        self.pos_end = pos_end 
-    
+        self.pos_end = pos_end
+
 
 class VarAssignNode:
     def __init__(self, variable_name_token, value_node, variable_keyword_token):
@@ -310,7 +319,7 @@ class VarReassignNode:
         self.value = value
         self.operation = operation
         self.property = property
-        
+
         if self.name == "" or self.name == None:
             pass
         else:
@@ -329,10 +338,10 @@ class PropertyNode:
         self.property = property
         self.pos_start = self.name.pos_start
         self.pos_end = self.name.pos_end
-        
+
     def __repr__(self):
         return f'{self.property}'
-    
+
 
 class PropertySetNode:
     def __init__(self, name, property, value, type_=None):
@@ -343,7 +352,7 @@ class PropertySetNode:
         self.type_ = type_
         self.pos_start = self.name.pos_start
         self.pos_end = self.value.pos_end if self.value != None else self.name.pos_end
-        
+
     def __repr__(self):
         return f'{self.name}'
 
@@ -366,11 +375,11 @@ class IndexNode:
                 }))
         else:
             self.pos_end = self.index.pos_end
-        
+
     def __repr__(self):
-        return f'{self.name}'        
- 
-    
+        return f'{self.name}'
+
+
 class SliceNode:
     def __init__(self, name, start, end, step=None, type=None):
         self.name = name
@@ -381,7 +390,7 @@ class SliceNode:
         self.type = type
         self.pos_start = self.name.pos_start
         self.pos_end = self.name.pos_end if self.end is None else self.end.pos_end
-        
+
     def __repr__(self):
         return f'{self.name}'
 
@@ -395,7 +404,7 @@ class SpreadNode:
         self.pos_start = pos_start
         self.pos_end = pos_end
         self._type = _type
-        
+
     def __repr__(self):
         return f'{self.name}'
 
@@ -409,7 +418,7 @@ class ExportModuleNode:
         else:
             self.pos_start = self.modules[0].pos_start
             self.pos_end = self.modules[-1].pos_end
-        
+
     def __repr__(self):
         return f'{self.modules}'
 
@@ -421,7 +430,7 @@ class ModuleExport:
         self.value = value
         self.pos_start = self.name.pos_start
         self.pos_end = self.value.pos_end
-    
+
 
 class BooleanNode:
     def __init__(self, tok):
@@ -436,8 +445,8 @@ class BooleanNode:
 
     def __repr__(self):
         return f'{self.tok}'
-    
-    
+
+
 class NoneNode:
     def __init__(self, tok):
         self.tok = tok
@@ -447,7 +456,7 @@ class NoneNode:
         self.pos_end = self.tok.pos_end
 
     def __repr__(self):
-        return f'{self.tok}'   
+        return f'{self.tok}'
 
 
 class BinOpNode:
@@ -515,9 +524,9 @@ class InNode:
         self.return_null = return_null
 
         self.pos_start = self.iterable_node.pos_start
-        self.pos_end = self.body_node.pos_end    
-        
-    
+        self.pos_end = self.body_node.pos_end
+
+
 class WhileNode:
     def __init__(self, condition_node, body_node, return_null):
         self.condition_node = condition_node
@@ -546,15 +555,15 @@ class RaiseNode:
         self.expression = expression
         self.pos_start = self.expression.pos_start
         self.pos_end = self.expression.pos_end
-     
+
 
 class DelNode:
     def __init__(self, identifier, expression):
         self.identifier = identifier
         self.expression = expression
         self.pos_start = self.identifier.pos_start
-        self.pos_end = self.identifier.pos_end     
-   
+        self.pos_end = self.identifier.pos_end
+
 
 class AttemptNode:
     def __init__(self, attempt_statement, catches, finally_statement, pos_start, pos_end):
@@ -563,7 +572,7 @@ class AttemptNode:
         self.finally_statement = finally_statement
         self.pos_start = pos_start
         self.pos_end = pos_end
-        
+
 
 class FunctionNode:
     def __init__(self, def_name_token, args_name_tokens, body_node, implicit_return, default_values, type=None):
@@ -606,8 +615,8 @@ class ObjectNode:
             'properties': self.
             properties
         }
- 
- 
+
+
 class DictNode:
     def __init__(self, properties, keys,values, pos_start, pos_end):
         self.properties = properties
@@ -615,8 +624,8 @@ class DictNode:
         self.values = values
         self.pos_start = pos_start
         self.pos_end = pos_end
- 
- 
+
+
 class ModuleObject:
     def __init__(self, object_name, properties, other):
         self.object_name = object_name
@@ -637,7 +646,7 @@ class ModuleObject:
             'name': self.object_name.value,
             'properties': self.
             properties
-        }       
+        }
 
 
 class ClassNode:
@@ -653,7 +662,7 @@ class ClassNode:
             'name': self.class_name.value,
             'properties': self.methods
         }
-        
+
     def __repr__(self):
         return f'{self.class_name}'
 
@@ -666,7 +675,7 @@ class CallNode:
         self.keyword_args_list = keyword_args_list
         self.pos_start = self.node_to_call.pos_start
         self.pos_end = self.node_to_call.pos_end
-        
+
     def __repr__(self):
         return f'{self.node_to_call}({self.args_nodes})'
 
@@ -678,11 +687,11 @@ class GetNode:
         self.module_path = module_path
         self.pos_start = self.module_name.pos_start
         self.pos_end = self.module_name.pos_end
-        
+
     def __repr__(self):
         return f'{self.module_name}'
-    
-    
+
+
 class GetModuleNode:
     def __init__(self, module_name, module_path):
         self.id = module_name
@@ -690,7 +699,7 @@ class GetModuleNode:
         self.module_path = module_path
         self.pos_start = self.module_name.pos_start
         self.pos_end = self.module_name.pos_end
-        
+
     def __repr__(self):
         return f'{self.module_name}'
 
@@ -750,14 +759,14 @@ class ParseResult:
         if not self.error or self.last_registered_advance_count == 0:
             self.error = error
         return self
-    
+
     def noreturn(self):
         return self
 
 
 
 class Parser:
-    
+
     def __init__(self, tokens, file_name, position=None):
         self.tokens = tokens
         self.file_name = file_name
@@ -784,7 +793,7 @@ class Parser:
             self.update_current_tok()
             return self.current_token
         return self.current_token
-        
+
     def reverse(self, count=1):
         self.tok_index -= count
         self.update_current_tok()
@@ -810,7 +819,7 @@ class Parser:
                 'message': "Invalid syntax or unknown token",
                 'exit': False
             }
-                
+
             if not res.error and self.current_token.type != tokenList.TT_EOF:
                 tok_detected = self.current_token
                 error['name'] = 'SynaxError'
@@ -822,7 +831,7 @@ class Parser:
             return res
         except:
             pass
-        
+
     def property(self, tok):
         res = ParseResult()
         res.register_advancement()
@@ -838,7 +847,7 @@ class Parser:
         res.register_advancement()
         self.advance()
         return res.success(PropertyNode(tok, prop_name))
-    
+
     def skipLines(self):
         res = ParseResult()
         res.register_advancement()
@@ -879,7 +888,7 @@ class Parser:
                 statements.append(statement)
             return res.success(ListNode(statements, pos_start, self.current_token.pos_end.copy()))
 
-        except:
+        except KeyboardInterrupt:
             pass
 
     def statement(self):
@@ -918,7 +927,7 @@ class Parser:
                 'exit': False
             }))
         return res.success(expr)
-    
+
     def expr(self):
         res = ParseResult()
         if self.current_token.matches(tokenList.TT_KEYWORD, 'let') or self.current_token.matches(tokenList.TT_KEYWORD, 'final'):
@@ -926,7 +935,7 @@ class Parser:
             variable_keyword_token = "let" if self.current_token.matches(
                 tokenList.TT_KEYWORD, 'let') else "final"
             self.advance()
-            
+
             if(self.current_token.value in tokenList.KEYWORDS):
                 if self.current_token.value == "fm":
                     return res.failure(self.error['Syntax']({
@@ -972,7 +981,7 @@ class Parser:
                 for value in values:
                     var_values += (value,)
                 return res.success(VarAssignNode(var_values, expr, variable_keyword_token))
-            
+
             if self.current_token.type == tokenList.TT_LSQBRACKET:
                 expr = res.register(self.expr())
                 if res.error:
@@ -1005,7 +1014,7 @@ class Parser:
                 for value in values:
                     var_values.append(value)
                 return res.success(VarAssignNode(var_values, expr, variable_keyword_token))
-            
+
             if self.current_token.type != tokenList.TT_IDENTIFIER:
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
@@ -1023,8 +1032,8 @@ class Parser:
                     'message': "Identifier too long",
                     'exit': False
                 }))
-           
-           
+
+
             while self.current_token.type == tokenList.TT_COMMA:
                 identifiers = [VarAccessNode(var_name)]
                 values = []
@@ -1063,7 +1072,7 @@ class Parser:
                                 values = new_values
                         else:
                             values = expr
-                            
+
                         if  self.current_token.type == tokenList.TT_COMMA:
                             while self.current_token.type == tokenList.TT_COMMA:
                                 res.register_advancement()
@@ -1101,12 +1110,12 @@ class Parser:
                 if res.error:
                     return res
                # return res.success(VarAssignNode(var_name, expr, variable_keyword_token))
-            
-            
+
+
             if self.current_token.type == tokenList.TT_RSHIFT:
                 res.register_advancement()
                 self.advance()
-            
+
             if self.current_token.type != tokenList.TT_EQ:
                 if variable_keyword_token == "let":
                     tok = Token(tokenList.TT_KEYWORD, 'none', None, None)
@@ -1146,7 +1155,7 @@ class Parser:
                 'exit': False
             }))
         return res.success(node)
-    
+
     def comp_expr(self):
         res = ParseResult()
         if self.current_token.matches(tokenList.TT_KEYWORD, 'not'):
@@ -1169,13 +1178,13 @@ class Parser:
             }))
 
         return res.success(node)
-                
+
     def arith_expr(self):
         return self.binaryOperation(self.term, (tokenList.TT_PLUS, tokenList.TT_MINUS, tokenList.TT_FLOOR_DIV))
 
     def term(self):
         return self.binaryOperation(self.factor, (tokenList.TT_MUL, tokenList.TT_DIV, tokenList.TT_MOD, tokenList.TT_MERGE))
-    
+
     def factor(self):
         res = ParseResult()
         tok = self.current_token
@@ -1194,7 +1203,7 @@ class Parser:
                 })
             return res.success(UnaryOpNode(tok, factor))
         return self.power()
-    
+
     def increment_or_decrement(self, atom):
         res = ParseResult()
         tok = self.current_token
@@ -1207,12 +1216,12 @@ class Parser:
 
             return res.success(BinOpNode(atom, tok, atom))
 
-        
+
         return res.success(atom)
-    
+
     def power(self):
         return self.binaryOperation(self.set_node_expr, (tokenList.TT_POWER, ), self.factor)
-    
+
     def set_node_expr(self):
         res = ParseResult()
         atom = res.register(self.atom())
@@ -1278,13 +1287,13 @@ class Parser:
                 else:
                     expr  = res.register(self.expr())
                     return res.success(VarReassignNode(atom, expr, operation_methods[operator.type]))
-                    
+
             else:
                 break
-        
-                
+
+
         return res.success(atom)
-            
+
     def finish_call(self, atom):
         res = ParseResult()
         arg_nodes = []
@@ -1294,7 +1303,7 @@ class Parser:
             self.skipLines()
             if self.current_token.type == tokenList.TT_RPAREN:
                 self.skipLines()
-                
+
             else:
                 # keyword arguments
                 if self.current_token.type == tokenList.TT_IDENTIFIER:
@@ -1308,7 +1317,7 @@ class Parser:
                         keyword_args['value'] = res.register(self.expr())
                         if res.error: return res
                         keyword_args_list.append(keyword_args)
-                        
+
                         if keyword_args['value'] == None or keyword_args['value'] == '':
                             self.error_detected = True
                             return res.failure(self.error['Syntax']({
@@ -1321,8 +1330,8 @@ class Parser:
                         self.reverse()
                     else:
                         self.reverse()
-                        
-                        
+
+
                 expr = res.register(self.expr())
                 arg_nodes.append(expr)
                 if res.error:
@@ -1333,7 +1342,7 @@ class Parser:
                         'message': f"Expected ')'",
                         'exit': False
                     }))
-                    
+
                 while self.current_token.type == tokenList.TT_COMMA:
                     self.skipLines()
                     if self.current_token.type == tokenList.TT_IDENTIFIER:
@@ -1405,8 +1414,8 @@ class Parser:
                                     'exit': False
                                 }))
                     arg_nodes.append(res.register(self.expr()))
-                    
-                
+
+
                 if self.current_token.type != tokenList.TT_RPAREN:
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -1415,7 +1424,7 @@ class Parser:
                         'message': "Expected ',' or ')'",
                         'exit': False
                     }))
-                
+
                 self.skipLines()
                 for arg in arg_nodes:
                     if arg == None or arg == '':
@@ -1426,11 +1435,11 @@ class Parser:
                             'message': "invlaid syntax",
                             'exit': False
                         }))
-                
-              
+
+
         return res.success(CallNode(atom, arg_nodes, keyword_args_list))
-                
-                
+
+
                 # if self.current_token.type != tokenList.TT_NEWLINE and self.current_token.type != tokenList.TT_RPAREN and self.current_token.type != tokenList.TT_EOF:
                 #     return res.failure(self.error['Syntax']({
                 #         'pos_start': self.current_token.pos_start,
@@ -1445,7 +1454,7 @@ class Parser:
                 #         'message': "Unmatched ')'",
                 #         'exit': False
                 #     }))
-         
+
     def atom(self):
         res = ParseResult()
         tok = self.current_token
@@ -1532,19 +1541,19 @@ class Parser:
             if res.error:
                 return res
             return res.success(class_expr)
-        
+
         elif tok.matches(tokenList.TT_KEYWORD, 'match'):
             match_expr = res.register(self.match_expr())
             if res.error:
                 return res
             return res.success(match_expr)
-        
+
         elif tok.matches(tokenList.TT_KEYWORD, 'attempt'):
             attempt_expr = res.register(self.attempt_expr())
             if res.error:
                 return res
             return res.success(attempt_expr)
-        
+
         elif tok.matches(tokenList.TT_KEYWORD, 'raise'):
             raise_expr = res.register(self.raise_expr())
             if res.error:
@@ -1556,7 +1565,7 @@ class Parser:
             if res.error:
                 return res
             return res.success(string_interp)
-        
+
         elif tok.matches(tokenList.TT_KEYWORD, 'del'):
             del_expr = res.register(self.del_expr())
             if res.error:
@@ -1580,14 +1589,14 @@ class Parser:
             if res.error:
                 return res
             return res.success(export_expr)
-    
+
     def access_property(self,owner):
         res = ParseResult()
         name = self.current_token
         res.register_advancement()
         self.advance()
         arg_nodes = []
-        
+
         if self.current_token.type == tokenList.TT_LPAREN:
             res.register_advancement()
             self.advance()
@@ -1606,14 +1615,14 @@ class Parser:
                         'message': f"Expected ')'",
                         'exit': False
                     }))
-                    
-                    
+
+
                 while self.current_token.type == tokenList.TT_COMMA:
                     res.register_advancement()
                     self.advance()
                     arg_nodes.append(res.register(self.expr()))
                     if res.error: return res
-                    
+
                 if self.current_token.type != tokenList.TT_RPAREN:
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -1625,7 +1634,7 @@ class Parser:
                 self.advance()
                 call_node = res.success(CallNode(name, arg_nodes))
                 name = res.register(call_node)
-        
+
         if self.current_token.type == tokenList.TT_PLUS_PLUS:
             res.register_advancement()
             self.advance()
@@ -1635,7 +1644,7 @@ class Parser:
             res.register_advancement()
             self.advance()
             return res.success(PropertySetNode(owner, name, None, "--"))
-        
+
         elif self.current_token.type != None and self.current_token.type in operation_methods:
             operator = self.current_token
             res.register_advancement()
@@ -1664,9 +1673,9 @@ class Parser:
             value = res.register(self.expr())
             if res.error: return res
             return res.success(PropertySetNode(owner, name, value))
-       
+
         return res.success(PropertyNode(owner, name))
-    
+
     def make_expr(self,atom):
         res = ParseResult()
         name = atom
@@ -1679,7 +1688,7 @@ class Parser:
                 self.advance()
                 call_node = res.success(CallNode(name, arg_nodes))
                 name = res.register(call_node)
-                
+
                 return res.success(name)
             else:
                 arg_nodes.append(res.register(self.expr()))
@@ -1710,7 +1719,7 @@ class Parser:
                 call_node = res.success(CallNode(name, arg_nodes))
                 name = res.register(call_node)
                 return res.success(name)
-      
+
     def if_expr(self):
         res = ParseResult()
         all_cases = res.register(self.if_expr_cases('if'))
@@ -1824,7 +1833,7 @@ class Parser:
         res = ParseResult()
         cases = []
         else_case = None
-        
+
         if not self.current_token.matches(tokenList.TT_KEYWORD, case_name):
             self.error_detected = True
             return res.failure(self.error['Syntax'](
@@ -2028,12 +2037,12 @@ class Parser:
                 'pos_end': self.current_token.pos_end,
                 'message': "Expected 'in'"
             }))
-            
+
         res.register_advancement()
         self.advance()
-        
-        
-        
+
+
+
         iterable_name_token = res.register(self.expr())
         if iterable_name_token == None or iterable_name_token == '':
             self.error_detected = True
@@ -2051,10 +2060,10 @@ class Parser:
                 'message': "Expected 'as'",
                 'exit': False
             }))
-            
+
         res.register_advancement()
         self.advance()
-        
+
         iterator_keys = []
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             expr = res.register(self.expr())
@@ -2063,7 +2072,7 @@ class Parser:
                 while self.current_token.type == tokenList.TT_COMMA:
                     res.register_advancement()
                     self.advance()
-                    
+
                     if self.current_token.type != tokenList.TT_IDENTIFIER:
                         return res.failure(self.error['Syntax']({
                             'pos_start': self.current_token.pos_start,
@@ -2097,7 +2106,7 @@ class Parser:
                         }))
                     res.register_advancement()
                     self.advance()
-                    
+
                     if self.current_token.type == tokenList.TT_NEWLINE:
                         res.register_advancement()
                         self.advance()
@@ -2118,7 +2127,7 @@ class Parser:
                         self.advance()
 
                         return res.success(InNode(iterable_name_token, iterator_keys, body, False))
-                    
+
                     else:
                         return res.failure(self.error['Syntax']({
                             'pos_start': self.current_token.pos_start,
@@ -2126,8 +2135,8 @@ class Parser:
                             'message': "Expected a newline",
                             'exit': False
                         }))
-            
-            
+
+
             if self.current_token.type != tokenList.TT_COLON:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -2168,10 +2177,10 @@ class Parser:
                     'message': "Expected an identifier or a pair",
                     'exit': False
                 }))
-                
+
             for el in expr.elements:
                 iterator_keys.append(el)
-                
+
             if len(iterator_keys) == 0:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -2180,7 +2189,7 @@ class Parser:
                     'message': "Expected a value",
                     'exit': False
                 }))
-                
+
             elif len(iterator_keys) > 2:
                 self.error_detected = True
                 return res.failure(self.error['ValueError']({
@@ -2189,7 +2198,7 @@ class Parser:
                     'message': "Too many values, expected 2 or 1 but got {}".format(len(iterator_keys)),
                     'exit': False
                 }))
-                
+
             if self.current_token.type != tokenList.TT_COLON:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -2198,18 +2207,18 @@ class Parser:
                     'message': "Expected ':'",
                     'exit': False
                 }))
-                
+
             res.register_advancement()
             self.advance()
-            
+
             if self.current_token.type == tokenList.TT_NEWLINE:
                 res.register_advancement()
                 self.advance()
-                
+
                 body = res.register(self.statements())
                 if res.error:
                     return res
-                
+
                 if not self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -2221,14 +2230,14 @@ class Parser:
 
                 res.register_advancement()
                 self.advance()
-                
+
                 return res.success(InNode(iterable_name_token, iterator_keys, body, False))
-                
-                
-    
+
+
+
         body = res.register(self.statement())
-        return res.success(InNode(iterable_name_token, iterator_keys, body, False)) 
-    
+        return res.success(InNode(iterable_name_token, iterator_keys, body, False))
+
     def while_expr(self):
         res = ParseResult()
 
@@ -2287,6 +2296,7 @@ class Parser:
         default_values = {}
         default_values_list = []
         varargs = False
+        varkwargs = False
         varargs_name = None
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'def'):
             return res.failure(self.error['Syntax']({
@@ -2298,7 +2308,7 @@ class Parser:
 
         res.register_advancement()
         self.advance()
-        
+
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             def_name_token = self.current_token
             if def_name_token.value[0] != '@':
@@ -2327,7 +2337,7 @@ class Parser:
                 return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
-                'message': "Cannot use reserved keyword as def name",
+                'message': "Cannot use reserved keyword as function name",
                 'exit': False
             }))
             if self.current_token.type != tokenList.TT_LPAREN:
@@ -2354,18 +2364,28 @@ class Parser:
                         'exit': False
                     }))
                 arg_name_tokens[0] = StringNode(Token(tokenList.TT_IDENTIFIER, str(
-                    "*") + str(self.current_token.value), self.current_token.pos_start, self.current_token.pos_end))
+                    "*") + str(self.current_token.value), self.current_token.pos_start, self.current_token.pos_end)).tok
             default_values ={
-                'name': self.current_token.value,
+                'name': arg_name_tokens[0].value,
                 'value': ''
             }
-            
             self.skipLines()
-            
             if self.current_token.type == tokenList.TT_EQ:
                 self.skipLines()
                 default_values['value'] = res.register(self.expr())
                 default_values_list.append(default_values)
+                # parameter with *args or **kwargs can't have default values
+                print(default_values)
+                for default_value in default_values_list:
+                    print(default_value)
+                    if is_varags(default_value['name']):
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Parameter with * or ** cannot have default values",
+                            'exit': False
+                        }))
                 if default_values['value'] == None or default_values['value'] == '':
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -2375,7 +2395,7 @@ class Parser:
                         'exit': False
                     }))
                 if res.error: return res
-                
+
             while self.current_token.type == tokenList.TT_COMMA:
                 res.register_advancement()
                 self.advance()
@@ -2387,7 +2407,7 @@ class Parser:
                         'message': "Expected an identifier",
                         'exit': False
                     }))
-                    
+
                 arg_name_tokens.append(self.current_token)
                 if self.current_token.type == tokenList.TT_MUL:
                     self.skipLines()
@@ -2400,14 +2420,13 @@ class Parser:
                             'exit': False
                         }))
                     arg_name_tokens[-1] = StringNode(Token(tokenList.TT_IDENTIFIER, str("*") + str(
-                        self.current_token.value), self.current_token.pos_start, self.current_token.pos_end))
+                        self.current_token.value), self.current_token.pos_start, self.current_token.pos_end)).tok
 
-                
+               
                 default_values = {
-                    'name': self.current_token.value,
+                    'name': arg_name_tokens[-1].value,
                     'value': ''
                 }
-                print(arg_name_tokens)
                 # if len(arg_name_tokens) > 20:
                 #     self.error_detected = True
                 #     return res.failure(self.error['Syntax']({
@@ -2417,12 +2436,34 @@ class Parser:
                 #         'exit': False
                 #     }))
                 self.skipLines()
-                
+                # only one *args or **kwargs is allowed
+                splats = []
+                for arg_name in arg_name_tokens:
+                        if is_varags(arg_name.value):
+                            splats.append(arg_name.value)
+                if len(splats) > 1:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "invalid syntax - only one * or ** is allowed",
+                        'exit': False
+                    }))
                 # named arguments cannot be followed by a default value
                 if self.current_token.type == tokenList.TT_EQ:
                     self.skipLines()
                     default_values['value'] = res.register(self.expr())
                     default_values_list.append(default_values)
+                    # parameter with *args or **kwargs can't have default values
+                    for default_value in default_values_list:
+                        if is_varags(default_value['name']):
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "Parameter with * or ** cannot have default values",
+                                'exit': False
+                            }))
                     if default_values['value'] == None or default_values['value'] == '':
                         self.error_detected = True
                         return res.failure(self.error['Syntax']({
@@ -2460,7 +2501,7 @@ class Parser:
                             'message': "non-default argument cannot be followed by a default argument",
                             'exit': False
                         }))
-                        
+
             if self.current_token.type != tokenList.TT_RPAREN:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -2493,8 +2534,8 @@ class Parser:
             body = res.register(self.expr())
             if res.error: return res
             return res.success(FunctionNode(def_name_token, arg_name_tokens, body, True, default_values_list))
-        
-        
+
+
         if self.current_token.type != tokenList.TT_NEWLINE:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -2503,16 +2544,16 @@ class Parser:
                 'message': "Expected  '->', or a newline",
                 'exit': False
             }))
-            
-            
+
+
         res.register_advancement()
         self.advance()
-        
-        
+
+
         body = res.register(self.statements())
         if res.error: return res
-            
-        
+
+
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
@@ -2524,7 +2565,7 @@ class Parser:
                 'pos_end': self.current_token.pos_end,
                 'message': "Expected 'end'",
                 'exit': False
-            }))     
+            }))
 
     def object_def(self):
         res = ParseResult()
@@ -2540,7 +2581,7 @@ class Parser:
 
         res.register_advancement()
         self.advance()
-        
+
         if self.current_token.type != tokenList.TT_IDENTIFIER:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -2549,9 +2590,9 @@ class Parser:
                 'message': "Expected an identifier",
                 'exit': False
             }))
-        
+
         object_name = self.current_token
-        
+
         if object_name in tokenList.KEYWORDS:
             self.error_detected = True
             return res.failure(self.error['NameError']({
@@ -2576,7 +2617,7 @@ class Parser:
                 'message': "Object name must start with a capital letter",
                 'exit': False
             }))
-        
+
         res.register_advancement()
         self.advance()
         if self.current_token.type != tokenList.TT_NEWLINE:
@@ -2587,15 +2628,15 @@ class Parser:
                 'message': "Expected a newline",
                 'exit': False
             }))
-        
+
         while self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
-            
+
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-                
+
                 object_properties.append({
                     'name': object_name,
                     'value': [],
@@ -2611,9 +2652,9 @@ class Parser:
                     'message': "Expected an identifier",
                     'exit': False
                 }))
-            
+
             while self.current_token.type == tokenList.TT_IDENTIFIER or str(self.current_token.value) in tokenList.DIGITS:
-                
+
                 obj_name = self.current_token
                 if hasattr(obj_name, 'value'):
                     if not isinstance(obj_name.value, str):
@@ -2636,7 +2677,7 @@ class Parser:
                     }))
                 res.register_advancement()
                 self.advance()
-                
+
                 if self.current_token.type != tokenList.TT_COLON:
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -2645,26 +2686,26 @@ class Parser:
                         'message': "Expected ':'",
                         'exit': False
                     }))
-                
+
                 res.register_advancement()
                 self.advance()
                 if self.current_token.type == tokenList.TT_IDENTIFIER:
-                    
+
                     if self.current_token.value == 'self':
                         self.current_token.value = object_name.value
                 obj_value = res.register(self.expr())
-                
+
                 object_properties.append({
                         'name': obj_name,
                         'value': obj_value,
                         'pos_start': obj_name.pos_start,
                         'pos_end': self.current_token.pos_end
                     })
-                
-                
-                
+
+
+
                 #return res.success(ObjectNode(object_name, object_properties))
-                
+
                 if res.error: return res
                 if obj_value == '':
                     self.error_detected = True
@@ -2690,14 +2731,14 @@ class Parser:
                         'message': "Expected a newline",
                         'exit': False
                     }))
-                
+
                 res.register_advancement()
                 self.advance()
-                
+
                 if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                     res.register_advancement()
                     self.advance()
-                    
+
                     return res.success(ObjectNode(object_name, object_properties))
                 if self.current_token.value in tokenList.NOT_ALLOWED_OBJECTS_KEYS:
                     self.error_detected = True
@@ -2737,15 +2778,15 @@ class Parser:
                     'message': "invalid or missing object name",
                     'exit': False
                 }))
-            return res.success(ObjectNode(object_name, object_properties))   
-     
+            return res.success(ObjectNode(object_name, object_properties))
+
     def dict_expr(self):
         res = ParseResult()
         properties = []
         keys = []
         values = []
         pos_start = self.current_token.pos_start.copy()
-        
+
         if self.current_token.type != tokenList.TT_LBRACE:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -2754,9 +2795,9 @@ class Parser:
                 'message': "Expected '{'",
                 'exit': False
             }))
-          
+
         self.skipLines()
-        
+
         start_token = self.current_token
         if self.current_token.type == tokenList.TT_RBRACE:
             self.skipLines()
@@ -2782,7 +2823,7 @@ class Parser:
                 })
                 keys.append(self.current_token)
                 self.skipLines()
-                
+
                 if self.current_token.type != tokenList.TT_COLON:
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -2790,9 +2831,9 @@ class Parser:
                         'message': "'{' was not closed",
                         'exit': False
                     }))
-                    
+
                 self.skipLines()
-                
+
                 value = res.register(self.expr())
                 if value == '':
                     self.error_detected = True
@@ -2805,24 +2846,24 @@ class Parser:
                 if res.error: return res
                 properties[-1]['value'] = value
                 values.append(value)
-                
+
                 while self.current_token.type == tokenList.TT_NEWLINE:
                     self.skipLines()
-                    
+
                 if self.current_token.type == tokenList.TT_RBRACE:
                     self.skipLines()
                     return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-                
+
                 while self.current_token.type == tokenList.TT_COMMA:
                     self.skipLines()
-                
+
                     while self.current_token.type == tokenList.TT_NEWLINE:
                         self.skipLines()
-                    
+
                     if self.current_token.type == tokenList.TT_RBRACE:
                         self.skipLines()
                         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-                    
+
                     if self.current_token.type == tokenList.TT_IDENTIFIER or tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING:
                         properties.append({
                             'key': self.current_token,
@@ -2832,8 +2873,8 @@ class Parser:
                         })
                         keys.append(self.current_token)
                         self.skipLines()
-                        
-                        
+
+
                         if self.current_token.type != tokenList.TT_COLON:
                             return res.failure(self.error['Syntax']({
                             'pos_start': self.current_token.pos_start,
@@ -2841,9 +2882,9 @@ class Parser:
                                 'message': "'{' was not closed",
                             'exit': False
                         }))
-                            
+
                         self.skipLines()
-                        
+
                         value = res.register(self.expr())
                         if value == '':
                             self.error_detected = True
@@ -2856,23 +2897,23 @@ class Parser:
                         if res.error: return res
                         properties[-1]['value'] = value
                         values.append(value)
-                        
+
                         while self.current_token.type == tokenList.TT_NEWLINE:
                             self.skipLines()
-                        
+
                         if self.current_token.type == tokenList.TT_RBRACE:
                             self.skipLines()
                             return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-                        
-                        
-                        
-                    
-                
+
+
+
+
+
                     # while self.current_token.type == tokenList.TT_NEWLINE:
                     #     self.skipLines()
-                    
+
                     # print(self.current_token, "is the current token")
-                    
+
                     # if self.current_token.type == tokenList.TT_EOF:
                     #     self.error_detected = True
                     #     return res.failure(self.error['Syntax']({
@@ -2881,7 +2922,7 @@ class Parser:
                     #         'message': "Expected '}' or a newline",
                     #         'exit': False
                     #     }))
-                    
+
                     # if self.current_token.type == tokenList.TT_IDENTIFIER or tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING:
                     #     properties.append({
                     #         'key': self.current_token,
@@ -2905,11 +2946,11 @@ class Parser:
                     #     if res.error: return res
                     #     properties[-1]['value'] = value
                     #     values.append(value)
-                        
+
                     #     while self.current_token.type == tokenList.TT_NEWLINE:
                     #         self.skipLines()
-                        
-                    #     if self.current_token.type == tokenList.TT_RBRACE:                
+
+                    #     if self.current_token.type == tokenList.TT_RBRACE:
                     #         self.skipLines()
                     #         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
 
@@ -2924,7 +2965,7 @@ class Parser:
                     #             'message': "Expected '}' or a newline",
                     #             'exit': False
                     #         }))
-                
+
                 if self.current_token.type == tokenList.TT_RBRACE:
                     self.skipLines()
                     return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
@@ -2935,9 +2976,9 @@ class Parser:
                         'message': "Expected ',', or '}'",
                         'exit': False
                     }))
-                
+
         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-                          
+
     def class_def(self):
         res = ParseResult()
         inherit_class_name = None
@@ -2961,8 +3002,8 @@ class Parser:
                 'message': "Expected a class name",
                 'exit': False
             }))
-            
-            
+
+
         class_name = self.current_token
         #class name has to be upper case
         # class name must be only letters
@@ -2992,11 +3033,11 @@ class Parser:
             }))
         res.register_advancement()
         self.advance()
-        
+
         if self.current_token.type == tokenList.TT_LPAREN:
             self.skipLines()
             if self.current_token.type == tokenList.TT_IDENTIFIER:
-        
+
                 inherit_class_name = self.current_token
                 self.skipLines()
                 if self.current_token.type == tokenList.TT_COMMA:
@@ -3015,10 +3056,10 @@ class Parser:
                         'message': "Expected ',' or ')'",
                         'exit': False
                     }))
-                
+
                 self.skipLines()
-                
-                
+
+
             else:
                 if self.current_token.type != tokenList.TT_RPAREN:
                     self.error_detected = True
@@ -3028,11 +3069,11 @@ class Parser:
                         'message': "Expected ')'",
                         'exit': False
                     }))
-                
+
                 self.skipLines()
 
-        
-        
+
+
         if self.current_token.type != tokenList.TT_NEWLINE:
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -3041,16 +3082,16 @@ class Parser:
                 'exit': False
             }))
         self.skipLines()
-        
+
         methods = None
         class_fields_modifiers = None
-        
+
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
             return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers))
 
-        
+
         while self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
@@ -3058,7 +3099,7 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers))
-            
+
             if self.current_token.type == tokenList.TT_IDENTIFIER:
                 class_fields_modifiers = self.class_fields_modifiers()
             if self.current_token.matches(tokenList.TT_KEYWORD, "def"):
@@ -3076,11 +3117,11 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers))
-        
+
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             class_fields_modifiers = self.class_fields_modifiers()
-        
-           
+
+
         if self.current_token.matches(tokenList.TT_KEYWORD, "def"):
             methods = self.set_methods()
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
@@ -3093,7 +3134,7 @@ class Parser:
             return res.success(ClassNode(class_name,inherit_class_name, methods, class_fields_modifiers))
         if self.current_token.type == tokenList.TT_EOF:
             return res.success(ClassNode(class_name,inherit_class_name, methods, class_fields_modifiers))
-        
+
         self.error_detected = True
         return res.failure(self.error['Syntax']({
             'pos_start': self.current_token.pos_start,
@@ -3101,7 +3142,7 @@ class Parser:
             'message': "Expected 'end'",
             'exit': False
         }))
-      
+
     def class_fields_modifiers(self):
         res = ParseResult()
         class_fields = []
@@ -3113,8 +3154,8 @@ class Parser:
                 'message': "Expected an identifier",
                 'exit': False
             }))
-            
-        # class fields must start with @ 
+
+        # class fields must start with @
         while self.current_token.type == tokenList.TT_IDENTIFIER:
             name = self.current_token
             # if has_at_symbol(name.value) == False:
@@ -3125,9 +3166,9 @@ class Parser:
             #         'message': "Expected '@' before identifier",
             #         'exit': False
             #     }))
-                    
+
             self.skipLines()
-            
+
             field = {
                 'name': name,
                 'value': None
@@ -3141,7 +3182,7 @@ class Parser:
                     'message': "Expected '='",
                     'exit': False
                 }))
-            
+
             self.skipLines()
 
             expr = res.register(self.expr())
@@ -3158,7 +3199,7 @@ class Parser:
             while self.current_token.type == tokenList.TT_NEWLINE:
                 self.skipLines()
         return class_fields
-          
+
     def set_methods(self):
         res = ParseResult()
         methods = []
@@ -3190,18 +3231,42 @@ class Parser:
             res.register_advancement()
             self.advance()
             args_list = []
-            if self.current_token.type == tokenList.TT_IDENTIFIER:
+            if self.current_token.type == tokenList.TT_IDENTIFIER or self.current_token.type == tokenList.TT_MUL:
+                args_list.append(self.current_token)
+                if self.current_token.type == tokenList.TT_MUL:
+                    self.skipLines()
+                    if self.current_token.type != tokenList.TT_IDENTIFIER:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "Expected an identifier",
+                            'exit': False
+                        }))
+                    args_list[0] = StringNode(Token(tokenList.TT_IDENTIFIER, str("*") + str(
+                        self.current_token.value), self.current_token.pos_start, self.current_token.pos_end)).tok
+                
                 default_values = {
-                    'name': self.current_token.value,
+                    'name': args_list[0].value,
                     'value': ''
                 }
-                args_list.append(self.current_token)
+                
                 self.skipLines()
+                
                 
                 if self.current_token.type == tokenList.TT_EQ:
                     self.skipLines()
                     default_values['value'] = res.register(self.expr())
                     default_values_list.append(default_values)
+                    for default_value in default_values_list:
+                        if is_varags(default_value['name']):
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "Parameter with * or ** cannot have default values",
+                                'exit': False
+                            }))
                     if default_values['value'] == None or default_values['value'] == '':
                         self.error_detected = True
                         return res.failure(self.error['Syntax']({
@@ -3214,8 +3279,8 @@ class Parser:
                 while self.current_token.type == tokenList.TT_COMMA:
                     res.register_advancement()
                     self.advance()
-                    
-                    if self.current_token.type != tokenList.TT_IDENTIFIER:
+
+                    if self.current_token.type != tokenList.TT_IDENTIFIER and self.current_token.type != tokenList.TT_MUL:
                         self.error_detected = True
                         return res.failure(self.error['Syntax']({
                             'pos_start': self.current_token.pos_start,
@@ -3223,12 +3288,29 @@ class Parser:
                             'message': "Expected an identifier",
                             'exit': False
                         }))
+                        
+                    
+                    args_list.append(self.current_token)
+                        
+                    if self.current_token.type == tokenList.TT_MUL:
+                        self.skipLines()
+                        if self.current_token.type != tokenList.TT_IDENTIFIER:
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "Expected an identifier",
+                                'exit': False
+                            }))
+                        args_list[-1] = StringNode(Token(tokenList.TT_IDENTIFIER, str("*") + str(
+                            self.current_token.value), self.current_token.pos_start, self.current_token.pos_end)).tok
+                    
+                    
                     default_values = {
-                        'name': self.current_token.value,
+                        'name': args_list[-1].value,
                         'value': ''
                     }
-                    args_list.append(self.current_token)
-                    
+
                     self.skipLines()
                     # if len(args_list) > 20:
                     #     self.error_detected = True
@@ -3238,11 +3320,33 @@ class Parser:
                     #     'message': "Cannot have more than 12 arguments",
                     #     'exit': False
                     # }))
-                    
+                    # only one *args or **kwargs is allowed
+                    splats = []
+                    for arg_name in args_list:
+                        if is_varags(arg_name.value):
+                            splats.append(arg_name.value)
+                    if len(splats) > 1:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "invalid syntax - only one * or ** is allowed",
+                            'exit': False
+                        }))
                     if self.current_token.type == tokenList.TT_EQ:
                         self.skipLines()
                         default_values['value'] = res.register(self.expr())
                         default_values_list.append(default_values)
+                        # parameter with *args or **kwargs can't have default values
+                        for default_value in default_values_list:
+                            if is_varags(default_value['name']):
+                                self.error_detected = True
+                                return res.failure(self.error['Syntax']({
+                                    'pos_start': self.current_token.pos_start,
+                                    'pos_end': self.current_token.pos_end,
+                                    'message': "Parameter with * or ** cannot have default values",
+                                    'exit': False
+                                }))
                         if default_values['value'] == None or default_values['value'] == '':
                             self.error_detected = True
                             return res.failure(self.error['Syntax']({
@@ -3288,7 +3392,7 @@ class Parser:
                         'message': "Expected ')'",
                         'exit': False
                     }))
-                    
+
             else:
                 if self.current_token.type != tokenList.TT_RPAREN:
                     self.error_detected = True
@@ -3298,10 +3402,10 @@ class Parser:
                         'message': "Expected ')'",
                         'exit': False
                     }))
-            
-            
+
+
             self.skipLines()
-            
+
             if self.current_token.type == tokenList.TT_ARROW:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -3310,8 +3414,8 @@ class Parser:
                     'message': "'->' not allowed in class methods",
                     'exit': False
                 }))
-            
-            
+
+
             if self.current_token.type != tokenList.TT_NEWLINE:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -3320,7 +3424,7 @@ class Parser:
                     'message': "Expected a newline",
                     'exit': False
                 }))
-            
+
             res.register_advancement()
             self.advance()
             body = res.register(self.statements())
@@ -3335,7 +3439,7 @@ class Parser:
                     'pos_start': method_name.pos_start,
                     'pos_end': body.pos_end
                 })
-                
+
                 if self.current_token.type != tokenList.TT_NEWLINE:
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -3355,19 +3459,19 @@ class Parser:
                     'message': "Expected 'end'",
                     'exit': False
                 }))
-                
+
         self.methods = methods
         # ini_args = []
         # for method in self.methods:
         #     if method['name'].value == "init":
-        
+
         return methods
-    
+
     def match_expr(self):
         res = ParseResult()
         cases= []
         default_case = None
-        
+
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'match'):
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -3376,10 +3480,10 @@ class Parser:
                 'message': "Expected 'match'",
                 'exit': False
             }))
-            
+
         res.register_advancement()
         self.advance()
-        
+
         expression = res.register(self.expr())
         if expression == "":
             self.error_detected = True
@@ -3392,7 +3496,7 @@ class Parser:
                 }
             ))
         if res.error: return res
-        
+
         if self.current_token.type != tokenList.TT_COLON:
                 self.error_detected = True
                 return res.failure(self.error['Syntax'](
@@ -3414,13 +3518,13 @@ class Parser:
                 'message': "Expected a newline",
                 'exit': False
             }))
-            
+
         res.register_advancement()
         self.advance()
-        
+
         while self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
-            self.advance()   
+            self.advance()
             if self.current_token.matches(tokenList.TT_KEYWORD, "end"):
                 cases = []
                 res.register_advancement()
@@ -3434,8 +3538,8 @@ class Parser:
                 cases = []
                 res.register_advancement()
                 self.advance()
-                return res.success(MatchNode(expression, cases, default_case)) 
-            
+                return res.success(MatchNode(expression, cases, default_case))
+
         if self.current_token.matches(tokenList.TT_KEYWORD, "case"):
             cases = self.set_cases()
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
@@ -3446,7 +3550,7 @@ class Parser:
             res.register_advancement()
             self.advance()
             return res.success(MatchNode(expression, cases, default_case))
-        
+
         if self.current_token.matches(tokenList.TT_KEYWORD, "default"):
             default_case = self.set_default_case()
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
@@ -3465,7 +3569,7 @@ class Parser:
             'message': "invalid syntax for match, expected 'end' or 'case'",
             'exit': False
         }))
-        
+
     def set_cases(self):
         res = ParseResult()
         cases = []
@@ -3486,7 +3590,7 @@ class Parser:
                 ))
             res.register_advancement()
             self.advance()
-            
+
             if self.current_token.type != tokenList.TT_NEWLINE:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -3495,12 +3599,12 @@ class Parser:
                     'message': "Expected a newline",
                     'exit': False
                 }))
-                
+
             res.register_advancement()
             self.advance()
             start_token = self.current_token
             statements = res.register(self.statements())
-            
+
             if len(statements.elements) > 0:
                 if statements.elements[0] == '':
                     self.error_detected = True
@@ -3520,7 +3624,7 @@ class Parser:
                 "pos_start": start_token.pos_start,
                 "pos_end": statements.pos_end
             })
-           
+
             if self.current_token.matches(tokenList.TT_KEYWORD, "end"):
                 res.register_advancement()
                 self.advance()
@@ -3536,12 +3640,12 @@ class Parser:
                         'message': 'Expected "end"',
                         'exit': False
                     }
-                ))      
-        
-        
-        
+                ))
+
+
+
         return cases
-      
+
     def set_default_case(self):
         res = ParseResult()
         default_case = {}
@@ -3572,7 +3676,7 @@ class Parser:
                 ))
             res.register_advancement()
             self.advance()
-            
+
             if self.current_token.type != tokenList.TT_NEWLINE:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -3581,12 +3685,12 @@ class Parser:
                     'message': "Expected a newline",
                     'exit': False
                 }))
-                
+
             res.register_advancement()
             self.advance()
             start_token = self.current_token
             statements = res.register(self.statements())
-            
+
             if len(statements.elements) > 0:
                 if statements.elements[0] == '':
                     self.error_detected = True
@@ -3622,9 +3726,9 @@ class Parser:
                         'exit': False
                     }
                 ))
-                
+
         return default_case
-        
+
     def spread_expr(self, name, assign_token):
         res = ParseResult()
         res.register_advancement()
@@ -3639,7 +3743,7 @@ class Parser:
                         'message': "cannot use spread operator on type 'dict' or 'object'",
                         'exit': False
                 }))
-                
+
         expr = res.register(self.expr())
         if res.error: return res
         if not isinstance(expr, ListNode) and isinstance(expr, PairNode) and isinstance(expr, DictNode) and isinstance(expr, ObjectNode):
@@ -3654,12 +3758,12 @@ class Parser:
             ))
         spread_node = SpreadNode(assign_token, name, expr, start_token.pos_start, self.current_token.pos_end)
         return res.success(spread_node)
-                         
+
     def list_expr(self):
         res = ParseResult()
         elements = []
         pos_start = self.current_token.pos_start.copy()
-        
+
         if self.current_token.type != tokenList.TT_LSQBRACKET:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -3679,10 +3783,10 @@ class Parser:
             while self.current_token.type == tokenList.TT_NEWLINE:
                     res.register_advancement()
                     self.advance()
-                        
+
                     start_token = self.current_token
             element = res.register(self.expr())
-            
+
             if res.error:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -3732,7 +3836,7 @@ class Parser:
                 if res.error:
                     return res
                 elements.append(element)
-                
+
                 if element == "":
                     elements.pop()
                     continue
@@ -3743,9 +3847,9 @@ class Parser:
                     res.register_advancement()
                     self.advance()
                     return res.success(ListNode(elements, pos_start, self.current_token.pos_start.copy()))
-            
-            
-            
+
+
+
             if self.current_token.type != tokenList.TT_RSQBRACKET:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -3761,7 +3865,7 @@ class Parser:
                 if element == "":
                     elements.pop()
                     continue
-        
+
             if self.current_token != None and self.current_token.type in operation_methods:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -3770,7 +3874,7 @@ class Parser:
                     'message': "invalid syntax",
                     'exit': False
                 }))
-        
+
         return res.success(ListNode(elements, pos_start, self.current_token.pos_end.copy()))
 
     def pair_expr(self):
@@ -3840,8 +3944,8 @@ class Parser:
                     res.register_advancement()
                     self.advance()
                     return res.success(PairNode(elements, pos_start, self.current_token.pos_end.copy()))
-                
-                
+
+
                 element = res.register(self.expr())
                 if res.error: return res
                 elements.append(element)
@@ -3855,8 +3959,8 @@ class Parser:
                     res.register_advancement()
                     self.advance()
                     return res.success(PairNode(elements, pos_start, self.current_token.pos_start.copy()))
-            
-            
+
+
             if self.current_token.type != tokenList.TT_RPAREN:
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
@@ -3871,7 +3975,7 @@ class Parser:
                 if element == "":
                     elements.pop()
                     continue
-                
+
             if self.current_token != None and self.current_token.type in operation_methods:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -3919,7 +4023,7 @@ class Parser:
                     'exit': False
                 }))
         return res.success(StringNode(self.current_token))
-    
+
     def make_string_expr(self, inter_pv, position):
         interpolated = []
         for el in inter_pv:
@@ -3931,7 +4035,7 @@ class Parser:
                 interpolated.append(element)
                 self.string_expr = interpolated
         return self.string_expr
-    
+
     def index_get(self, atom):
         res = ParseResult()
         index = 0
@@ -3948,7 +4052,7 @@ class Parser:
                     'exit': False
                 }))
             if res.error: return res
-            
+
             if self.current_token.type == tokenList.TT_RSQBRACKET:
                 self.skipLines()
                 if self.current_token.type == tokenList.TT_EQ:
@@ -3967,8 +4071,8 @@ class Parser:
                     if res.error: return res
                     return res.success(IndexNode(atom, index, value,"="))
                 return res.success(IndexNode(atom, index))
-            
-            
+
+
             elif self.current_token.type == tokenList.TT_COLON:
                 res.register_advancement()
                 self.advance()
@@ -3999,7 +4103,7 @@ class Parser:
                         'message': "Expected ']'",
                         'exit': False
                     }))
-            
+
             elif self.current_token.type == tokenList.TT_DOUBLE_COLON:
                 self.skipLines()
                 start = index if index != "" else None
@@ -4019,7 +4123,7 @@ class Parser:
                         'message': "Expected ']'",
                         'exit': False
                     }))
-            
+
             else:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -4028,7 +4132,7 @@ class Parser:
                     'message': "invalid index expression",
                     'exit': False
                 }))
-        
+
     def raise_expr(self):
         res = ParseResult()
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'raise'):
@@ -4041,7 +4145,7 @@ class Parser:
             }))
         res.register_advancement()
         self.advance()
-        
+
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             _Exception = res.register(self.expr())
             if res.error: return res
@@ -4054,7 +4158,7 @@ class Parser:
                 'message': "Expected an identifier",
                 'exit': False
             }))
-     
+
     def del_expr(self):
         res = ParseResult()
         expression = None
@@ -4106,7 +4210,7 @@ class Parser:
             }))
         if res.error: return res
         return res.success(DelNode(identifier, expression))
-              
+
     def attempt_expr(self):
         res = ParseResult()
         exception = None
@@ -4125,10 +4229,10 @@ class Parser:
                     'exit': False
                 }
             ))
-        start_token = self.current_token   
+        start_token = self.current_token
         res.register_advancement()
         self.advance()
-        
+
         if self.current_token.type != tokenList.TT_COLON:
             self.error_detected = True
             return res.failure(self.error['Syntax'](
@@ -4138,8 +4242,8 @@ class Parser:
                     'message': 'Expected ":"',
                     'exit': False
                 }
-            ))      
-      
+            ))
+
         res.register_advancement()
         self.advance()
         attempt_statements = res.register(self.statements())
@@ -4160,9 +4264,9 @@ class Parser:
                     }
                 ))
         while self.current_token.type == tokenList.TT_NEWLINE:
-            self.skipLines() 
-        
-        
+            self.skipLines()
+
+
         while self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
             self.skipLines()
             if self.current_token.type == tokenList.TT_IDENTIFIER:
@@ -4224,7 +4328,7 @@ class Parser:
                             'pos_end': exception['name'].pos_end
                         }
                         catches.append(catch_statement)
-            else:   
+            else:
                 if self.current_token.type != tokenList.TT_COLON:
                     self.error_detected = True
                     return res.failure(self.error['Syntax'](
@@ -4244,8 +4348,8 @@ class Parser:
                     'pos_end': start_token.pos_end
                 }
                 catches.append(catch_statement)
-        
-        
+
+
         if self.current_token.matches(tokenList.TT_KEYWORD, "finally"):
             self.skipLines()
             if self.current_token.type != tokenList.TT_COLON:
@@ -4265,7 +4369,7 @@ class Parser:
                 'pos_start': start_token.pos_start,
                 'pos_end': statements.pos_end
             }
-            
+
         # else:
         #     print("no finally", self.current_token)
         #     self.error_detected = True
@@ -4276,9 +4380,9 @@ class Parser:
         #             'message': 'attempt statement must have a catch or finally clause',
         #             'exit': False
         #         }
-        #     ))    
-        
-                
+        #     ))
+
+
         while self.current_token.type == tokenList.TT_NEWLINE:
             self.skipLines()
         # if self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
@@ -4307,8 +4411,8 @@ class Parser:
                     }))
         self.skipLines()
         attempt_node = AttemptNode(attempt_statement, catches, finally_statement, pos_start, self.current_token.pos_end)
-        return res.success(attempt_node)        
-    
+        return res.success(attempt_node)
+
     def get_expr(self):
         res = ParseResult()
         pos_start = self.current_token.pos_start.copy()
@@ -4322,12 +4426,12 @@ class Parser:
                     'message': f"Expected an identifier",
                     'exit': False
                 }))
-                
+
             module_name = self.current_token
             res.register_advancement()
             self.advance()
-            
-            
+
+
             if not self.current_token.matches(tokenList.TT_KEYWORD, 'from'):
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
@@ -4335,10 +4439,10 @@ class Parser:
                     'message': f"Expected 'from'",
                     'exit': False
                 }))
-                
+
             res.register_advancement()
             self.advance()
-            
+
             if self.current_token.type != tokenList.TT_DOUBLE_STRING and self.current_token.type != tokenList.TT_SINGLE_STRING:
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
@@ -4346,14 +4450,14 @@ class Parser:
                     'message': f"Expected a string",
                     'exit': False
                 }))
-                
+
             module_path = self.current_token
 
             res.register_advancement()
             self.advance()
 
             return res.success(GetNode(module_name, module_path))
-    
+
     def module_expr(self):
         res = ParseResult()
         module_properties = []
@@ -4571,19 +4675,19 @@ class Parser:
                     else:
                         res.register_advancement()
                         self.advance()
-                        
+
                         object_type = {
                             "name": "module",
                             "as_name": as_name,
                         }
                         return res.success(ModuleObject(module_name, module_properties, object_type))
-            
+
             object_type = {
                 "name": "module",
                 "as_name": as_name,
             }
             return res.success(ModuleObject(module_name, module_properties, object_type))
-    
+
     def export_expr(self):
         res = ParseResult()
         pos_start = self.current_token.pos_start.copy()
@@ -4642,7 +4746,7 @@ class Parser:
             #             'exit': False
             #         }))
         return res.success(ExportModuleNode(modules))
-          
+
     def binaryOperation(self, func_1, ops, func_2=None):
         if func_2 == None:
             func_2 = func_1
@@ -4652,7 +4756,7 @@ class Parser:
         if res.error:
             self.error_detected = True
             return res
-        
+
         while self.current_token.type in ops or (self.current_token.type, self.current_token.value) in ops:
             op_tok = self.current_token
             res.register_advancement()
@@ -4673,7 +4777,7 @@ class Parser:
 
 
 
-            
+
 
 
 li = [1,2,3,4,5,6,7,8,9,10]
@@ -4766,7 +4870,7 @@ LETTERS_SYMBOLS = LETTERS + SYMBOLS
 # name = "Kenny"
 # def greet(name):
 #     return f"Hello, {name}"
-  
+
 # pair = ("a", "e", "i", "o", "u", 'e')
 # list = [1,2,3,4,5,6,7,8,9,10]
 # dict = {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'}
@@ -4817,10 +4921,10 @@ class Animal:
         print(f"{self.name} is eating")
     def set_animals(self):
         self.animals.append(self.name)
-    
+
     def get_animals(self):
         return self.animals
-        
+
 animal = Animal("Dog")
 animal2 = Animal("Cat")
 animal3 = Animal("Bird")
@@ -4837,7 +4941,16 @@ def greet(name, age, email=None, hobby=None, verified=False, test=""):
 greet("Bob",age=25)
 
 
-def varargs(a, b, c, d, e, f, g, h, i, *args):
-    print()
+def greet(*names, message="Hello",):
+    for name in names:
+        print(f"{message}, {name}")
 
-varargs(1,2,3,4,5,6,7,8,9,10,11,12)       
+greet()
+
+
+class Person:
+    def __init__(self, *args):
+        self.name = args[0]
+        self.age = args[1] 
+
+person = Person("Bob",23)

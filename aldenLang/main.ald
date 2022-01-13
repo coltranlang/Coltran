@@ -513,12 +513,51 @@ println(animal.get_animals()) # ['Dog', 'Cat', 'Bird']
 # def @multiply(x, y=1)
 #     return x * y
 # end
-
-def @varargs(a,*args,b,c)
-    print(args,a,b)
+# let li = [1,2,3,4,5,6,7,8,9,10,11,12,13]
+# li.reverse()
+# print(li, "is reversed")
+# splat 
+def @greet(name, *args)
+    println(fm"Hello, %{name}, you have %{args} args")
 end
+@greet("Kenny", "test", "test2", "test3")
+def @greet_people(*names, message="Hello")
+    in names as name:
+        println(fm" %{message}, %{name}")
+    end
+    println(fm"%{names}")
+end
+#@greet_people("John", "Bob", "Mary", "Jane")
+@greet_people()
+# class People()
+#     def init(self, name, age=21, email="")
+#         self.name = name
+#         self.age = age
+#         self.email = email
+#     end
+#     def greet(self)
+#         println(fm"Hello, %{self.name}, you are %{self.age} years old")
+#     end
+# end
+#let people = People("John")
+#people.greet()
+class Splat()
+    def init(self, *args)
+        self.name = args[0]
+        self.age = args[1]
+    end
+    def greet(self)
+        println(fm"Hello, %{self.name}, you are %{self.age} years old")
+    end
+end
+let splat = Splat("John", 21)
+splat.greet()
+println(len([]))
+# def @varargs(*args,a,b,c,d,e,f)
+#     print(args,a,b,c,d,e,f)
+# end
 
-@varargs(1,2,3,4,5,6,7,8,9,10,11,12,13) 
+# @varargs(1,2,3,4,5,6,7,8,9,10,11,12,13) 
 
 # @multiply(2, 3) # 6
 # let d = {'name': 'John', 'age': 21,}
