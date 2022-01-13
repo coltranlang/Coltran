@@ -3522,7 +3522,7 @@ class BaseClass(Value):
                 arg_name = constructor_args[i]
                 if is_varags(constructor_args[i]):
                     arg_name = split_varargs(constructor_args[i])
-                    arg_value = Pair([args[i]]).setContext(exec_context)
+                    arg_value = List([args[i]]).setContext(exec_context)
                     exec_context.symbolTable.set(arg_name, arg_value)
                 else:
                     arg_value = args[i]
@@ -3534,7 +3534,7 @@ class BaseClass(Value):
                     for name in constructor_args:
                         if is_varags(name):
                             arg_name = split_varargs(name)
-                            arg_value = Pair([]).setContext(exec_context)
+                            arg_value = List([]).setContext(exec_context)
                         else:
                             arg_value = default_values[arg_name]
                 else:
@@ -3597,7 +3597,7 @@ class BaseClass(Value):
                             len_remaining_args = len(remaining_args)
                             len_arg_names_remaining = len_arg_names - 1
                             var_name = split_varargs(constructor_args[j])
-                            var_value = Pair(var_args)
+                            var_value = List(var_args)
                             var_value.setContext(exec_context)
                             exec_context.symbolTable.set(var_name, var_value)
                             for k in range(len_remaining_args):
@@ -3611,7 +3611,7 @@ class BaseClass(Value):
                                 if len_args == len_arg_names:
                                     var_args = args[i:len_args]
                                     var_name = split_varargs(constructor_args[j])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
@@ -3658,12 +3658,11 @@ class BaseClass(Value):
                     last_positional_arg = len_arg_names - 1
                     if is_varags(constructor_args[i]):
                             has_var_args = True
-                            # check if *args is the first positional arg and last positional arg
                             if len_arg_names == 1:
                                 var_args = args[constructor_args.index(
                                     constructor_args[i]):]
                                 var_name = split_varargs(constructor_args[i])
-                                var_value = Pair(var_args)
+                                var_value = List(var_args)
                                 var_value.setContext(exec_context)
                                 exec_context.symbolTable.set(
                                     var_name, var_value)
@@ -3676,7 +3675,7 @@ class BaseClass(Value):
                                     remaining_args = args[len_args -
                                                           len_arg_names + 1:]
                                     var_name = split_varargs(constructor_args[i])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
@@ -3693,19 +3692,13 @@ class BaseClass(Value):
                                         var_name, var_value)
                                     has_remaining_args = True
                                 else:
-                                    # check for *args in the middle
-                                    # first index gets the first element of the list, second index gets the second element of the list and last index gets the last element of the list
-                                    # if *args is at the middle, the *args will be elements in the list until we reach a non-*args element
-                                    # e.g a, b, *args, c, d = [1,2,3,4,5,6,7,8,9,10] a = 1, b = 2, *args = [3,4,5,6,7,8] c = 9, d = 10
-                                    # *args will be [3,4,5,6,7,8]
                                     start_index = constructor_args.index(
                                         constructor_args[i])
                                     first_args = args[0:start_index]
-                                    # get the indecies remaining of the arg_names after the start index
                                     remaining_arg_names = constructor_args[start_index:len_arg_names]
                                     remaining_arg_names = [
                                         name for name in remaining_arg_names if is_varags(name) == False]
-                                    # get remaining args names from backwards to front of starting index
+                                   
                                     reversed_args = args[::-
                                                          1][0:len(remaining_arg_names)]
                                     reversed_args_names = remaining_arg_names[::-1]
@@ -3715,7 +3708,7 @@ class BaseClass(Value):
                                     re_reverse_args_names = reversed_args_names[::-1]
                                     remaining_args = first_args + re_reverse_args
                                     var_name = split_varargs(constructor_args[i])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
@@ -4142,7 +4135,7 @@ class Function(BaseFunction):
                 arg_name = self.arg_names[i]
                 if is_varags(self.arg_names[i]):
                     arg_name = split_varargs(self.arg_names[i])
-                    arg_value = Pair([args[i]]).setContext(exec_context)
+                    arg_value = List([args[i]]).setContext(exec_context)
                     exec_context.symbolTable.set(arg_name, arg_value)
                 else:
                     arg_value = args[i]
@@ -4154,7 +4147,7 @@ class Function(BaseFunction):
                     for name in self.arg_names:
                         if is_varags(name):
                             arg_name = split_varargs(name)
-                            arg_value = Pair([]).setContext(exec_context)
+                            arg_value = List([]).setContext(exec_context)
                         else:
                             arg_value = default_values[arg_name]
                 else:
@@ -4217,7 +4210,7 @@ class Function(BaseFunction):
                             len_remaining_args = len(remaining_args)
                             len_arg_names_remaining = len_arg_names - 1
                             var_name = split_varargs(self.arg_names[j])
-                            var_value = Pair(var_args)
+                            var_value = List(var_args)
                             var_value.setContext(exec_context)
                             exec_context.symbolTable.set(var_name, var_value)
                             for k in range(len_remaining_args):
@@ -4231,7 +4224,7 @@ class Function(BaseFunction):
                                 if len_args == len_arg_names:
                                     var_args = args[i:len_args]
                                     var_name = split_varargs(self.arg_names[j])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
@@ -4278,12 +4271,11 @@ class Function(BaseFunction):
                     last_positional_arg = len_arg_names - 1
                     if is_varags(self.arg_names[i]):
                             has_var_args = True
-                            # check if *args is the first positional arg and last positional arg
                             if len_arg_names == 1:
                                 var_args = args[self.arg_names.index(
                                     self.arg_names[i]):]
                                 var_name = split_varargs(self.arg_names[i])
-                                var_value = Pair(var_args)
+                                var_value = List(var_args)
                                 var_value.setContext(exec_context)
                                 exec_context.symbolTable.set(
                                     var_name, var_value)
@@ -4296,7 +4288,7 @@ class Function(BaseFunction):
                                     remaining_args = args[len_args -
                                         len_arg_names + 1:]
                                     var_name = split_varargs(self.arg_names[i])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
@@ -4307,25 +4299,19 @@ class Function(BaseFunction):
                                     var_args = args[start_index:len_args]
                                     remaining_args = args[0:start_index]
                                     var_name = split_varargs(self.arg_names[i])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
                                     has_remaining_args = True
                                 else:
-                                    # check for *args in the middle
-                                    # first index gets the first element of the list, second index gets the second element of the list and last index gets the last element of the list
-                                    # if *args is at the middle, the *args will be elements in the list until we reach a non-*args element
-                                    # e.g a, b, *args, c, d = [1,2,3,4,5,6,7,8,9,10] a = 1, b = 2, *args = [3,4,5,6,7,8] c = 9, d = 10
-                                    # *args will be [3,4,5,6,7,8]
                                     start_index = self.arg_names.index(
                                         self.arg_names[i])
                                     first_args = args[0:start_index]
-                                    # get the indecies remaining of the arg_names after the start index
                                     remaining_arg_names = self.arg_names[start_index:len_arg_names]
                                     remaining_arg_names = [
                                         name for name in remaining_arg_names if is_varags(name) == False]
-                                    # get remaining args names from backwards to front of starting index
+                                    
                                     reversed_args = args[::-
                                         1][0:len(remaining_arg_names)]
                                     reversed_args_names = remaining_arg_names[::-1]
@@ -4335,7 +4321,7 @@ class Function(BaseFunction):
                                     re_reverse_args_names = reversed_args_names[::-1]
                                     remaining_args = first_args + re_reverse_args
                                     var_name = split_varargs(self.arg_names[i])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
@@ -4817,7 +4803,7 @@ class Function(BaseFunction):
                                 if len_args == len_arg_names:
                                     var_args = args[i:len_args]
                                     var_name = split_varargs(self.arg_names[j])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
@@ -4869,7 +4855,7 @@ class Function(BaseFunction):
                                 var_args = args[self.arg_names.index(
                                     self.arg_names[i]):]
                                 var_name = split_varargs(self.arg_names[i])
-                                var_value = Pair(var_args)
+                                var_value = List(var_args)
                                 var_value.setContext(exec_context)
                                 exec_context.symbolTable.set(
                                     var_name, var_value)
@@ -4882,7 +4868,7 @@ class Function(BaseFunction):
                                     remaining_args = args[len_args -
                                                           len_arg_names + 1:]
                                     var_name = split_varargs(self.arg_names[i])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
@@ -4893,25 +4879,19 @@ class Function(BaseFunction):
                                     var_args = args[start_index:len_args]
                                     remaining_args = args[0:start_index]
                                     var_name = split_varargs(self.arg_names[i])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
                                     has_remaining_args = True
                                 else:
-                                    # check for *args in the middle
-                                    # first index gets the first element of the list, second index gets the second element of the list and last index gets the last element of the list
-                                    # if *args is at the middle, the *args will be elements in the list until we reach a non-*args element
-                                    # e.g a, b, *args, c, d = [1,2,3,4,5,6,7,8,9,10] a = 1, b = 2, *args = [3,4,5,6,7,8] c = 9, d = 10
-                                    # *args will be [3,4,5,6,7,8]
                                     start_index = self.arg_names.index(
                                         self.arg_names[i])
                                     first_args = args[0:start_index]
-                                    # get the indecies remaining of the arg_names after the start index
                                     remaining_arg_names = self.arg_names[start_index:len_arg_names]
                                     remaining_arg_names = [
                                         name for name in remaining_arg_names if is_varags(name) == False]
-                                    # get remaining args names from backwards to front of starting index
+                                    
                                     reversed_args = args[::-
                                                          1][0:len(remaining_arg_names)]
                                     reversed_args_names = remaining_arg_names[::-1]
@@ -4921,7 +4901,7 @@ class Function(BaseFunction):
                                     re_reverse_args_names = reversed_args_names[::-1]
                                     remaining_args = first_args + re_reverse_args
                                     var_name = split_varargs(self.arg_names[i])
-                                    var_value = Pair(var_args)
+                                    var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
                                         var_name, var_value)
@@ -7341,12 +7321,12 @@ def BuiltInFunction_Http_Get():
 # Built-in methods 
 
 class BuiltInMethod(Value):
+   
     def __init__(self, value, arg=None):
         super().__init__()
         self.value = value
         self.id = value
-         
-            
+                 
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
         self.pos_end = pos_end
