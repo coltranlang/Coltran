@@ -1,7 +1,7 @@
 class Employee
     @employee_db_id = "iobherbndfiuyirre" # @ means static variable and cannot be changed
     url = "http://www.google.com" # url is a instance variable and can be changed
-    def init(self)
+    def @init(self)
         self.name = name
         self.age = age
     end
@@ -25,7 +25,7 @@ println(employee.url)
 
 class Accounts()
     accounts_list = []
-    def init(self, config)
+    def @init(self, config)
     end
     def create_account(self, data)
         self.accounts_list.append(data)
@@ -41,7 +41,7 @@ end
 
 
 class Client()
-    def init(self, config)
+    def @init(self, config)
         if not config.has_key("client_id"):
             raise KeyError("Client ID is required")
         end
@@ -62,7 +62,7 @@ end
 
 
 class Wallet()
-    def init(self)
+    def @init(self)
         self.balance = 0
     end
     def deposit(self, amount)
@@ -84,7 +84,7 @@ end
 
 
 # class BankAccount(Wallet)
-#     def init(self)
+#     def @init(self)
 #         self.balance = 0
 #     end
 #     def get_balance(self)

@@ -450,7 +450,7 @@
 
 class Animal
     animals = []
-    def init(self, name)
+    def @init(self, name)
         self.name = name
     end
     def eat(self)
@@ -542,7 +542,7 @@ end
 #let people = People("John")
 #people.greet()
 class Splat()
-    def init(self, *args)
+    def @init(self, *args)
         self.name = args[0]
         self.age = args[1]
     end
@@ -590,3 +590,18 @@ def @join_sep(*args, sep=",")
     return nums
 end
 println(@join_sep('-', 1))
+let li = [1,2,3,]
+li.append(4)
+println(li)
+
+# class Token
+#     def @init(self, type_, value=none, pos_start=none, pos_end=none)
+#         self.type = type_
+#         self.value = value
+#         self.pos_start = pos_start
+#         self.pos_end = pos_end
+#     end
+# end
+
+# let t = Token("", "")
+# println(t.toString())

@@ -36,6 +36,7 @@
 # Description:
 #   This file contains the interpreter class which is responsible for interpreting the code
 
+from hashlib import new
 import os
 from Parser.parser import Parser
 from Parser.stringsWithArrows import *
@@ -239,14 +240,80 @@ def is_kwargs(string):
     return string[0] == '**'
 
 
-def split_varargs(string):
+def make_varargs(string):
     if is_varags(string):
         return string[1:]
 
 
-def split_kwargs(string):
+def make_kwargs(string):
     if is_kwargs(string):
         return string[2:]
+
+
+def vna_algorithm(params, args):
+    len_params = len(params)
+    len_args = len(args)
+    starargs = []
+    nonstarargs = []
+    for i in range(len_params):
+        first_positional_arg = i
+        last_positional_arg  = len_params - 1
+        if is_varags(params[i]):
+            if len_params == 1:
+                start_index = params.index(params[i])
+                starargs = args[start_index:]
+            else:
+                # if first_positional_arg is == to 0 then the starargs is the first positional arg
+                # and we need to get the args starting from the starargs index and ending at the index of the nonstarargs e.g params = ["*args","a","b","c"] args = [1,2,3,4,5,6,7,8,9,10]
+                # starargs = [1,2,3,4,5,6,7] nonstarargs = [8,9,10]
+                if first_positional_arg == 0:
+                    start_index = params.index(params[i])
+                    starargs = args[start_index:len_args - len_params + 1]
+                    nonstarargs = args[len_args - len_params + 1:]
+                # if last_positional_arg is == to i then the *args is at the last position of the pramater, then we get the args starting from the nonargs and ending at the startargs index e.g params = ["a","b","c","*args"] args = [1,2,3,4,5,6,7,8,9,10]
+                # starargs = [4,5,6,7,8,9,10] nonstarargs = [1,2,3]
+                elif last_positional_arg == i:
+                    start_index = params.index(params[i])
+                    starargs = args[start_index:len_args]
+                    nonstarargs = args[0:start_index]
+                # if the *args is in the middle of the params then we get the args starting from the nonargs and ending at the startargs index e.g params = ["a","b","c","*args","d","e"] args = [1,2,3,4,5,6,7,8,9,10]
+                # starargs = [4,5,6,7,8] nonstarargs = [1,2,3,9,10]
+                else:
+                    start_index = params.index(params[i])
+                    first_args = args[0:start_index]
+                    non_args_names = params[start_index:len_params]
+                    non_args_names = [name for name in non_args_names if is_varags(name) == False]
+                    # we reverse the args
+                    reversed_args = args[::-1][0:len(non_args_names)]
+                    reversed_args_names = non_args_names[::-1]
+                    starargs = args[start_index:len_args - len_params + start_index + 1]
+                    re_reversed_args = reversed_args[::-1]
+                    re_reversed_args_names = reversed_args_names[::-1]
+                    nonstarargs = first_args + re_reversed_args
+                
+    return starargs, nonstarargs
+    
+    
+# params_ex1 = ["*args"]
+# args_ex1 = [1,2,3,4,5,6,7,8,9,10]
+# starargs_ex1, nonstarargs_ex1 = vna_algorithm(params_ex1, args_ex1)
+# print(starargs_ex1, nonstarargs_ex1, "is the result 1")
+
+# params_ex2 = ["*args", "a", "b", "c"]
+# args_ex2 = [1,2,3,4,5,6,7,8,9,10]
+# starargs_ex2, nonstarargs_ex2 = vna_algorithm(params_ex2, args_ex2)
+# print(starargs_ex2, nonstarargs_ex2, "is the result 2")
+
+# params_ex3 = ["a", "b", "c","*args"]
+# args_ex3 = [1,2,3,4,5,6,7,8,9,10]
+# starargs_ex3, nonstarargs_ex3 = vna_algorithm(params_ex3, args_ex3)
+# print(starargs_ex3, nonstarargs_ex3, "is the result 3")
+
+
+# params_ex4 = ["a", "b", "c","*args", "d", "e"]
+# args_ex4 = [1,2,3,4,5,6,7,8,9,10]
+# starargs_ex4, nonstarargs_ex4 = vna_algorithm(params_ex4, args_ex4)
+# print(starargs_ex4, nonstarargs_ex4, "is the result 4")
 
 
 class Regex:
@@ -1762,6 +1829,7 @@ class String(Value):
         return self.setTrueorFalse(setNumber(self.value) >= setNumber(other.value)).setContext(self.context), None
 
     def get_comparison_in(self, other):
+        #print(self, other)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -1774,6 +1842,13 @@ class String(Value):
             except:
                 error['message'] = f"invaid operation on 'in'"
                 return None, self.illegal_operation_typerror(error, other)
+        elif isinstance(other, List) or isinstance(other, Pair):
+            return self.setTrueorFalse(other.value in self.value).setContext(self.context), None
+        elif isinstance(other, Boolean):
+            if other.value == "true":
+                return self.setTrueorFalse(True).setContext(self.context), None
+            else:
+                return self.setTrueorFalse(False).setContext(self.context), None
         else:
             return None, self.illegal_operation_typerror(error, other)
 
@@ -2545,11 +2620,13 @@ class Pair(Value):
 
 
 class Dict(Value):
-    def __init__(self, properties, keys=None, values=None):
+    def __init__(self, properties, keys=None, values=None, context=None):
         super().__init__()
         self.properties = properties
         self.value = self.properties
-
+        self.context = context
+        
+    
     def get_length(self):
         return len(self.properties)
 
@@ -3035,7 +3112,7 @@ class BaseFunction(Value):
             for i in range(len(args)):
                 arg_name = self.arg_names[i]
                 if is_varags(self.arg_names[i]):
-                    arg_name = split_varargs(self.arg_names[i])
+                    arg_name = make_varargs(self.arg_names[i])
                     arg_value = Pair([args[i]]).setContext(exec_context)
                     exec_context.symbolTable.set(arg_name, arg_value)
                 else:
@@ -3047,7 +3124,7 @@ class BaseFunction(Value):
                 if len(args) == 0:
                     for name in self.arg_names:
                         if is_varags(name):
-                            arg_name = split_varargs(name)
+                            arg_name = make_varargs(name)
                             arg_value = Pair([]).setContext(exec_context)
                         else:
                             arg_value = default_values[arg_name]
@@ -3110,7 +3187,7 @@ class BaseFunction(Value):
                             remaining_args = args[0:start_index]
                             len_remaining_args = len(remaining_args)
                             len_arg_names_remaining = len_arg_names - 1
-                            var_name = split_varargs(self.arg_names[j])
+                            var_name = make_varargs(self.arg_names[j])
                             var_value = Pair(var_args)
                             var_value.setContext(exec_context)
                             exec_context.symbolTable.set(var_name, var_value)
@@ -3124,7 +3201,7 @@ class BaseFunction(Value):
                             if is_varags(self.arg_names[j]):
                                 if len_args == len_arg_names:
                                     var_args = args[i:len_args]
-                                    var_name = split_varargs(self.arg_names[j])
+                                    var_name = make_varargs(self.arg_names[j])
                                     var_value = Pair(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -3176,7 +3253,7 @@ class BaseFunction(Value):
                             if len_arg_names == 1:
                                 var_args = args[self.arg_names.index(
                                     self.arg_names[i]):]
-                                var_name = split_varargs(self.arg_names[i])
+                                var_name = make_varargs(self.arg_names[i])
                                 var_value = Pair(var_args)
                                 var_value.setContext(exec_context)
                                 exec_context.symbolTable.set(
@@ -3189,7 +3266,7 @@ class BaseFunction(Value):
                                                     len_arg_names + 1]
                                     remaining_args = args[len_args -
                                                           len_arg_names + 1:]
-                                    var_name = split_varargs(self.arg_names[i])
+                                    var_name = make_varargs(self.arg_names[i])
                                     var_value = Pair(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -3200,7 +3277,7 @@ class BaseFunction(Value):
                                         self.arg_names[i])
                                     var_args = args[start_index:len_args]
                                     remaining_args = args[0:start_index]
-                                    var_name = split_varargs(self.arg_names[i])
+                                    var_name = make_varargs(self.arg_names[i])
                                     var_value = Pair(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -3228,7 +3305,7 @@ class BaseFunction(Value):
                                     re_reverse_args = reversed_args[::-1]
                                     re_reverse_args_names = reversed_args_names[::-1]
                                     remaining_args = first_args + re_reverse_args
-                                    var_name = split_varargs(self.arg_names[i])
+                                    var_name = make_varargs(self.arg_names[i])
                                     var_value = Pair(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -3315,7 +3392,7 @@ class BaseClass(Value):
         elif len(missing_args) == 1:
             missing_args_name += f"'{missing_args[0]}'"
         if len(missing_args) == 0:
-            missing_args_name = f"but {len_args} {'was' if len_args == 1 or len_args == 0 else 'were'} given"
+            missing_args_name = f""
 
         return missing_args_name
 
@@ -3331,10 +3408,11 @@ class BaseClass(Value):
         len_expected = len(constructor_args)
         new_args_names = constructor_args
         if len(default_values_list) > 0:
-            for default_value in self.default_values:
+            for default_value in default_values_list:
                 name = default_value['name']
                 value = res.register(interpreter.visit(
                     default_value['value'], exec_context))
+               
                 default_values[name] = value
                 len_expected = len(constructor_args) - len(default_values)
 
@@ -3349,6 +3427,8 @@ class BaseClass(Value):
             if constructor_args[i] not in keys:
                 missing_args.append(constructor_args[i])
 
+        
+
         if len(missing_args) > 1:
             for i in range(len(missing_args)):
                 if i == len(missing_args) - 2:
@@ -3360,7 +3440,7 @@ class BaseClass(Value):
         elif len(missing_args) == 1:
             missing_args_name += f"'{missing_args[0]}'"
         if len(missing_args) == 0:
-            missing_args_name = f"but {len_args} {'was' if len(args) == 1 or len(args) == 0 else 'were'} given"
+            missing_args_name = f""
 
         exception_details = {
             'pos_start': self.pos_start,
@@ -3437,7 +3517,7 @@ class BaseClass(Value):
         has_var_args = False
         new_args_names = constructor_args
         if len(default_values_list) > 0:
-            for default_value in self.default_values:
+            for default_value in default_values_list:
                 name = default_value['name']
                 value = res.register(interpreter.visit(
                     default_value['value'], exec_context))
@@ -3452,7 +3532,7 @@ class BaseClass(Value):
         len_expected = len(constructor_args)
 
         if len(default_values_list) > 0:
-            for default_value in self.default_values:
+            for default_value in default_values_list:
                 name = default_value['name']
                 value = res.register(interpreter.visit(
                     default_value['value'], exec_context))
@@ -3483,6 +3563,10 @@ class BaseClass(Value):
         if len(missing_args) == 0:
             missing_args_name = f"but {len_args} {'was' if len(args) == 1 or len(args) == 0 else 'were'} given"
 
+        
+        
+        
+        
         if len(keyword_args) > 0:
             if len(keyword_args) > len(args):
                 if len(args) > 1:
@@ -3543,12 +3627,12 @@ class BaseClass(Value):
                     #     'context': self.context,
                     #     'exit': False
                     # })
-
+       
         if len(args) == len_expected:
             for i in range(len(args)):
                 arg_name = constructor_args[i]
                 if is_varags(constructor_args[i]):
-                    arg_name = split_varargs(constructor_args[i])
+                    arg_name = make_varargs(constructor_args[i])
                     arg_value = List([args[i]]).setContext(exec_context)
                     exec_context.symbolTable.set(arg_name, arg_value)
                 else:
@@ -3560,7 +3644,7 @@ class BaseClass(Value):
                 if len(args) == 0:
                     for name in constructor_args:
                         if is_varags(name):
-                            arg_name = split_varargs(name)
+                            arg_name = make_varargs(name)
                             arg_value = List([]).setContext(exec_context)
                         else:
                             arg_value = default_values[arg_name]
@@ -3623,7 +3707,7 @@ class BaseClass(Value):
                             remaining_args = args[0:start_index]
                             len_remaining_args = len(remaining_args)
                             len_arg_names_remaining = len_arg_names - 1
-                            var_name = split_varargs(constructor_args[j])
+                            var_name = make_varargs(constructor_args[j])
                             var_value = List(var_args)
                             var_value.setContext(exec_context)
                             exec_context.symbolTable.set(var_name, var_value)
@@ -3637,7 +3721,7 @@ class BaseClass(Value):
                             if is_varags(constructor_args[j]):
                                 if len_args == len_arg_names:
                                     var_args = args[i:len_args]
-                                    var_name = split_varargs(constructor_args[j])
+                                    var_name = make_varargs(constructor_args[j])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -3688,7 +3772,7 @@ class BaseClass(Value):
                             if len_arg_names == 1:
                                 var_args = args[constructor_args.index(
                                     constructor_args[i]):]
-                                var_name = split_varargs(constructor_args[i])
+                                var_name = make_varargs(constructor_args[i])
                                 var_value = List(var_args)
                                 var_value.setContext(exec_context)
                                 exec_context.symbolTable.set(
@@ -3701,7 +3785,7 @@ class BaseClass(Value):
                                                     len_arg_names + 1]
                                     remaining_args = args[len_args -
                                                           len_arg_names + 1:]
-                                    var_name = split_varargs(constructor_args[i])
+                                    var_name = make_varargs(constructor_args[i])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -3712,7 +3796,7 @@ class BaseClass(Value):
                                         constructor_args[i])
                                     var_args = args[start_index:len_args]
                                     remaining_args = args[0:start_index]
-                                    var_name = split_varargs(constructor_args[i])
+                                    var_name = make_varargs(constructor_args[i])
                                     var_value = Pair(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -3734,7 +3818,7 @@ class BaseClass(Value):
                                     re_reverse_args = reversed_args[::-1]
                                     re_reverse_args_names = reversed_args_names[::-1]
                                     remaining_args = first_args + re_reverse_args
-                                    var_name = split_varargs(constructor_args[i])
+                                    var_name = make_varargs(constructor_args[i])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -3899,7 +3983,6 @@ class Function(BaseFunction):
 
         if keyword_args_list != None and len(keyword_args_list) > 0:
             args = new_args
-
         self.check_args(args)
         self.populate_args(keyword_args, args, exec_context)
 
@@ -4176,7 +4259,7 @@ class Function(BaseFunction):
             for i in range(len(args)):
                 arg_name = self.arg_names[i]
                 if is_varags(self.arg_names[i]):
-                    arg_name = split_varargs(self.arg_names[i])
+                    arg_name = make_varargs(self.arg_names[i])
                     arg_value = List([args[i]]).setContext(exec_context)
                     exec_context.symbolTable.set(arg_name, arg_value)
                 else:
@@ -4188,7 +4271,7 @@ class Function(BaseFunction):
                 if len(args) == 0:
                     for name in self.arg_names:
                         if is_varags(name):
-                            arg_name = split_varargs(name)
+                            arg_name = make_varargs(name)
                             arg_value = List([]).setContext(exec_context)
                         else:
                             arg_value = default_values[arg_name]
@@ -4251,7 +4334,7 @@ class Function(BaseFunction):
                             remaining_args = args[0:start_index]
                             len_remaining_args = len(remaining_args)
                             len_arg_names_remaining = len_arg_names - 1
-                            var_name = split_varargs(self.arg_names[j])
+                            var_name = make_varargs(self.arg_names[j])
                             var_value = List(var_args)
                             var_value.setContext(exec_context)
                             exec_context.symbolTable.set(var_name, var_value)
@@ -4265,7 +4348,7 @@ class Function(BaseFunction):
                             if is_varags(self.arg_names[j]):
                                 if len_args == len_arg_names:
                                     var_args = args[i:len_args]
-                                    var_name = split_varargs(self.arg_names[j])
+                                    var_name = make_varargs(self.arg_names[j])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -4314,9 +4397,8 @@ class Function(BaseFunction):
                     if is_varags(self.arg_names[i]):
                             has_var_args = True
                             if len_arg_names == 1:
-                                var_args = args[self.arg_names.index(
-                                    self.arg_names[i]):]
-                                var_name = split_varargs(self.arg_names[i])
+                                var_args = args[self.arg_names.index(self.arg_names[i]):]
+                                var_name = make_varargs(self.arg_names[i])
                                 var_value = List(var_args)
                                 var_value.setContext(exec_context)
                                 exec_context.symbolTable.set(
@@ -4329,7 +4411,7 @@ class Function(BaseFunction):
                                         len_arg_names + 1]
                                     remaining_args = args[len_args -
                                         len_arg_names + 1:]
-                                    var_name = split_varargs(self.arg_names[i])
+                                    var_name = make_varargs(self.arg_names[i])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -4340,7 +4422,7 @@ class Function(BaseFunction):
                                         self.arg_names[i])
                                     var_args = args[start_index:len_args]
                                     remaining_args = args[0:start_index]
-                                    var_name = split_varargs(self.arg_names[i])
+                                    var_name = make_varargs(self.arg_names[i])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -4354,15 +4436,14 @@ class Function(BaseFunction):
                                     remaining_arg_names = [
                                         name for name in remaining_arg_names if is_varags(name) == False]
                                     
-                                    reversed_args = args[::-
-                                        1][0:len(remaining_arg_names)]
+                                    reversed_args = args[::- 1][0:len(remaining_arg_names)]
                                     reversed_args_names = remaining_arg_names[::-1]
                                     var_args = args[start_index:len_args -
                                         len_arg_names + start_index + 1]
                                     re_reverse_args = reversed_args[::-1]
                                     re_reverse_args_names = reversed_args_names[::-1]
                                     remaining_args = first_args + re_reverse_args
-                                    var_name = split_varargs(self.arg_names[i])
+                                    var_name = make_varargs(self.arg_names[i])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -4498,12 +4579,17 @@ class Function(BaseFunction):
         # if len(self.arg_names) > 0:
         #     args_expected = len(self.arg_names)
 
-        args = new_args
+        if keyword_args_list != None and len(keyword_args_list) > 0:
+            args = new_args
 
-        if len(args) > 0:
+
+        
+        if class_name != None:
             args = [class_name] + args
-        if len(self.arg_names) == 1 and len(args) == 0:
-            args = [class_name]
+        # if len(args) > 0:
+        #     args = [class_name] + args
+        # if len(self.arg_names) == 1 and len(args) == 0:
+        #     args = [class_name]
 
         self.args = args
         res.register(self.run_check_and_populate_args(
@@ -4553,7 +4639,6 @@ class Function(BaseFunction):
 
         for key, value in default_values.items():
             keys.append(key)
-
         for i in range(len(self.arg_names)):
             if self.arg_names[i] not in keys:
                 missing_args.append(self.arg_names[i])
@@ -4569,7 +4654,7 @@ class Function(BaseFunction):
         elif len(missing_args) == 1:
             missing_args_name += f"'{missing_args[0]}'"
         if len(missing_args) == 0:
-            missing_args_name = f"but {len_args} {'was' if len(args) == 1 or len(args) == 0 else 'were'} given"
+            missing_args_name = f""
 
         exception_details = {
             'pos_start': klass_.pos_start if klass_ != None else self.pos_start,
@@ -4755,7 +4840,7 @@ class Function(BaseFunction):
             for i in range(len(args)):
                 arg_name = self.arg_names[i]
                 if is_varags(self.arg_names[i]):
-                    arg_name = split_varargs(self.arg_names[i])
+                    arg_name = make_varargs(self.arg_names[i])
                     arg_value = Pair([args[i]]).setContext(exec_context)
                     exec_context.symbolTable.set(arg_name, arg_value)
                 else:
@@ -4767,7 +4852,7 @@ class Function(BaseFunction):
                 if len(args) == 0:
                     for name in self.arg_names:
                         if is_varags(name):
-                            arg_name = split_varargs(name)
+                            arg_name = make_varargs(name)
                             arg_value = Pair([]).setContext(exec_context)
                         else:
                             arg_value = default_values[arg_name]
@@ -4830,7 +4915,7 @@ class Function(BaseFunction):
                             remaining_args = args[0:start_index]
                             len_remaining_args = len(remaining_args)
                             len_arg_names_remaining = len_arg_names - 1
-                            var_name = split_varargs(self.arg_names[j])
+                            var_name = make_varargs(self.arg_names[j])
                             var_value = Pair(var_args)
                             var_value.setContext(exec_context)
                             exec_context.symbolTable.set(var_name, var_value)
@@ -4844,7 +4929,7 @@ class Function(BaseFunction):
                             if is_varags(self.arg_names[j]):
                                 if len_args == len_arg_names:
                                     var_args = args[i:len_args]
-                                    var_name = split_varargs(self.arg_names[j])
+                                    var_name = make_varargs(self.arg_names[j])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -4896,7 +4981,7 @@ class Function(BaseFunction):
                             if len_arg_names == 1:
                                 var_args = args[self.arg_names.index(
                                     self.arg_names[i]):]
-                                var_name = split_varargs(self.arg_names[i])
+                                var_name = make_varargs(self.arg_names[i])
                                 var_value = List(var_args)
                                 var_value.setContext(exec_context)
                                 exec_context.symbolTable.set(
@@ -4909,7 +4994,7 @@ class Function(BaseFunction):
                                                     len_arg_names + 1]
                                     remaining_args = args[len_args -
                                                           len_arg_names + 1:]
-                                    var_name = split_varargs(self.arg_names[i])
+                                    var_name = make_varargs(self.arg_names[i])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -4920,7 +5005,7 @@ class Function(BaseFunction):
                                         self.arg_names[i])
                                     var_args = args[start_index:len_args]
                                     remaining_args = args[0:start_index]
-                                    var_name = split_varargs(self.arg_names[i])
+                                    var_name = make_varargs(self.arg_names[i])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -4942,7 +5027,7 @@ class Function(BaseFunction):
                                     re_reverse_args = reversed_args[::-1]
                                     re_reverse_args_names = reversed_args_names[::-1]
                                     remaining_args = first_args + re_reverse_args
-                                    var_name = split_varargs(self.arg_names[i])
+                                    var_name = make_varargs(self.arg_names[i])
                                     var_value = List(var_args)
                                     var_value.setContext(exec_context)
                                     exec_context.symbolTable.set(
@@ -5042,18 +5127,17 @@ class Class(BaseClass):
                 method.context = new_context
                 method.context.symbolTable.set(
                     "super", self.inherit_class_name) if self.inherit_class_name != None else None
-                if method_name == "init":
+                if method_name == "@init":
                     method_ = method
                     method_args = method.arg_names
                     default_values = method.default_values
                     class_args = method_args
                     # remove self from args
                     if len(method_args) > 0:
+                        
                         if method_args[0] == "self":
                             method_args = method_args[1:]
                             class_args = method_args
-                            # add class_args to self.properties
-
                 
             if method_ != None:
                 res.register(method_.run(keyword_args_list,args, self, new_context, self))
@@ -5211,7 +5295,7 @@ class BuiltInClass(BaseClass):
                 method.context = new_context
                 method.context.symbolTable.set(
                     "super", self.inherit_class_name) if self.inherit_class_name != None else None
-                if method_name == "init":
+                if method_name == "@init":
                     method_ = method
                     method_args = method.arg_names
                     class_args = method_args
@@ -8234,6 +8318,7 @@ class BuiltInMethod_List(Value):
         'exit': False
     })
             
+    
     def is_true(self):
         return True if self.name else False
         
@@ -9303,7 +9388,7 @@ class Interpreter:
                     raise Al_ValueError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
-                        'message': f"Expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
+                        'message': f"expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
                         'context': context,
                         'exit': False
                     })
@@ -9315,7 +9400,14 @@ class Interpreter:
             elif isinstance(value, Object) or isinstance(value, Dict):
                 
                 if len(var_name) != len(value.properties):
+                    has_star = False
                     var = []
+                    var_names = [name.name.value for name in var_name]
+                    for name in var_names:
+                        if is_varags(name):
+                            has_star = True
+                            break
+                    values = [v  for v in value.properties.keys()]
                     for v in var_name:
                         if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
                             raise Al_ValueError({
@@ -9326,50 +9418,81 @@ class Interpreter:
                                 'exit': False
                             })
                         var.append(v.name.value)
-                    if '*' + v.name.value.split('*')[-1] in var:
-                        properties = []
-                        for prop in value.properties.values():
-                            properties.append(prop)
-                        for i in range(len(var_name)):
-                            if i < len(var_name) - 1:
-                                context.symbolTable.set(
-                                    var_name[i].name.value, properties[i])
-                            else:
-                                context.symbolTable.set(v.name.value.split(
-                                    '*')[-1], List(properties[i:]))
+                    
+                    if has_star:
+                        if len(var_names) -1 != len(values) and len(var_names) != 1:
+                            raise Al_ValueError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
+                                'context': context,
+                                'exit': False
+                        })
+                        star_names = [name for name in var_names if is_varags(name) == True]
+                        non_star_names = [name for name in var_names if is_varags(name) == False]
+                        starags, nonstarargs = vna_algorithm(var_names, values)
+                        for star_name in star_names:
+                            name = make_varargs(star_name)
+                            context.symbolTable.set(name, List(starags))
+                        for i in range(len(non_star_names)):
+                            context.symbolTable.set(non_star_names[i], nonstarargs[i])
+                    
+                    
 
                     else:
                         raise Al_ValueError({
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
-                            'message': f"Expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
+                            'message': f"expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
                             'context': context,
                             'exit': False
                         })
                 else:
                     properties = []
                     var = []
+                    var_names = [name.name.value for name in var_name]
+                    for name in var_names:
+                        if is_varags(name):
+                            has_star = True
+                            break
+                    values = [v for v in value.properties.keys()]
                     for prop in value.properties.values():
                         properties.append(prop)
                     for v in var_name:
                         var.append(v.name.value)
-                        if '*' + v.name.value.split('*')[-1] in var:
-                            raise Al_ValueError({
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'message': f"not to many values to pair",
-                                'context': context,
-                                'exit': False
-                            })
+                        if has_star:
+                            star_names = [name for name in var_names if is_varags(name) == True]
+                            non_star_names = [name for name in var_names if is_varags(name) == False]
+                            starags, nonstarargs = vna_algorithm(var_names, values)
+                            for star_name in star_names:
+                                name = make_varargs(star_name)
+                                context.symbolTable.set(name, List(starags))
+                            for i in range(len(non_star_names)):
+                                try:
+                                    context.symbolTable.set(non_star_names[i], nonstarargs[i])
+                                except:
+                                    raise Al_ValueError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
+                                        'context': context,
+                                        'exit': False
+                                    })
                         else:
                             for i in range(len(var_name)):
                                 context.symbolTable.set(
                                     var_name[i].name.value, properties[i])
 
-            elif isinstance(value, Pair) or isinstance(value, List):
-                
+            elif isinstance(value, Pair) or isinstance(value, List): 
                 if len(var_name) != len(value.elements):
+                    has_star = False
                     var = []
+                    var_names = [name.name.value for name in var_name]
+                    for name in var_names:
+                        if is_varags(name):
+                            has_star = True
+                            break
+                    values = value.elements
                     for v in var_name:
                         if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
                             raise Al_ValueError({
@@ -9380,40 +9503,70 @@ class Interpreter:
                                 'exit': False
                             })
                         var.append(v.name.value)
-                    if '*' + v.name.value.split('*')[-1] in var:
-                        elements = []
-                        for elem in value.elements:
-                            elements.append(elem)
-                        for i in range(len(var_name)):
-                            if i < len(var_name) - 1:
-                                context.symbolTable.set(
-                                    var_name[i].name.value, elements[i])
-                            else:
-                                context.symbolTable.set(
-                                    v.name.value.split('*')[-1], List(elements[i:]))
-                    else:
-                        raise Al_ValueError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"Expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
-                            'context': context,
-                            'exit': False
-                        })
-                else:
-                    elements = []
-                    var = []
-                    for elem in value.elements:
-                        elements.append(elem)
-                    for v in var_name:
-                        var.append(v.name.value)
-                        if '*' + v.name.value.split('*')[-1] in var:
+                        
+                        if has_star:
+                            print(len(var_names), len(values))
+                            star_names = [name for name in var_names if is_varags(name) == True]
+                            non_star_names = [name for name in var_names if is_varags(name) == False]
+                            starags, nonstarargs = vna_algorithm(var_names, values)
+                            for star_name in star_names:
+                                name = make_varargs(star_name)
+                                context.symbolTable.set(name, List(starags))
+                            for i in range(len(non_star_names)):
+                                try:
+                                    context.symbolTable.set(non_star_names[i], nonstarargs[i])
+                                except:
+                                    raise Al_ValueError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        else:
                             raise Al_ValueError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
-                                'message': f"not to many values to pair",
+                                'message': f"expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
                                 'context': context,
                                 'exit': False
                             })
+                else:
+                    has_star = False
+                    elements = []
+                    var = []
+                    var_names = [name.name.value for name in var_name]
+                    values = value.elements
+                    for elem in value.elements:
+                        elements.append(elem)
+                    for name in var_names:
+                        if is_varags(name):
+                            has_star = True
+                            break
+                    for v in var_name:
+                        var.append(v.name.value)
+                        if has_star:
+                            star_names = [
+                                name for name in var_names if is_varags(name) == True]
+                            non_star_names = [
+                                name for name in var_names if is_varags(name) == False]
+                            starags, nonstarargs = vna_algorithm(
+                                var_names, values)
+                            for star_name in star_names:
+                                name = make_varargs(star_name)
+                                context.symbolTable.set(name, List(starags))
+                            for i in range(len(non_star_names)):
+                                try:
+                                    context.symbolTable.set(
+                                    non_star_names[i], nonstarargs[i])
+                                except:
+                                    raise Al_ValueError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
+                                        'context': context,
+                                        'exit': False
+                                    })
                         else:
                             for i in range(len(var_name)):
                                 context.symbolTable.set(
@@ -12294,7 +12447,7 @@ class Interpreter:
             value = res.register(self.visit(prop['value'], context))
             if res.should_return(): return res
             properties = {**properties, **{key: value}}
-        return res.success(Dict(properties).setContext(context).setPosition(node.pos_start, node.pos_end))
+        return res.success(Dict(properties, None,None,context).setContext(context).setPosition(node.pos_start, node.pos_end))
     
     
     def visit_ModuleObject(self, node, context):
@@ -12398,7 +12551,7 @@ class Interpreter:
         if node.methods != '' and node.methods != None:
             for method in node.methods:
                 method_name = method['name'].value
-                if method_name == 'init':
+                if method_name == '@init':
                     for arg in method['args']:
                         class_args.append(arg)
                         if len(class_args) > 0:
@@ -12418,7 +12571,6 @@ class Interpreter:
                                 {},class_fields_modifiers, context).setContext(context).setPosition(node.pos_start, node.pos_end)
             context.symbolTable.set_object(class_name, class_value)
         
-           
         return res.success(class_value)
 
    
@@ -12631,15 +12783,6 @@ class Interpreter:
                         "context": context,
                         "exit": False
                     })
-            except:
-                # create a loop for the error
-                raise Al_RecursionError({
-                   'pos_start': node.pos_start,
-                   'pos_end': node.pos_end,
-                   'message': f"'RecursionError': too many function calls",
-                   'context': context,
-                   'exit': False
-                })
         else:
             return_value = NoneType.none
         if return_value is None:  return_value = NoneType.none
@@ -12698,63 +12841,63 @@ BuiltInFunction.isFinite = BuiltInFunction("isFinite")
 
 
 
-# code for the built-in class exceptions
-# 'class Exception(message)\nend\nclass RuntimeError()~Exception\nend'
-code_builtin_exception = 'class Exception()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_runtime = 'class RuntimeError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_nameerror = 'class NameError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_argumenterror = 'class ArgumentError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_typeerror = 'class TypeError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_indexerror = 'class IndexError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_valueerror = 'class ValueError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_propertyerror = 'class PropertyError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_keyerror = 'class KeyError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_zerodivisionerror = 'class ZeroDivisionError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_geterror = 'class GetError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_modulenotfounderror = 'class ModuleNotFoundError()\ndef init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef init(self,message)\n\tself.message = message\nend\nend'
-builtin_exception = Program.createBuiltIn("Exception", code_builtin_exception).elements[0]
-builtin_exception_runtime = Program.createBuiltIn("RuntimeError", code_builtin_runtime).elements[0]
-builtin_exception_nameerror = Program.createBuiltIn("NameError", code_builtin_nameerror).elements[0]
-builtin_exception_argumenterror = Program.createBuiltIn("ArgumentError", code_builtin_argumenterror).elements[0]
-builtin_exception_typeerror = Program.createBuiltIn("TypeError", code_builtin_typeerror).elements[0]
-builtin_exception_indexerror = Program.createBuiltIn("IndexError", code_builtin_indexerror).elements[0]
-builtin_exception_valueerror = Program.createBuiltIn("ValueError", code_builtin_valueerror).elements[0]
-builtin_exception_propertyerror = Program.createBuiltIn("PropertyError", code_builtin_propertyerror).elements[0]
-builtin_exception_keyerror = Program.createBuiltIn("KeyError", code_builtin_keyerror).elements[0]
-builtin_exception_zerodivisionerror = Program.createBuiltIn("ZeroDivisionError", code_builtin_zerodivisionerror).elements[0]
-builtin_exception_geterror = Program.createBuiltIn("GetError", code_builtin_geterror).elements[0]
-builtin_exception_modulenotfounderror = Program.createBuiltIn("ModuleNotFoundError", code_builtin_modulenotfounderror).elements[0]
-builtin_exception_keyboardinterrupt = Program.createBuiltIn("KeyboardInterrupt", code_builtin_keyboardinterrupt).elements[0]
-exceptions_ = {
-    'Exception': builtin_exception,
-    'RuntimeError': builtin_exception_runtime,
-    'NameError': builtin_exception_nameerror,
-    'ArgumentError': builtin_exception_argumenterror,
-    'TypeError': builtin_exception_typeerror,
-    'IndexError': builtin_exception_indexerror,
-    'ValueError': builtin_exception_valueerror,
-    'PropertyError': builtin_exception_propertyerror,
-    'KeyError': builtin_exception_keyerror,
-    'ZeroDivisionError': builtin_exception_zerodivisionerror,
-    'GetError': builtin_exception_geterror,
-    'ModuleNotFoundError': builtin_exception_modulenotfounderror,
-    'KeyboardInterrupt': builtin_exception_keyboardinterrupt
-}
-# class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context
-BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.class_args, builtin_exception.inherit_class_name, builtin_exception.inherited_from, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
-BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.class_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.inherited_from, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
-BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.class_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.inherited_from, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context) 
-BuiltInClass.ArgumentError = BuiltInClass(builtin_exception_argumenterror.class_name, builtin_exception_argumenterror.class_args, builtin_exception_argumenterror.inherit_class_name, builtin_exception_argumenterror.inherited_from, builtin_exception_argumenterror.methods, builtin_exception_argumenterror.class_fields_modifiers, builtin_exception_argumenterror.context)
-BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.class_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.inherited_from, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
-BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.class_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.inherited_from, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
-BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.class_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.inherited_from, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
-BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.class_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.inherited_from,  builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
-BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.class_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.inherited_from, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
-BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.class_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.inherited_from,  builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
-BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.class_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.inherited_from, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
-BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.class_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.inherited_from, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
-BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.class_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.inherited_from, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
+#code for the built-in class exceptions
+#'class Exception(message)\nend\nclass RuntimeError()~Exception\nend'
+# code_builtin_exception = 'class Exception()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_runtime = 'class RuntimeError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_nameerror = 'class NameError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_argumenterror = 'class ArgumentError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_typeerror = 'class TypeError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_indexerror = 'class IndexError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_valueerror = 'class ValueError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_propertyerror = 'class PropertyError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_keyerror = 'class KeyError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_zerodivisionerror = 'class ZeroDivisionError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_geterror = 'class GetError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_modulenotfounderror = 'class ModuleNotFoundError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+# builtin_exception = Program.createBuiltIn("Exception", code_builtin_exception).elements[0]
+# builtin_exception_runtime = Program.createBuiltIn("RuntimeError", code_builtin_runtime).elements[0]
+# builtin_exception_nameerror = Program.createBuiltIn("NameError", code_builtin_nameerror).elements[0]
+# builtin_exception_argumenterror = Program.createBuiltIn("ArgumentError", code_builtin_argumenterror).elements[0]
+# builtin_exception_typeerror = Program.createBuiltIn("TypeError", code_builtin_typeerror).elements[0]
+# builtin_exception_indexerror = Program.createBuiltIn("IndexError", code_builtin_indexerror).elements[0]
+# builtin_exception_valueerror = Program.createBuiltIn("ValueError", code_builtin_valueerror).elements[0]
+# builtin_exception_propertyerror = Program.createBuiltIn("PropertyError", code_builtin_propertyerror).elements[0]
+# builtin_exception_keyerror = Program.createBuiltIn("KeyError", code_builtin_keyerror).elements[0]
+# builtin_exception_zerodivisionerror = Program.createBuiltIn("ZeroDivisionError", code_builtin_zerodivisionerror).elements[0]
+# builtin_exception_geterror = Program.createBuiltIn("GetError", code_builtin_geterror).elements[0]
+# builtin_exception_modulenotfounderror = Program.createBuiltIn("ModuleNotFoundError", code_builtin_modulenotfounderror).elements[0]
+# builtin_exception_keyboardinterrupt = Program.createBuiltIn("KeyboardInterrupt", code_builtin_keyboardinterrupt).elements[0]
+# exceptions_ = {
+#     'Exception': builtin_exception,
+#     'RuntimeError': builtin_exception_runtime,
+#     'NameError': builtin_exception_nameerror,
+#     'ArgumentError': builtin_exception_argumenterror,
+#     'TypeError': builtin_exception_typeerror,
+#     'IndexError': builtin_exception_indexerror,
+#     'ValueError': builtin_exception_valueerror,
+#     'PropertyError': builtin_exception_propertyerror,
+#     'KeyError': builtin_exception_keyerror,
+#     'ZeroDivisionError': builtin_exception_zerodivisionerror,
+#     'GetError': builtin_exception_geterror,
+#     'ModuleNotFoundError': builtin_exception_modulenotfounderror,
+#     'KeyboardInterrupt': builtin_exception_keyboardinterrupt
+# }
+# # class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context
+# BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.class_args, builtin_exception.inherit_class_name, builtin_exception.inherited_from, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
+# BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.class_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.inherited_from, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
+# BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.class_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.inherited_from, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context) 
+# BuiltInClass.ArgumentError = BuiltInClass(builtin_exception_argumenterror.class_name, builtin_exception_argumenterror.class_args, builtin_exception_argumenterror.inherit_class_name, builtin_exception_argumenterror.inherited_from, builtin_exception_argumenterror.methods, builtin_exception_argumenterror.class_fields_modifiers, builtin_exception_argumenterror.context)
+# BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.class_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.inherited_from, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
+# BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.class_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.inherited_from, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
+# BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.class_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.inherited_from, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
+# BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.class_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.inherited_from,  builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
+# BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.class_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.inherited_from, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
+# BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.class_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.inherited_from,  builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
+# BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.class_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.inherited_from, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
+# BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.class_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.inherited_from, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
+# BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.class_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.inherited_from, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
 
 Types.Number = Types("Number")
 Types.String = Types("String")
@@ -12818,18 +12961,18 @@ symbolTable_.set('Class', Types.Class)
 symbolTable_.set('Function', Types.Function)    
 symbolTable_.set('BuiltInFunction', Types.BuiltInFunction)
 symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
-symbolTable_.set('Exception', BuiltInClass.Exception)
-symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
-symbolTable_.set('NameError', BuiltInClass.NameError)
-symbolTable_.set('ArgumentError', BuiltInClass.ArgumentError)
-symbolTable_.set('TypeError', BuiltInClass.TypeError)
-symbolTable_.set('IndexError', BuiltInClass.IndexError)
-symbolTable_.set('ValueError', BuiltInClass.ValueError)
-symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
-symbolTable_.set('KeyError', BuiltInClass.KeyError)
-symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
-symbolTable_.set('GetError', BuiltInClass.GetError)
-symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
-symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
+# symbolTable_.set('Exception', BuiltInClass.Exception)
+# symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
+# symbolTable_.set('NameError', BuiltInClass.NameError)
+# symbolTable_.set('ArgumentError', BuiltInClass.ArgumentError)
+# symbolTable_.set('TypeError', BuiltInClass.TypeError)
+# symbolTable_.set('IndexError', BuiltInClass.IndexError)
+# symbolTable_.set('ValueError', BuiltInClass.ValueError)
+# symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
+# symbolTable_.set('KeyError', BuiltInClass.KeyError)
+# symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
+# symbolTable_.set('GetError', BuiltInClass.GetError)
+# symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
+# symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
 symbolTable_.setSymbol()
 

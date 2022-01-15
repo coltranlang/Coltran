@@ -56,3 +56,92 @@ let list = [5, 3, 8, 6, 2, 1, 4, 7]
 
 println(list)
 println(@bubblesort(list)) # [1, 2, 3, 4, 5, 6, 7, 8]
+
+
+
+
+
+line(3)
+def @is_varags(string)
+    if len(string) == 0:
+        return false
+    end
+    return string[0] == '*'
+end
+
+# varargs *args
+def @vna_algorithm(params, args)
+    let len_params = len(params)
+    let len_args = len(args)
+    let starargs = []
+    let nonstarargs = []
+    in range(len_params) as i:
+        let first_positional_arg = i
+        let last_positional_arg  = len_params - 1
+        if @is_varags(params[i]):
+            if len_params == 1:
+                let start_index = params.indexOf(params[i])
+                starargs = args[start_index:]
+            else:
+                # if first_positional_arg is == to 0 then the starargs is the first positional arg
+                # and we need to get the args starting from the starargs index and ending at the index of the nonstarargs e.g params = ["*args","a","b","c"] args = [1,2,3,4,5,6,7,8,9,10]
+                # starargs = [1,2,3,4,5,6,7] nonstarargs = [8,9,10]
+                if first_positional_arg == 0:
+                    let start_index = params.indexOf(params[i])
+                    starargs = args[start_index:len_args - len_params + 1]
+                    nonstarargs = args[len_args - len_params + 1:]
+                # if last_positional_arg is == to i then the *args is at the last position of the pramater, then we get the args starting from the nonargs and ending at the startargs index e.g params = ["a","b","c","*args"] args = [1,2,3,4,5,6,7,8,9,10]
+                # starargs = [4,5,6,7,8,9,10] nonstarargs = [1,2,3]
+                elif last_positional_arg == i:
+                    let start_index = params.indexOf(params[i])
+                    starargs = args[start_index:len_args]
+                    nonstarargs = args[0:start_index]
+                # if the *args is in the middle of the params then we get the args starting from the nonargs and ending at the startargs index e.g params = ["a","b","c","*args","d","e"] args = [1,2,3,4,5,6,7,8,9,10]
+                # starargs = [4,5,6,7,8] nonstarargs = [1,2,3,9,10]
+                else:
+                    let start_index = params.indexOf(params[i])
+                    let first_args = args[0:start_index]
+                    let non_args_names = params[start_index:len_params]
+                    let non_args_names = non_args_names.filter(def (name) -> @is_varags(name) == false)
+                    
+                    # we reverse the args
+                    let reversed_args = args[::-1][0:len(non_args_names)]
+                    let reversed_args_names = non_args_names[::-1]
+                    starargs = args[start_index:len_args - len_params + start_index + 1]
+                    let re_reversed_args = reversed_args[::-1]
+                    let re_reversed_args_names = reversed_args_names[::-1]
+                    nonstarargs = first_args + re_reversed_args
+                end
+            end
+        end
+    end        
+    return starargs, nonstarargs
+end  
+    
+let params_ex1 = ["*args"]
+let args_ex1 = [1,2,3,4,5,6,7,8,9,10]
+let starargs_ex1, nonstarargs_ex1 = @vna_algorithm(params_ex1, args_ex1)
+println(starargs_ex1, nonstarargs_ex1, "is the result 1")
+
+let params_ex2 = ["*args", "a", "b", "c"]
+let args_ex2 = [1,2,3,4,5,6,7,8,9,10]
+let starargs_ex2, nonstarargs_ex2 = @vna_algorithm(params_ex2, args_ex2)
+println(starargs_ex2, nonstarargs_ex2, "is the result 2")
+
+let params_ex3 = ["a", "b", "c","*args"]
+let args_ex3 = [1,2,3,4,5,6,7,8,9,10]
+let starargs_ex3, nonstarargs_ex3 = @vna_algorithm(params_ex3, args_ex3)
+println(starargs_ex3, nonstarargs_ex3, "is the result 3")
+
+
+let params_ex4 = ["a", "b", "c","*args", "d", "e"]
+let args_ex4 = [1,2,3,4,5,6,7,8,9,10]
+let starargs_ex4, nonstarargs_ex4 = @vna_algorithm(params_ex4, args_ex4)
+println(starargs_ex4, nonstarargs_ex4, "is the result 4")
+
+
+let params_ex5 = ["a", "b", "c","*args", "d", "e", "f"]
+let args_ex5 = [1,2,3,4,5,6,7,8,9,10]
+let starargs_ex5, nonstarargs_ex5 = @vna_algorithm(params_ex5, args_ex5)
+println(starargs_ex5, nonstarargs_ex5, "is the result 5")
+

@@ -1,0 +1,200 @@
+let LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+let DIGITS = '0123456789'
+let SYMBOLS = '@_'
+let tokenList = {
+    NEWLINE: '\n',
+    SPACE: ' ',
+    DIGITS: DIGITS,
+    KEYWORD: 'KEYWORD',
+    IDENTIFIER : 'IDENTIFIER',
+    KEYWORDS: [
+        'let',
+        'final',
+        'true',
+        'false',
+        'none',
+        'and',
+        'or',
+        'not',
+        'if',
+        'then',
+        'elif',
+        'else',
+        'for',
+        'to',
+        'in',
+        'notin',
+        'is',
+        'as',
+        'get',
+        'from',
+        'export',
+        'module',
+        'require',
+        'step',
+        'while',
+        'task',
+        'object',
+        'class',
+        'def',
+        'end',
+        'match',
+        'case',
+        'default',
+        'attempt',
+        'catch',
+        'finally',
+        'return',
+        'continue',
+        'break',
+        'fm',
+        'raise',
+        'del',
+    ],
+    LETTERS_SYMBOLS: LETTERS + SYMBOLS,
+    LETTERS_DIGITS_SYMBOLS: LETTERS + DIGITS + SYMBOLS,
+    EOF: 'EOF',
+}
+
+
+class Program
+    def error()
+        def @IllegalCharacterError(options)
+            let error= fm"\nFile: %{options['pos_start'].fileName} at line %{options['pos_start'].line + 1}\n\nSyntaxError: Illegal character unexpected  '%{options['originator']}'\n"
+            Program.printError(error)
+        end
+        let methods = {
+            'IllegalCharacterError': @IllegalCharacterError
+        }
+        return methods
+    end
+    def printError(error)
+        println(error)
+    end
+end
+
+
+class Position
+    def @init(self, index, line, column, fileName, fileText, type=none, position=none)
+        self.index = index
+        self.line = line
+        self.column = column
+        self.fileName = fileName
+        self.fileText = fileText
+        self.type = type
+        self.position = position
+        # if self.type == "inter_p" and self.position != none:
+        #     self.line = self.position.line
+        #     self.column = if self.position.column - [ '\n' in range(self.position.column - self.index) as i ].count('\n') == -1 : self.position.column - '\n' in range(self.position.column - self.index) as i .count('\n')  else self.position.column
+        # end
+    end
+    def toString(self)
+        return str({
+            'index': self.index,
+            'line': self.line,
+            'column': self.column,
+            'fileName': self.fileName,
+            'fileText': self.fileText
+        })
+    end
+    def advance(self, current_char=none)
+        self.index += 1
+        self.column += 1
+
+        if current_char == '\n':
+            self.line += 1
+            self.column = 0
+        end
+        return self
+    end
+    def copy(self)
+        return Position(self.index, self.line, self.column, self.fileName, self.fileText)
+    end
+end
+
+
+class Token
+    def @init(self, type_, value=none, pos_start=none, pos_end=none)
+        self.type = type_
+        self.value = value
+        # if pos_start and pos_start.has_key('copy'):
+        #     self.pos_start = pos_start.copy()
+        #     self.pos_end = pos_start.copy()
+        #     self.pos_end.advance()
+        # end
+        if pos_end:
+            self.pos_end = pos_end
+        end
+    end
+    def matches(self, type_, value)
+        return self.type == type_ and self.value == value
+    end
+    def toString(self)
+        if self.value:
+            return fm'%{self.type}:%{self.value}'
+        end
+        return fm'%{self.type}'
+    end
+end
+
+class Lexer
+    def @init(self, fileName, fileText, position=none)
+        self.fileName = fileName
+        self.fileText = fileText
+        self.position = position
+        self.pos = Position(-1, 0, -1, fileName, fileText, "", self.position)
+        self.currentChar = none
+        self.advance()
+    end
+    def advance(self)
+        self.pos.advance(self.currentChar)
+        self.currentChar = if self.pos.index < len(self.fileText):  self.fileText[self.pos.index] else: none
+    end
+    def makeTokens(self, token=none)
+        let tokens = []
+        while self.currentChar != none:
+            if self.currentChar in ' \t':
+                self.advance()
+            elif self.currentChar in '\n':
+                tokens.append(Token(tokenList.NEWLINE, '\n', pos_start=self.pos))
+                self.advance()
+            elif self.currentChar in tokenList.DIGITS:
+                tokens.append(self.makeNumber())
+            elif self.currentChar in tokenList.LETTERS_SYMBOLS:
+                tokens.append(self.makeIdentifier())
+            else:
+                let pos_start = self.pos.copy()
+                let char = self.currentChar
+                self.advance()
+                return Program.error()['IllegalCharacterError']({
+                    'origin': char,
+                    'pos_start': pos_start
+                })
+            end
+        end
+
+        let pos = self.pos
+        tokens.append(Token(tokenList.EOF, pos_start=pos))
+        return tokens, none
+    end
+    def makeIdentifier(self)
+        let identifier_str = ''
+        let pos_start = self.pos.copy()
+        while self.currentChar != none and self.currentChar in tokenList.LETTERS_DIGITS_SYMBOLS:
+            println(self.currentChar)
+            identifier_str += self.currentChar
+            self.advance()
+        end
+        if identifier_str in tokenList.KEYWORDS:
+            let token_type = tokenList.KEYWORD
+        else:
+            let token_type = tokenList.IDENTIFIER
+        end
+        return Token(token_type, identifier_str, pos_start, self.pos)
+    end
+end
+
+let lexer = Lexer("main.ald", "Hello World")
+let tokens, error = lexer.makeTokens()
+println(tokens)
+
