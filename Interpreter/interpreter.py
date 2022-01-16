@@ -2907,7 +2907,7 @@ class BaseFunction(Value):
                 len_expected = len(self.arg_names) - len(default_values)
 
         missing_args = []
-        missing_args_name = ""
+        missing_args_name = ": "
         keys = []
 
         for key, value in default_values.items():
@@ -3982,7 +3982,7 @@ class Function(BaseFunction):
 
         if keyword_args_list != None and len(keyword_args_list) > 0:
             args = new_args
-        self.check_args(args)
+        self.check_args(args, keyword_args)
         self.populate_args(keyword_args, args, exec_context)
 
         if res.should_return():
@@ -3998,7 +3998,7 @@ class Function(BaseFunction):
         return res.success(return_value)
 
     def make_missing_args(self, missing_args, len_args):
-        missing_args_name = ''
+        missing_args_name = ': '
         if len(missing_args) > 1:
             for i in range(len(missing_args)):
                 if i == len(missing_args) - 2:
@@ -4014,15 +4014,15 @@ class Function(BaseFunction):
 
         return missing_args_name
 
-    def check_args(self, args):
+    def check_args(self, args,keyword_args):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
         default_values = {}
         len_args = len(args)
         len_arg_names = len(self.arg_names)
-        if len_args == 0:
-            len_args = "none"
+        # if len_args == 0:
+        #     len_args = "none"
         was_or_were = "was" if len_args == 1 or len_args == 0 or len_args == "none" else "were"
         len_expected = len(self.arg_names)
         new_args_names = self.arg_names
@@ -4035,7 +4035,7 @@ class Function(BaseFunction):
                 len_expected = len(self.arg_names) - len(default_values)
 
         missing_args = []
-        missing_args_name = ""
+        missing_args_name = ": "
         keys = []
 
         for key, value in default_values.items():
@@ -4061,7 +4061,7 @@ class Function(BaseFunction):
         exception_details = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given",
+            'message': f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}",
             'context': self.context,
             'exit': False
         }
@@ -4074,7 +4074,7 @@ class Function(BaseFunction):
                     if is_varags(self.arg_names[i]):
                         has_var_args = True
                 if not has_var_args:
-                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given"
+                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name} but {len_args} {was_or_were} given"
 
                     raise Al_ArgumentError(exception_details)
 
@@ -4082,14 +4082,18 @@ class Function(BaseFunction):
                 has_var_args = False
                 for i in range(len(args)):
                     if is_varags(self.arg_names[i]):
+                        if len(keyword_args) > 0:
+                            for key, value in keyword_args.items():
+                                if key in self.arg_names:
+                                    return res.success(None)
                         has_var_args = True
                         new_args_names.pop(i)
                         missing_args_name = self.make_missing_args(
                             new_args_names, len_args)
-                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len(new_args_names)} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len(new_args_names)} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                         raise Al_ArgumentError(exception_details)
                 if not has_var_args:
-                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
 
                     raise Al_ArgumentError(exception_details)
 
@@ -4134,7 +4138,7 @@ class Function(BaseFunction):
                             new_args_names.pop(i)
                             return res.success(None)
                 if not has_var_args:
-                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                     raise Al_ArgumentError(exception_details)
 
         return res.success(None)
@@ -4173,6 +4177,34 @@ class Function(BaseFunction):
         missing_args_name = ""
         keys = []
 
+        
+        has_star = False
+        for i in range(len(self.arg_names)):
+            if is_varags(self.arg_names[i]):
+                has_star = True
+        if has_star:
+            star_names = [name for name in self.arg_names if is_varags(name) == True]
+            non_star_names = [name for name in self.arg_names if is_varags(name) == False]
+            starags, nonstarargs = vna_algorithm(self.arg_names, args) 
+            for star_name in star_names:
+                name = make_varargs(star_name)
+                exec_context.symbolTable.set(name, List(starags))
+            for i in range(len(non_star_names)):
+                try:
+                    exec_context.symbolTable.set(
+                        non_star_names[i], nonstarargs[i])
+                except Exception as e:
+                    print(e)
+                    raise Al_ValueError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"{self.name if self.name != 'none' else 'anonymous'}() missing {len(non_star_names) - i} required keyword-only argument{'s' if len(non_star_names) - i > 1 else ''}",
+                        'context': klass_.context if klass_ != None else self.context,
+                        'exit': False
+                    })
+        
+        
+        
         for key, value in default_values.items():
             keys.append(key)
 
@@ -4499,6 +4531,7 @@ class Function(BaseFunction):
         default_values = {}
         old_args = args
         new_args = []
+        new_args = args
         # default values
         if self.default_values != None:
             if len(self.default_values) > 0:
@@ -4517,12 +4550,13 @@ class Function(BaseFunction):
                     value = res.register(interpreter.visit(
                         keyword_arg['value'], exec_context))
                     keyword_args[name] = value
-
+                values = []
                 if len(self.arg_names) > 0:
                     for i in range(len(self.arg_names)):
                         for key, value in keyword_args.items():
                             if self.arg_names[i] == key:
                                 new_args.append(value)
+                                values.append(value)
                             elif key not in self.arg_names:
                                 raise Al_ArgumentError({
                                     'pos_start': self.pos_start,
@@ -4548,18 +4582,17 @@ class Function(BaseFunction):
                             #                     'exit': False
                             #                 })
 
-                    len_old_args = len(args) - len(keyword_args)
-                    if len(args) > 0:
-                        for i in range(len_old_args):
-                            new_args.insert(i, args[i])
+                    # len_old_args = len(args) - len(keyword_args)
+                    # if len(args) > 0:
+                    #     for i in range(len_old_args):
+                    #         new_args.insert(i, args[i])
                         # new_args.insert(0, args[0])
 
-                    if len(keyword_args) > 0:
-                        for i in range(len(self.arg_names)):
-                            if self.arg_names[i] in keyword_args:
-                                index_key = self.arg_names.index(self.arg_names[i])
-                                args_index = len_old_args - 1
-
+                    # if len(keyword_args) > 0:
+                    #     for i in range(len(self.arg_names)):
+                    #         if self.arg_names[i] in keyword_args:
+                    #             index_key = self.arg_names.index(self.arg_names[i])
+                    #             args_index = len_old_args - 1
             else:
                 new_args = args
 
@@ -4582,15 +4615,15 @@ class Function(BaseFunction):
             args = new_args
 
 
-        if Klass != None:
+        if len(args) > 0:
             args = [Klass] + args
-        # if len(args) > 0:
-        #     args = [class_name] + args
-        # if len(self.arg_names) == 1 and len(args) == 0:
-        #     args = [class_name]
-    
+        if len(self.arg_names) == 1 and len(args) == 0:
+            args = [Klass]
+
+        
         self.args = args
-        #res.register(self.run_check_and_populate_args(keyword_args, args, exec_context, Klass))
+        #print(self.args)
+        res.register(self.run_check_and_populate_args(keyword_args, args, exec_context, Klass))
 
         if res.should_return():
             return res
@@ -4606,12 +4639,12 @@ class Function(BaseFunction):
 
     def run_check_and_populate_args(self, keyword_args, args, exec_ctx, Klass):
         res = RuntimeResult()
-        res.register(self.run_check_args(args, Klass))
+        res.register(self.run_check_args(args, Klass,keyword_args))
         if res.should_return(): return res
         self.run_populate_args(Klass,keyword_args, args, exec_ctx)
         return res.success(None)
 
-    def run_check_args(self, args, klass_):
+    def run_check_args(self, args, klass_,keyword_args):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
@@ -4619,7 +4652,7 @@ class Function(BaseFunction):
         len_args = len(args)
         len_arg_names = len(self.arg_names)
         was_or_were = "was" if len_args == 1 or len_args == 0 or len_args == "none" else "were"
-        len_expected = len(self.arg_names)
+        len_expected = len(self.arg_names) - 1
         new_args_names = self.arg_names
         if len(self.default_values) > 0:
             for default_value in self.default_values:
@@ -4627,20 +4660,24 @@ class Function(BaseFunction):
                 value = res.register(interpreter.visit(
                     default_value['value'], exec_context))
                 default_values[name] = value
-                len_expected = len(self.arg_names) - len(default_values)
+                len_expected = len(self.arg_names) - len(default_values) - 1
+        
 
         missing_args = []
-        missing_args_name = ""
+        missing_args_name = ": "
         keys = []
         
         for key, value in default_values.items():
             keys.append(key)
         for i in range(len(self.arg_names)):
             if self.arg_names[i] not in keys:
+                name = self.arg_names[i]
+                if is_varags(self.arg_names[i]):
+                    name = make_varargs(self.arg_names[i])
                 if i == 0:
                     pass
                 else:
-                    missing_args.append(self.arg_names[i])
+                    missing_args.append(name)
 
         if len(missing_args) > 1:
             for i in range(len(missing_args)):
@@ -4658,7 +4695,7 @@ class Function(BaseFunction):
         exception_details = {
             'pos_start': klass_.pos_start if klass_ != None else self.pos_start,
             'pos_end': klass_.pos_end if klass_ != None else self.pos_end,
-            'message': f"{klass_.class_name}()  requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given",
+            'message': f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name} but {len_args} {was_or_were} given",
             'context': klass_.context if klass_ != None else self.context,
             'exit': False
         }
@@ -4667,13 +4704,13 @@ class Function(BaseFunction):
             has_var_args = False
             if len_args > len_arg_names:
                 if  len_arg_names == 1:
-                    exception_details['message'] = f"{klass_.class_name}() takes 0 positional argument"
+                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() takes 0 positional argument"
                     raise Al_ArgumentError(exception_details)
                 for i in range(len_arg_names):
                     if is_varags(self.arg_names[i]):
                         has_var_args = True
                 if not has_var_args:
-                    exception_details['message'] = f"{klass_.class_name}()  requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} "
+                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name} "
 
                     raise Al_ArgumentError(exception_details)
 
@@ -4681,35 +4718,67 @@ class Function(BaseFunction):
                 has_var_args = False
                 for i in range(len_args):
                     if is_varags(self.arg_names[i]):
+                        if len(keyword_args) > 0:
+                            for key, value in keyword_args.items():
+                                if key in self.arg_names:
+                                    return res.success(None)
                         has_var_args = True
                         new_args_names.pop(i)
+                        len_expected = len(new_args_names) - 1
+                        missing_args = missing_args[1:]
                         missing_args_name = self.make_missing_args(
-                            new_args_names, len_args)
-                        exception_details['message'] = f"{klass_.class_name}()  missing {len(new_args_names)} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                            missing_args, len_args)
+                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                         raise Al_ArgumentError(exception_details)
                 if not has_var_args:
-                    exception_details['message'] = f"{klass_.class_name}()  requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} "
+                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name} "
 
                     raise Al_ArgumentError(exception_details)
-
+            else:
+                new_args = args[1:]
+                new_args_names = new_args_names[1:]
+                len_args = len(new_args)
+                len_arg_names = len(new_args_names)
+                for i in range(len_arg_names):
+                    new_args_names_ = [arg for arg in new_args_names if is_varags(arg) == False]
+                    #print(new_args_names_,args)
+                    if is_varags(new_args_names[i]):
+                        if len(keyword_args) > 0:
+                            for key, value in keyword_args.items():
+                                if key in new_args_names_:
+                                    return res.success(None)
+                                else:
+                                    len_expected = len(new_args_names) - 1
+                                    missing_args = missing_args[1:]
+                                    missing_args_name = self.make_missing_args(missing_args, len_args)
+                                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
+                                    raise Al_ArgumentError(exception_details)
+                        else:
+                            len_expected = len(new_args_names) - 1
+                            missing_args = missing_args[1:]
+                            missing_args_name = self.make_missing_args(missing_args, len_args)
+                            exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
+                            raise Al_ArgumentError(exception_details)
         else:
             if len_args > len_expected:
                 if len_arg_names > 0:
                     len_expected = len_expected - 1
+                    if len_expected == -1:
+                        len_expected = 0
                 len_args = len_args - 1
                 if len_args > len_expected and len_arg_names == 0:
-                    exception_details['message'] = f"{klass_.class_name}()  takes 0 positional argument"
+                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}()  takes 0 positional argument"
                     raise Al_ArgumentError(exception_details)
 
                 if len(missing_args) == 0:
                     if len_args > len_arg_names:
-                        exception_details['message'] = f"{klass_.class_name}()  requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                         raise Al_ArgumentError(exception_details)
                     else:
                         return res.success(None)
                 else:
                     if len_args > len_arg_names:
-                        exception_details['message'] = f"{klass_.class_name}()  expected {len_expected} positional arguments"
+                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() expected {len_expected} positional arguments"
                         raise Al_ArgumentError(exception_details)
 
             if len_args < len_expected:
@@ -4723,337 +4792,70 @@ class Function(BaseFunction):
                             new_args_names.pop(i)
                             return res.success(None)
                 if not has_var_args:
-                    exception_details['message'] = f"{klass_.class_name}()  requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
+                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                     raise Al_ArgumentError(exception_details)
-
+        
+        return res.success(None)
+            
     def run_populate_args(self, klass_, keyword_args, args, exec_context):
         res = RuntimeResult()
         interpreter = Interpreter()
         default_values = {}
         len_expected = len(self.arg_names)
+        len_args = len(args) - 1
+        len_arg_names = len(self.arg_names) - 1
         has_var_args = False
-        new_args_names = self.arg_names
-        if len(self.default_values) > 0:
-            for default_value in self.default_values:
-                name = default_value['name']
-                value = res.register(interpreter.visit(
-                    default_value['value'], exec_context))
-                default_values[name] = value
-                len_expected = len(self.arg_names) - len(default_values)
-
-        len_args = len(args)
-        len_arg_names = len(self.arg_names)
-        if len_args == 0:
-            len_args = "none"
-        was_or_were = "was" if len_args == 1 or len_args == 0 or len_args == "none" else "were"
-        len_expected = len(self.arg_names)
-
-        if len(self.default_values) > 0:
-            for default_value in self.default_values:
-                name = default_value['name']
-                value = res.register(interpreter.visit(
-                    default_value['value'], exec_context))
-                default_values[name] = value
-                len_expected = len(self.arg_names) - len(default_values)
-
-        missing_args = []
-        missing_args_name = ""
-        keys = []
-
-        for key, value in default_values.items():
-            keys.append(key)
-
+        # remove first arg in self.arg_names
+        new_args_names = self.arg_names[1:]
+        new_args = args[1:]
+        has_star = False
         for i in range(len(self.arg_names)):
-            if self.arg_names[i] not in keys:
-                missing_args.append(self.arg_names[i])
-
-        if len(missing_args) > 1:
-            for i in range(len(missing_args)):
-                if i == len(missing_args) - 2:
-                    missing_args_name += f"'{missing_args[i]}'" + " and "
-                elif i == len(missing_args) - 1:
-                    missing_args_name += f"'{missing_args[i]}'"
-                else:
-                    missing_args_name += f"'{missing_args[i]}'" + ", "
-        elif len(missing_args) == 1:
-            missing_args_name += f"'{missing_args[0]}'"
-        if len(missing_args) == 0:
-            missing_args_name = f"but {len_args} {'was' if len(args) == 1 or len(args) == 0 else 'were'} given"
-
-        if len(keyword_args) > 0:
-            if len(keyword_args) > len(args):
-                if len(args) > 1:
-                    args.pop(0)
-            elif len(keyword_args) == len(args):
-                args = []
-            else:
-                new_args = []
-                args_index_default = len(args) - len(keyword_args)
-                if args_index_default - len(keyword_args) == 1:
-                    # remove duplicate in args
-                    for i in range(len(args)):
-                        if i == 0:
-                            new_args.append(args[i])
-                        else:
-                            if args[i] != args[i-1]:
-                                new_args.append(args[i])
-
-                if len(args) > len(keyword_args):
-                    args_index_default = len(args) - len(keyword_args)
-                    args_index = args_index_default - 1
-                    for key, value in keyword_args.items():
-                          # get position of key in keyword_args
-                          key_pos = self.arg_names.index(key)
-                           # check if key pos exists in args
-                           # print(args_index_default, key_pos, "kk")
-                           # if key_pos in range(len(args) - 1)  and key_pos != args_index_default:
-                           #         raise Al_ValueError({
-                           #             'pos_start': self.pos_start,
-                           #             'pos_end': self.pos_end,
-                           #             'message': f"{klass_.class_name}() {klass_.class_name}()  got multiple values for argument '{key}'",
-                           #             'context': self.context,
-                           #             'exit': False
-                           #         })
-                           # key_index = self.arg_names.index(key)
-                           # new_arg_index = self.arg_names.index(key)
-                           # print(key_pos,key_index, args_index,new_arg_index,args, key)
-                           # if key_index == args_index:
-                           #     raise Al_ValueError({
-                           #         'pos_start': self.pos_start,
-                           #         'pos_end': self.pos_end,
-                           #         'message': f"{klass_.class_name}() {klass_.class_name}()  got multiple values for argument '{key}'",
-                           #         'context': self.context,
-                           #         'exit': False
-                           #     })
-                        # except:
-                        #     raise Al_ValueError({
-                        #         'pos_start': self.pos_start,
-                        #         'pos_end': self.pos_end,
-                        #         'message':  f"{self.name if self.name != 'none' else 'anonymous' }() got an unexpected keyword argument '{key}'",
-                        #         'context': self.context,
-                        #         'exit': False
-                        #     })
-                    # raise Al_ValueError({
-                    #     'pos_start': self.pos_start,
-                    #     'pos_end': self.pos_end,
-                    #     'message': f"{klass_.class_name}() {klass_.class_name}()  got multiple values for argument '{key}'",
-                    #     'context': self.context,
-                    #     'exit': False
-                    # })
-
-        if len(args) == len_expected:
+            if is_varags(self.arg_names[i]):
+                has_star = True
+        if has_star:
+            star_names = [name for name in self.arg_names if is_varags(name) == True]
+            non_star_names = [name for name in self.arg_names if is_varags(name) == False]
+            starags, nonstarargs = vna_algorithm(self.arg_names, args) 
+            for star_name in star_names:
+                name = make_varargs(star_name)
+                exec_context.symbolTable.set(name, List(starags))
+            for i in range(len(non_star_names)):
+                try:
+                    exec_context.symbolTable.set(
+                        non_star_names[i], nonstarargs[i])
+                except Exception as e:
+                    raise Al_ValueError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"{self.name if self.name != 'none' else 'anonymous'}() missing {len(non_star_names) - i} required keyword-only argument{'s' if len(non_star_names) - i > 1 else ''}",
+                        'context': klass_.context if klass_ != None else self.context,
+                        'exit': False
+                    })
+        else:
             for i in range(len(args)):
                 arg_name = self.arg_names[i]
-                if is_varags(self.arg_names[i]):
-                    arg_name = make_varargs(self.arg_names[i])
-                    arg_value = List([args[i]]).setContext(exec_context)
-                    exec_context.symbolTable.set(arg_name, arg_value)
-                else:
-                    arg_value = args[i]
-                    arg_value.setContext(exec_context)
-                    exec_context.symbolTable.set(arg_name, arg_value)
-            for i in range(len(args), len(self.arg_names)):
-                arg_name = self.arg_names[i]
-                if len(args) == 0:
-                    for name in self.arg_names:
-                        if is_varags(name):
-                            arg_name = make_varargs(name)
-                            arg_value = List([]).setContext(exec_context)
-                        else:
-                            arg_value = default_values[arg_name]
-                else:
-                    arg_value = default_values[arg_name]
+                arg_value = args[i]
                 arg_value.setContext(exec_context)
-                exec_context.symbolTable.set(arg_name, arg_value)
-        else:
-
-            for key, value in default_values.items():
-                for i in range(len(args)):
-                    if self.arg_names[i] == key:
-                        arg_name = self.arg_names[i]
-                        arg_value = args[i]
+                exec_context.symbolTable.set(arg_name, arg_value)         
+                  
+        
+        
+        if len(self.default_values) > 0:
+            for default_value in self.default_values:
+                name = default_value['name']
+                value = res.register(interpreter.visit(
+                    default_value['value'], exec_context))
+                default_values[name] = value
+            
+            if len_args < len_arg_names:
+                for i in range(len_arg_names):
+                    if  new_args_names[i] in default_values:
+                        arg_name = new_args_names[i]
+                        arg_value = default_values[arg_name]
                         arg_value.setContext(exec_context)
                         exec_context.symbolTable.set(arg_name, arg_value)
-
-            try:
-                for i in range(len(args), len(self.arg_names)):
-                    arg_name = self.arg_names[i]
-                    arg_value = default_values[arg_name]
-                    arg_value.setContext(exec_context)
-                    exec_context.symbolTable.set(arg_name, arg_value)
-            except Exception as e:
-                for i in range(len(args)):
-                    arg_name = self.arg_names[i]
-                    arg_value = args[i]
-                    arg_value.setContext(exec_context)
-                    exec_context.symbolTable.set(arg_name, arg_value)
-
-                # raise Al_ValueError({
-                #     'pos_start': self.pos_start,
-                #     'pos_end': self.pos_end,
-                #     'message': f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} ",
-                #     'context': self.context,
-                #     'exit': False
-                # })
-
-        if len(args) == len(self.arg_names):
-            var_args = []
-            remaining_args = []
-            exception_details = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"{klass_.class_name}()  requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name} but {len_args} {was_or_were} given",
-                'context': self.context,
-                'exit': False
-            }
-            has_var_args = False
-            has_default_args = False
-            for i in range(len(args)):
-                if is_varags(self.arg_names[i]):
-                    has_var_args = True
-                    last_positional_arg = len_arg_names - 1
-                    for j in range(len_arg_names):
-                        if last_positional_arg == j:
-                            start_index = self.arg_names.index(
-                                self.arg_names[j])
-                            var_args = args[start_index:len_args]
-                            remaining_args = args[0:start_index]
-                            len_remaining_args = len(remaining_args)
-                            len_arg_names_remaining = len_arg_names - 1
-                            var_name = make_varargs(self.arg_names[j])
-                            var_value = List(var_args)
-                            var_value.setContext(exec_context)
-                            exec_context.symbolTable.set(var_name, var_value)
-                            for k in range(len_remaining_args):
-                                arg_name = self.arg_names[k]
-                                arg_value = remaining_args[k]
-                                arg_value.setContext(exec_context)
-                                exec_context.symbolTable.set(
-                                    arg_name, arg_value)
-                        else:
-                            if is_varags(self.arg_names[j]):
-                                if len_args == len_arg_names:
-                                    var_args = args[i:len_args]
-                                    var_name = make_varargs(self.arg_names[j])
-                                    var_value = List(var_args)
-                                    var_value.setContext(exec_context)
-                                    exec_context.symbolTable.set(
-                                        var_name, var_value)
-                                if len(default_values) > 0:
-                                    names = []
-                                    values = []
-                                    for key, value in default_values.items():
-                                        for i in range(len_arg_names):
-                                            if self.arg_names[i] == key:
-                                                names.append(key)
-                                                values.append(value)
-                                                has_default_args = True
-                                    for i in range(len(names)):
-                                        arg_name = names[i]
-                                        arg_value = values[i]
-                                        arg_value.setContext(exec_context)
-                                        exec_context.symbolTable.set(
-                                            arg_name, arg_value)
-
-                            if not has_default_args:
-                                new_args_names.pop(i)
-                                missing_args_name = self.make_missing_args(
-                                    new_args_names, len_args)
-                                exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len(new_args_names)} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}: {missing_args_name}"
-                                raise Al_ArgumentError(exception_details)
-
-                if not has_var_args:
-                    arg_name = self.arg_names[i]
-                    arg_value = args[i]
-                    arg_value.setContext(exec_context)
-                    exec_context.symbolTable.set(arg_name, arg_value)
-        else:
-            len_arg_names = len(self.arg_names)
-            len_args = len(args)
-            new_args_names = [
-                name for name in self.arg_names if is_varags(name) == False]
-            var_args = []
-            has_var_args = False
-            remaining_args = []
-            has_remaining_args = False
-            if len_args > len_arg_names:
-                for i in range(len(self.arg_names)):
-                    first_positional_arg = i
-                    last_positional_arg = len_arg_names - 1
-                    if is_varags(self.arg_names[i]):
-                            has_var_args = True
-                            # check if *args is the first positional arg and last positional arg
-                            if len_arg_names == 1:
-                                var_args = args[self.arg_names.index(
-                                    self.arg_names[i]):]
-                                var_name = make_varargs(self.arg_names[i])
-                                var_value = List(var_args)
-                                var_value.setContext(exec_context)
-                                exec_context.symbolTable.set(
-                                    var_name, var_value)
-                            else:
-                                if first_positional_arg == 0:
-                                    start_index = self.arg_names.index(
-                                        self.arg_names[i])
-                                    var_args = args[start_index:len_args -
-                                                    len_arg_names + 1]
-                                    remaining_args = args[len_args -
-                                                          len_arg_names + 1:]
-                                    var_name = make_varargs(self.arg_names[i])
-                                    var_value = List(var_args)
-                                    var_value.setContext(exec_context)
-                                    exec_context.symbolTable.set(
-                                        var_name, var_value)
-                                    has_remaining_args = True
-                                if last_positional_arg == i:
-                                    start_index = self.arg_names.index(
-                                        self.arg_names[i])
-                                    var_args = args[start_index:len_args]
-                                    remaining_args = args[0:start_index]
-                                    var_name = make_varargs(self.arg_names[i])
-                                    var_value = List(var_args)
-                                    var_value.setContext(exec_context)
-                                    exec_context.symbolTable.set(
-                                        var_name, var_value)
-                                    has_remaining_args = True
-                                else:
-                                    start_index = self.arg_names.index(
-                                        self.arg_names[i])
-                                    first_args = args[0:start_index]
-                                    remaining_arg_names = self.arg_names[start_index:len_arg_names]
-                                    remaining_arg_names = [
-                                        name for name in remaining_arg_names if is_varags(name) == False]
-                                    
-                                    reversed_args = args[::-
-                                                         1][0:len(remaining_arg_names)]
-                                    reversed_args_names = remaining_arg_names[::-1]
-                                    var_args = args[start_index:len_args - \
-                                                    len_arg_names + start_index + 1]
-                                    re_reverse_args = reversed_args[::-1]
-                                    re_reverse_args_names = reversed_args_names[::-1]
-                                    remaining_args = first_args + re_reverse_args
-                                    var_name = make_varargs(self.arg_names[i])
-                                    var_value = List(var_args)
-                                    var_value.setContext(exec_context)
-                                    exec_context.symbolTable.set(
-                                        var_name, var_value)
-                                    has_remaining_args = True
-
-                    if has_remaining_args:
-                        len_remaining_args = len(remaining_args)
-                        for k in range(len_remaining_args):
-                            arg_name = new_args_names[k]
-                            arg_value = remaining_args[k]
-                            arg_value.setContext(exec_context)
-                            exec_context.symbolTable.set(arg_name, arg_value)
-
-                if not has_var_args:
-                    for i in range(len(args)):
-                        arg_name = self.arg_names[i]
-                        arg_value = args[i]
-                        arg_value.setContext(exec_context)
-                        exec_context.symbolTable.set(arg_name, arg_value)
-
+            
+        
         if len(keyword_args) > 0:
             for key, value in keyword_args.items():
                 value.setContext(exec_context)
@@ -5139,21 +4941,18 @@ class Class(BaseClass):
                     class_args = method_args
                     # remove self from args
                     if len(method_args) > 0:
-                        
-                        if method_args[0] == "self":
-                            method_args = method_args[1:]
-                            class_args = method_args 
-                            
+                        method_args = method_args[1:]
+                        class_args = method_args 
                 
             if method_ != None:
                 res.register(method_.run(keyword_args_list,args, self, new_context))
         
-        
+        self.check_args(class_args, args, default_values)
+        self.populate_args(keyword_args,class_args, args, default_values, self.context)   
         
              
         #new_context.symbolTable.set("self", self)
-        #self.check_args(class_args, args, default_values)
-        #self.populate_args(keyword_args,class_args, args, default_values, self.context)    
+           
         
         if self.inherit_class_name != None:
             
@@ -5172,8 +4971,7 @@ class Class(BaseClass):
                 #     self.inherit_class_name.properties[self.inherit_class_name.class_args[i]] = args[i]
                 
                 # print(self.properties,"==",self.inherit_class_name.properties)
-        # return a new class instance
-        print("class_args", class_args)
+        # return a new class instancex
         return res.success(self)
     
   
@@ -5717,7 +5515,7 @@ def BuiltInFunction_Print(args, node, context,keyword_args=None):
                 pass
         values.append(value)
     
-    valid_keywords_args = ["sep", "end", "file"]
+    valid_keywords_args = ["@sep", "@end", "@file"]
     keyword_args_names = []
     if keyword_args != None and len(keyword_args) > 0:
         for keyword_arg in keyword_args:
@@ -5734,24 +5532,43 @@ def BuiltInFunction_Print(args, node, context,keyword_args=None):
                 })
         # todo: check if keyword args are used at the same time e.g if sep, end and file are being used then we need to handle them e.g print(1,2,3,sep="-",end="\n", file=sys.stdout) the result will be 1-2-3 with a new line at the end of the line and the output will be printed to the stdout
         if len(keyword_args_names) > 0:
-            if "sep" in keyword_args_names and "end" in keyword_args_names and "file" in keyword_args_names:
+            if "@sep" in keyword_args_names and "@end" in keyword_args_names and "file" in keyword_args_names:
                 pass
-            elif "sep" in keyword_args_names and "end" in keyword_args_names:
-                sep_object = [v for v in keyword_args if v['name'] == "sep"][0]
+            elif "@sep" in keyword_args_names and "@end" in keyword_args_names:
+                sep_object = [v for v in keyword_args if v['name'] == "@sep"][0]
                 sep_value = res.register(interpreter.visit(sep_object['value'], context))
                 sep = handle_sep(values, sep_value, node, context)
-                end_object = [v for v in keyword_args if v['name'] == "end"][0]
+                end_object = [v for v in keyword_args if v['name'] == "@end"][0]
                 end_value = res.register(interpreter.visit(end_object['value'], context))
                 end = handle_end(end_value, node, context)
                 result = sep + end
                 print(result)
+            elif "@sep" in keyword_args_names and "file" in keyword_args_names:
+                pass
+            elif "@end" in keyword_args_names and "file" in keyword_args_names:
+                pass
+            elif "@sep" in keyword_args_names:
+                sep_object = [v for v in keyword_args if v['name'] == "@sep"][0]
+                sep_value = res.register(interpreter.visit(sep_object['value'], context))
+                sep = handle_sep(values, sep_value, node, context)
+                result = sep
+                print(result)
+            elif "@end" in keyword_args_names:
+                end_object = [v for v in keyword_args if v['name'] == "@end"][0]
+                end_value = res.register(interpreter.visit(end_object['value'], context))
+                end = handle_end(end_value, node, context)
+                result = ''.join(values) + end
+                print(result)
+            elif "file" in keyword_args_names:
+                pass
+            
             
                         
             
     
     else:
         v = " ".join(values)
-        print(v)
+        print(v, end="")
     return res.success(NoneType.none)
 
 
@@ -7842,7 +7659,8 @@ class BuiltInMethod_String(Value):
     def BuiltInMethod_replace(self):
         res = RuntimeResult()
         if isinstance(self.name, BuiltInMethod_String):
-            print(self.name.value, "replace")
+            pass
+            #print(self.name.value, "replace")
         if len(self.args) == 2:
             if isinstance(self.args[0], String) and isinstance(self.args[1], String):
                 return String(self.name.value.replace(self.args[0].value, self.args[1].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
@@ -9603,7 +9421,6 @@ class Interpreter:
                         var.append(v.name.value)
                         
                         if has_star:
-                            print(len(var_names), len(values))
                             star_names = [name for name in var_names if is_varags(name) == True]
                             non_star_names = [name for name in var_names if is_varags(name) == False]
                             starags, nonstarargs = vna_algorithm(var_names, values)

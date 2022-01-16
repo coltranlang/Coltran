@@ -3,26 +3,50 @@
 let person = {
     name: "Bob",
 }
-print("Prrinting", sep='-', end="\t")
-print("Hello", person.name.upperCase())
-def @Test(name="Bob")
-    print("Hello", name)
-end
 
-@Test(name=person.name.upperCase())
 
 class A
+    @test = "Hello"
     def @init(self, name)
         self.name = name
     end
-    def Test(name="Bob")
-        print("Hello", name)
+    def Test(self,greeting,name,*args)
+        print(args,greeting, name)
     end
     def toString(self)
         return fm"Class %{self.name}"
     end
 end
 
-let a = A("Bob")
-a.Test()
-print(a.toString())
+let a = A("A name")
+a.Test("Hello", "World", name="Bob", greeting="Hi")
+#a.Test("Hi", "Kenny", "Bob", "Kenny")
+println(a.toString())
+
+class Program
+    # def @init(self)
+    #     self.name = "Bob"
+    # end
+    def error()
+        def @IllegalCharacterError(options)
+            let error= fm"\nFile: %{options['pos_start'].fileName} at line %{options['pos_start'].line + 1}\n\nSyntaxError: Illegal character unexpected '%{options['originator']}'\n"
+            Program.printError(error)
+        end
+        let methods = {
+            'IllegalCharacterError': @IllegalCharacterError
+        }
+        return methods
+    end
+    def printError(self,error)
+        println(error)
+    end
+end
+
+print(Program.printError("this is an error"))
+
+# Todo: varargs with keyword args
+# def @main(*args, greeting, name)
+#     println(args,greeting, name)
+# end
+
+# @main("Hello", "World", name="Bob", greeting="Hi")

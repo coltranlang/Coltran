@@ -1018,6 +1018,14 @@ class Program
 end
 
 Program().error()['ModuleError']("cannot find module 'os'")
+line(89)
+# default values with print keyword arguments
+def @main(file=none, code=none)
+    print(fm"File: %{file}", fm"Code: %{code}",@sep='\n')
+end
+
+@main()
+@main(code="Hello", file="test.alden")
 #println(dic_user["name"]) # error
 # def @makeList(item, list=[])
 #     list.append(item)
