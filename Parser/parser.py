@@ -1504,7 +1504,6 @@ class Parser:
             }))
         
         self.skipLines()
-        
         return arg_nodes, keyword_args_list
     
     def finish_call(self, atom):

@@ -60,7 +60,7 @@ let tokenList = {
 class Program
     def error()
         def @IllegalCharacterError(options)
-            let error= fm"\nFile: %{options['pos_start'].fileName} at line %{options['pos_start'].line + 1}\n\nSyntaxError: Illegal character unexpected  '%{options['originator']}'\n"
+            let error= fm"\nFile: %{options.pos_start.fileName} at line %{options.pos_start.line + 1}\n\nSyntaxError: Illegal character unexpected  '%{options.origin}'\n"
             Program.printError(error)
         end
         let methods = {
@@ -133,7 +133,7 @@ class Token
         if self.value:
             return fm'%{self.type}:%{self.value}'
         end
-        return fm'%{self.type}'
+        return fm'Token(%{self.type})'
     end
 end
 
@@ -167,20 +167,18 @@ class Lexer
                 let char = self.currentChar
                 self.advance()
                 return Program.error()['IllegalCharacterError']({
-                    'origin': char,
-                    'pos_start': pos_start
+                    origin: char,
+                    pos_start: pos_start,
                 })
             end
         end
-
-        tokens.append(Token(tokenList.EOF, pos_start=self.pos))
+        tokens.append(Token(tokenList.EOF, none, self.pos, self.pos))
         return tokens, none
     end
     def makeIdentifier(self)
         let identifier_str = ''
         let pos_start = self.pos.copy()
         while self.currentChar != none and self.currentChar in tokenList.LETTERS_DIGITS_SYMBOLS:
-            println(self.currentChar)
             identifier_str += self.currentChar
             self.advance()
         end
@@ -189,11 +187,13 @@ class Lexer
         else:
             let token_type = tokenList.IDENTIFIER
         end
-        return Token(token_type, identifier_str, pos_start, self.pos)
+        return Token(token_type, identifier_str, pos_start, self.pos) 
     end
 end
 
-let lexer = Lexer("main.ald", ";")
+let lexer = Lexer("main.ald", "Hello world")
 let tokens, error = lexer.makeTokens()
-println(tokens)
+in tokens as token:
+    println(token.toString())
+end
 

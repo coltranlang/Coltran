@@ -10,8 +10,8 @@ class A
     def @init(self, name)
         self.name = name
     end
-    def Test(self,greeting,name,*args)
-        print(args,greeting, name)
+    def Test(self,*args,greeting,name)
+        println(args,greeting, name)
     end
     def toString(self)
         return fm"Class %{self.name}"
@@ -23,30 +23,71 @@ a.Test("Hello", "World", name="Bob", greeting="Hi")
 #a.Test("Hi", "Kenny", "Bob", "Kenny")
 println(a.toString())
 
-class Program
-    # def @init(self)
-    #     self.name = "Bob"
-    # end
-    def error()
-        def @IllegalCharacterError(options)
-            let error= fm"\nFile: %{options['pos_start'].fileName} at line %{options['pos_start'].line + 1}\n\nSyntaxError: Illegal character unexpected '%{options['originator']}'\n"
-            Program.printError(error)
-        end
-        let methods = {
-            'IllegalCharacterError': @IllegalCharacterError
-        }
-        return methods
+# class Program
+#     # def @init(self)
+#     #     self.name = "Bob"
+#     # end
+#     def error()
+#         def @IllegalCharacterError(options)
+#             let error= fm"\nFile: %{options['pos_start'].fileName} at line %{options['pos_start'].line + 1}\n\nSyntaxError: Illegal character unexpected '%{options['originator']}'\n"
+#             Program.printError(error)
+#         end
+#         let methods = {
+#             'IllegalCharacterError': @IllegalCharacterError
+#         }
+#         return methods
+#     end
+#     def printError(self,error)
+#         println(error)
+#     end
+# end
+
+# print(Program.printError("this is an error"))
+
+# Todo: varargs with keyword args
+def @main(*args, greeting, name)
+    println(args, greeting, name, @sep="-")
+end
+
+@main("Hello", "World", name="Bob", greeting="Hi")
+
+
+def @sum(x,y=2)
+    println(fm"%{x} + %{y} = %{x+y}")
+end
+@sum(1)
+@sum(y=8,x=2)
+
+class Token
+    def @init(self, type, value)
+        self.type = type
+        self.value = value
     end
-    def printError(self,error)
-        println(error)
+    def toString(self)
+        return fm"%{self.type} %{self.value}"
     end
 end
 
-print(Program.printError("this is an error"))
+class Lexer
+    def @init(self, text)
+        self.text = text
+        self.pos = 0
+        self.current_char = self.text[self.pos]
+    end
+    def makeTokens(self)
+        let tokens = []
+        tokens.append(self.makeIdentifier().toString())
+        tokens.append(Token('EOF', ''))
+        return tokens
+    end
+    def makeIdentifier(self)
+        let result = ''
+        return Token('IDENTIFIER', result)
+    end
+end
 
-# Todo: varargs with keyword args
-# def @main(*args, greeting, name)
-#     println(args,greeting, name)
-# end
-
-# @main("Hello", "World", name="Bob", greeting="Hi")
+let lexer = Lexer("var")
+let tokens = lexer.makeTokens()
+in tokens as token:
+    println(token)
+end
