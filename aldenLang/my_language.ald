@@ -56,6 +56,10 @@ let tokenList = {
     EOF: 'EOF',
 }
 
+def @IllegalCharacterError(options)
+    let error= fm"\nFile: %{options['pos_start'].fileName} at line %{options['pos_start'].line + 1}\n\nSyntaxError: Illegal character unexpected  '%{options['originator']}'\n"
+    Program.printError(error)
+end
 
 class Program
     def error()
@@ -173,8 +177,7 @@ class Lexer
             end
         end
 
-        let pos = self.pos
-        tokens.append(Token(tokenList.EOF, pos_start=pos))
+        tokens.append(Token(tokenList.EOF, pos_start=self.pos))
         return tokens, none
     end
     def makeIdentifier(self)
@@ -194,7 +197,7 @@ class Lexer
     end
 end
 
-let lexer = Lexer("main.ald", "Hello World")
+let lexer = Lexer("main.ald", ";")
 let tokens, error = lexer.makeTokens()
 println(tokens)
 

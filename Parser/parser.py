@@ -38,7 +38,7 @@
 
 
 from os import access, error, path
-from re import split
+from re import S, split
 from types import NoneType
 
 from Parser.stringsWithArrows import *
@@ -881,7 +881,7 @@ class Parser:
                 statements.append(statement)
             return res.success(ListNode(statements, pos_start, self.current_token.pos_end.copy()))
 
-        except:
+        except KeyboardInterrupt:
             pass
 
     def statement(self):
@@ -1273,7 +1273,7 @@ class Parser:
         return res.success(atom)
 
     def power(self):
-        return self.binaryOperation(self.set_node_expr, (tokenList.TT_POWER, ), self.factor)
+        return self.binaryOperation(self.set_node_expr, (tokenList.TT_POWER, tokenList.TT_DOT ), self.factor)
 
     def set_node_expr(self):
         res = ParseResult()
@@ -1344,7 +1344,7 @@ class Parser:
             else:
                 break
 
-
+        
         return res.success(atom)
 
     def finish_call(self, atom):
@@ -1370,7 +1370,6 @@ class Parser:
                         keyword_args['value'] = res.register(self.expr())
                         if res.error: return res
                         keyword_args_list.append(keyword_args)
-
                         if keyword_args['value'] == None or keyword_args['value'] == '':
                             self.error_detected = True
                             return res.failure(self.error['Syntax']({
@@ -1380,24 +1379,88 @@ class Parser:
                                 'exit': False
                             }))
                         if res.error: return res
-                        self.reverse()
+                        while self.current_token.type == tokenList.TT_COMMA:
+                            self.skipLines()
+                            if self.current_token.type == tokenList.TT_IDENTIFIER:
+                                keyword_args = {
+                                    'name': self.current_token.value,
+                                    'value': ''
+                                }
+                                self.skipLines()
+                                if self.current_token.type == tokenList.TT_EQ:
+                                    self.skipLines()
+                                    keyword_args['value'] = res.register(self.expr())
+                                    if res.error: return res
+                                    keyword_args_list.append(keyword_args)
+
+                                    if keyword_args['value'] == None or keyword_args['value'] == '':
+                                        self.error_detected = True
+                                        return res.failure(self.error['Syntax']({
+                                            'pos_start': self.current_token.pos_start,
+                                            'pos_end': self.current_token.pos_end,
+                                            'message': "invalid syntax",
+                                            'exit': False
+                                        }))
+                                    if res.error: return res
+                                else:
+                                    self.error_detected = True
+                                    return res.failure(self.error['Syntax']({
+                                        'pos_start': self.current_token.pos_start,
+                                        'pos_end': self.current_token.pos_end,
+                                        'message': "positional argument cannot be followed by keyword argument",
+                                        'exit': False
+                                    }))
+                            else:
+                                if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                                    keyword_args = {
+                                        'name': self.current_token.value,
+                                        'value': ''
+                                    }
+                                    self.skipLines()
+                                    if self.current_token.type == tokenList.TT_EQ:
+                                        self.skipLines()
+                                        keyword_args['value'] = res.register(self.expr())
+                                        if res.error: return res
+                                        keyword_args_list.append(keyword_args)
+
+                                        if keyword_args['value'] == None or keyword_args['value'] == '':
+                                            self.error_detected = True
+                                            return res.failure(self.error['Syntax']({
+                                                'pos_start': self.current_token.pos_start,
+                                                'pos_end': self.current_token.pos_end,
+                                                'message': "invalid syntax",
+                                                'exit': False
+                                            }))
+                                        if res.error: return res
+                                    else:
+                                        self.error_detected = True
+                                        return res.failure(self.error['Syntax']({
+                                            'pos_start': self.current_token.pos_start,
+                                            'pos_end': self.current_token.pos_end,
+                                            'message': "positional argument cannot be followed by keyword argument",
+                                            'exit': False
+                                        }))   
+                                else:
+                                    self.error_detected = True
+                                    return res.failure(self.error['Syntax']({
+                                        'pos_start': self.current_token.pos_start,
+                                        'pos_end': self.current_token.pos_end,
+                                        'message': "invalid syntax",
+                                        'exit': False
+                                    }))
                     else:
                         self.reverse()
-
-
-                expr = res.register(self.expr())
-                arg_nodes.append(expr)
-                if res.error:
-                    self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': f"Expected ')'",
-                        'exit': False
-                    }))
-
+                        expr = res.register(self.expr())
+                        if res.error: return res
+                        arg_nodes.append(expr)
+                else:
+                    expr = res.register(self.expr())
+                    if res.error: return res
+                    arg_nodes.append(expr)
+                    
                 while self.current_token.type == tokenList.TT_COMMA:
                     self.skipLines()
+                    
                     if self.current_token.type == tokenList.TT_IDENTIFIER:
                         keyword_args = {
                             'name': self.current_token.value,
@@ -1409,86 +1472,139 @@ class Parser:
                             keyword_args['value'] = res.register(self.expr())
                             if res.error: return res
                             keyword_args_list.append(keyword_args)
+
                             if keyword_args['value'] == None or keyword_args['value'] == '':
                                 self.error_detected = True
                                 return res.failure(self.error['Syntax']({
                                     'pos_start': self.current_token.pos_start,
                                     'pos_end': self.current_token.pos_end,
-                                    'message': "invlaid syntax",
+                                    'message': "invalid syntax",
                                     'exit': False
                                 }))
                             if res.error: return res
-                            duplicate_key = None
-                            is_duplicate = False
-                            keys_count = []
-                            for key in keyword_args_list:
-                                first_key = key['name']
-                                keys_count.append(first_key)
-                            for key in keys_count:
-                                if keys_count.count(key) > 1:
-                                    duplicate_key = key
-                                    is_duplicate = True
-                                    break
-                            if is_duplicate:
-                                self.error_detected = True
-                                return res.failure(self.error['Syntax']({
-                                    'pos_start': self.current_token.pos_start,
-                                    'pos_end': self.current_token.pos_end,
-                                    'message': f"repeated keyword argument: '{duplicate_key}'",
-                                    'exit': False
-                                }))
-                            self.reverse()
+                            while self.current_token.type == tokenList.TT_COMMA:
+                                self.skipLines()
+                                if self.current_token.type == tokenList.TT_IDENTIFIER:
+                                    keyword_args = {
+                                        'name': self.current_token.value,
+                                        'value': ''
+                                    }
+                                    self.skipLines()
+                                    if self.current_token.type == tokenList.TT_EQ:
+                                        self.skipLines()
+                                        keyword_args['value'] = res.register(self.expr())
+                                        if res.error: return res
+                                        keyword_args_list.append(keyword_args)
+
+                                        if keyword_args['value'] == None or keyword_args['value'] == '':
+                                            self.error_detected = True
+                                            return res.failure(self.error['Syntax']({
+                                                'pos_start': self.current_token.pos_start,
+                                                'pos_end': self.current_token.pos_end,
+                                                'message': "invalid syntax",
+                                                'exit': False
+                                            }))
+                                        if res.error: return res
+                                    else:
+                                        self.error_detected = True
+                                        return res.failure(self.error['Syntax']({
+                                            'pos_start': self.current_token.pos_start,
+                                            'pos_end': self.current_token.pos_end,
+                                            'message': "positional argument cannot be followed by keyword argument",
+                                            'exit': False
+                                        }))
+                                else:
+                                    if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                                        keyword_args = {
+                                            'name': self.current_token.value,
+                                            'value': ''
+                                        }
+                                        self.skipLines()
+                                        if self.current_token.type == tokenList.TT_EQ:
+                                            self.skipLines()
+                                            keyword_args['value'] = res.register(self.expr())
+                                            if res.error: return res
+                                            keyword_args_list.append(keyword_args)
+
+                                            if keyword_args['value'] == None or keyword_args['value'] == '':
+                                                self.error_detected = True
+                                                return res.failure(self.error['Syntax']({
+                                                    'pos_start': self.current_token.pos_start,
+                                                    'pos_end': self.current_token.pos_end,
+                                                    'message': "invalid syntax",
+                                                    'exit': False
+                                                }))
+                                            if res.error: return res
+                                        else:
+                                            self.error_detected = True
+                                            return res.failure(self.error['Syntax']({
+                                                'pos_start': self.current_token.pos_start,
+                                                'pos_end': self.current_token.pos_end,
+                                                'message': "positional argument cannot be followed by keyword argument",
+                                                'exit': False
+                                            }))   
+                                    else:
+                                        self.error_detected = True
+                                        return res.failure(self.error['Syntax']({
+                                            'pos_start': self.current_token.pos_start,
+                                            'pos_end': self.current_token.pos_end,
+                                            'message': "invalid syntax",
+                                            'exit': False
+                                        }))
                         else:
-                            if len(keyword_args_list) > 0:
-                                self.error_detected = True
-                                return res.failure(self.error['Syntax']({
-                                    'pos_start': self.current_token.pos_start,
-                                    'pos_end': self.current_token.pos_end,
-                                    'message': "positional argument cannot follow keyword argument",
-                                    'exit': False
-                                }))
                             self.reverse()
+                            expr = res.register(self.expr())
+                            if res.error: return res
+                            arg_nodes.append(expr)
+                    
+                    
+                    
+                    # elif self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
+                    #         keyword_args = {
+                    #             'name': self.current_token.value,
+                    #             'value': ''
+                    #         }
+                    #         self.skipLines()
+                    #         if self.current_token.type == tokenList.TT_EQ:
+                    #             self.skipLines()
+                    #             keyword_args['value'] = res.register(self.expr())
+                    #             if res.error: return res
+                    #             keyword_args_list.append(keyword_args)
+
+                    #             if keyword_args['value'] == None or keyword_args['value'] == '':
+                    #                 self.error_detected = True
+                    #                 return res.failure(self.error['Syntax']({
+                    #                     'pos_start': self.current_token.pos_start,
+                    #                     'pos_end': self.current_token.pos_end,
+                    #                     'message': "invalid syntax",
+                    #                     'exit': False
+                    #                 }))
+                    #             if res.error: return res
+                    #         else:
+                    #             self.error_detected = True
+                    #             return res.failure(self.error['Syntax']({
+                    #                 'pos_start': self.current_token.pos_start,
+                    #                 'pos_end': self.current_token.pos_end,
+                    #                 'message': "positional argument cannot be followed by keyword argument",
+                    #                 'exit': False
+                    #             }))
                     else:
-                        if len(keyword_args_list) > 0:
-                            self.error_detected = True
-                            return res.failure(self.error['Syntax']({
-                                'pos_start': self.current_token.pos_start,
-                                'pos_end': self.current_token.pos_end,
-                                'message': "positional argument cannot follow keyword argument",
-                                'exit': False
-                            }))
-                        for arg in arg_nodes:
-                            if arg == None or arg == '':
-                                self.error_detected = True
-                                return res.failure(self.error['Syntax']({
-                                    'pos_start': self.current_token.pos_start,
-                                    'pos_end': self.current_token.pos_end,
-                                    'message': "invlaid syntax",
-                                    'exit': False
-                                }))
-                    arg_nodes.append(res.register(self.expr()))
-
-
+                        expr = res.register(self.expr())
+                        if res.error: return res
+                        arg_nodes.append(expr)
+       
                 if self.current_token.type != tokenList.TT_RPAREN:
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "Expected ',' or ')'",
+                        'message': "expected ',', or ')'",
                         'exit': False
                     }))
-
                 self.skipLines()
-                for arg in arg_nodes:
-                    if arg == None or arg == '':
-                        self.error_detected = True
-                        return res.failure(self.error['Syntax']({
-                            'pos_start': self.current_token.pos_start,
-                            'pos_end': self.current_token.pos_end,
-                            'message': "invlaid syntax",
-                            'exit': False
-                        }))
-
+       
+       
+       
         # if self.current_token.type != tokenList.TT_NEWLINE and self.current_token.type != tokenList.TT_RPAREN and self.current_token.type != tokenList.TT_EOF:
                 #     return res.failure(self.error['Syntax']({
                 #         'pos_start': self.current_token.pos_start,
@@ -1503,6 +1619,38 @@ class Parser:
                 #         'message': "Unmatched ')'",
                 #         'exit': False
                 #     }))
+        for i in range(len(arg_nodes)):
+            if arg_nodes[i] == None or arg_nodes[i] == '':
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "invlaid syntax",
+                    'exit': False
+                }))
+        
+       
+        duplicate_key = None
+        is_duplicate = False
+        keys_count = []
+        for key in keyword_args_list:
+            first_key = key['name']
+            keys_count.append(first_key)
+        for key in keys_count:
+            if keys_count.count(key) > 1:
+                duplicate_key = key
+                is_duplicate = True
+                break
+        if is_duplicate:
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': f"repeated keyword argument: '{duplicate_key}'",
+                'exit': False
+            }))    
+        
+        #print(f"arg_nodes: {arg_nodes}", f"keyword_args_list: {keyword_args_list}")
         return res.success(CallNode(atom, arg_nodes, keyword_args_list))
 
     def atom(self):
@@ -1651,7 +1799,7 @@ class Parser:
         res = ParseResult()
         return res.success(VarReassignNode(name, value))
 
-    def access_property(self,owner):
+    def access_property(self,object_):
         res = ParseResult()
         name = self.current_token
         res.register_advancement()
@@ -1699,12 +1847,12 @@ class Parser:
         if self.current_token.type == tokenList.TT_PLUS_PLUS:
             res.register_advancement()
             self.advance()
-            return res.success(PropertySetNode(owner, name, None, "++"))
+            return res.success(PropertySetNode(object_, name, None, "++"))
 
         elif self.current_token.type == tokenList.TT_MINUS_MINUS:
             res.register_advancement()
             self.advance()
-            return res.success(PropertySetNode(owner, name, None, "--"))
+            return res.success(PropertySetNode(object_, name, None, "--"))
 
         elif self.current_token.type != None and self.current_token.type in operation_methods:
             operator = self.current_token
@@ -1712,10 +1860,10 @@ class Parser:
             self.advance()
             if self.current_token.type == tokenList.TT_IDENTIFIER:
                 value = res.register(self.expr())
-                return res.success(VarReassignNode(owner, value, operation_methods[operator.type], name))
+                return res.success(VarReassignNode(object_, value, operation_methods[operator.type], name))
             elif self.current_token.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
                 value = res.register(self.atom())
-                return res.success(VarReassignNode(owner, value, operation_methods[operator.type], name))
+                return res.success(VarReassignNode(object_, value, operation_methods[operator.type], name))
             elif self.current_token == None or self.current_token.type == tokenList.TT_NEWLINE or self.current_token.type == tokenList.TT_EOF:
                 self.error_detected = True
                 self.error['Syntax']({
@@ -1726,16 +1874,16 @@ class Parser:
                 })
             else:
                 expr  = res.register(self.expr())
-                return res.success(VarReassignNode(owner, expr, operation_methods[operator.type], name))
+                return res.success(VarReassignNode(object_, expr, operation_methods[operator.type], name))
 
         if self.current_token.type == tokenList.TT_EQ:
             res.register_advancement()
             self.advance()
             value = res.register(self.expr())
             if res.error: return res
-            return res.success(PropertySetNode(owner, name, value))
+            return res.success(PropertySetNode(object_, name, value))
 
-        return res.success(PropertyNode(owner, name))
+        return res.success(PropertyNode(object_, name))
 
     def make_expr(self,atom):
         res = ParseResult()
@@ -5026,21 +5174,21 @@ animal3 = Animal("Bird")
 animal.set_animals()
 animal2.set_animals()
 animal3.set_animals()
-print(animal.get_animals())
-print(dict(key="name", value="Bob", age=23))
+#print(animal.get_animals())
+#print(dict(key="name", value="Bob", age=23))
 def greet(name, age, email=None, hobby=None, verified=False, test=""):
     print("SENDING EMAIL")
     print(f"Hello, %{name}, you are %{age} years old and your email is %{email}, and your hobby is %{hobby}, and you are %{verified} and your test is %{test}")
 
 
-greet("Bob",age=25)
+#greet("Bob",age=25)
 
 
 def greet(*names, message="Hello",):
     for name in names:
         print(f"{message}, {name}")
 
-greet()
+#greet()
 
 
 class Person:
@@ -5054,12 +5202,14 @@ def join_sep(*args, sep=","):
     for arg in args:
         nums += str(arg) + sep
     return nums
-print(join_sep('-',1,2,3,4,5))
+#print(join_sep('-',1,2,3,4,5))
 
 li = [1,2,3,]
 *args,a,b = li
-print( args, "is args")
+#print( args, "is args")
 
 # d = {'name': 'John', 'age': 21, 'hobby': 'Playing soccer'}
 # *args,a,b,c = d
 # print(a,b,c, args, "is args dict")
+
+print(1,2,3, sep="-", end="\n")
