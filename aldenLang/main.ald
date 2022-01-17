@@ -64,7 +64,7 @@ class Token
         self.value = value
     end
     def toString(self)
-        return fm"%{self.type} %{self.value}"
+        return fm"%{self.type}:%{self.value}"
     end
 end
 
@@ -76,13 +76,16 @@ class Lexer
     end
     def makeTokens(self)
         let tokens = []
-        tokens.append(self.makeIdentifier().toString())
-        tokens.append(Token('EOF', ''))
+        tokens.append(self.makeIdentifier())
+        tokens.append(self.makeEOF())
         return tokens
+    end
+    def makeEOF(self)
+        return Token('EOF', '').toString()
     end
     def makeIdentifier(self)
         let result = ''
-        return Token('IDENTIFIER', result)
+        return Token('IDENTIFIER', '').toString()
     end
 end
 
@@ -90,4 +93,13 @@ let lexer = Lexer("var")
 let tokens = lexer.makeTokens()
 in tokens as token:
     println(token)
+    # if isinstanceof(token, Token):
+    #     println(token.toString())
+    # else:
+    #     println(token)
+    # end
 end
+
+
+println(Token('IDENTIFIER', ''))
+println(Token('EOF', ''))

@@ -148,7 +148,7 @@ pair_methods = {
 
 dict_methods = {
         'length': 'length',  # Dict.length
-        'has_key': 'has_key',  # Dict.has_key(key)
+        'hasproperty': 'hasproperty',  # Dict.hasproperty(key)
         'keys': 'keys',  # Dict.keys()
         'values': 'values',  # Dict.values()
         'items': 'items',  # Dict.items()
@@ -388,6 +388,8 @@ class TypeOf:
                 result = 'builtin_method'
             elif isinstance(self.type, BuiltInMethod_String):
                 result = 'builtin_method_string'
+            elif isinstance(self.type, BuiltInMethod_Number):
+                result = 'builtin_method_number'
             elif isinstance(self.type, BuiltInMethod_List):
                 result = 'builtin_method_list'
             elif isinstance(self.type, BuiltInMethod_Dict):
@@ -2197,7 +2199,7 @@ class List(Value):
         self.value = self.elements
         self.type = type
         self.id = self.elements
-        self.properties = properties
+        self.properties = properties if properties else {}
 
     def added_to(self, other):
         if isinstance(other, List):
@@ -4058,7 +4060,7 @@ class Function(BaseFunction):
         #print(self.name,self.arg_names, args)
         self.args = args
         res.register(self.run_check_and_populate_args(keyword_args, args, exec_context, Klass))
-
+        
         if res.should_return():
             return res
 
@@ -4069,7 +4071,13 @@ class Function(BaseFunction):
         # if hasattr(return_value, "value"):
         #     if return_value.value == "none":
         #         return_value.value = NoneType.none
-        return res.success(return_value)
+        return self.wrap_return_value(return_value)
+    
+    
+    def wrap_return_value(self, return_value):
+        return_value = return_value.copy()
+        return return_value
+            
 
     def run_check_and_populate_args(self, keyword_args, args, exec_ctx, Klass):
         res = RuntimeResult()
@@ -4383,7 +4391,7 @@ class Class(BaseClass):
         
         self.check_args(class_args, args, default_values)
         self.populate_args(keyword_args,class_args, args, default_values, self.context)   
-        
+        if res.should_return(): return res
              
         #new_context.symbolTable.set("self", self)
            
@@ -4407,16 +4415,19 @@ class Class(BaseClass):
                 # print(self.properties,"==",self.inherit_class_name.properties)
         # return a new class instancex
         #new_args = args + new_args
-        return res.success(self.generate_new_instance(new_context))
-    
-    
-    def generate_new_instance(self, new_context):
-        new_instance = Class(self.class_name, self.class_args, self.inherit_class_name, self.inherited_from, self.properties, self.class_fields_modifiers, new_context)
-        new_instance.setContext(new_context)
-        new_instance.setPosition(self.pos_start, self.pos_end)
-        return new_instance
+        # create new class instance
+        # everytime a class is called we need to create a new instance of the class, so we need to create a new context
+        new_class_context = Context(self.name, self.context, self.pos_start)
+        new_class_context.symbolTable = SymbolTable(new_context.parent.symbolTable)
+        new_class_context.symbolTable.set("self", self)
+        new_class_context.symbolTable.set("super", self.inherit_class_name) if self.inherit_class_name != None else None
         
+        return res.success(self.generate_new_instance(class_args, new_class_context))
     
+    
+    def generate_new_instance(self, class_args,new_context):
+        return Class(self.class_name, class_args, self.inherit_class_name, self.inherited_from, self.properties, self.class_fields_modifiers, new_context)
+         
   
     def set_method(self, key, value):
         self.properties[key] = value
@@ -6034,7 +6045,7 @@ def BuiltInFunction_Typeof(args, node, context,keyword_args=None):
 
 def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
     res = RuntimeResult()
-    if len(args) > 2:
+    if len(args) == 1 or len(args) > 2:
         raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -6084,13 +6095,37 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
                     return False
    
     if not isinstance(args[1], Types):
-        raise Al_TypeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"isisnstance() argument 2 must be a type",
-            "context": context,
-            'exit': False
-        })
+        if isinstance(args[1], Class):
+            if isinstance(args[0], Class):
+                return res.success(Boolean(args[0].name == args[1].name).setPosition(node.pos_start, node.pos_end).setContext(context))
+            else:
+                return res.success(Boolean(False).setPosition(node.pos_start, node.pos_end).setContext(context))
+        elif isinstance(args[1], Pair):
+            for type in args[1].elements:
+                if isinstance(type, Types):
+                    return res.success(Boolean(getInstance(args[0], type)).setPosition(node.pos_start, node.pos_end).setContext(context))
+                elif isinstance(type, Class):
+                    if isinstance(args[0], Class):
+                        return res.success(Boolean(args[0].name == type.name).setPosition(node.pos_start, node.pos_end).setContext(context))
+                    else:
+                        return res.success(Boolean(False).setPosition(node.pos_start, node.pos_end).setContext(context))
+                else:
+                    raise Al_TypeError({
+                            "pos_start": node.pos_start,
+                            "pos_end": node.pos_end,
+                            'message': f"type '{TypeOf(type).getType()}' must be a type",
+                            "context": context,
+                            'exit': False
+                    })
+                
+        else:
+            raise Al_TypeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"isisnstance() argument 2 must be a type or pair of types",
+                "context": context,
+                'exit': False
+            })
     else:
         return res.success(Boolean(getInstance(args[0], args[1])).setPosition(node.pos_start, node.pos_end).setContext(context))
 
@@ -6935,8 +6970,40 @@ class BuiltInMethod(Value):
         
     def __repr__(self):
         return f"'{self.value}'"
-    
-    
+  
+   
+class BuiltInMethod_Number(Value):
+    def __init__(self, type, name, args, node, context):
+        super().__init__()
+        self.type = type
+        self.name = name
+        self.args = args
+        self.node = node
+        self.context = context
+        self.execute()
+        
+        
+    def execute(self):
+        res = RuntimeResult()
+        if self.type in number_methods:
+            method = f"BuiltInMethod_{number_methods[self.type]}"
+            is_method = getattr(self, method, self.no_method)
+            value = is_method()
+            self.name = value
+            if type(self.name).__name__ == "RuntimeResult":
+                self.name = ''
+        return self.name
+
+    def no_method(self):
+        raise Al_PropertyError({
+            "pos_start": self.node.pos_start,
+            "pos_end": self.node.pos_end,
+            'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
+            "context": self.context,
+            'exit': False
+        })
+  
+          
 class BuiltInMethod_String(Value):
     
     def __init__(self, type, name, args, node, context,var_name,keyword_args):
@@ -6965,13 +7032,14 @@ class BuiltInMethod_String(Value):
     
     
     def no_method(self):
-        raise Al_RuntimeError({
+        raise Al_PropertyError({
             "pos_start": self.node.pos_start,
             "pos_end": self.node.pos_end,
-            'message': f"{self.type} is not a valid method",
+            'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
             "context": self.context,
             'exit': False
         })
+       
     
    
     def is_true(self):
@@ -7727,19 +7795,21 @@ class BuiltInMethod_List(Value):
             self.name = value
             if type(self.name).__name__ == "RuntimeResult":
                 self.name = ''
+        
+        
         return self.name
     
     
     def no_method(self):
-        raise Al_RuntimeError({
-        "pos_start": self.node.pos_start,
-        "pos_end": self.node.pos_end,
-        'message': f"{self.type} is not a valid method",
-        "context": self.context,
-        'exit': False
-    })
-            
-    
+        raise Al_PropertyError({
+            "pos_start": self.node.pos_start,
+            "pos_end": self.node.pos_end,
+            'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
+            "context": self.context,
+            'exit': False
+        })
+       
+              
     def is_true(self):
         return True if self.name else False
         
@@ -7758,8 +7828,16 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_append(self):
         res = RuntimeResult()
         if len(self.args) == 1:
-            value = self.name.elements.append(self.args[0])
-            return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            if  self.name.elements == None:
+                raise Al_PropertyError({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"'NoneType' object object has no property '{list_methods[self.type]}'",
+                    "context": self.context,
+                    'exit': False
+                })
+            value = List(self.name.elements.append(self.args[0])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return value
         else:
             raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
@@ -8159,6 +8237,14 @@ class BuiltInMethod_List(Value):
         res = RuntimeResult()
         if len(self.args) == 0:
             new_string = ""
+            if  self.name.elements == None:
+                raise Al_PropertyError({
+                    "pos_start": self.node.pos_start,
+                    "pos_end": self.node.pos_end,
+                    'message': f"'NoneType' object object has no property '{list_methods[self.type]}'",
+                    "context": self.context,
+                    'exit': False
+                })
             for element in self.name.elements:
                 if isinstance(element, String) or isinstance(element, Number):
                     new_string += str(element.value)
@@ -8168,7 +8254,7 @@ class BuiltInMethod_List(Value):
                     new_string += ", " if element != self.name.elements[-1] else ""
             return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but toString() takes 0 arguments",
@@ -8366,14 +8452,14 @@ class BuiltInMethod_Pair(Value):
         return self.name
     
     def no_method(self):
-        res = RuntimeResult()
-        raise Al_RuntimeError({
+        raise Al_PropertyError({
             "pos_start": self.node.pos_start,
             "pos_end": self.node.pos_end,
-            'message': f"{self.type} is not a valid method for pair()",
+            'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
             "context": self.context,
             'exit': False
         })
+       
     
     def is_true(self):
         return True if self.name else False
@@ -8477,20 +8563,20 @@ class BuiltInMethod_Dict(Value):
                 self.name = ''
         return self.name
     
-    
     def no_method(self):
-        raise Al_RuntimeError({
+        raise Al_PropertyError({
             "pos_start": self.node.pos_start,
             "pos_end": self.node.pos_end,
-            'message': f"{self.type} is not a valid method",
+            'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
             "context": self.context,
             'exit': False
         })
+       
     
     def is_true(self):
         return True if self.name else False
     
-    def BuiltInMethod_has_key(self):
+    def BuiltInMethod_hasproperty(self):
         res = RuntimeResult()
         if len(self.args) == 1:
             if isinstance(self.args[0], String) or isinstance(self.args[0], Number):
@@ -8502,7 +8588,7 @@ class BuiltInMethod_Dict(Value):
                 raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for has_key()",
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for hasproperty()",
                     "context": self.context,
                     'exit': False
                 })
@@ -8510,7 +8596,7 @@ class BuiltInMethod_Dict(Value):
             raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but has_key() takes 1 argument",
+                'message': f"{len(self.args)} arguments given, but hasproperty() takes 1 argument",
                 "context": self.context,
                 'exit': False
             })
@@ -8620,29 +8706,8 @@ class Types(Value):
         return f"<Class {self.name}>"
 
 
-class BuiltInMethod_Number(Value):
-    def __init__(self, type, name, args, node, context):
-        super().__init__()
-        self.type = type
-        self.name = name
-        self.args = args
-        self.node = node
-        self.context = context
-        self.execute()
-        
-        
-    def execute(self):
-        res = RuntimeResult()
-        if self.type in number_methods:
-            method = f"BuiltInMethod_{number_methods[self.type]}"
-            is_method = getattr(self, method, self.no_method)
-            value = is_method()
-            self.name = value
-            if type(self.name).__name__ == "RuntimeResult":
-                self.name = ''
-        return self.name
+ 
 
-    
 # Built-in modules
  
 def BuiltInModule_Http(context):
@@ -9170,7 +9235,7 @@ class Interpreter:
                                         'exit': False
                                     })
                                 if not v['value'].has_property(property.value):
-                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    error["message"] = f"{v['value'].name} object has no property '{property.value}'"
                                     raise Al_PropertyError(error)
                                 property_value = v['value'].properties[property.value]
                                 
@@ -9277,7 +9342,7 @@ class Interpreter:
                                         'exit': False
                                     })
                             if not v['value'].has_property(property.value):
-                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    error["message"] = f"{v['value'].name} object has no property '{property.value}'"
                                     raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
@@ -9390,7 +9455,7 @@ class Interpreter:
                                         'exit': False
                                     })
                             if not v['value'].has_property(property.value):
-                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    error["message"] = f"{v['value'].name} object has no property '{property.value}'"
                                     raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
@@ -9508,7 +9573,7 @@ class Interpreter:
                                         'exit': False
                                     })
                             if not v['value'].has_property(property.value):
-                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    error["message"] = f"{v['value'].name} object has no property '{property.value}'"
                                     raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
@@ -9580,7 +9645,7 @@ class Interpreter:
                                         'exit': False
                                     })
                             if not v['value'].has_property(property.value):
-                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    error["message"] = f"{v['value'].name} object has no property '{property.value}'"
                                     raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
@@ -9652,7 +9717,7 @@ class Interpreter:
                                         'exit': False
                                     })
                             if not v['value'].has_property(property.value):
-                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    error["message"] = f"{v['value'].name} object has no property '{property.value}'"
                                     raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
@@ -9716,7 +9781,7 @@ class Interpreter:
                                         'exit': False
                                     })
                             if not v['value'].has_property(property.value):
-                                    error["message"] = f"{v['value'].name} has no property '{property.value}'"
+                                    error["message"] = f"{v['value'].name} object has no property '{property.value}'"
                                     raise Al_PropertyError(error)
                             property_value = v['value'].properties[property.value]
                             if isinstance(property_value, Number) or isinstance(property_value, Boolean):
@@ -9812,7 +9877,7 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = String(f"Export has no member '{object_key.value}'")
                         else:
-                            error["message"] = f"'{object_name.name}' object has no property '{object_key.value}'"
+                            error["message"] = f"'{object_name.name}' object object has no property '{object_key.value}'"
                         raise Al_PropertyError(error)
             
             elif type(object_key).__name__ == "CallNode":
@@ -9828,9 +9893,8 @@ class Interpreter:
                                     self.visit(arg, context)))
                                 if res.should_return(): return res
                             return_value = res.register(value.run(keyword_args_list,args, object_name))
-                            if res.should_return():
-                                    return res
-                            
+                            if res.should_return(): return res
+                            #if res.func_return_value is not None: return res.success(res.func_return_value)
                             if return_value == None or isinstance(return_value, NoneType):
                                 return res.success(None)
                             else:
@@ -9844,8 +9908,6 @@ class Interpreter:
                                 error["message"] = String(
                                     f"'{object_name.name}' object has no method '{object_key.node_to_call.value}'")
                             raise Al_PropertyError(error)
-                    # else:
-                    #     raise Al_PropertyError(error)
         
         elif isinstance(object_name, BuiltInClass):
             if type(object_key).__name__ == "Token":
@@ -9854,7 +9916,7 @@ class Interpreter:
                     return res.success(value)
                 else:
                     error["message"] = String(
-                        f"'{object_name.name}' object has no property {object_key.value}")
+                        f"'{object_name.name}' object object has no property {object_key.value}")
                     raise Al_PropertyError(error)
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -9877,10 +9939,10 @@ class Interpreter:
                         else:
                             return res.success(return_value)
                     else:
-                        error["message"] = f"'{object_name.name}' object has no property '{object_key.node_to_call.value}'"
+                        error["message"] = f"'{object_name.name}' object object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
                 else:
-                    error["message"] = f"'{object_name.name}' object has no property '{object_key.node_to_call.value}'"
+                    error["message"] = f"'{object_name.name}' object object has no property '{object_key.node_to_call.value}'"
                     raise Al_PropertyError(error)
             else:
                 error["message"] = f"'{object_key.node_to_call.value}'"
@@ -9896,7 +9958,7 @@ class Interpreter:
                         value = object_name.properties[object_key.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"'{node.name.id.value}' object has no property '{object_key.id.value}'"
+                        error["message"] = f"'{node.name.id.value}' object object has no property '{object_key.id.value}'"
                         raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "CallNode":
@@ -9926,7 +9988,7 @@ class Interpreter:
                                 else:
                                     return res.success(return_value)
                         else:
-                            error["message"] = f"'{node.name.id.value}' has no property '{object_key.node_to_call.value}'"
+                            error["message"] = f"'{node.name.id.value}' object has no property '{object_key.node_to_call.value}'"
                             raise Al_PropertyError(error)
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
@@ -9952,7 +10014,7 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
-                            error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
+                            error["message"] = f"{object_name.name} object has no property {object_key.node_to_call.id.value}"
                         raise Al_PropertyError(error)
                     # else:
                     #     raise Al_PropertyError(error)
@@ -9963,7 +10025,7 @@ class Interpreter:
                         value = object_name.properties[object_key.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"'{object_name.name}' has no property '{object_key.value}'"
+                        error["message"] = f"'{object_name.name}' object has no property '{object_key.value}'"
                         raise Al_PropertyError(error)
             
             elif type(object_key).__name__ == "PropertyNode":
@@ -9972,7 +10034,7 @@ class Interpreter:
                         value = object_name.properties[object_key.name.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"'{node.name.id.value}' has no property '{object_key.name.id.value}'"
+                        error["message"] = f"'{node.name.id.value}' object has no property '{object_key.name.id.value}'"
                         raise Al_PropertyError(error)
    
         elif isinstance(object_name, Dict):
@@ -9985,7 +10047,7 @@ class Interpreter:
                         value = object_name.properties[object_key.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
+                        error["message"] = f"{node.name.id.value} object has no property {object_key.id.value}"
                         raise Al_PropertyError(error)
 
             elif type(object_key).__name__ == "CallNode":
@@ -10026,7 +10088,7 @@ class Interpreter:
                                 else:
                                     return res.success(return_value)
                         else:
-                            error["message"] = f"'{node.name.id.value}' has no property '{object_key.node_to_call.value}'"
+                            error["message"] = f"'{node.name.id.value}' object has no property '{object_key.node_to_call.value}'"
                             raise Al_PropertyError(error)
                 else:
                     if object_key.id.node_to_call.id.value in dict_methods:
@@ -10062,7 +10124,7 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
-                            error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
+                            error["message"] = f"{object_name.name} object has no property {object_key.node_to_call.id.value}"
                         raise Al_PropertyError(error)
                     # else:
                     #     raise Al_PropertyError(error)
@@ -10085,7 +10147,7 @@ class Interpreter:
                         value = object_name.properties[object_key.name.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"'{node.name.id.value}' has no property '{object_key.name.id.value}'"
+                        error["message"] = f"'{node.name.id.value}' object has no property '{object_key.name.id.value}'"
                         raise Al_PropertyError(error)
                 
         elif isinstance(object_name, List):
@@ -10106,11 +10168,8 @@ class Interpreter:
                     else:
                         value = f"<{str(object_key.value)}()>, [ built-in list method ]"
                         return res.success(BuiltInMethod(value))
-                if object_key.value in object_name.properties.properties:
-                     value = object_name.properties.properties[object_key.value]
-                     return res.success(value)
                 else:
-                    error["message"] = f"'list' has no property '{object_key.value}'"
+                    error["message"] = f"'list' object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "CallNode":
@@ -10121,27 +10180,14 @@ class Interpreter:
                             args.append(res.register(
                                 self.visit(arg, context)))
                             if res.should_return(): return res
+                        print(args)
                         value = BuiltInMethod_List(
                             object_key.node_to_call.value, object_name, args, node, context, var_name,object_key.keyword_args_list)
+                        if res.should_return():
+                            return res
                         return res.success(value.name)
-                    if  object_key.node_to_call.value in object_name.properties.properties:
-                            value = object_name.properties.properties[object_key.node_to_call.value]
-                            args = []
-                            keyword_args_list = object_key.keyword_args_list
-                            for arg in object_key.args_nodes:
-                                args.append(res.register(
-                                self.visit(arg, context)))
-                            if res.should_return(): return res
-                            return_value = res.register(value.execute(args,keyword_args_list))
-                            # print(type(return_value).__name__, return_value)
-                            if res.should_return():
-                                    return res
-                            if return_value == None or isinstance(return_value, NoneType):
-                                return res.success(None)
-                            else:
-                                return res.success(return_value)
                     else:
-                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property '{object_key.node_to_call.value}'"
+                        error["message"] = f"'{TypeOf(object_name.value).getType()}' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
         
         elif isinstance(object_name, Pair):
@@ -10154,7 +10200,7 @@ class Interpreter:
                         value = f"<{str(object_key.value)}()>, [ built-in list method ]"
                         return res.success(BuiltInMethod(value))
                 else:
-                    error["message"] = f"'pair' has no property '{object_key.value}'"
+                    error["message"] = f"'pair' object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "CallNode":
@@ -10169,7 +10215,7 @@ class Interpreter:
                             object_key.node_to_call.value, object_name, args, node, context)
                         return res.success(value.name)
                     else:
-                        error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property '{object_key.node_to_call.value}'"
+                        error["message"] = f"'{TypeOf(object_name.value).getType()}' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
         
         elif isinstance(object_name, String):
@@ -10181,7 +10227,7 @@ class Interpreter:
                     else:
                         return res.success(BuiltInMethod(value))
                 else:
-                    error["message"] = f"'string' has no property '{object_key.value}'"
+                    error["message"] = f"'string' object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "VarAccessNode":
@@ -10189,7 +10235,7 @@ class Interpreter:
                     value = f"<{str(object_key.id.value)}()>, [ built-in string method ]"
                     return res.success(String(value))
                 else:
-                    error["message"] = f"'string' has no property {object_key.id.value}"
+                    error["message"] = f"'string' object has no property '{object_key.id.value}'"
                     raise Al_PropertyError(error)
                
             elif type(object_key).__name__ == "PropertyNode":
@@ -10204,14 +10250,14 @@ class Interpreter:
                             object_key.id.node_to_call.id.value, object_name, args, node, context, var_name,object_key.id.keyword_args_list)
                         return res.success(value)
                     else:
-                        error["message"] = f"'string' has no property '{object_key.id.node_to_call.id.value}'"
+                        error["message"] = f"'string' object has no property '{object_key.id.node_to_call.id.value}'"
                         raise Al_PropertyError(error)
                 else:
                     if object_key.id.value in string_methods:
                         value = f"<{str(object_key.id.value)}()>, [ built-in string method ]"
                         return res.success(String(value))
                     else:
-                        error["message"] = f"'string' has no property '{object_key.id.value}'"
+                        error["message"] = f"'string' object has no property '{object_key.id.value}'"
                         raise Al_PropertyError(error) 
              
             elif type(object_key).__name__ == "CallNode":
@@ -10226,7 +10272,7 @@ class Interpreter:
                             object_key.node_to_call.value, object_name, args, node, context,var_name,object_key.keyword_args_list)
                         return res.success(value.name)
                     else:
-                        error["message"] = f"'string' has no property {object_key.node_to_call.value}"
+                        error["message"] = f"'string' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
         
         elif isinstance(object_name, BuiltInMethod_String):
@@ -10242,7 +10288,7 @@ class Interpreter:
                             object_key.node_to_call.value, object_name, args, node, context)
                         return res.success(value)
                     else:
-                        error["message"] = f"'string' has no property {object_key.node_to_call.value}"
+                        error["message"] = f"'string' object has no property {object_key.node_to_call.value}"
                         raise Al_PropertyError(error)
                 
         elif isinstance(object_name, Number):
@@ -10251,7 +10297,7 @@ class Interpreter:
                     value = f"<{str(object_key.value)}()>, [ built-in number method ]"
                     return res.success(BuiltInMethod(value))
                 else:
-                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.value}"
+                    error["message"] = f"'{TypeOf(object_name.value).getType()}' object has no property {object_key.value}"
                     raise Al_PropertyError(error)
                 
             elif type(object_key).__name__ == "VarAccessNode":
@@ -10259,7 +10305,7 @@ class Interpreter:
                     value = f"<{str(object_key.id.value)}()>, [ built-in number method ]"
                     return res.success(BuiltInMethod(value))
                 else:
-                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.id.value}"
+                    error["message"] = f"'{TypeOf(object_name.value).getType()}' object has no property {object_key.id.value}"
                     raise Al_PropertyError(error)
             
             elif type(object_key).__name__ == "CallNode":
@@ -10269,10 +10315,10 @@ class Interpreter:
                         args.append(res.register(
                             self.visit(arg, context)))
                         if res.should_return(): return res
-                    value = BuiltInMethod_Number(object_key.node_to_call.id.value, object_name, args, node, context)
+                    value = BuiltInMethod_Number(object_key.node_to_call.value, object_name, args, node, context)
                     return res.success(value)
                 else:
-                    error["message"] = f"'{TypeOf(object_name.value).getType()}' has no property {object_key.node_to_call.value}"
+                    error["message"] = f"'{TypeOf(object_name.value).getType()}' object has no property {object_key.node_to_call.value}"
                     raise Al_PropertyError(error) 
                
         elif isinstance(object_name, Function):
@@ -10285,10 +10331,10 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.value}'"
                         else:
-                            error["message"] = f"{object_name.name} has no property '{object_key.value}'"
+                            error["message"] = f"{object_name.name} object has no property '{object_key.value}'"
                         raise Al_PropertyError(error)
                 else:
-                    error["message"] = f"{object_name.name} has no property '{object_key.value}'"
+                    error["message"] = f"{object_name.name} object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
             if type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -10315,7 +10361,7 @@ class Interpreter:
                         else:
                             return res.success(return_value)
                 else:
-                    error["message"] = f"{object_name.name} has no property '{object_key.node_to_call.value}'"
+                    error["message"] = f"{object_name.name} object has no property '{object_key.node_to_call.value}'"
                     raise Al_PropertyError(error)
             else:
                 error["message"] = f"'{object_name.name}'"
@@ -10331,7 +10377,7 @@ class Interpreter:
                         value = object_name.properties[object_key.id.value]
                         return res.success(value)
                     else:
-                        error["message"] = f"{node.name.id.value} has no property {object_key.id.value}"
+                        error["message"] = f"{node.name.id.value} object has no property {object_key.id.value}"
                         raise Al_PropertyError(error)
                     
             elif type(object_key).__name__ == "CallNode":
@@ -10360,7 +10406,7 @@ class Interpreter:
                                 else:
                                     return res.success(return_value)
                         else:
-                            error["message"] = f"{node.name.id.value} has no property {object_key.node_to_call.value}"
+                            error["message"] = f"{node.name.id.value} object has no property {object_key.node_to_call.value}"
                             raise Al_PropertyError(error)
                 else:
                     if object_key.node_to_call.id.value in object_name.properties:
@@ -10386,7 +10432,7 @@ class Interpreter:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
                         else:
-                            error["message"] = f"{object_name.name} has no property {object_key.node_to_call.id.value}"
+                            error["message"] = f"{object_name.name} object has no property {object_key.node_to_call.id.value}"
                         raise Al_PropertyError(error)
                     # else:
                     #     raise Al_PropertyError(error)
@@ -10399,9 +10445,9 @@ class Interpreter:
                     else:
                         # if object_name.properties['__name']:
                         #     name = object_name.properties['__name']
-                        #     error["message"] = f"{name} has no property {object_key.value}"
+                        #     error["message"] = f"{name} object has no property {object_key.value}"
                         # else:
-                        error["message"] = f"{object_name.name} has no property {object_key.value}"
+                        error["message"] = f"{object_name.name} object has no property {object_key.value}"
                         raise Al_PropertyError(error)
                 
         elif isinstance(object_name, Module):
@@ -10425,7 +10471,7 @@ class Interpreter:
                 elif hasattr(object_key.node_to_call, "id"):
                     key = object_key.node_to_call.id.value
             if hasattr(object_name, "name"):
-                message = f"'{object_name.name}' has no property {key}"
+                message = f"'{object_name.name}' object has no property {key}"
             else:
                 message = f"'{key}'"
             error["message"] = message
@@ -10450,7 +10496,7 @@ class Interpreter:
         if operation != None and operation == "++":
             if isinstance(object_name, Object) or isinstance(object_name, Dict) or isinstance(object_name, Class):
                 if not object_name.has_property(property.value):
-                    error["message"] = f"{object_name.name} has no property '{property.value}'"
+                    error["message"] = f"{object_name.name} object has no property '{property.value}'"
                     raise Al_PropertyError(error)
                 property_value = object_name.properties[property.value]
                 if isinstance(property_value, Number) or isinstance(property_value, Boolean):
@@ -10464,7 +10510,7 @@ class Interpreter:
         if operation != None and operation == "--":
             if isinstance(object_name, Object) or isinstance(object_name, Dict) or isinstance(object_name, Class):
                 if not object_name.has_property(property.value):
-                    error["message"] = f"{object_name.name} has no property '{property.value}'"
+                    error["message"] = f"{object_name.name} object has no property '{property.value}'"
                     raise Al_PropertyError(error)
                 property_value = object_name.properties[property.value]
                 if isinstance(property_value, Number) or isinstance(property_value, Boolean):
@@ -10529,7 +10575,7 @@ class Interpreter:
                     error["message"] = f"'list' object property '{property.value}' is read-only"
                     raise Al_PropertyError(error)
                 else:
-                    error["message"] = f"'list' object has no property '{property.value}'"
+                    error["message"] = f"'list' object object has no property '{property.value}'"
                     raise Al_PropertyError(error)
                    
         elif isinstance(object_name, Pair):
@@ -10548,7 +10594,7 @@ class Interpreter:
                     error["message"] = f"'string' object property '{property.value}' is read-only"
                     raise Al_PropertyError(error)
                 else:
-                    error["message"] = f"'string' object has no property '{property.value}'"
+                    error["message"] = f"'string' object object has no property '{property.value}'"
                     raise Al_PropertyError(error)
         
         elif isinstance(object_name, Number):
@@ -10557,13 +10603,13 @@ class Interpreter:
                     error["message"] = f"'number' object property '{property.value}' is read-only"
                     raise Al_PropertyError(error)
                 else:
-                    error["message"] = f"'number' object has no property '{property.value}'"
+                    error["message"] = f"'number' object object has no property '{property.value}'"
                     raise Al_PropertyError(error)
                
         else:
             if type(property).__name__ == "Token":
                 error['name'] = String("TypeError")
-                error["message"] = f"type '{TypeOf(object_name).getType()}' object has no property '{property.value}'"
+                error["message"] = f"type '{TypeOf(object_name).getType()}' object object has no property '{property.value}'"
                 raise Al_TypeError(error)
  
     
@@ -11338,11 +11384,11 @@ class Interpreter:
         elements = []
         try:
             if type(iterable_node).__name__ == "NoneType":
-                raise Al_NameError({
+                raise Al_RuntimeError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'context': context,
-                        'message': f"name '{node.iterable_node.value}' is not defined",
+                        'message': f"type 'NoneType' is not iterable",
                         'exit': False
                     })
             
@@ -12053,7 +12099,7 @@ class Interpreter:
             'clear': BuiltInFunction_Clear,
             'typeof': BuiltInFunction_Typeof,
             'isinstanceof': BuiltInFunction_IsinstanceOf,
-            'hasProperty': BuiltInFunction_HasProperty,
+            'hasproperty': BuiltInFunction_HasProperty,
             'delay': BuiltInFunction_Delay,
             # 'Exception': BuiltInClass_Exception,
             # 'RuntimeError': BuiltInClass_RuntimeError,
@@ -12141,7 +12187,7 @@ class Interpreter:
                                     {
                                         "pos_start": node.pos_start,
                                         "pos_end": node.pos_end,
-                                        "message": f"{node.identifier.value} has no property '{name}'" if hasattr(node.identifier, 'value') else f"'{name}'",
+                                        "message": f"{node.identifier.value} object has no property '{name}'" if hasattr(node.identifier, 'value') else f"'{name}'",
                                         "context": context,
                                         "exit": False
                                     })
@@ -12157,7 +12203,7 @@ class Interpreter:
                                     {
                                         "pos_start": node.pos_start,
                                         "pos_end": node.pos_end,
-                                        "message": f"{node.identifier.value} has no property '{name}'" if hasattr(node.identifier, 'value') else f"'{name}'",
+                                        "message": f"{node.identifier.value} object has no property '{name}'" if hasattr(node.identifier, 'value') else f"'{name}'",
                                         "context": context,
                                         "exit": False
                                     })
@@ -12247,7 +12293,7 @@ BuiltInFunction.reverse = BuiltInFunction("reverse")
 BuiltInFunction.format = BuiltInFunction("format")
 BuiltInFunction.typeof = BuiltInFunction("typeof")
 BuiltInFunction.isinstanceof = BuiltInFunction("isinstanceof")
-BuiltInFunction.hasProperty = BuiltInFunction("hasProperty")
+BuiltInFunction.hasproperty = BuiltInFunction("hasproperty")
 BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
 BuiltInFunction.isFinite = BuiltInFunction("isFinite")
@@ -12360,7 +12406,7 @@ symbolTable_.set('reverse', BuiltInFunction.reverse)
 symbolTable_.set('format', BuiltInFunction.format)
 symbolTable_.set('typeof', BuiltInFunction.typeof)
 symbolTable_.set('isinstanceof', BuiltInFunction.isinstanceof)
-symbolTable_.set('hasProperty', BuiltInFunction.hasProperty)
+symbolTable_.set('hasproperty', BuiltInFunction.hasproperty)
 symbolTable_.set('max', BuiltInFunction.max)
 symbolTable_.set('min', BuiltInFunction.min)
 symbolTable_.set('isFinite', BuiltInFunction.isFinite)

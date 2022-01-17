@@ -130,10 +130,7 @@ class Token
         return self.type == type_ and self.value == value
     end
     def toString(self)
-        if self.value:
-            return fm'%{self.type}:%{self.value}'
-        end
-        return fm'Token(%{self.type})'
+        return fm'%{self.type}:%{self.value}'
     end
 end
 
@@ -172,7 +169,7 @@ class Lexer
                 })
             end
         end
-        tokens.append(Token(tokenList.EOF, none, self.pos, self.pos))
+        tokens.append(Token(tokenList.EOF, none, self.pos, self.pos).toString())
         return tokens, none
     end
     def makeIdentifier(self)
@@ -187,13 +184,13 @@ class Lexer
         else:
             let token_type = tokenList.IDENTIFIER
         end
-        return Token(token_type, identifier_str, pos_start, self.pos) 
+        return Token(token_type, identifier_str, pos_start, self.pos).toString()
     end
 end
 
 let lexer = Lexer("main.ald", "Hello world")
 let tokens, error = lexer.makeTokens()
 in tokens as token:
-    println(token.toString())
+    println(token)
 end
 

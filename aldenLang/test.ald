@@ -801,7 +801,7 @@ println(hasProperty(dict_user, "age")) # true
 println(hasProperty(dict_user, "email")) # true
 println(hasProperty(dict_user, "hobby")) # true
 println(hasProperty(dict_user, "verfied")) # true
-println(hasProperty(dict_user, "has_key")) # true # check if dict has built-in method has_key
+println(hasProperty(dict_user, "hasproperty")) # true # check if dict has built-in method hasproperty
 println(hasProperty(dict_user, "2")) # false
 println(hasProperty(dict_user, "address")) # false
 println("hasProperty for list")
