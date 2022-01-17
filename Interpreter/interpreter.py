@@ -291,7 +291,7 @@ def vna_algorithm(params, args):
                     re_reversed_args = reversed_args[::-1]
                     re_reversed_args_names = reversed_args_names[::-1]
                     nonstarargs = first_args + re_reversed_args
-                
+             
     return starargs, nonstarargs
     
     
@@ -3631,6 +3631,7 @@ class Function(BaseFunction):
         keyword_args = {}
         default_values = {}
         new_args = []
+        #new_args = args
         # default values
         if self.default_values != None: 
             if len(self.default_values) > 0:
@@ -3648,48 +3649,37 @@ class Function(BaseFunction):
                     value = res.register(interpreter.visit(
                         keyword_arg['value'], exec_context))
                     keyword_args[name] = value
-
                 if len(self.arg_names) > 0:
                     for i in range(len(self.arg_names)):
-                        for key, value in keyword_args.items():
-                            if self.arg_names[i] == key:
-                                new_args.append(value)
-                            elif key not in self.arg_names:
-                                raise Al_ArgumentError({
-                                    'pos_start': self.pos_start,
-                                    'pos_end': self.pos_end,
-                                    'message': f"{self.name}() got an unexpected keyword argument '{key}'",
-                                    'context': self.context,
-                                    'exit': False
-                                })
-                            # else:
-                            #     for key, value in keyword_args.items():
-                            #         if key in self.arg_names:
-                            #             if key not in default_values:
-                            #                 # checkif key is at the right index of non default values
-                            #                 if len(keyword_args) > 0:
-                            #                     for i in range(len(self.arg_names)):
-                            #                         if self.arg_names[i] == key:
-                            #                             print(self.arg_names[i], key)
-                            #                 raise Al_ValueError({
-                            #                     'pos_start': self.pos_start,
-                            #                     'pos_end': self.pos_end,
-                            #                     'message': f"{self.name}() got multiple values for argument '{key}'",
-                            #                     'context': self.context,
-                            #                     'exit': False
-                            #                 })
+                        has_star_name = [name for name in self.arg_names if is_varags(name) == True]
+                        has_star = False if len(has_star_name) == 0 else True
+                        if not has_star:
+                            for key, value in keyword_args.items():
+                                if self.arg_names[i] == key:
+                                    args.append(value)
+                                elif key not in self.arg_names:
+                                    raise Al_ArgumentError({
+                                        'pos_start': self.pos_start,
+                                        'pos_end': self.pos_end,
+                                        'message': f"{self.name}() got an unexpected keyword argument '{key}'",
+                                        'context': self.context,
+                                        'exit': False
+                                    })
+                        else:
+                            pass
+                            #print("varags", self.arg_names[i])
 
-                    len_old_args = len(args) - len(keyword_args)
-                    if len(args) > 0:
-                        for i in range(len_old_args):
-                            new_args.insert(i, args[i])
-                        # new_args.insert(0, args[0])
+                    # len_old_args = len(args) - len(keyword_args)
+                    # if len(args) > 0:
+                    #     for i in range(len_old_args):
+                    #         new_args.insert(i, args[i])
+                    #     # new_args.insert(0, args[0])
 
-                    if len(keyword_args) > 0:
-                        for i in range(len(self.arg_names)):
-                            if self.arg_names[i] in keyword_args:
-                                index_key = self.arg_names.index(self.arg_names[i])
-                                args_index = len_old_args - 1
+                    # if len(keyword_args) > 0:
+                    #     for i in range(len(self.arg_names)):
+                    #         if self.arg_names[i] in keyword_args:
+                    #             index_key = self.arg_names.index(self.arg_names[i])
+                    #             args_index = len_old_args - 1
 
             else:
                 new_args = args
@@ -3708,14 +3698,13 @@ class Function(BaseFunction):
 
         # if len(self.arg_names) > 0:
         #     args_expected = len(self.arg_names)
-        new_args = args + new_args
-        if keyword_args_list != None and len(keyword_args_list) > 0:
-            args = new_args
+        #new_args = args + new_args
+        # if keyword_args_list != None and len(keyword_args_list) > 0:
+        #     args = new_args
         self.check_args(args, keyword_args)
         self.populate_args(keyword_args, args, exec_context)
 
-        if res.should_return():
-            return res
+        if res.should_return(): return res
 
         value = res.register(interpreter.visit(self.body_node, exec_context))
         if res.should_return() and res.func_return_value == None: return res
@@ -3891,13 +3880,16 @@ class Function(BaseFunction):
             star_names = [name for name in self.arg_names if is_varags(name) == True]
             non_star_names = [name for name in self.arg_names if is_varags(name) == False]
             starags, nonstarargs = vna_algorithm(self.arg_names, args) 
+            #print(star_names, non_star_names)
+            #print(starags, nonstarargs, "args: ", args)
             for star_name in star_names:
                 name = make_varargs(star_name)
                 exec_context.symbolTable.set(name, List(starags))
             for i in range(len(non_star_names)):
                 try:
-                    exec_context.symbolTable.set(
-                        non_star_names[i], nonstarargs[i])
+                    name = non_star_names[i]
+                    value = nonstarargs[i].setContext(exec_context)
+                    exec_context.symbolTable.set(name, value)
                 except Exception as e:
                     raise Al_ValueError({
                         'pos_start': self.pos_start,
@@ -4072,13 +4064,11 @@ class Function(BaseFunction):
         #     if return_value.value == "none":
         #         return_value.value = NoneType.none
         return self.wrap_return_value(return_value)
-    
-    
+        
     def wrap_return_value(self, return_value):
         return_value = return_value.copy()
         return return_value
             
-
     def run_check_and_populate_args(self, keyword_args, args, exec_ctx, Klass):
         res = RuntimeResult()
         res.register(self.run_check_args(args, Klass,keyword_args))
@@ -4089,6 +4079,7 @@ class Function(BaseFunction):
     def run_check_args(self, args, klass_,keyword_args):
         res = RuntimeResult()
         interpreter = Interpreter()
+        class_name = klass_.name if self.name == "@init" else self.name
         exec_context = self.generate_new_context()
         default_values = {}
         len_args = len(args)
@@ -4137,7 +4128,7 @@ class Function(BaseFunction):
         exception_details = {
             'pos_start': klass_.pos_start if klass_ != None else self.pos_start,
             'pos_end': klass_.pos_end if klass_ != None else self.pos_end,
-            'message': f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name} but {len_args} {was_or_were} given",
+            'message': f"{class_name}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name} but {len_args} {was_or_were} given",
             'context': klass_.context if klass_ != None else self.context,
             'exit': False
         }
@@ -4146,13 +4137,13 @@ class Function(BaseFunction):
             has_var_args = False
             if len_args > len_arg_names:
                 if  len_arg_names == 1:
-                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() takes 0 positional argument"
+                    exception_details['message'] = f"{class_name}() takes 0 positional argument"
                     raise Al_ArgumentError(exception_details)
                 for i in range(len_arg_names):
                     if is_varags(self.arg_names[i]):
                         has_var_args = True
                 if not has_var_args:
-                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name} "
+                    exception_details['message'] = f"{class_name}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name} "
 
                     raise Al_ArgumentError(exception_details)
 
@@ -4170,10 +4161,10 @@ class Function(BaseFunction):
                         missing_args = missing_args[1:]
                         missing_args_name = self.make_missing_args(
                             missing_args, len_args)
-                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
+                        exception_details['message'] = f"{class_name}() missing {len_expected} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                         raise Al_ArgumentError(exception_details)
                 if not has_var_args:
-                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name} "
+                    exception_details['message'] = f"{class_name}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name} "
 
                     raise Al_ArgumentError(exception_details)
             else:
@@ -4193,13 +4184,13 @@ class Function(BaseFunction):
                                     len_expected = len(new_args_names) - 1
                                     missing_args = missing_args[1:]
                                     missing_args_name = self.make_missing_args(missing_args, len_args)
-                                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
+                                    exception_details['message'] = f"{class_name}() missing {len_expected} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                                     raise Al_ArgumentError(exception_details)
                         else:
                             len_expected = len(new_args_names) - 1
                             missing_args = missing_args[1:]
                             missing_args_name = self.make_missing_args(missing_args, len_args)
-                            exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() missing {len_expected} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
+                            exception_details['message'] = f"{class_name}() missing {len_expected} required keyword-only {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                             raise Al_ArgumentError(exception_details)
         else:
             if len_args > len_expected:
@@ -4209,18 +4200,18 @@ class Function(BaseFunction):
                         len_expected = 0
                 len_args = len_args - 1
                 if len_args > len_expected and len_arg_names == 0:
-                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}()  takes 0 positional argument"
+                    exception_details['message'] = f"{class_name}()  takes 0 positional argument"
                     raise Al_ArgumentError(exception_details)
 
                 if len(missing_args) == 0:
                     if len_args > len_arg_names:
-                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
+                        exception_details['message'] = f"{class_name}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                         raise Al_ArgumentError(exception_details)
                     else:
                         return res.success(None)
                 else:
                     if len_args > len_arg_names:
-                        exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() expected {len_expected} positional arguments"
+                        exception_details['message'] = f"{class_name}() expected {len_expected} positional arguments"
                         raise Al_ArgumentError(exception_details)
 
             if len_args < len_expected:
@@ -4234,7 +4225,7 @@ class Function(BaseFunction):
                             new_args_names.pop(i)
                             return res.success(None)
                 if not has_var_args:
-                    exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
+                    exception_details['message'] = f"{class_name}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                     raise Al_ArgumentError(exception_details)
         
         return res.success(None)
@@ -4242,6 +4233,7 @@ class Function(BaseFunction):
     def run_populate_args(self, klass_, keyword_args, args, exec_context):
         res = RuntimeResult()
         interpreter = Interpreter()
+        class_name = klass_.name if self.name == "@init" else self.name
         default_values = {}
         len_expected = len(self.arg_names)
         len_args = len(args) - 1
@@ -4269,7 +4261,7 @@ class Function(BaseFunction):
                     raise Al_ValueError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"{self.name if self.name != 'none' else 'anonymous'}() missing {len(non_star_names) - i} required keyword-only argument{'s' if len(non_star_names) - i > 1 else ''}",
+                        'message': f"{class_name}() missing {len(non_star_names) - i} required keyword-only argument{'s' if len(non_star_names) - i > 1 else ''}",
                         'context': klass_.context if klass_ != None else self.context,
                         'exit': False
                     })
@@ -4358,12 +4350,12 @@ class Class(BaseClass):
         res = RuntimeResult()
         interpreter = Interpreter()
         new_context = self.generate_new_context()
-        # if self.properties == {}:
-        #     self.properties = method_properties
         class_args = []
         new_args = []
         keyword_args = {}
         default_values = []
+        class_properties = dict({arg_name: arg_value for arg_name, arg_value in zip(
+            self.class_args, args)}, **self.methods)
         if len(keyword_args_list) > 0:
             for keyword_arg in keyword_args_list:
                 name = keyword_arg['name']
@@ -4374,6 +4366,9 @@ class Class(BaseClass):
             method_ = None
             for method_name, method in self.properties.items():
                 method.context = new_context
+                method = method.copy()
+                self.properties[method_name] = method
+                self.properties = class_properties
                 method.context.symbolTable.set(
                     "super", self.inherit_class_name) if self.inherit_class_name != None else None
                 if method_name == "@init":
@@ -4391,6 +4386,7 @@ class Class(BaseClass):
         
         self.check_args(class_args, args, default_values)
         self.populate_args(keyword_args,class_args, args, default_values, self.context)   
+       
         if res.should_return(): return res
              
         #new_context.symbolTable.set("self", self)
@@ -8239,12 +8235,12 @@ class BuiltInMethod_List(Value):
             new_string = ""
             if  self.name.elements == None:
                 raise Al_PropertyError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"'NoneType' object object has no property '{list_methods[self.type]}'",
-                    "context": self.context,
-                    'exit': False
-                })
+                "pos_start": self.node.pos_start,
+                "pos_end": self.node.pos_end,
+                'message': f"'NoneType' object object has no property '{list_methods[self.type]}'",
+                "context": self.context,
+                'exit': False
+            })
             for element in self.name.elements:
                 if isinstance(element, String) or isinstance(element, Number):
                     new_string += str(element.value)
@@ -8934,6 +8930,7 @@ class Interpreter:
                             'exit': False
                         })
                 else:
+                    has_star = False
                     properties = []
                     var = []
                     var_names = [name.name.value for name in var_name]
@@ -10180,7 +10177,7 @@ class Interpreter:
                             args.append(res.register(
                                 self.visit(arg, context)))
                             if res.should_return(): return res
-                        print(args)
+                        
                         value = BuiltInMethod_List(
                             object_key.node_to_call.value, object_name, args, node, context, var_name,object_key.keyword_args_list)
                         if res.should_return():
@@ -12017,12 +12014,10 @@ class Interpreter:
                 if method_name == '@init':
                     for arg in method['args']:
                         class_args.append(arg)
-                        if len(class_args) > 0:
-                            if class_args[0].value == 'self':
-                                class_args.pop(0)
-                method_value = res.register(
-                    self.visit(method['value'], context))
-                
+                        # if len(class_args) > 0:
+                        #     if class_args[0].value == 'self':
+                        #         class_args.pop(0)
+                method_value = res.register(self.visit(method['value'], context))
                 if res.should_return(): return res
                 
                 methods = dict(methods, **{str(method_name): method_value})
@@ -12304,61 +12299,61 @@ BuiltInFunction.isFinite = BuiltInFunction("isFinite")
 
 #code for the built-in class exceptions
 #'class Exception(message)\nend\nclass RuntimeError()~Exception\nend'
-# code_builtin_exception = 'class Exception()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_runtime = 'class RuntimeError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_nameerror = 'class NameError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_argumenterror = 'class ArgumentError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_typeerror = 'class TypeError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_indexerror = 'class IndexError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_valueerror = 'class ValueError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_propertyerror = 'class PropertyError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_keyerror = 'class KeyError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_zerodivisionerror = 'class ZeroDivisionError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_geterror = 'class GetError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_modulenotfounderror = 'class ModuleNotFoundError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-# builtin_exception = Program.createBuiltIn("Exception", code_builtin_exception).elements[0]
-# builtin_exception_runtime = Program.createBuiltIn("RuntimeError", code_builtin_runtime).elements[0]
-# builtin_exception_nameerror = Program.createBuiltIn("NameError", code_builtin_nameerror).elements[0]
-# builtin_exception_argumenterror = Program.createBuiltIn("ArgumentError", code_builtin_argumenterror).elements[0]
-# builtin_exception_typeerror = Program.createBuiltIn("TypeError", code_builtin_typeerror).elements[0]
-# builtin_exception_indexerror = Program.createBuiltIn("IndexError", code_builtin_indexerror).elements[0]
-# builtin_exception_valueerror = Program.createBuiltIn("ValueError", code_builtin_valueerror).elements[0]
-# builtin_exception_propertyerror = Program.createBuiltIn("PropertyError", code_builtin_propertyerror).elements[0]
-# builtin_exception_keyerror = Program.createBuiltIn("KeyError", code_builtin_keyerror).elements[0]
-# builtin_exception_zerodivisionerror = Program.createBuiltIn("ZeroDivisionError", code_builtin_zerodivisionerror).elements[0]
-# builtin_exception_geterror = Program.createBuiltIn("GetError", code_builtin_geterror).elements[0]
-# builtin_exception_modulenotfounderror = Program.createBuiltIn("ModuleNotFoundError", code_builtin_modulenotfounderror).elements[0]
-# builtin_exception_keyboardinterrupt = Program.createBuiltIn("KeyboardInterrupt", code_builtin_keyboardinterrupt).elements[0]
-# exceptions_ = {
-#     'Exception': builtin_exception,
-#     'RuntimeError': builtin_exception_runtime,
-#     'NameError': builtin_exception_nameerror,
-#     'ArgumentError': builtin_exception_argumenterror,
-#     'TypeError': builtin_exception_typeerror,
-#     'IndexError': builtin_exception_indexerror,
-#     'ValueError': builtin_exception_valueerror,
-#     'PropertyError': builtin_exception_propertyerror,
-#     'KeyError': builtin_exception_keyerror,
-#     'ZeroDivisionError': builtin_exception_zerodivisionerror,
-#     'GetError': builtin_exception_geterror,
-#     'ModuleNotFoundError': builtin_exception_modulenotfounderror,
-#     'KeyboardInterrupt': builtin_exception_keyboardinterrupt
-# }
-# # class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context
-# BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.class_args, builtin_exception.inherit_class_name, builtin_exception.inherited_from, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
-# BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.class_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.inherited_from, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
-# BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.class_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.inherited_from, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context) 
-# BuiltInClass.ArgumentError = BuiltInClass(builtin_exception_argumenterror.class_name, builtin_exception_argumenterror.class_args, builtin_exception_argumenterror.inherit_class_name, builtin_exception_argumenterror.inherited_from, builtin_exception_argumenterror.methods, builtin_exception_argumenterror.class_fields_modifiers, builtin_exception_argumenterror.context)
-# BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.class_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.inherited_from, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
-# BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.class_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.inherited_from, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
-# BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.class_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.inherited_from, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
-# BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.class_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.inherited_from,  builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
-# BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.class_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.inherited_from, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
-# BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.class_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.inherited_from,  builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
-# BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.class_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.inherited_from, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
-# BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.class_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.inherited_from, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
-# BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.class_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.inherited_from, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
+code_builtin_exception = 'class Exception()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_runtime = 'class RuntimeError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_nameerror = 'class NameError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_argumenterror = 'class ArgumentError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_typeerror = 'class TypeError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_indexerror = 'class IndexError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_valueerror = 'class ValueError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_propertyerror = 'class PropertyError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_keyerror = 'class KeyError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_zerodivisionerror = 'class ZeroDivisionError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_geterror = 'class GetError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_modulenotfounderror = 'class ModuleNotFoundError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+builtin_exception = Program.createBuiltIn("Exception", code_builtin_exception).elements[0]
+builtin_exception_runtime = Program.createBuiltIn("RuntimeError", code_builtin_runtime).elements[0]
+builtin_exception_nameerror = Program.createBuiltIn("NameError", code_builtin_nameerror).elements[0]
+builtin_exception_argumenterror = Program.createBuiltIn("ArgumentError", code_builtin_argumenterror).elements[0]
+builtin_exception_typeerror = Program.createBuiltIn("TypeError", code_builtin_typeerror).elements[0]
+builtin_exception_indexerror = Program.createBuiltIn("IndexError", code_builtin_indexerror).elements[0]
+builtin_exception_valueerror = Program.createBuiltIn("ValueError", code_builtin_valueerror).elements[0]
+builtin_exception_propertyerror = Program.createBuiltIn("PropertyError", code_builtin_propertyerror).elements[0]
+builtin_exception_keyerror = Program.createBuiltIn("KeyError", code_builtin_keyerror).elements[0]
+builtin_exception_zerodivisionerror = Program.createBuiltIn("ZeroDivisionError", code_builtin_zerodivisionerror).elements[0]
+builtin_exception_geterror = Program.createBuiltIn("GetError", code_builtin_geterror).elements[0]
+builtin_exception_modulenotfounderror = Program.createBuiltIn("ModuleNotFoundError", code_builtin_modulenotfounderror).elements[0]
+builtin_exception_keyboardinterrupt = Program.createBuiltIn("KeyboardInterrupt", code_builtin_keyboardinterrupt).elements[0]
+exceptions_ = {
+    'Exception': builtin_exception,
+    'RuntimeError': builtin_exception_runtime,
+    'NameError': builtin_exception_nameerror,
+    'ArgumentError': builtin_exception_argumenterror,
+    'TypeError': builtin_exception_typeerror,
+    'IndexError': builtin_exception_indexerror,
+    'ValueError': builtin_exception_valueerror,
+    'PropertyError': builtin_exception_propertyerror,
+    'KeyError': builtin_exception_keyerror,
+    'ZeroDivisionError': builtin_exception_zerodivisionerror,
+    'GetError': builtin_exception_geterror,
+    'ModuleNotFoundError': builtin_exception_modulenotfounderror,
+    'KeyboardInterrupt': builtin_exception_keyboardinterrupt
+}
+# class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context
+BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.class_args, builtin_exception.inherit_class_name, builtin_exception.inherited_from, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
+BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.class_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.inherited_from, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
+BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.class_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.inherited_from, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context) 
+BuiltInClass.ArgumentError = BuiltInClass(builtin_exception_argumenterror.class_name, builtin_exception_argumenterror.class_args, builtin_exception_argumenterror.inherit_class_name, builtin_exception_argumenterror.inherited_from, builtin_exception_argumenterror.methods, builtin_exception_argumenterror.class_fields_modifiers, builtin_exception_argumenterror.context)
+BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.class_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.inherited_from, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
+BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.class_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.inherited_from, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
+BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.class_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.inherited_from, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
+BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.class_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.inherited_from,  builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
+BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.class_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.inherited_from, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
+BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.class_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.inherited_from,  builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
+BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.class_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.inherited_from, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
+BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.class_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.inherited_from, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
+BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.class_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.inherited_from, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
 
 Types.Number = Types("Number")
 Types.String = Types("String")
@@ -12422,18 +12417,18 @@ symbolTable_.set('Class', Types.Class)
 symbolTable_.set('Function', Types.Function)    
 symbolTable_.set('BuiltInFunction', Types.BuiltInFunction)
 symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
-# symbolTable_.set('Exception', BuiltInClass.Exception)
-# symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
-# symbolTable_.set('NameError', BuiltInClass.NameError)
-# symbolTable_.set('ArgumentError', BuiltInClass.ArgumentError)
-# symbolTable_.set('TypeError', BuiltInClass.TypeError)
-# symbolTable_.set('IndexError', BuiltInClass.IndexError)
-# symbolTable_.set('ValueError', BuiltInClass.ValueError)
-# symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
-# symbolTable_.set('KeyError', BuiltInClass.KeyError)
-# symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
-# symbolTable_.set('GetError', BuiltInClass.GetError)
-# symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
-# symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
+symbolTable_.set('Exception', BuiltInClass.Exception)
+symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
+symbolTable_.set('NameError', BuiltInClass.NameError)
+symbolTable_.set('ArgumentError', BuiltInClass.ArgumentError)
+symbolTable_.set('TypeError', BuiltInClass.TypeError)
+symbolTable_.set('IndexError', BuiltInClass.IndexError)
+symbolTable_.set('ValueError', BuiltInClass.ValueError)
+symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
+symbolTable_.set('KeyError', BuiltInClass.KeyError)
+symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
+symbolTable_.set('GetError', BuiltInClass.GetError)
+symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
+symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
 symbolTable_.setSymbol()
 

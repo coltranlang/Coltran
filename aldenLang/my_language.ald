@@ -33,7 +33,6 @@ let tokenList = {
         'require',
         'step',
         'while',
-        'task',
         'object',
         'class',
         'def',
@@ -117,7 +116,7 @@ class Token
     def @init(self, type_, value=none, pos_start=none, pos_end=none)
         self.type = type_
         self.value = value
-        # if pos_start and pos_start.has_key('copy'):
+        # if pos_start and pos_start.hasproperty('copy'):
         #     self.pos_start = pos_start.copy()
         #     self.pos_end = pos_start.copy()
         #     self.pos_end.advance()
@@ -169,7 +168,7 @@ class Lexer
                 })
             end
         end
-        tokens.append(Token(tokenList.EOF, none, self.pos, self.pos).toString())
+        tokens.append(Token(tokenList.EOF, none, self.pos, self.pos))
         return tokens, none
     end
     def makeIdentifier(self)
@@ -184,13 +183,15 @@ class Lexer
         else:
             let token_type = tokenList.IDENTIFIER
         end
-        return Token(token_type, identifier_str, pos_start, self.pos).toString()
+        return Token(token_type, identifier_str, pos_start, self.pos)
     end
 end
 
 let lexer = Lexer("main.ald", "Hello world")
 let tokens, error = lexer.makeTokens()
 in tokens as token:
-    println(token)
+    println(token.toString())
 end
+
+
 

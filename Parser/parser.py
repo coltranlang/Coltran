@@ -934,7 +934,7 @@ class Parser:
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "Invalid syntax or unknown token, possibly you meant to use 'fm' instead of 'fm' as an identifier?",
+                        'message': "Invalid syntax",
                         'exit': False
                     }))
                 return res.failure(self.error['Syntax']({
@@ -1015,6 +1015,7 @@ class Parser:
                         'message': "Expected an identifier",
                         'exit': False
                     }))
+            
             if self.current_token.type == tokenList.TT_MUL:
                 self.skipLines()
                 if self.current_token.type != tokenList.TT_IDENTIFIER:
@@ -1048,7 +1049,7 @@ class Parser:
                     'exit': False
                 }))
 
-
+            
             while self.current_token.type == tokenList.TT_COMMA:
                 identifiers = [VarAccessNode(var_name)]
                 values = []
@@ -1123,15 +1124,15 @@ class Parser:
                                 new_values.append(val)
                                 values = new_values
                         else:
-                            values = expr
+                            values = [expr]
 
                         if  self.current_token.type == tokenList.TT_COMMA:
                             while self.current_token.type == tokenList.TT_COMMA:
                                 res.register_advancement()
                                 self.advance()
                                 comma_token = self.current_token
-                                values = []
                                 values.append(res.register(self.expr()))
+                                print(identifiers, values)
                                 for v in values:
                                     if v == '':
                                         values.remove(v)

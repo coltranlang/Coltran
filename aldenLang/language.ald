@@ -66,33 +66,33 @@ object Objecta
     type: "Programming Language"
 end
 
-# ## 9. Task
-#   - Tasks are blocks of code that perform a specific def.
-#   - Tasks are declared with the `def` keyword.
-#   - Tasks names starting with a @ symbol.
+# ## 9. function
+#   - functions are blocks of code that perform a specific def.
+#   - functions are declared with the `def` keyword.
+#   - functions names starting with a @ symbol.
 
-def @task_a()
+def @function_a()
     println("Hello World")
 end
 
-def @task_b(user) # declare a def named `task_b` with a parameter named `user` .
+def @function_b(user) # declare a def named `function_b` with a parameter named `user` .
     println(fm"Hello %{user}")
 end
 
 
-# ## 11. Built-in Task
-#   - Built-in tasks are tasks that are automatically available to the user.
+# ## 11. Built-in function
+#   - Built-in functions are functions that are automatically available to the user.
 
-#  Built-in tasks for printing to the console:
-print(@task_a()) # prints "Hello World" to the console.
-println(@task_b("Kehinde")) # prints "Hello Kehinde" to the console.
+#  Built-in functions for printing to the console:
+print(@function_a()) # prints "Hello World" to the console.
+println(@function_b("Kehinde")) # prints "Hello Kehinde" to the console.
 
-# Built-in tasks for input:
+# Built-in functions for input:
 #input() # print a prompt to the console and wait for the user to enter a string.
 #inputInt() # print a prompt to the console and wait for the user to enter an integer.
 #inputFloat() # print a prompt to the console and wait for the user to enter a float.
 #inputBool() # print a prompt to the console and wait for the user to enter a boolean.
 
-# Built-in tasks for list:
+# Built-in functions for list:
  # returns the length of the array `array_a` .
 println(len(array_a)) # prints 3 to the console.

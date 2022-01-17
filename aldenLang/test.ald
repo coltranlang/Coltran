@@ -1,28 +1,28 @@
-# test for builtin_task str type
+# test for builtin_function str type
 let name = "John"
 let num = 10
 line(1)
 println(name + str(num))
 
-# test for builtin_task int type
+# test for builtin_function int type
 let num1 = "10"
 let num2 = 20
 line(2)
 println(int(num1) + num2)
 
-# test for builtin_task float type
+# test for builtin_function float type
 let num3 = "10.5"
 let num4 = 20.5
 line(3)
 println(float(num3) + num4)
 
-# test for builtin_task bool type
+# test for builtin_function bool type
 let bool1 = "1 > 2"
 let bool2 = false
 line(4)
 println(bool(bool1), bool(bool2))
 
-# test for builtin_task list type
+# test for builtin_function list type
 let list1 = "12345"
 let list2 = "1,2,3,4,5"
 let list3 = [1,2,3,4,5]
@@ -61,7 +61,7 @@ line(7)
 println(@compareList(li3, li4)) # should be not equal
 
 
-# test for builtin_task pair type
+# test for builtin_function pair type
 let pair1 = (1,2,3,4,5)
 let pair2 = "a,b,c,d,e"
 let pair3 = ['23','b','c','d','e']
@@ -84,7 +84,7 @@ line(9)
 println(Student.name, Student.age)
 
 
-# test for builtin_task object type
+# test for builtin_function object type
 let obj1 = "John"
 let obj2 = 21
 line(10)
@@ -795,18 +795,18 @@ end
 line(68)
 # hasproperty check
 let dict_user = {"name": "John","age": 21, "email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
-println("hasProperty for dict")
-println(hasProperty(dict_user, "name"))  # true
-println(hasProperty(dict_user, "age")) # true
-println(hasProperty(dict_user, "email")) # true
-println(hasProperty(dict_user, "hobby")) # true
-println(hasProperty(dict_user, "verfied")) # true
-println(hasProperty(dict_user, "hasproperty")) # true # check if dict has built-in method hasproperty
-println(hasProperty(dict_user, "2")) # false
-println(hasProperty(dict_user, "address")) # false
-println("hasProperty for list")
+println("hasproperty for dict")
+println(hasproperty(dict_user, "name"))  # true
+println(hasproperty(dict_user, "age")) # true
+println(hasproperty(dict_user, "email")) # true
+println(hasproperty(dict_user, "hobby")) # true
+println(hasproperty(dict_user, "verfied")) # true
+println(hasproperty(dict_user, "hasproperty")) # true # check if dict has built-in method hasproperty
+println(hasproperty(dict_user, "2")) # false
+println(hasproperty(dict_user, "address")) # false
+println("hasproperty for list")
 let list_user = ["John", 21, "", "Playing soccer", true, 2]
-#println(hasProperty(list_user, "name"))  # false
+#println(hasproperty(list_user, "name"))  # false
 
 
 line(69)

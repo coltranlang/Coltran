@@ -31,4 +31,21 @@ def @result()
 end
 
 
-@result()
+attempt:
+    while true:
+        @result()
+        let answer = input("\nWould you like to play again? (y/n) ")
+        if answer == "y":
+            continue
+        elif answer == "n":
+            println("\nThanks for playing!")
+            break
+        else:
+            print("\nThat is not a valid answer")
+            break
+        end
+    end
+catch Exception as e:
+    print("\n" + "Error: " + e.message + "\n")
+    print("\n" + "Please try again\n") 
+end

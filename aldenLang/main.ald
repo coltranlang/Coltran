@@ -1,105 +1,72 @@
-# let name = "Kenny"
-# println(name.upperCase())
-let person = {
-    name: "Bob",
-}
+# # let name = "Kenny"
+# # println(name.upperCase())
+# let person = {
+#     name: "Bob",
+# }
 
 
-class A
-    @test = "Hello"
-    def @init(self, name)
-        self.name = name
-    end
-    def Test(self,*args,greeting,name)
-        println(args,greeting, name)
-    end
-    def toString(self)
-        return fm"Class %{self.name}"
-    end
-end
-
-let a = A("A name")
-a.Test("Hello", "World", name="Bob", greeting="Hi")
-#a.Test("Hi", "Kenny", "Bob", "Kenny")
-println(a.toString())
-
-# class Program
-#     # def @init(self)
-#     #     self.name = "Bob"
-#     # end
-#     def error()
-#         def @IllegalCharacterError(options)
-#             let error= fm"\nFile: %{options['pos_start'].fileName} at line %{options['pos_start'].line + 1}\n\nSyntaxError: Illegal character unexpected '%{options['originator']}'\n"
-#             Program.printError(error)
-#         end
-#         let methods = {
-#             'IllegalCharacterError': @IllegalCharacterError
-#         }
-#         return methods
+# class A
+#     @test = "Hello"
+#     def @init(self, name)
+#         self.name = name
 #     end
-#     def printError(self,error)
-#         println(error)
+#     def Test(self,*args,greeting,name)
+#         println(args,greeting, name)
+#     end
+#     def toString(self)
+#         return fm"Class %{self.name}"
 #     end
 # end
 
-# print(Program.printError("this is an error"))
-
-# Todo: varargs with keyword args
-def @main(*args, greeting, name)
-    println(args, greeting, name, @sep="-")
-end
-
-@main("Hello", "World", name="Bob", greeting="Hi")
+# let a = A("A name")
+# a.Test("Hello", "World", name="Bob", greeting="Hi")
+# #a.Test("Hi", "Kenny", "Bob", "Kenny")
+# println(a.toString())
 
 
-def @sum(x,y=2)
-    println(fm"%{x} + %{y} = %{x+y}")
-end
-@sum(1)
-@sum(y=8,x=2)
 
-class Token
-    def @init(self, type, value)
-        self.type = type
-        self.value = value
+
+
+class Car
+    def @init(self, manufacturer, weight, color, year)
+        self.manufacturer = manufacturer
+        self.weight = weight
+        self.color = color
+        self.year = year
     end
     def toString(self)
-        return fm"%{self.type}:%{self.value}"
+        return fm"%{self.manufacturer} %{self.weight} %{self.color} %{self.year}"
     end
 end
 
-class Lexer
-    def @init(self, text)
-        self.text = text
-        self.pos = 0
-        self.current_char = self.text[self.pos]
-    end
-    def makeTokens(self)
-        let tokens = []
-        tokens.append(self.makeIdentifier())
-        tokens.append(self.makeEOF())
-        return tokens
-    end
-    def makeEOF(self)
-        return Token('EOF', '').toString()
-    end
-    def makeIdentifier(self)
-        let result = ''
-        return Token('IDENTIFIER', '').toString()
-    end
+let car1 = Car("Ford", "2000", "red", "2018")
+let car2 = Car("Honda", "1000", "blue", "2017")
+println(car1.toString())
+println(car2.toString())
+println(car1 == car2)
+
+def @Car(manufacturer, weight, color, year)
+    return fm"%{manufacturer} %{weight} %{color} %{year}"
 end
 
-let lexer = Lexer("var")
-let tokens = lexer.makeTokens()
-in tokens as token:
-    println(token)
-    # if isinstanceof(token, Token):
-    #     println(token.toString())
-    # else:
-    #     println(token)
-    # end
+# let car3 = @Car("Toyota", "2000", "red", "2018")
+# let car4 = @Car("Chevy", "1000", "blue", "2017")
+# println(car3)
+# println(car4)
+
+# Todo: work on varargs and keyword args
+def @join_sep(sep, *args, end_)
+    println(sep, args, end_, "innn")
+    let nums = ''
+    in args as arg:
+        nums += str(arg) + sep
+    end
+    return nums + end_
 end
+println(@join_sep('-', 1,2,3,4,5,6,7,8,9,10, end_ = '::'))
 
-
-println(Token('IDENTIFIER', ''))
-println(Token('EOF', ''))
+let name, age = {
+    name: "Bob",
+    age: "20",
+}
+println(name, age)
