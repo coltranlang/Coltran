@@ -5092,7 +5092,7 @@ def BuiltInFunction_PrintLn(args, node, context,keyword_args=None):
             
     
     else:
-        v = " ".join(values)
+        v = "\n".join(values)
         sys.stdout.write(v + '\n')
     return res.success(NoneType.none)
 
@@ -5750,89 +5750,121 @@ def BuiltInFunction_Pair(args, node, context,keyword_args=None):
 
 def BuiltInFunction_Dict(args, node, context,keyword_args=None):
     res = RuntimeResult()
-    if len(args) > 2:
-        raise Al_RuntimeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but dict() takes 2 arguments",
-            "context": context,
-            'exit': False
-        })
-    if len(args) == 1:
-        if isinstance(args[0], Dict):
-            return res.success(args[0])
-        elif isinstance(args[0], Pair) or isinstance(args[0], List):
-            new_dict = {}
-            for key in args[0].elements:
-                if isinstance(key, Pair) or isinstance(key, List):
-                    new_dict[key.elements[0]] = key.elements[1]
+    interpreter = Interpreter()
+    # dict only accepts kewword arguments
+    if keyword_args is None or len(keyword_args) == 0:
+        if len(args) != 0:
+            if isinstance(args[0], String):
+                if args[0].value == "":
+                    return res.success(Dict({}).setPosition(node.pos_start, node.pos_end).setContext(context))
                 else:
-                    # get position of key
-                    position_of_key = args[0].elements.index(key)
-                    raise Al_TypeError({
+                    raise Al_ArgumentError({
                         "pos_start": node.pos_start,
                         "pos_end": node.pos_end,
-                        'message': f"element #{position_of_key} of type '{TypeOf(key).getType()}' is not iterable",
+                        'message': f"dict expected 1 argument, but got {len(args)}",
                         "context": context,
                         'exit': False
                     })
-            return res.success(Dict(new_dict).setPosition(node.pos_start, node.pos_end).setContext(context))
-        
-        elif isinstance(args[0], String):
-            raise Al_TypeError({
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'message': f"cannot convert '{TypeOf(args[0]).getType()}' to 'dict'",
-                'context': context,
+                        
+            raise Al_ArgumentError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"dict expected 1 argument, but got {len(args)}",
+                "context": context,
                 'exit': False
             })
-    
-    if len(args) == 2:
-        if isinstance(args[0], Dict) and isinstance(args[1], Dict):
-            new_dict = {}
-            for prop in args[0].properties:
-                new_dict[prop] = args[0].value[prop]
-            for prop in args[1].properties:
-                new_dict[prop] = args[1].value[prop]
-            return res.success(Dict(new_dict).setPosition(node.pos_start, node.pos_end).setContext(context))
-                
-        if isinstance(args[0], Pair) and isinstance(args[0], List):
-            if isinstance(args[1], Pair) and isinstance(args[1], List):
-                new_dict = {}
-                for key, value in zip(args[0].value, args[1].value):
-                    new_dict[key] = value
-                return res.success(Dict(new_dict).setPosition(node.pos_start, node.pos_end).setContext(context))
-            else:
-                raise Al_TypeError({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"expected argument 2 to be of type 'pair' or 'list', but got '{TypeOf(args[1]).getType()}'",
-                    "context": context,
-                    'exit': False
-                })
-        if isinstance(args[0], List) or isinstance(args[0], Pair):
-            if isinstance(args[1], List) or isinstance(args[1], Pair):
-                new_dict = {}
-                for key, value in zip(args[0].value, args[1].value):
-                    new_dict[key] = value
-                return res.success(Dict(new_dict).setPosition(node.pos_start, node.pos_end).setContext(context))
-            else:
-                raise Al_TypeError({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"expected argument 2 to be of type 'list' or 'pair', but got '{TypeOf(args[1]).getType()}'",
-                    "context": context,
-                    'exit': False
-                })
-    
+        return res.success(Dict({}).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
-        raise Al_TypeError({
-            'message': f"'{TypeOf(args[0]).getType()}' is not iterable",
-            'pos_start': node.pos_start,
-            'pos_end': node.pos_end,
-            'context': context,
-            'exit': False
-        })
+        keywords = {}
+        for keyword in keyword_args:
+            name = keyword['name']
+            value = res.register(interpreter.visit(keyword['value'], context))
+            if res.should_return(): return res
+            keywords[name] = value
+        return res.success(Dict(keywords).setPosition(node.pos_start, node.pos_end).setContext(context))
+    # if len(args) > 2:
+    #     raise Al_ArgumentError({
+    #         "pos_start": node.pos_start,
+    #         "pos_end": node.pos_end,
+    #         'message': f"{len(args)} arguments given, but dict() takes 2 arguments",
+    #         "context": context,
+    #         'exit': False
+    #     })
+    # if len(args) == 1:
+    #     if isinstance(args[0], Dict):
+    #         return res.success(args[0])
+    #     elif isinstance(args[0], Pair) or isinstance(args[0], List):
+    #         new_dict = {}
+    #         for key in args[0].elements:
+    #             if isinstance(key, Pair) or isinstance(key, List):
+    #                 new_dict[key.elements[0]] = key.elements[1]
+    #             else:
+    #                 # get position of key
+    #                 position_of_key = args[0].elements.index(key)
+    #                 raise Al_TypeError({
+    #                     "pos_start": node.pos_start,
+    #                     "pos_end": node.pos_end,
+    #                     'message': f"element #{position_of_key} of type '{TypeOf(key).getType()}' is not iterable",
+    #                     "context": context,
+    #                     'exit': False
+    #                 })
+    #         return res.success(Dict(new_dict).setPosition(node.pos_start, node.pos_end).setContext(context))
+        
+    #     elif isinstance(args[0], String):
+    #         raise Al_TypeError({
+    #             'pos_start': node.pos_start,
+    #             'pos_end': node.pos_end,
+    #             'message': f"cannot convert '{TypeOf(args[0]).getType()}' to 'dict'",
+    #             'context': context,
+    #             'exit': False
+    #         })
+    
+    # if len(args) == 2:
+    #     if isinstance(args[0], Dict) and isinstance(args[1], Dict):
+    #         new_dict = {}
+    #         for prop in args[0].properties:
+    #             new_dict[prop] = args[0].value[prop]
+    #         for prop in args[1].properties:
+    #             new_dict[prop] = args[1].value[prop]
+    #         return res.success(Dict(new_dict).setPosition(node.pos_start, node.pos_end).setContext(context))
+                
+    #     if isinstance(args[0], Pair) and isinstance(args[0], List):
+    #         if isinstance(args[1], Pair) and isinstance(args[1], List):
+    #             new_dict = {}
+    #             for key, value in zip(args[0].value, args[1].value):
+    #                 new_dict[key] = value
+    #             return res.success(Dict(new_dict).setPosition(node.pos_start, node.pos_end).setContext(context))
+    #         else:
+    #             raise Al_TypeError({
+    #                 "pos_start": node.pos_start,
+    #                 "pos_end": node.pos_end,
+    #                 'message': f"expected argument 2 to be of type 'pair' or 'list', but got '{TypeOf(args[1]).getType()}'",
+    #                 "context": context,
+    #                 'exit': False
+    #             })
+    #     if isinstance(args[0], List) or isinstance(args[0], Pair):
+    #         if isinstance(args[1], List) or isinstance(args[1], Pair):
+    #             new_dict = {}
+    #             for key, value in zip(args[0].value, args[1].value):
+    #                 new_dict[key] = value
+    #             return res.success(Dict(new_dict).setPosition(node.pos_start, node.pos_end).setContext(context))
+    #         else:
+    #             raise Al_TypeError({
+    #                 "pos_start": node.pos_start,
+    #                 "pos_end": node.pos_end,
+    #                 'message': f"expected argument 2 to be of type 'list' or 'pair', but got '{TypeOf(args[1]).getType()}'",
+    #                 "context": context,
+    #                 'exit': False
+    #             })
+    
+    # else:
+    #     raise Al_TypeError({
+    #         'message': f"'{TypeOf(args[0]).getType()}' is not iterable",
+    #         'pos_start': node.pos_start,
+    #         'pos_end': node.pos_end,
+    #         'context': context,
+    #         'exit': False
+    #     })
     
  
 def BuiltInFunction_Zip(args, node, context,keyword_args=None):
@@ -8140,7 +8172,7 @@ class BuiltInMethod_List(Value):
                 return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
             
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
                 'message': f"{len(self.args)} arguments given, but count() takes 1 argument",

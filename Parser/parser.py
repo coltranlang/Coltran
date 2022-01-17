@@ -1132,7 +1132,6 @@ class Parser:
                                 self.advance()
                                 comma_token = self.current_token
                                 values.append(res.register(self.expr()))
-                                print(identifiers, values)
                                 for v in values:
                                     if v == '':
                                         values.remove(v)
@@ -5104,3 +5103,6 @@ li = [1,2,3,]
     
 # a = A("Bob")
 # a.Test("Hello", "World", greeting="Hi", name="Bob")
+
+d = dict()
+print(d)

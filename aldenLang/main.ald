@@ -56,7 +56,7 @@ end
 
 # Todo: work on varargs and keyword args
 def @join_sep(sep, *args, end_)
-    println(sep, args, end_, "innn")
+    println(sep, args, end_)
     let nums = ''
     in args as arg:
         nums += str(arg) + sep
@@ -67,6 +67,8 @@ println(@join_sep('-', 1,2,3,4,5,6,7,8,9,10, end_ = '::'))
 
 let name, age = {
     name: "Bob",
-    age: "20",
+    age: 20,
 }
-println(name, age)
+
+let d = dict(name = "Bob", age = 20, weight = "200")
+println(d)
