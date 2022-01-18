@@ -36,7 +36,7 @@
 # Description:
 #   This file contains the interpreter class which is responsible for interpreting the code
 
-from hashlib import new
+
 import os
 from unittest import result
 from Parser.parser import Parser
@@ -148,7 +148,7 @@ pair_methods = {
 
 dict_methods = {
         'length': 'length',  # Dict.length
-        'hasproperty': 'hasproperty',  # Dict.hasproperty(key)
+        'hasprop': 'hasprop',  # Dict.hasprop(key)
         'keys': 'keys',  # Dict.keys()
         'values': 'values',  # Dict.values()
         'items': 'items',  # Dict.items()
@@ -442,7 +442,23 @@ class Program:
                 Program.printErrorExit(error)
             else:
                 Program.printError(error)
-
+        
+        def Exception(detail):
+            if 'name' in detail:
+                if isinstance(detail['name'], String):
+                    detail['name'] = detail['name'].value
+            isDetail = {
+                'name': detail['name'] if 'name' in detail else 'Exception',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+        
         def RuntimeError(detail):
             if 'name' in detail:
                 if isinstance(detail['name'], String):
@@ -593,7 +609,6 @@ class Program:
                     detail['name'] = detail['name'].value
             isDetail = {
                 'name': detail['name'] if 'name' in detail else 'GetError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -610,7 +625,6 @@ class Program:
                     detail['name'] = detail['name'].value
             isDetail = {
                 'name': detail['name'] if 'name' in detail else 'ModuleNotFoundError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -636,7 +650,6 @@ class Program:
                     detail['name'] = detail['name'].value
             isDetail = {
                 'name': detail['name'] if 'name' in detail else 'RecursionError',
-                'type': 'invalid syntax',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -647,12 +660,44 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
-        def Exception(detail):
+        def IOError(detail):
             if 'name' in detail:
                 if isinstance(detail['name'], String):
                     detail['name'] = detail['name'].value
             isDetail = {
-                'name': detail['name'] if 'name' in detail else 'Exception',
+                'name': detail['name'] if 'name' in detail else 'IOError',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+        
+        def OSError(detail):
+            if 'name' in detail:
+                if isinstance(detail['name'], String):
+                    detail['name'] = detail['name'].value
+            isDetail = {
+                'name': detail['name'] if 'name' in detail else 'OSError',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+         
+        def FileNotFoundError(detail):
+            if 'name' in detail:
+                if isinstance(detail['name'], String):
+                    detail['name'] = detail['name'].value
+            isDetail = {
+                'name': detail['name'] if 'name' in detail else 'FileNotFoundError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -663,6 +708,38 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
+        def PermissionError(detail):
+            if 'name' in detail:
+                if isinstance(detail['name'], String):
+                    detail['name'] = detail['name'].value
+            isDetail = {
+                'name': detail['name'] if 'name' in detail else 'PermissionError',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+
+        def NotImplementedError(detail):
+            if 'name' in detail:
+                if isinstance(detail['name'], String):
+                    detail['name'] = detail['name'].value
+            isDetail = {
+                'name': detail['name'] if 'name' in detail else 'NotImplementedError',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+        
         def Warning(detail):
             isDetail = {
                 'name': 'Warning',
@@ -679,6 +756,7 @@ class Program:
 
         methods = {
             'Default': Default,
+            'Exception': Exception,
             'RuntimeError': RuntimeError,
             'ZeroDivisionError': ZeroDivisionError,
             'NameError': NameError,
@@ -692,7 +770,11 @@ class Program:
             'ModuleNotFoundError': ModuleNotFoundError,
             'KeyboardInterrupt': KeyboardInterrupt,
             'RecursionError': RecursionError,
-            'Exception': Exception,
+            'IOError': IOError,
+            'OSError': OSError,
+            'FileNotFoundError': FileNotFoundError,
+            'PermissionError': PermissionError,
+            'NotImplementedError': NotImplementedError,
             'Warning': Warning
         }
 
@@ -792,9 +874,6 @@ class Program:
                             context.symbolTable.set(module_name, value)
                             tok.context.symbolTable.set(module_name, value)
         return res.success(value)
-
-    def exception(error):
-        return RuntimeResult().failure(error)
 
 
 class RuntimeResult:
@@ -973,6 +1052,46 @@ class Al_RecursionError(Al_Exception):
 
     def __repr__(self):
         return f"<RecursionError {self.message}>"
+    
+    
+class Al_IOError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("IOError", message)
+
+    def __repr__(self):
+        return f"<IOError {self.message}>"
+    
+    
+class Al_OSError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("OSError", message)
+
+    def __repr__(self):
+        return f"<OSError {self.message}>"
+    
+    
+class Al_FileNotFoundError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("FileNotFoundError", message)
+
+    def __repr__(self):
+        return f"<FileNotFoundError {self.message}>"
+
+
+class Al_PermissionError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("PermissionError", message)
+
+    def __repr__(self):
+        return f"<PermissionError {self.message}>"
+    
+    
+class Al_NotImplementedError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("NotImplementedError", message)
+    
+    def __repr__(self):
+        return f"<NotImplementedError {self.message}>"
 
 
 class Al_Warning(Al_Exception):
@@ -998,6 +1117,11 @@ builtin_exceptions = {
     'ModuleNotFoundError': Al_ModuleNotFoundError,
     'KeyboardInterrupt': Al_KeyboardInterrupt,
     'RecursionError': Al_RecursionError,
+    'IOError': Al_IOError,
+    'OSError': Al_OSError,
+    'FileNotFoundError': Al_FileNotFoundError,
+    'PermissionError': Al_PermissionError,
+    'NotImplementedError': Al_NotImplementedError,
 }
 
 
@@ -1905,6 +2029,7 @@ class String(Value):
 class Boolean(Value):
     def __init__(self, value):
         super().__init__()
+        self.value = value
         if value == True or value == "true":
             self.value = "true"
             self.id = "true"
@@ -2142,6 +2267,8 @@ class NoneType(Value):
     def __init__(self, value):
         super().__init__()
         self.value = value
+        if self.value == None or self.value == "none":
+            self.value = "none"
         self.id = value
         self.setPosition(0, 0)
         self.setContext(None)
@@ -3707,9 +3834,11 @@ class Function(BaseFunction):
         if res.should_return(): return res
 
         value = res.register(interpreter.visit(self.body_node, exec_context))
+        if self.type == "wrapper":
+            return res.success(self.body_node)
         if res.should_return() and res.func_return_value == None: return res
         return_value = (
-            value if self.implicit_return else None) or res.func_return_value or NoneType.none
+            value if self.implicit_return else None) or res.func_return_value
         # if hasattr(return_value, "value"):
         #     if return_value.value == "none":
         #         return_value.value = NoneType.none
@@ -4057,6 +4186,7 @@ class Function(BaseFunction):
             return res
 
         value = res.register(interpreter.visit(self.body_node, exec_context))
+        
         if res.should_return() and res.func_return_value == None: return res
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType.none
@@ -5039,7 +5169,6 @@ def BuiltInFunction_PrintLn(args, node, context,keyword_args=None):
             except:
                 pass
         values.append(value)
-    
     valid_keywords_args = ["@sep", "@end", "@file"]
     keyword_args_names = []
     if keyword_args != None and len(keyword_args) > 0:
@@ -5105,7 +5234,7 @@ def BuiltInFunction_Len(args, node, context, keyword_args=None):
                 raise Al_ArgumentError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"print() got an unexpected keyword argument '{name}'",
+                    'message': f"len() got an unexpected keyword argument '{name}'",
                     'context': context,
                     'exit': False
                 })
@@ -5919,23 +6048,23 @@ def BuiltInFunction_Min(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_isFinite(args, node, context,keyword_args=None):
+def BuiltInFunction_is_finite(args, node, context,keyword_args=None):
     res = RuntimeResult()
     if len(args) != 1:
         raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but isFinite() takes 1 argument",
+            'message': f"{len(args)} arguments given, but is_finite() takes 1 argument",
             "context": context,
             'exit': False
         })
 
 
     if isinstance(args[0], Number):
-        # custom implementation of isFinite()
-        def isFinite(num):
+        # custom implementation of is_finite()
+        def is_finite(num):
             return num == num and num != float('inf') and num != float('-inf')
-        return res.success(Boolean(isFinite(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+        return res.success(Boolean(is_finite(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
     else:
         raise Al_TypeError({
             "pos_start": node.pos_start,
@@ -6158,14 +6287,14 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
         return res.success(Boolean(getInstance(args[0], args[1])).setPosition(node.pos_start, node.pos_end).setContext(context))
 
 
-def BuiltInFunction_HasProperty(args, node, context,keyword_args=None):
+def BuiltInFunction_hasprop(args, node, context,keyword_args=None):
     res = RuntimeResult()
     
     if len(args) == 0:
         raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"hasProperty() takes 2 arguments",
+            'message': f"hasprop() takes 2 arguments",
             "context": context,
             'exit': False
         })
@@ -6174,7 +6303,7 @@ def BuiltInFunction_HasProperty(args, node, context,keyword_args=None):
         raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"hasProperty() takes 2 arguments",
+            'message': f"hasprop() takes 2 arguments",
             "context": context,
             'exit': False
         })
@@ -6183,7 +6312,7 @@ def BuiltInFunction_HasProperty(args, node, context,keyword_args=None):
         raise Al_RuntimeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but hasProperty() takes 2 arguments",
+            'message': f"{len(args)} arguments given, but hasprop() takes 2 arguments",
             "context": context,
             'exit': False
         })
@@ -6193,7 +6322,7 @@ def BuiltInFunction_HasProperty(args, node, context,keyword_args=None):
             raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"hasProperty() property name must be string",
+                'message': f"hasprop() property name must be string",
                 "context": context,
                 'exit': False
             })
@@ -6277,13 +6406,120 @@ def BuiltInFunction_Delay(args, node, context,keyword_args=None):
             'exit': False
         })
  
+ 
+
+ 
+def BuiltInFunction_Open(args, node, context,keyword_args=None):
+    res = RuntimeResult()
+    interpreter = Interpreter()
+    valid_keywords = ['file', 'mode']
+    keywords = {}
+    keyword_args_names = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for keyword_arg in keyword_args:
+            name = keyword_arg['name']
+            value = res.register(interpreter.visit(keyword_arg['value'], context))
+            if not name in valid_keywords:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"open() got an unexpected keyword argument '{name}'",
+                    'context': context,
+                    'exit': False
+                })
+            if not isinstance(value, String):
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"open() keyword argument '{name}' must be of type string",
+                    'context': context,
+                    'exit': False
+                })
+            keywords[name] = value.value
+            keyword_args_names.append(name)
+        
+        len_keyword_args = len(keyword_args_names)
+        
+        if len_keyword_args == 1 or len_keyword_args > 2:
+            raise Al_ArgumentError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"open() got too many or too few arguments. Expected 2, but got {len_keyword_args}",
+                'context': context,
+                'exit': False
+            })
+        file_name = keywords['file']
+        mode = keywords['mode']
+        return handle_file_open(file_name, mode, node, context)
+            
+    else:
+        if len(args) == 0 or len(args) == 1 or len(args) > 2:
+            raise Al_ArgumentError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but open() takes 2 arguments",
+                "context": context,
+                'exit': False
+            })
+        if isinstance(args[0], String):
+            if isinstance(args[1], String):
+                pass
+            else:
+                raise Al_TypeError({
+                    "pos_start": node.pos_start,
+                    "pos_end": node.pos_end,
+                    'message': f"open() argument 2 must be of type string",
+                    "context": context,
+                    'exit': False
+                })
+        else:
+            raise Al_TypeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"open() argument 1 must be of type string",
+                "context": context,
+                'exit': False
+            })
+ 
+ 
+def handle_file_open(file_name, mode, node, context):
+    res = RuntimeResult()
+    if mode == 'r':
+        try:
+            read = ''
+            with open(file_name, 'r') as file:
+                file_object = {
+                    'name': String(file_name).setContext(context).setPosition(node.pos_start, node.pos_end),
+                    'mode': String(mode).setContext(context).setPosition(node.pos_start, node.pos_end),
+                    'read': Function('read', String(file.read()), [], False, {}, {}, 'wrapper', context),
+                    'close': handle_file_close(file, node, context)
+                }
+                return res.success(Dict(file_object).setContext(context).setPosition(node.pos_start, node.pos_end))
+        
+        except FileNotFoundError:
+            raise Al_FileNotFoundError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"File '{file_name}' not found",
+                "context": context,
+                'exit': False
+            })
+ 
+  
+def handle_file_close(file, node, context):
+    res = RuntimeResult()
+    interpreter = Interpreter()
+    file.close()
+    value = NoneType('none')
+    return Function('close', value, [], False, {}, {}, 'wrapper', context)
+
     
 def BuiltInFunction_Exit(args, node, context,keyword_args=None):
     res = RuntimeResult()
     if len(args) == 0:
         sys.exit()
     elif len(args) > 1:
-        raise Al_RuntimeError({
+        raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but exit() takes 0 or 1 argument(s)",
@@ -6960,6 +7196,235 @@ def BuiltInClass_RecursionError(args, node, context, type):
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
             return res.success(BuiltInClass("RecursionError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
+
+def BuiltInClass_IOError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ArgumentError({
+            'name': 'IOError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'IOError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_IOError({
+                'name': 'IOError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_IOError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('IOError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_ArgumentError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but IOError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("IOError", Dict({'name': String("IOError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("IOError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+
+def BuiltInClass_OSError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ArgumentError({
+            'name': 'OSError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'OSError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_OSError({
+                'name': 'OSError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_OSError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('OSError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_ArgumentError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but OSError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("OSError", Dict({'name': String("OSError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("OSError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+
+def BuiltInClass_FileNotFoundError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ArgumentError({
+            'name': 'FileNotFoundError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'FileNotFoundError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_FileNotFoundError({
+                'name': 'FileNotFoundError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_FileNotFoundError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('FileNotFoundError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_ArgumentError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but FileNotFoundError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("FileNotFoundError", Dict({'name': String("FileNotFoundError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("FileNotFoundError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+
+def BuiltInClass_PermissionError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ArgumentError({
+            'name': 'PermissionError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'PermissionError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_PermissionError({
+                'name': 'PermissionError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_PermissionError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('PermissionError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_ArgumentError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but PermissionError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("PermissionError", Dict({'name': String("PermissionError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("PermissionError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+
+def BuiltInClass_NotImplementedError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ArgumentError({
+            'name': 'NotImplementedError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'NotImplementedError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_NotImplementedError({
+                'name': 'NotImplementedError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_NotImplementedError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('NotImplementedError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_ArgumentError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but NotImplementedError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("NotImplementedError", Dict({'name': String("NotImplementedError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("NotImplementedError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
 def BuiltInFunction_Http_Get():
@@ -8604,7 +9069,7 @@ class BuiltInMethod_Dict(Value):
     def is_true(self):
         return True if self.name else False
     
-    def BuiltInMethod_hasproperty(self):
+    def BuiltInMethod_hasprop(self):
         res = RuntimeResult()
         if len(self.args) == 1:
             if isinstance(self.args[0], String) or isinstance(self.args[0], Number):
@@ -8616,7 +9081,7 @@ class BuiltInMethod_Dict(Value):
                 raise Al_TypeError({
                     "pos_start": self.node.pos_start,
                     "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for hasproperty()",
+                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for hasprop()",
                     "context": self.context,
                     'exit': False
                 })
@@ -8624,7 +9089,7 @@ class BuiltInMethod_Dict(Value):
             raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but hasproperty() takes 1 argument",
+                'message': f"{len(self.args)} arguments given, but hasprop() takes 1 argument",
                 "context": self.context,
                 'exit': False
             })
@@ -11857,6 +12322,7 @@ class Interpreter:
         finally:
             if finally_statement:
                 res.register(self.visit(finally_statement['body'], context))
+                if res.should_return(): return res
     
     
     def visit_FunctionNode(self, node, context):
@@ -12117,7 +12583,7 @@ class Interpreter:
             'pop': BuiltInFunction_Pop,
             'extend': BuiltInFunction_Extend,
             'remove': BuiltInFunction_Remove,
-            'isFinite': BuiltInFunction_isFinite,
+            'is_finite': BuiltInFunction_is_finite,
             'sorted': BuiltInFunction_Sorted,
             'substr': BuiltInFunction_Substr,
             'reverse': BuiltInFunction_Reverse,
@@ -12126,19 +12592,9 @@ class Interpreter:
             'clear': BuiltInFunction_Clear,
             'typeof': BuiltInFunction_Typeof,
             'isinstanceof': BuiltInFunction_IsinstanceOf,
-            'hasproperty': BuiltInFunction_HasProperty,
+            'hasprop': BuiltInFunction_hasprop,
             'delay': BuiltInFunction_Delay,
-            # 'Exception': BuiltInClass_Exception,
-            # 'RuntimeError': BuiltInClass_RuntimeError,
-            # 'NameError': BuiltInClass_NameError,
-            # 'TypeError': BuiltInClass_TypeError,
-            # 'ValueError': BuiltInClass_ValueError,
-            # 'KeyError': BuiltInClass_KeyError,
-            # 'IndexError': BuiltInClass_IndexError,
-            # 'PropertyError': BuiltInClass_PropertyError,
-            # 'GetError': BuiltInClass_GetError,
-            # 'ModuleNotFoundError': BuiltInClass_ModuleNotFoundError,
-            # 'KeyboardInterrupt': BuiltInClass_KeyboardInterrupt,
+            'open': BuiltInFunction_Open,
             'exit': BuiltInFunction_Exit
         }
         
@@ -12314,16 +12770,17 @@ BuiltInFunction.remove = BuiltInFunction("remove")
 BuiltInFunction.sorted = BuiltInFunction("sorted")
 BuiltInFunction.clearList = BuiltInFunction("clearList")
 BuiltInFunction.delay = BuiltInFunction("delay")
+BuiltInFunction.open = BuiltInFunction("open")
 BuiltInFunction.split = BuiltInFunction("split")
 BuiltInFunction.substr = BuiltInFunction("substr")
 BuiltInFunction.reverse = BuiltInFunction("reverse")
 BuiltInFunction.format = BuiltInFunction("format")
 BuiltInFunction.typeof = BuiltInFunction("typeof")
 BuiltInFunction.isinstanceof = BuiltInFunction("isinstanceof")
-BuiltInFunction.hasproperty = BuiltInFunction("hasproperty")
+BuiltInFunction.hasprop = BuiltInFunction("hasprop")
 BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
-BuiltInFunction.isFinite = BuiltInFunction("isFinite")
+BuiltInFunction.is_finite = BuiltInFunction("is_finite")
 
 
 
@@ -12344,6 +12801,15 @@ code_builtin_zerodivisionerror = 'class ZeroDivisionError()\ndef @init(self,mess
 code_builtin_geterror = 'class GetError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_modulenotfounderror = 'class ModuleNotFoundError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_recursionerror = 'class RecursionError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_ioerror = 'class IOError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_oserror = 'class OSError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_filenotfounderror = 'class FileNotFoundError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_permissionerror = 'class PermissionError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_notimplementederror = 'class NotImplementedError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+
+
+
 builtin_exception = Program.createBuiltIn("Exception", code_builtin_exception).elements[0]
 builtin_exception_runtime = Program.createBuiltIn("RuntimeError", code_builtin_runtime).elements[0]
 builtin_exception_nameerror = Program.createBuiltIn("NameError", code_builtin_nameerror).elements[0]
@@ -12357,6 +12823,14 @@ builtin_exception_zerodivisionerror = Program.createBuiltIn("ZeroDivisionError",
 builtin_exception_geterror = Program.createBuiltIn("GetError", code_builtin_geterror).elements[0]
 builtin_exception_modulenotfounderror = Program.createBuiltIn("ModuleNotFoundError", code_builtin_modulenotfounderror).elements[0]
 builtin_exception_keyboardinterrupt = Program.createBuiltIn("KeyboardInterrupt", code_builtin_keyboardinterrupt).elements[0]
+builtin_exception_recursionerror = Program.createBuiltIn("RecursionError", code_builtin_recursionerror).elements[0]
+builtin_exception_ioerror = Program.createBuiltIn("IOError", code_builtin_ioerror).elements[0]
+builtin_exception_oserror = Program.createBuiltIn("OSError", code_builtin_ioerror).elements[0]
+builtin_exception_filenotfounderror = Program.createBuiltIn("FileNotFoundError", code_builtin_filenotfounderror).elements[0]
+builtin_exception_permissionerror = Program.createBuiltIn("PermissionError", code_builtin_permissionerror).elements[0]
+builtin_exception_notimplementederror = Program.createBuiltIn("NotImplementedError", code_builtin_notimplementederror).elements[0]
+
+
 exceptions_ = {
     'Exception': builtin_exception,
     'RuntimeError': builtin_exception_runtime,
@@ -12370,7 +12844,13 @@ exceptions_ = {
     'ZeroDivisionError': builtin_exception_zerodivisionerror,
     'GetError': builtin_exception_geterror,
     'ModuleNotFoundError': builtin_exception_modulenotfounderror,
-    'KeyboardInterrupt': builtin_exception_keyboardinterrupt
+    'KeyboardInterrupt': builtin_exception_keyboardinterrupt,
+    'RecursionError': builtin_exception_recursionerror,
+    'IOError': builtin_exception_ioerror,
+    'OSError': builtin_exception_oserror,
+    'FileNotFoundError': builtin_exception_filenotfounderror,
+    'PermissionError': builtin_exception_permissionerror,
+    'NotImplementedError': builtin_exception_notimplementederror
 }
 # class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context
 BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.class_args, builtin_exception.inherit_class_name, builtin_exception.inherited_from, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
@@ -12386,6 +12866,14 @@ BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerro
 BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.class_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.inherited_from, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
 BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.class_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.inherited_from, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
 BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.class_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.inherited_from, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
+BuiltInClass.RecursionError = BuiltInClass(builtin_exception_recursionerror.class_name, builtin_exception_recursionerror.class_args, builtin_exception_recursionerror.inherit_class_name, builtin_exception_recursionerror.inherited_from, builtin_exception_recursionerror.methods, builtin_exception_recursionerror.class_fields_modifiers, builtin_exception_recursionerror.context)
+BuiltInClass.IOError = BuiltInClass(builtin_exception_ioerror.class_name, builtin_exception_ioerror.class_args, builtin_exception_ioerror.inherit_class_name, builtin_exception_ioerror.inherited_from, builtin_exception_ioerror.methods, builtin_exception_ioerror.class_fields_modifiers, builtin_exception_ioerror.context)
+BuiltInClass.OSError = BuiltInClass(builtin_exception_oserror.class_name, builtin_exception_oserror.class_args, builtin_exception_oserror.inherit_class_name, builtin_exception_oserror.inherited_from, builtin_exception_oserror.methods, builtin_exception_oserror.class_fields_modifiers, builtin_exception_oserror.context)
+BuiltInClass.FileNotFoundError = BuiltInClass(builtin_exception_filenotfounderror.class_name, builtin_exception_filenotfounderror.class_args, builtin_exception_filenotfounderror.inherit_class_name, builtin_exception_filenotfounderror.inherited_from, builtin_exception_filenotfounderror.methods, builtin_exception_filenotfounderror.class_fields_modifiers, builtin_exception_filenotfounderror.context)
+BuiltInClass.PermissionError = BuiltInClass(builtin_exception_permissionerror.class_name, builtin_exception_permissionerror.class_args, builtin_exception_permissionerror.inherit_class_name, builtin_exception_permissionerror.inherited_from, builtin_exception_permissionerror.methods, builtin_exception_permissionerror.class_fields_modifiers, builtin_exception_permissionerror.context)
+BuiltInClass.NotImplementedError = BuiltInClass(builtin_exception_notimplementederror.class_name, builtin_exception_notimplementederror.class_args, builtin_exception_notimplementederror.inherit_class_name, builtin_exception_notimplementederror.inherited_from, builtin_exception_notimplementederror.methods, builtin_exception_notimplementederror.class_fields_modifiers, builtin_exception_notimplementederror.context)
+
+
 
 Types.Number = Types("Number")
 Types.String = Types("String")
@@ -12427,16 +12915,17 @@ symbolTable_.set('remove', BuiltInFunction.remove)
 symbolTable_.set('sorted', BuiltInFunction.sorted)
 symbolTable_.set('clearList', BuiltInFunction.clearList)
 symbolTable_.set('delay', BuiltInFunction.delay)
+symbolTable_.set('open', BuiltInFunction.open)
 symbolTable_.set('split', BuiltInFunction.split)
 symbolTable_.set('substr', BuiltInFunction.substr)
 symbolTable_.set('reverse', BuiltInFunction.reverse)
 symbolTable_.set('format', BuiltInFunction.format)
 symbolTable_.set('typeof', BuiltInFunction.typeof)
 symbolTable_.set('isinstanceof', BuiltInFunction.isinstanceof)
-symbolTable_.set('hasproperty', BuiltInFunction.hasproperty)
+symbolTable_.set('hasprop', BuiltInFunction.hasprop)
 symbolTable_.set('max', BuiltInFunction.max)
 symbolTable_.set('min', BuiltInFunction.min)
-symbolTable_.set('isFinite', BuiltInFunction.isFinite)
+symbolTable_.set('is_finite', BuiltInFunction.is_finite)
 symbolTable_.set('Number', Types.Number)
 symbolTable_.set('String', Types.String)
 symbolTable_.set('Boolean', Types.Boolean)
@@ -12462,5 +12951,11 @@ symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
 symbolTable_.set('GetError', BuiltInClass.GetError)
 symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
 symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
+symbolTable_.set('RecursionError', BuiltInClass.RecursionError)
+symbolTable_.set('IOError', BuiltInClass.IOError)
+symbolTable_.set('OSError', BuiltInClass.OSError)
+symbolTable_.set('FileNotFoundError', BuiltInClass.FileNotFoundError)
+symbolTable_.set('PermissionError', BuiltInClass.PermissionError)
+symbolTable_.set('NotImplementedError', BuiltInClass.NotImplementedError)
 symbolTable_.setSymbol()
 

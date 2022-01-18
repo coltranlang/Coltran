@@ -793,20 +793,20 @@ match verfied or eligible:
     end
 end
 line(68)
-# hasproperty check
+# hasprop check
 let dict_user = {"name": "John","age": 21, "email": "","hobby": "Playing soccer",verfied: true, 2: "2"}
-println("hasproperty for dict")
-println(hasproperty(dict_user, "name"))  # true
-println(hasproperty(dict_user, "age")) # true
-println(hasproperty(dict_user, "email")) # true
-println(hasproperty(dict_user, "hobby")) # true
-println(hasproperty(dict_user, "verfied")) # true
-println(hasproperty(dict_user, "hasproperty")) # true # check if dict has built-in method hasproperty
-println(hasproperty(dict_user, "2")) # false
-println(hasproperty(dict_user, "address")) # false
-println("hasproperty for list")
+println("hasprop for dict")
+println(hasprop(dict_user, "name"))  # true
+println(hasprop(dict_user, "age")) # true
+println(hasprop(dict_user, "email")) # true
+println(hasprop(dict_user, "hobby")) # true
+println(hasprop(dict_user, "verfied")) # true
+println(hasprop(dict_user, "hasprop")) # true # check if dict has built-in method hasprop
+println(hasprop(dict_user, "2")) # false
+println(hasprop(dict_user, "address")) # false
+println("hasprop for list")
 let list_user = ["John", 21, "", "Playing soccer", true, 2]
-#println(hasproperty(list_user, "name"))  # false
+#println(hasprop(list_user, "name"))  # false
 
 
 line(69)
