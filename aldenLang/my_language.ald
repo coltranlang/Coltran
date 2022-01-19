@@ -193,5 +193,34 @@ in tokens as token:
     println(token.toString())
 end
 
+# def @repl()
+#     while true:
+#         let text = input('>>> ')
+#         let lexer = Lexer("main.ald", text)
+#         let tokens, error = lexer.makeTokens()
+#         if error:
+#             println(error)
+#         else:
+#             in tokens as token:
+#                 println(token.toString())
+#             end
+#         end
+#     end
+# end
 
+# def @runFile(fileName)
+#     let file = File(name=fileName, mode="r")
+#     let fileText = file.read()
+#     file.close()
+#     let lexer = Lexer(fileName, fileText)
+#     let tokens, error = lexer.makeTokens()
+#     if error:
+#         println(error)
+#     else:
+#         in tokens as token:
+#             println(token.toString())
+#         end
+#     end
+# end
 
+# @runFile("testlang.ald")

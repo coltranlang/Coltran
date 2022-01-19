@@ -115,7 +115,7 @@ list_methods = {
                 'remove': 'remove',  # List.remove(value)
                 'insert': 'insert',  # List.insert(index, value)
                 'empty': 'empty',  # List.empty()
-                'isEmpty': 'isEmpty',  # List.isEmpty()
+                'is_empty': 'is_empty',  # List.is_empty()
                 'reverse': 'reverse',  # List.reverse()
                 'getItem': 'getItem',  # List.getItem(index)
                 'setItem': 'setItem',  # List.setItem(value, Optional: index)
@@ -134,8 +134,8 @@ list_methods = {
                 'each': 'each',  # List.each(function)
                 'every': 'every',  # List.every(function)
                 'toString': 'toString',  # List.toString()
-                'isNumber': 'isNumber',  # List.isNumber()
-                'isString': 'isString',  # List.isString()
+                'is_number': 'is_number',  # List.is_number()
+                'is_string': 'is_string',  # List.is_string()
                 '__methods__': '__methods__',  # List.__methods__()
 
 }
@@ -342,7 +342,7 @@ class Regex:
             return self.pattern.findall(text)
 
 
-def isEmptyString(value):
+def is_emptyString(value):
     return value == ""
 
 
@@ -2282,11 +2282,7 @@ class NoneType(Value):
         self.context = context
         return self
 
-    def copy(self):
-        copy = NoneType(self.value)
-        copy.setPosition(self.pos_start, self.pos_end)
-        copy.setContext(self.context)
-        return copy
+
 
     def get_comparison_eq(self, other):
         return self.setTrueorFalse(other.value == "none"), None
@@ -2306,7 +2302,13 @@ class NoneType(Value):
 
     def is_true(self):
         return self.value == "true" if self.value else "false"
-
+    
+    def copy(self):
+        copy = NoneType(self.value)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+    
     def __str__(self):
         return self.value
 
@@ -2994,7 +2996,7 @@ class BaseFunction(Value):
         super().__init__()
         self.name = name or "<anonymous>"
 
-    def generate_new_context(self):
+    def generate_new_context(self,context=None):
         new_context = Context(self.name, self.context, self.pos_start)
         new_context.symbolTable = SymbolTable(new_context.parent.symbolTable)
         return new_context
@@ -3503,6 +3505,7 @@ class BaseFunction(Value):
 
 
 class BaseClass(Value):
+   
     def __init__(self, name):
         super().__init__()
         self.name = name
@@ -4454,6 +4457,185 @@ class Function(BaseFunction):
         return f"<Function {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
 
+class BuiltInFunction(BaseFunction):
+    def __init__(self, name, context=None, properties=None):
+        super().__init__(name)
+        self.value = name
+        self.context = context
+        self.properties = properties
+        self.representation = f"<{str(self.name)}()>, [ built-in function_method ]"
+        
+   
+    def execute(self, args, keyword_args_list):
+        res = RuntimeResult()
+        exec_context = self.generate_new_context()
+        interpreter = Interpreter()
+        keyword_args = {}
+        new_args = []
+        if keyword_args_list != None and len(keyword_args_list) > 0:
+            for keyword_arg in keyword_args_list:
+                name = keyword_arg['name']
+                value = res.register(interpreter.visit(keyword_arg['value'], exec_context))
+                keyword_args[name] = value
+        
+        # if len(args) > 0:
+        #     for arg in args:
+        #         v = res.register(interpreter.visit(arg, exec_context))
+        #         args.append(v)
+               
+        method_name = f'execute_{self.name}'
+        method = getattr(self, method_name, self.no_visit)
+        res.register(self.check_and_populate_args(
+            method.arg_names, args, keyword_args, exec_context))
+        
+        if res.should_return():
+            return res
+        
+        return_value = res.register(method(exec_context))
+        if res.should_return():
+            return res
+        return res.success(return_value)
+
+
+    def check_and_populate_args(self, arg_names, args, keyword_args, exec_context):
+        res = RuntimeResult()
+        res.register(self.check_args(arg_names, args, keyword_args, exec_context))
+        if res.should_return(): return res
+        
+        return res.success(None)
+    
+    
+    def check_args(self, arg_names, args, keyword_args, exec_context):
+        res = RuntimeResult()
+        len_expected = len(arg_names)
+        len_args = len(args)
+        keyword_args_names = []
+        
+        exception_details = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"{self.name}() requires {len_expected} positional {'argument'  if len_expected <= 1 else 'arguments'} but {len_args} {'was' if len_args <= 1 else 'were'} given",
+            'context': self.context,
+            'exit': False
+        }
+        
+        if len(keyword_args) > 0:
+            for name, value in keyword_args.items():
+                if not name in arg_names:
+                    raise Al_ArgumentError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"{self.name}() got an unexpected keyword argument '{name}'",
+                    'context': self.context,
+                    'exit': False
+                })
+                if not isinstance(value, String):
+                    raise Al_TypeError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"File() keyword argument '{name}' must be of type string",
+                        'context': self.context,
+                        'exit': False
+                    })
+                
+                keyword_args_names.append(name)
+            len_keyword_args = len(keyword_args_names)
+            #print(keyword_args_names, len_keyword_args, len_expected, len_args)
+            
+            if len_keyword_args > len_expected:
+                exception_details['message'] = f"{self.name}() requires {len_expected} positional {'argument'  if len_expected <= 1 else 'arguments'} but {len_keyword_args} {'was' if len_keyword_args <= 1 else 'were'} given"
+                raise Al_ArgumentError(exception_details)
+            if len_keyword_args < len_expected:
+                if len_keyword_args == 1 and len_args == 1:
+                    args.append(keyword_args[keyword_args_names[0]])
+                else:
+                    exception_details['message'] = f"{self.name}() requires {len_expected} positional {'argument'  if len_expected <= 1 else 'arguments'} but {len_keyword_args} {'was' if len_keyword_args <= 1 else 'were'} given"
+                    raise Al_ArgumentError(exception_details)
+            elif len_keyword_args == len_expected:
+                for i in range(len_expected):
+                    if keyword_args_names[i] in arg_names:
+                        # append at the correct index
+                        args.insert(arg_names.index(keyword_args_names[i]), keyword_args[keyword_args_names[i]])
+
+                
+        else:
+            if len(args) > len_expected:
+                raise Al_ArgumentError(exception_details)
+            if len(args) < len_expected:
+                raise Al_ArgumentError(exception_details)
+        
+        
+        
+        res.register(self.populate_args(arg_names, args, exec_context))
+        return res.success(None)
+
+    
+    def populate_args(self, arg_names, args, exec_context):
+        res = RuntimeResult()
+        for i in range(len(arg_names)):
+            arg_name = arg_names[i]
+            arg_value = args[i]
+            arg_value.setContext(exec_context)
+            exec_context.symbolTable.set(arg_name, arg_value)
+            
+        
+        return res.success(None)
+
+   
+    def execute_read(self, exec_context):
+            return handle_file_read(self.properties['file'], self, exec_context)
+
+    execute_read.arg_names = []
+        
+    def execute_write(self, exec_context):
+        res = RuntimeResult()
+        value = exec_context.symbolTable.get('value')
+        if not isinstance(value, String):
+            raise Al_TypeError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"write() argument must be of type string, not {TypeOf(value).getType()}",
+                'context': self.context,
+                'exit': False
+            })
+        content = value.value
+        return handle_file_write(self.properties['file'], content, self, exec_context)
+   
+    execute_write.arg_names = ['value']     
+        
+    def execute_close(self, exec_context):
+        res = RuntimeResult()
+        file = self.properties['file']
+        node = self
+        closed = handle_file_close(file, node, exec_context)
+        return res.success(Pair([closed, Boolean(file.closed)]).setContext(exec_context).setPosition(node.pos_start, node.pos_end))
+    
+    execute_close.arg_names = []
+    
+    
+    
+    
+    
+    def no_visit(self):
+        res = RuntimeResult()
+        raise Al_NameError({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Name '{self.name}' is not defined",
+            'context': self.context,
+            'exit': False
+        })
+
+    def copy(self):
+        copy = BuiltInFunction(self.name)
+        copy.setContext(self.context)
+        copy.setPosition(self.pos_start, self.pos_end)
+        return copy
+
+    def __repr__(self):
+        return self.representation
+
+
 class Class(BaseClass):
     
     def __init__(self, class_name, class_args,inherit_class_name, inherited_from, methods, class_fields_modifiers, context):
@@ -4644,80 +4826,197 @@ class Class(BaseClass):
     
 
 class BuiltInClass(BaseClass):
-    def __init__(self, class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context):
-        super().__init__(class_name)
-        self.id = class_name
-        self.class_name = class_name
-        self.class_args = class_args
-        self.inherit_class_name = inherit_class_name
-        self.inherited_from = inherited_from
-        self.methods = methods
-        self.properties = methods
-        self.class_fields_modifiers = class_fields_modifiers
-        self.value = f"<Class {str(self.class_name)}>"
-        self.context = context
-        self.body_node = None
+    def __init__(self, name,properties):
+        super().__init__(name)
+        self.properties = properties
+        self.value = f"<{str(self.name)}, [built-in class]>"
         self.representation = self.value
-        args = []
-        for arg in self.class_args:
-            args.append(arg.value) if hasattr(
-                arg, "value") else args.append(arg)
-        self.class_args = args
-
-    def execute(self, args,keyword_args_list):
-        res = RuntimeResult()
-        new_context = self.generate_new_context()
-        # if self.properties == {}:
-        #     self.properties = method_properties
-        class_args = []
-        new_args = []
-        # method_properties = dict({arg_name: arg_value for arg_name, arg_value in zip(
-        #     self.class_args, args)}, **self.properties)
-        # self.properties = method_properties
-        if len(self.properties) > 0:
-            method_ = None
-            for method_name, method in self.properties.items():
-                method.context = new_context
-                method.context.symbolTable.set(
-                    "super", self.inherit_class_name) if self.inherit_class_name != None else None
-                if method_name == "@init":
-                    method_ = method
-                    method_args = method.arg_names
-                    class_args = method_args
-                    # remove self from args
-                    if len(method_args) > 0:
-                        if method_args[0] == "self":
-                            method_args = method_args[1:]
-                            class_args = method_args
-                            # add class_args to self.properties
-                    if len(method_args) == 1 and method_args[0] == "self":
-                        pass
-
-            if method_ != None:
-                res.register(method_.run(args, self, new_context))
-
-            self.check_args(class_args, args)
-            self.populate_args(class_args, args, self.context)
-
-        if self.inherit_class_name != None:
-
-            if isinstance(self.inherit_class_name, BuiltInClass):
-                pass
-            else:
-                pass
-                # for key, value in self.properties.items():
-                #     if key not in self.properties:
-                #         self.inherit_class_name.properties[key] = value
-                # while self.inherit_class_name != None:
-                #     print("inherit_class_name", self.inherit_class_name, self.class_name)
-                # class_args = self.inherit_class_name.class_args + class_args
-                # since the inherited class is not a executed yet, we need to set each inherited class parameter to args
-                # for i in range(len(self.inherit_class_name.class_args)):
-                #     self.inherit_class_name.properties[self.inherit_class_name.class_args[i]] = args[i]
-
-                # print(self.properties,"==",self.inherit_class_name.properties)
-        return res.success(self)
     
+    
+    def execute(self, args, keyword_args_list):
+        res = RuntimeResult()
+        interpreter = Interpreter()
+        exec_context = self.generate_new_context()
+        keyword_args = {}
+        
+        if keyword_args_list != None and len(keyword_args_list) > 0:
+            for keyword_arg in keyword_args_list:
+                name = keyword_arg['name']
+                value = res.register(interpreter.visit(keyword_arg['value'], exec_context))
+                keyword_args[name] = value
+        
+                
+                
+        class_name = f'execute_{self.name}'
+        class_ = getattr(self, class_name, self.no_visit)
+        res.register(self.check_and_populate_args(
+            class_.arg_names, args, keyword_args, exec_context))
+        if res.should_return():
+            return res
+        
+        return_value = res.register(class_(exec_context))
+        if res.should_return():
+            return res
+        return res.success(return_value)
+
+
+    def check_and_populate_args(self, arg_names, args, keyword_args, exec_context):
+        res = RuntimeResult()
+        res.register(self.check_args(arg_names, args, keyword_args, exec_context))
+        if res.should_return(): return res
+        return res.success(None)
+    
+    
+    def check_args(self, arg_names, args, keyword_args, exec_context):
+        res = RuntimeResult()
+        len_expected = len(arg_names)
+        len_args = len(args)
+        keyword_args_names = []
+        
+        exception_details = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"{self.name}() requires {len_expected} positional {'argument'  if len_expected <= 1 else 'arguments'} but {len_args} {'was' if len_args <= 1 else 'were'} given",
+            'context': self.context,
+            'exit': False
+        }
+        
+        if len(keyword_args) > 0:
+            for name, value in keyword_args.items():
+                if not name in arg_names:
+                    raise Al_ArgumentError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"{self.name}() got an unexpected keyword argument '{name}'",
+                    'context': self.context,
+                    'exit': False
+                })
+                if not isinstance(value, String):
+                    raise Al_TypeError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"File() keyword argument '{name}' must be of type string",
+                        'context': self.context,
+                        'exit': False
+                    })
+                
+                keyword_args_names.append(name)
+            len_keyword_args = len(keyword_args_names)
+            #print(keyword_args_names, len_keyword_args, len_expected, len_args)
+            
+            if len_keyword_args > len_expected:
+                exception_details['message'] = f"{self.name}() requires {len_expected} positional {'argument'  if len_expected <= 1 else 'arguments'} but {len_keyword_args} {'was' if len_keyword_args <= 1 else 'were'} given"
+                raise Al_ArgumentError(exception_details)
+            if len_keyword_args < len_expected:
+                if len_keyword_args == 1 and len_args == 1:
+                    args.append(keyword_args[keyword_args_names[0]])
+                else:
+                    exception_details['message'] = f"{self.name}() requires {len_expected} positional {'argument'  if len_expected <= 1 else 'arguments'} but {len_keyword_args} {'was' if len_keyword_args <= 1 else 'were'} given"
+                    raise Al_ArgumentError(exception_details)
+            elif len_keyword_args == len_expected:
+                for i in range(len_expected):
+                    if keyword_args_names[i] in arg_names:
+                        # append at the correct index
+                        args.insert(arg_names.index(keyword_args_names[i]), keyword_args[keyword_args_names[i]])
+
+                
+        else:
+            if len(args) > len_expected:
+                raise Al_ArgumentError(exception_details)
+            if len(args) < len_expected:
+                raise Al_ArgumentError(exception_details)
+        
+        
+        
+        res.register(self.populate_args(arg_names, args, exec_context))
+        return res.success(None)
+
+    
+    def populate_args(self, arg_names, args, exec_context):
+        res = RuntimeResult()
+        for i in range(len(arg_names)):
+            arg_name = arg_names[i]
+            arg_value = args[i]
+            arg_value.setContext(exec_context)
+            exec_context.symbolTable.set(arg_name, arg_value)
+            
+        
+        return res.success(None)
+        
+        
+    def no_visit(self):
+        raise Al_NameError({
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"Name '{self.name}' is not defined",
+            'context': self.context,
+            'exit': False
+        })
+        
+    
+    def execute_File(self, exec_context):
+        res = RuntimeResult()
+        file = exec_context.symbolTable.get("file")
+        mode = exec_context.symbolTable.get("mode")
+        if not isinstance(file, String):
+            raise Al_TypeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"File() argument 1 must be of type string",
+                "context": self.context,
+                'exit': False
+            })
+        if not isinstance(mode, String):
+            raise Al_TypeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"File() argument 2 must be of type string",
+                "context": self.context,
+                'exit': False
+            })
+        
+        node = self
+        valid_modes = ['r', 'w', 'a', 'r+', 'w+', 'a+']
+        if not mode.value in valid_modes:
+            raise Al_ValueError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"invalid mode: '{mode.value}'",
+                "context": self.context,
+                'exit': False
+            })
+        file_ = handle_file_open(file.value, mode.value, node, exec_context)
+        
+        
+        fread = BuiltInFunction("read", exec_context, {
+            'file': file_
+        })
+        fwrite = BuiltInFunction("write", exec_context, {
+            'file': file_
+        })
+        fclose = BuiltInFunction("close", exec_context, {
+            'file': file_,
+            'isClosed': Boolean(False)                      
+        })
+        file_object = Dict({
+            'name': file.value,
+            'mode': mode.value,
+            'close': fclose,
+        })
+        if mode.value == 'r':
+            file_object.properties['read'] = fread
+        elif mode.value == 'w':
+            file_object.properties['write'] = fwrite
+            
+        file_object.setContext(exec_context).setPosition(node.pos_start, node.pos_end)
+        return res.success(file_object)
+
+    execute_File.arg_names = ["file", "mode"]
+    
+    
+    def generate_new_instance(self, class_args,new_context):
+        return Class(self.class_name, class_args, self.inherit_class_name, self.inherited_from, self.properties, self.class_fields_modifiers, new_context)
+         
   
     def set_method(self, key, value):
         self.properties[key] = value
@@ -4797,8 +5096,7 @@ class BuiltInClass(BaseClass):
    
     
     def copy(self):
-        copy = BuiltInClass(self.class_name, self.class_args, self.inherit_class_name,
-                            self.properties, self.class_fields_modifiers, self.context)
+        copy = BuiltInClass(self.name, self.properties)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
@@ -4806,7 +5104,7 @@ class BuiltInClass(BaseClass):
     
     def __repr__(self):
         return self.representation
-            
+    
 
 class ModuleObject(Value):
     def __init__(self, name, properties, type=None):
@@ -4969,47 +5267,6 @@ class ModuleExportValue(Value):
         return f"<ModuleExportValue {str(self.name)}>"
 
    
-class BuiltInFunction(BaseFunction):
-    def __init__(self, name):
-        super().__init__(name)
-        self.value = name
-    
-    def execute(self, args, keyword_args_list):
-        res = RuntimeResult()
-        exec_context = self.generate_new_context()
-
-        method_name = f'execute_{self.name}'
-        method = getattr(self, method_name, self.no_visit)
-        res.register(self.check_and_populate_args(
-            method.arg_names, args, exec_context))
-        if res.should_return():
-            return res
-        
-        return_value = res.register(method(exec_context))
-        if res.should_return():
-            return res
-        return res.success(return_value)
-
-    def no_visit(self, node, exec_context):
-        res = RuntimeResult()
-        raise Al_RuntimeError({
-            'pos_start': self.pos_start,
-            'pos_end': self.pos_end,
-            'message': f"{self.name} is not a supported built-in function",
-            'context': self.context,
-            'exit': False
-        })
-
-    def copy(self):
-        copy = BuiltInFunction(self.name)
-        copy.setContext(self.context)
-        copy.setPosition(self.pos_start, self.pos_end)
-        return copy
-
-    def __repr__(self):
-        return f"<{str(self.name)}()>, [ built-in function ]"
-
-
 
  
 
@@ -6407,95 +6664,12 @@ def BuiltInFunction_Delay(args, node, context,keyword_args=None):
         })
  
  
-
- 
-def BuiltInFunction_Open(args, node, context,keyword_args=None):
-    res = RuntimeResult()
-    interpreter = Interpreter()
-    valid_keywords = ['file', 'mode']
-    keywords = {}
-    keyword_args_names = []
-    if keyword_args != None and len(keyword_args) > 0:
-        for keyword_arg in keyword_args:
-            name = keyword_arg['name']
-            value = res.register(interpreter.visit(keyword_arg['value'], context))
-            if not name in valid_keywords:
-                raise Al_ArgumentError({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"open() got an unexpected keyword argument '{name}'",
-                    'context': context,
-                    'exit': False
-                })
-            if not isinstance(value, String):
-                raise Al_TypeError({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"open() keyword argument '{name}' must be of type string",
-                    'context': context,
-                    'exit': False
-                })
-            keywords[name] = value.value
-            keyword_args_names.append(name)
-        
-        len_keyword_args = len(keyword_args_names)
-        
-        if len_keyword_args == 1 or len_keyword_args > 2:
-            raise Al_ArgumentError({
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'message': f"open() got too many or too few arguments. Expected 2, but got {len_keyword_args}",
-                'context': context,
-                'exit': False
-            })
-        file_name = keywords['file']
-        mode = keywords['mode']
-        return handle_file_open(file_name, mode, node, context)
-            
-    else:
-        if len(args) == 0 or len(args) == 1 or len(args) > 2:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but open() takes 2 arguments",
-                "context": context,
-                'exit': False
-            })
-        if isinstance(args[0], String):
-            if isinstance(args[1], String):
-                pass
-            else:
-                raise Al_TypeError({
-                    "pos_start": node.pos_start,
-                    "pos_end": node.pos_end,
-                    'message': f"open() argument 2 must be of type string",
-                    "context": context,
-                    'exit': False
-                })
-        else:
-            raise Al_TypeError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"open() argument 1 must be of type string",
-                "context": context,
-                'exit': False
-            })
- 
- 
 def handle_file_open(file_name, mode, node, context):
     res = RuntimeResult()
     if mode == 'r':
         try:
-            read = ''
-            with open(file_name, 'r') as file:
-                file_object = {
-                    'name': String(file_name).setContext(context).setPosition(node.pos_start, node.pos_end),
-                    'mode': String(mode).setContext(context).setPosition(node.pos_start, node.pos_end),
-                    'read': Function('read', String(file.read()), [], False, {}, {}, 'wrapper', context),
-                    'close': handle_file_close(file, node, context)
-                }
-                return res.success(Dict(file_object).setContext(context).setPosition(node.pos_start, node.pos_end))
-        
+            file = open(file_name, 'r')
+            return file
         except FileNotFoundError:
             raise Al_FileNotFoundError({
                 "pos_start": node.pos_start,
@@ -6504,14 +6678,81 @@ def handle_file_open(file_name, mode, node, context):
                 "context": context,
                 'exit': False
             })
+        except PermissionError:
+            raise Al_PermissionError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"permission denied for file '{file_name}'",
+                "context": context,
+                'exit': False
+            })
+    elif mode == 'w':
+        try:
+            file = open(file_name, 'w')
+            return file
+        except PermissionError:
+           raise Al_PermissionError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"unable to write to file '{file_name}' due to permission error",
+                "context": context,
+                'exit': False
+            }) 
  
+  
+def handle_file_read(file, node, context):
+    res = RuntimeResult()
+    try:
+        if file.closed:
+            raise Al_ValueError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"I/O operation on closed file",
+                "context": context,
+                'exit': False
+            })
+        else:
+            content = file.read()
+            return res.success(String(content))
+    except:
+        raise Al_RuntimeError({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"unable to read file",
+            "context": context,
+            'exit': False
+        })
+  
+  
+def handle_file_write(file, data, node, context):
+    res = RuntimeResult()
+    try:
+        if file.closed:
+            raise Al_ValueError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"I/O operation on closed file",
+                "context": context,
+                'exit': False
+            })
+        else:
+            content = file.write(data)
+            return res.success(String(content))
+    except:
+        raise Al_RuntimeError({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"unable to write file",
+            "context": context,
+            'exit': False
+        })
+
   
 def handle_file_close(file, node, context):
     res = RuntimeResult()
-    interpreter = Interpreter()
     file.close()
     value = NoneType('none')
-    return Function('close', value, [], False, {}, {}, 'wrapper', context)
+    return res.success(value)
 
     
 def BuiltInFunction_Exit(args, node, context,keyword_args=None):
@@ -8180,7 +8421,7 @@ class BuiltInMethod_String(Value):
             })
             
             
-    def BuiltInMethod_isEmpty(self):
+    def BuiltInMethod_is_empty(self):
         res = RuntimeResult()
         if len(self.args) == 0:
             return Boolean(self.name.value == '').setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
@@ -8674,7 +8915,7 @@ class BuiltInMethod_List(Value):
             })
 
     
-    def BuiltInMethod_isEmpty(self):
+    def BuiltInMethod_is_empty(self):
         res = RuntimeResult()
         if len(self.args) == 0:
             if len(self.name.elements) == 0:
@@ -8685,13 +8926,13 @@ class BuiltInMethod_List(Value):
             raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but isEmpty() takes 0 arguments",
+                'message': f"{len(self.args)} arguments given, but is_empty() takes 0 arguments",
                 "context": self.context,
                 'exit': False
             })
     
     
-    def BuiltInMethod_isNumber(self):
+    def BuiltInMethod_is_number(self):
         res = RuntimeResult()
         if len(self.args) == 0:
             # check if all elements are numbers
@@ -8703,13 +8944,13 @@ class BuiltInMethod_List(Value):
             raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but isNumber() takes 0 arguments",
+                'message': f"{len(self.args)} arguments given, but is_number() takes 0 arguments",
                 "context": self.context,
                 'exit': False
             })
     
     
-    def BuiltInMethod_isString(self):
+    def BuiltInMethod_is_string(self):
         res = RuntimeResult()
         if len(self.args) == 0:
             for element in self.name.elements:
@@ -8720,7 +8961,7 @@ class BuiltInMethod_List(Value):
             raise Al_RuntimeError({
                 "pos_start": self.node.pos_start,
                 "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but isString() takes 0 arguments",
+                'message': f"{len(self.args)} arguments given, but is_string() takes 0 arguments",
                 "context": self.context,
                 'exit': False
             })
@@ -9226,7 +9467,7 @@ class Interpreter:
 
     
     def no_visit(self, node, context):
-        return RuntimeResult().success(NoneType.none)
+        return RuntimeResult().success(None)
 
 
     def visit_StatementsNode(self, node, context):
@@ -9315,7 +9556,7 @@ class Interpreter:
    
     def visit_NoneNode(self, node, context):
         return RuntimeResult().success(
-            NoneType('none').setContext(
+            NoneType(node.tok.value).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
         
@@ -10389,10 +10630,7 @@ class Interpreter:
                             return_value = res.register(value.run(keyword_args_list,args, object_name))
                             if res.should_return(): return res
                             #if res.func_return_value is not None: return res.success(res.func_return_value)
-                            if return_value == None or isinstance(return_value, NoneType):
-                                return res.success(None)
-                            else:
-                                return res.success(return_value)
+                            return res.success(return_value)
                             
                         else:
                             if object_name.name == "Export":
@@ -10428,10 +10666,7 @@ class Interpreter:
                         if res.should_return():
                                     return res
                         
-                        if return_value == None or isinstance(return_value, NoneType):
-                            return res.success(None)
-                        else:
-                            return res.success(return_value)
+                        return res.success(return_value)
                     else:
                         error["message"] = f"'{object_name.name}' object object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
@@ -10475,12 +10710,7 @@ class Interpreter:
                                 
                                 return_value = res.register(value.execute(args,keyword_args_list))
                                 # print(type(return_value).__name__, return_value)
-                                if res.should_return():
-                                        return res
-                                if return_value == None or isinstance(return_value, NoneType):
-                                    return res.success(None)
-                                else:
-                                    return res.success(return_value)
+                                return res.success(return_value)
                         else:
                             error["message"] = f"'{node.name.id.value}' object has no property '{object_key.node_to_call.value}'"
                             raise Al_PropertyError(error)
@@ -10577,10 +10807,7 @@ class Interpreter:
                                 # print(type(return_value).__name__, return_value)
                                 if res.should_return():
                                     return res
-                                if return_value == None or isinstance(return_value, NoneType):
-                                    return res.success(None)
-                                else:
-                                    return res.success(return_value)
+                                return res.success(return_value)
                         else:
                             error["message"] = f"'{node.name.id.value}' object has no property '{object_key.node_to_call.value}'"
                             raise Al_PropertyError(error)
@@ -10850,10 +11077,7 @@ class Interpreter:
                         if res.should_return():
                                 return res
                         
-                        if return_value == None or isinstance(return_value, NoneType):
-                            return res.success(None)
-                        else:
-                            return res.success(return_value)
+                        return res.success(return_value)
                 else:
                     error["message"] = f"{object_name.name} object has no property '{object_key.node_to_call.value}'"
                     raise Al_PropertyError(error)
@@ -10895,10 +11119,7 @@ class Interpreter:
                                 return_value = res.register(value.execute(args,keyword_args_list))
                                 if res.should_return():
                                         return res
-                                if return_value == None or isinstance(return_value, NoneType):
-                                    return res.success(None)
-                                else:
-                                    return res.success(return_value)
+                                return res.success(return_value)
                         else:
                             error["message"] = f"{node.name.id.value} object has no property {object_key.node_to_call.value}"
                             raise Al_PropertyError(error)
@@ -10918,10 +11139,7 @@ class Interpreter:
                         if res.should_return():
                                 return res
                             
-                        if return_value == None or isinstance(return_value, NoneType):
-                            return res.success(None)
-                        else:
-                            return res.success(return_value)
+                        return res.success(return_value)
                     else:
                         if object_name.name == "Export":
                             error['message'] = f"Export has no member '{object_key.node_to_call.id.value}'"
@@ -12594,7 +12812,6 @@ class Interpreter:
             'isinstanceof': BuiltInFunction_IsinstanceOf,
             'hasprop': BuiltInFunction_hasprop,
             'delay': BuiltInFunction_Delay,
-            'open': BuiltInFunction_Open,
             'exit': BuiltInFunction_Exit
         }
         
@@ -12783,7 +13000,7 @@ BuiltInFunction.min = BuiltInFunction("min")
 BuiltInFunction.is_finite = BuiltInFunction("is_finite")
 
 
-
+BuiltInClass.File = BuiltInClass("File", {})
 
 
 #code for the built-in class exceptions
@@ -12830,7 +13047,6 @@ builtin_exception_filenotfounderror = Program.createBuiltIn("FileNotFoundError",
 builtin_exception_permissionerror = Program.createBuiltIn("PermissionError", code_builtin_permissionerror).elements[0]
 builtin_exception_notimplementederror = Program.createBuiltIn("NotImplementedError", code_builtin_notimplementederror).elements[0]
 
-
 exceptions_ = {
     'Exception': builtin_exception,
     'RuntimeError': builtin_exception_runtime,
@@ -12853,25 +13069,25 @@ exceptions_ = {
     'NotImplementedError': builtin_exception_notimplementederror
 }
 # class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context
-BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.class_args, builtin_exception.inherit_class_name, builtin_exception.inherited_from, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
-BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.class_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.inherited_from, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
-BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.class_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.inherited_from, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context) 
-BuiltInClass.ArgumentError = BuiltInClass(builtin_exception_argumenterror.class_name, builtin_exception_argumenterror.class_args, builtin_exception_argumenterror.inherit_class_name, builtin_exception_argumenterror.inherited_from, builtin_exception_argumenterror.methods, builtin_exception_argumenterror.class_fields_modifiers, builtin_exception_argumenterror.context)
-BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.class_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.inherited_from, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
-BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.class_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.inherited_from, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
-BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.class_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.inherited_from, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
-BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.class_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.inherited_from,  builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
-BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.class_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.inherited_from, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
-BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.class_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.inherited_from,  builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
-BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.class_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.inherited_from, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
-BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.class_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.inherited_from, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
-BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.class_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.inherited_from, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
-BuiltInClass.RecursionError = BuiltInClass(builtin_exception_recursionerror.class_name, builtin_exception_recursionerror.class_args, builtin_exception_recursionerror.inherit_class_name, builtin_exception_recursionerror.inherited_from, builtin_exception_recursionerror.methods, builtin_exception_recursionerror.class_fields_modifiers, builtin_exception_recursionerror.context)
-BuiltInClass.IOError = BuiltInClass(builtin_exception_ioerror.class_name, builtin_exception_ioerror.class_args, builtin_exception_ioerror.inherit_class_name, builtin_exception_ioerror.inherited_from, builtin_exception_ioerror.methods, builtin_exception_ioerror.class_fields_modifiers, builtin_exception_ioerror.context)
-BuiltInClass.OSError = BuiltInClass(builtin_exception_oserror.class_name, builtin_exception_oserror.class_args, builtin_exception_oserror.inherit_class_name, builtin_exception_oserror.inherited_from, builtin_exception_oserror.methods, builtin_exception_oserror.class_fields_modifiers, builtin_exception_oserror.context)
-BuiltInClass.FileNotFoundError = BuiltInClass(builtin_exception_filenotfounderror.class_name, builtin_exception_filenotfounderror.class_args, builtin_exception_filenotfounderror.inherit_class_name, builtin_exception_filenotfounderror.inherited_from, builtin_exception_filenotfounderror.methods, builtin_exception_filenotfounderror.class_fields_modifiers, builtin_exception_filenotfounderror.context)
-BuiltInClass.PermissionError = BuiltInClass(builtin_exception_permissionerror.class_name, builtin_exception_permissionerror.class_args, builtin_exception_permissionerror.inherit_class_name, builtin_exception_permissionerror.inherited_from, builtin_exception_permissionerror.methods, builtin_exception_permissionerror.class_fields_modifiers, builtin_exception_permissionerror.context)
-BuiltInClass.NotImplementedError = BuiltInClass(builtin_exception_notimplementederror.class_name, builtin_exception_notimplementederror.class_args, builtin_exception_notimplementederror.inherit_class_name, builtin_exception_notimplementederror.inherited_from, builtin_exception_notimplementederror.methods, builtin_exception_notimplementederror.class_fields_modifiers, builtin_exception_notimplementederror.context)
+# BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.class_args, builtin_exception.inherit_class_name, builtin_exception.inherited_from, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
+# BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.class_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.inherited_from, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
+# BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.class_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.inherited_from, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context) 
+# BuiltInClass.ArgumentError = BuiltInClass(builtin_exception_argumenterror.class_name, builtin_exception_argumenterror.class_args, builtin_exception_argumenterror.inherit_class_name, builtin_exception_argumenterror.inherited_from, builtin_exception_argumenterror.methods, builtin_exception_argumenterror.class_fields_modifiers, builtin_exception_argumenterror.context)
+# BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.class_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.inherited_from, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
+# BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.class_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.inherited_from, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
+# BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.class_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.inherited_from, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
+# BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.class_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.inherited_from,  builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
+# BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.class_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.inherited_from, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
+# BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.class_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.inherited_from,  builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
+# BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.class_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.inherited_from, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
+# BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.class_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.inherited_from, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
+# BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.class_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.inherited_from, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
+# BuiltInClass.RecursionError = BuiltInClass(builtin_exception_recursionerror.class_name, builtin_exception_recursionerror.class_args, builtin_exception_recursionerror.inherit_class_name, builtin_exception_recursionerror.inherited_from, builtin_exception_recursionerror.methods, builtin_exception_recursionerror.class_fields_modifiers, builtin_exception_recursionerror.context)
+# BuiltInClass.IOError = BuiltInClass(builtin_exception_ioerror.class_name, builtin_exception_ioerror.class_args, builtin_exception_ioerror.inherit_class_name, builtin_exception_ioerror.inherited_from, builtin_exception_ioerror.methods, builtin_exception_ioerror.class_fields_modifiers, builtin_exception_ioerror.context)
+# BuiltInClass.OSError = BuiltInClass(builtin_exception_oserror.class_name, builtin_exception_oserror.class_args, builtin_exception_oserror.inherit_class_name, builtin_exception_oserror.inherited_from, builtin_exception_oserror.methods, builtin_exception_oserror.class_fields_modifiers, builtin_exception_oserror.context)
+# BuiltInClass.FileNotFoundError = BuiltInClass(builtin_exception_filenotfounderror.class_name, builtin_exception_filenotfounderror.class_args, builtin_exception_filenotfounderror.inherit_class_name, builtin_exception_filenotfounderror.inherited_from, builtin_exception_filenotfounderror.methods, builtin_exception_filenotfounderror.class_fields_modifiers, builtin_exception_filenotfounderror.context)
+# BuiltInClass.PermissionError = BuiltInClass(builtin_exception_permissionerror.class_name, builtin_exception_permissionerror.class_args, builtin_exception_permissionerror.inherit_class_name, builtin_exception_permissionerror.inherited_from, builtin_exception_permissionerror.methods, builtin_exception_permissionerror.class_fields_modifiers, builtin_exception_permissionerror.context)
+# BuiltInClass.NotImplementedError = BuiltInClass(builtin_exception_notimplementederror.class_name, builtin_exception_notimplementederror.class_args, builtin_exception_notimplementederror.inherit_class_name, builtin_exception_notimplementederror.inherited_from, builtin_exception_notimplementederror.methods, builtin_exception_notimplementederror.class_fields_modifiers, builtin_exception_notimplementederror.context)
 
 
 
@@ -12938,24 +13154,25 @@ symbolTable_.set('Class', Types.Class)
 symbolTable_.set('Function', Types.Function)    
 symbolTable_.set('BuiltInFunction', Types.BuiltInFunction)
 symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
-symbolTable_.set('Exception', BuiltInClass.Exception)
-symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
-symbolTable_.set('NameError', BuiltInClass.NameError)
-symbolTable_.set('ArgumentError', BuiltInClass.ArgumentError)
-symbolTable_.set('TypeError', BuiltInClass.TypeError)
-symbolTable_.set('IndexError', BuiltInClass.IndexError)
-symbolTable_.set('ValueError', BuiltInClass.ValueError)
-symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
-symbolTable_.set('KeyError', BuiltInClass.KeyError)
-symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
-symbolTable_.set('GetError', BuiltInClass.GetError)
-symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
-symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
-symbolTable_.set('RecursionError', BuiltInClass.RecursionError)
-symbolTable_.set('IOError', BuiltInClass.IOError)
-symbolTable_.set('OSError', BuiltInClass.OSError)
-symbolTable_.set('FileNotFoundError', BuiltInClass.FileNotFoundError)
-symbolTable_.set('PermissionError', BuiltInClass.PermissionError)
-symbolTable_.set('NotImplementedError', BuiltInClass.NotImplementedError)
+# symbolTable_.set('Exception', BuiltInClass.Exception)
+# symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
+# symbolTable_.set('NameError', BuiltInClass.NameError)
+# symbolTable_.set('ArgumentError', BuiltInClass.ArgumentError)
+# symbolTable_.set('TypeError', BuiltInClass.TypeError)
+# symbolTable_.set('IndexError', BuiltInClass.IndexError)
+# symbolTable_.set('ValueError', BuiltInClass.ValueError)
+# symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
+# symbolTable_.set('KeyError', BuiltInClass.KeyError)
+# symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
+# symbolTable_.set('GetError', BuiltInClass.GetError)
+# symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
+# symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
+# symbolTable_.set('RecursionError', BuiltInClass.RecursionError)
+# symbolTable_.set('IOError', BuiltInClass.IOError)
+# symbolTable_.set('OSError', BuiltInClass.OSError)
+# symbolTable_.set('FileNotFoundError', BuiltInClass.FileNotFoundError)
+# symbolTable_.set('PermissionError', BuiltInClass.PermissionError)
+# symbolTable_.set('NotImplementedError', BuiltInClass.NotImplementedError)
+symbolTable_.set('@File', BuiltInClass.File)
 symbolTable_.setSymbol()
 

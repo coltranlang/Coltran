@@ -1,38 +1,72 @@
+
+final modes = ["a", "w", "w+", "r", "r+", "a+"]
+
+def @handle_mode(mode)
+    if not modes.includes(mode): 
+        raise ValueError(fm"Invalid mode: '%{mode}'")
+    end
+    return mode
+end
+
+def @check_closed(self)
+    if self.closed:
+        raise ValueError(fm"I/O operation on closed file")
+    end
+end
+
+def @check_readable(self)
+    @check_closed(self)
+    if not self.readable:
+        raise IOError(fm"File not open for reading")
+    end
+end
+
+def @open(file, mode)
+    mode = @handle_mode(mode)
+    attempt:
+        return @File(file=file, mode=mode)
+    catch FileNotFoundError as e:
+        raise FileNotFoundError(fm"File not found: '%{file}'")
+    end
+end
+
 class File
     def @init(self, name, mode)
         self.name = name
         self.mode = mode
         self.closed = false
+        self.readable = mode.includes("r")
         self.lineno = 0
-        self.file = open(name, mode)
-        if self.closed:
-            raise IOError("cannot open closed file")
+        self.file = @open(self.name, self.mode)
+    end
+    def toString(self)
+        return fm"%{self.name} %{self.mode}"
+    end
+    def read(self)
+        @check_readable(self)
+        return self.file.read()
+    end
+    def write(self, data)
+        @check_closed(self)
+        if self.mode == "w":
+            self.file.write(data)
+        elif self.mode == "w+":
+            self.file.write(data)
+            self.file.seek(0)
+        elif self.mode == "r":
+            raise ValueError(fm"%{self.name} is not writable")
+        elif self.mode == "r+":
+            self.file.write(data)
+            self.file.seek(0)
+        elif self.mode == "a":
+            self.file.write(data)
+        elif self.mode == "a+":
+            self.file.write(data)
+            self.file.seek(0)
         end
     end
     def close(self)
-        if not self.closed:
-            self.closed = true
-            self.file.close()
-        end
-    end
-    def readline(self)
-        line = self.file.readline()
-        self.lineno += 1
-        return line
-    end
-    def readlines(self)
-        lines = self.file.readlines()
-        self.lineno += len(lines)
-        return lines
-    end
-    def read(self, size=-1)
-        return self.file.read(size)
-    end
-    def readall(self)
-        return self.file.read()
+        self.file.close()
+        self.closed = true
     end
 end
-
-let file = File("test.txt", "r")
-file.read()
-file.close()

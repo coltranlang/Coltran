@@ -125,6 +125,7 @@ def is_kwargs(string):
         return False
     return string[0] == '**'
 
+
 class Program:
     def error():
         def Default(detail):
@@ -452,6 +453,8 @@ class NoneNode:
         self.tok = tok
         self.id = tok
         self.value = self.tok.value
+        if tok.value == 'none':
+            self.value = None
         self.pos_start = self.tok.pos_start
         self.pos_end = self.tok.pos_end
 
@@ -4394,6 +4397,8 @@ class Parser:
                     exception = {
                         'name': self.current_token,
                         'as': None,
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end
                     }
                     self.skipLines()
                     if self.current_token.matches(tokenList.TT_KEYWORD, "as"):
@@ -4425,8 +4430,8 @@ class Parser:
                         catch_statement = {
                             'exception': exception,
                             'body': statements,
-                            'pos_start': exception['name'].pos_start,
-                            'pos_end': exception['name'].pos_end
+                            'pos_start': exception['pos_start'],
+                            'pos_end': exception['pos_end']
                         }
                         catches.append(catch_statement)
                     else:
@@ -4445,8 +4450,8 @@ class Parser:
                         catch_statement = {
                             'exception': exception,
                             'body': statements,
-                            'pos_start': exception['name'].pos_start,
-                            'pos_end': exception['name'].pos_end
+                            'pos_start': exception['pos_start'],
+                            'pos_end': exception['pos_end']
                         }
                         catches.append(catch_statement)
             else:
@@ -4460,13 +4465,14 @@ class Parser:
                             'exit': False
                         }
                     ))
+                pos_start = self.current_token.pos_start.copy()
                 self.skipLines()
                 statements = res.register(self.statements())
                 catch_statement = {
                     'exception': None,
                     'body': statements,
-                    'pos_start': start_token.pos_start,
-                    'pos_end': start_token.pos_end
+                    'pos_start': pos_start,
+                    'pos_end':  statements.pos_end
                 }
                 catches.append(catch_statement)
 
@@ -4487,7 +4493,7 @@ class Parser:
             statements = res.register(self.statements())
             finally_statement = {
                 'body': statements,
-                'pos_start': start_token.pos_start,
+                'pos_start': self.current_token.pos_start,
                 'pos_end': statements.pos_end
             }
 
@@ -4506,14 +4512,23 @@ class Parser:
 
         while self.current_token.type == tokenList.TT_NEWLINE:
             self.skipLines()
-        # if self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
-        #     self.error_detected = True
-        #     return res.failure(self.error['Syntax']({
-        #             'pos_start': self.current_token.pos_start,
-        #             'pos_end': self.current_token.pos_end,
-        #             'message': 'multiple catch clauses not supported' if self.current_token.matches(tokenList.TT_KEYWORD, "catch") else 'multiple default clauses not supported',
-        #             'exit': False
-        #         }))
+        
+        
+        # catch with no exception must be last
+        if len(catches) > 1:
+            for i in range(len(catches) - 1):
+                if catches[i]['exception'] == None:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax'](
+                        {
+                            'pos_start': catches[i]['pos_start'],
+                            'pos_end': catches[i]['pos_end'],
+                            'message': "default 'catch' must be last",
+                            'exit': False
+                        }
+                    ))
+        
+        
         if  not self.current_token.matches(tokenList.TT_KEYWORD, "end"):
                 self.error_detected = True
                 if self.current_token.matches(tokenList.TT_KEYWORD, "finally") or self.current_token.matches(tokenList.TT_KEYWORD, "catch"):

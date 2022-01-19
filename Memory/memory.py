@@ -323,7 +323,7 @@ class SymbolTable:
     def setSymbol(self):
         self.set("none", "none")
         self.set("true",  "true")
-        self.set("true", "false")
+        self.set("false", "false")
 
     
     def remove(self, name):
