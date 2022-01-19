@@ -1,0 +1,5 @@
+class KeyboardInterruptError(Exception):
+    def @init(self,message)
+        self.message = message
+    end
+end

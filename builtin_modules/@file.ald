@@ -8,6 +8,10 @@ def @handle_mode(mode)
     return mode
 end
 
+def @get_modes()
+    return fm"Modes: %{modes.join(', ')}"
+end
+
 def @check_closed(self)
     if self.closed:
         raise ValueError(fm"I/O operation on closed file")
@@ -24,9 +28,15 @@ end
 def @open(file, mode)
     mode = @handle_mode(mode)
     attempt:
-        return @File(file=file, mode=mode)
+        return __@file(file=file, mode=mode)
     catch FileNotFoundError as e:
         raise FileNotFoundError(fm"File not found: '%{file}'")
+    catch PermissionError as e:
+        raise PermissionError(fm"Permission denied: '%{file}'")
+    catch IOError as e:
+        raise IOError(fm"I/O error: '%{file}'")
+    catch:
+        raise IOError(fm"I/O error: '%{file}'")
     end
 end
 
@@ -53,8 +63,6 @@ class File
         elif self.mode == "w+":
             self.file.write(data)
             self.file.seek(0)
-        elif self.mode == "r":
-            raise ValueError(fm"%{self.name} is not writable")
         elif self.mode == "r+":
             self.file.write(data)
             self.file.seek(0)
@@ -63,6 +71,8 @@ class File
         elif self.mode == "a+":
             self.file.write(data)
             self.file.seek(0)
+        else:
+            raise ValueError(fm"%{self.name} is not writable")
         end
     end
     def close(self)
@@ -70,3 +80,9 @@ class File
         self.closed = true
     end
 end
+
+let __ignore__ = [
+    modes, @handle_mode, @check_closed, @check_readable, @open
+]
+
+let open = File

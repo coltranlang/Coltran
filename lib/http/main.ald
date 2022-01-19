@@ -1,29 +1,15 @@
 # testing the http module
-class Http(url, headers, body)
-    def init(self)
-        if self.url == "http://www.google.com":
-            self.type = "GET"
-        end
-        self.check_type()
-    end
-    def check_type(self)
-        if self.type == "GET":
-            # do something
-            print()
-        elif self.type == "POST":
-            # do something
-            print()
-        else:
-            print("Invalid type")
-        end
+class Http
+    def @init(self, url, headers, body)
+        self.url = url
+        self.headers = headers
+        self.body = body
     end
     def post(self)
         println("POST", self.url.split("://"), self.headers, self.body)
         self.test("POST")
-        return self
     end
-    
-    def get_(self)
+    def get(self)
         println("GET", self.url, self.headers, self.body)
     end
 
@@ -39,7 +25,7 @@ class Http(url, headers, body)
         println(fm"Hello from %{name}. The url is %{self.url}")
     end
 
-    def repr(self)
+    def toString(self)
         println(fm"Http(url='%{self.url}', headers='%{self.headers}', body=%{self.body})")
     end
 
@@ -49,13 +35,5 @@ class Http(url, headers, body)
 end
 
 
-module Export as Http
-    new: Http
-end
 
-let http = Http("http://www.google.com", "application/json", {
-    name: "Bob",
-    age: "42"
-})
-println(http.post())
 

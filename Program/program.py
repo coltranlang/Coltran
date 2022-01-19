@@ -78,12 +78,9 @@ class Al_Program:
                         return "", ast.error
                     context.symbolTable = symbolTable_
                     result = interpreter.visit(ast.node, context)
-                    if hasattr(result, 'value') and hasattr(result, 'error'):
-                        return result.value, ""
-
-                    return result, "none"
+                    return result.value, ""
                 else:
-                    return "none"
+                    return ""
             else:
                 return "", ''
         except Exception as e:

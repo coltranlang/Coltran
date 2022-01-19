@@ -1,40 +1,10 @@
 # Math module
-# get Test from "./lib/math/test"
 
-# let (run,__name, *rest) = Test
-# println(run)
+let add = def (a, b) -> a + b
+let min = def (a, b) -> if a < b: a else: b
+let max = def (a, b) -> if a > b: a else: b
+let pow = def (a, b) -> a ^ b
+let sqrt = def (a) -> a ^ 0.5
+let abs = def (a) -> if a < 0: -a else: a
+let PI = 3.141592653589793
 
-object Math
-   add: def (a, b) -> a + b
-   min: def (a, b)
-      if a < b:
-        return a
-      else:
-         return b
-      end
-   end
-   max: def (a, b)
-      if a > b:
-         return a
-      else:
-         return b
-      end
-   end
-   pow: def (a, b) -> a ^ b
-   abs: def (a)
-      if a < 0:
-         return -a
-      else:
-         return a
-      end
-   end
-end
-
-
-module Export as Math
-   add: Math.add
-   min: Math.min
-   max: Math.max
-   pow: Math.pow
-   abs: Math.abs
-end

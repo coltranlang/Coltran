@@ -1,47 +1,23 @@
-# User module test
-get User from "./aldenLang/module" # You don't need to specify the file extension, it will be added by the interpreter
-println(User.Greet())
+get Math from 'math'
+get Http from 'http'
 
-# System module test
-#get System from "system"
-#println(System.stdout.write("Hello World!"))
+let url = 'http://localhost:8080/'
+let headers = {
+  'Content-Type': 'application/json'
+}
+let body = {
+  name: 'test',
+  age: 18
+}
+let http = Http.new(url, headers, body)
+let http2 = Http.new("http://localhost:8083/", {}, {name: 'test', age: 30})
+let http3 = Http.new("http://localhost:8085/", {}, {name: 'test', age: 42})
+println(http.get())
+println(http2.get())
+println(http3.post())
+println(Math.PI)
 
-# File module test
-#get File from "file"
-#println(File.read("test.txt"))
+let a = 1
+let b = 2
 
-# Path module test
-#get Path from "path"
-#println(Path.dirname("/home/alden/Desktop/test.txt"))
-
-# Process module test
-#get Process from "process"
-#println(Process.argv)
-
-
-# Http module test
-get Http from "http"
-
-object Header
-    Content_Type: "application/json"
-end
-
-object User
-    name: "John Doe"
-    age: 30
-end
-
-let http = Http.new("https://www.aldenlang.org", Header, User)
-let http2 = Http.new("https://www.testlang.org", Header, User)
-println(http.post(), http2.post())
-
-
-# Math module test
-#get Math from "math"
-#println(Math.random())
-
-
-# Date module test
-#get Date from "date"
-#println(Date.now())
-
+println(Math.max(a, b))
