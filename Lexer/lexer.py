@@ -441,8 +441,6 @@ class Lexer:
             'n': '\n',
             't': '\t',
             '\es': "\\"
-            # '{': '{',
-            # '}': '}',
         }
         
         while self.current_char != None and (self.current_char != '"' or escape_character):

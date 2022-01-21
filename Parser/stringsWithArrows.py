@@ -14,16 +14,14 @@ def stringsWithArrows(text, pos_start, pos_end):
         column_start = pos_start.column if i == 0 else 0
         column_end = pos_end.column if i == line_count - 1 else len(line) - 1
 
-        # get the line where the error is
+        
         error += line + '\n'
         error += ' ' * column_start + '^' * (column_end - column_start + 1)
         error_at = error.find('^')
         error_at_text = error[:error_at]
-        #print(error_at_text)
         
         # Append to result
         result = error_at_text
-        # show ^ on all the lines of the error
         result += '\n' + '^' * len(error_at_text.rstrip()) + '\n'
         # Re-calculate indices
         index_start = index_end

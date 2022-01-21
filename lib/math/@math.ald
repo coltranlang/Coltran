@@ -1,0 +1,41 @@
+# Math module
+
+let add = def (a, b) -> a + b
+let min = def (a, b) -> if a < b: a else: b
+let max = def (a, b) -> if a > b: a else: b
+let pow = def (a, b) -> a ^ b
+let sqrt = def (a) -> int(a ^ 0.5)
+let abs = def (a) -> if a < 0: -a else: a
+let PI = 3.141592653589793
+
+
+# Documentation
+# /**
+#     # Math module
+#     @ADD
+#     @param a, b
+#     @return a + b
+
+#     @MIN
+#     @param a, b
+#     @return a - b
+
+#     @MAX
+#     @param a, b
+#     @return a - b
+
+#     @POW
+#     @param a, b
+#     @return a ^ b
+
+#     @SQRT
+#     @param a
+#     @return a ^ 0.5
+
+#     @ABS
+#     @param a
+#     @return |a|
+
+#     @PI
+#     @return 3.141592653589793
+# */

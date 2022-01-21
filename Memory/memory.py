@@ -37,8 +37,11 @@
 #   Memory module for Alden
 
 import sys
-
 from Parser.stringsWithArrows import stringsWithArrows
+
+
+
+
 class Program:
     def error():
         def Default(name, message):
@@ -49,20 +52,21 @@ class Program:
             error = f'\n{name}: {message}\n'
             Program.printError(error)
 
-        def Runtime(detail):
+        def NameError(detail):
             isDetail = {
-                'name': 'RuntimeError',
-                'type': 'invalid syntax',
+                'name': 'NameError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
                 'context': detail['context']
             }
             Program.printError(Program.asStringTraceBack(isDetail))
+
+        
         methods = {
             'Default': Default,
-            'Runtime': Runtime,
-            'DefaultExit': DefaultExit
+            'DefaultExit': DefaultExit,
+            'NameError': NameError
         }
         return methods
 
@@ -218,20 +222,17 @@ class Module:
         for item in self.modules:
             output += str(item) + '\n'
         return output
+   
     
-class Exception:
-    def __init__(self,parent=None):
-        self.parent = parent
-        self.error = {}
+class Al_NameError(Exception):
+    def __init__(self, message):
+        self.name = "NameError"
+        self.message = message
+        self.error()
         
-    def get(self):
-        return self.error
-    
-    def set(self, error):
-        self.error = error
-        
-    def __repr__(self):
-        return f"Exception: {self.error}"
+    def error(self):
+        return Program.error()[self.name](self.message)
+  
     
 class SymbolTable:
    
@@ -260,49 +261,33 @@ class SymbolTable:
         else:
             self.symbols[name] = value
         #print(f"{name} is set to {value}")
-
-
     def get(self, name):
         value = self.symbols.get(name, None)
         if value == None and self.parent:
             return self.parent.get(name)
         return value
-    
-    
-    
+        
     def set_object(self, obj_name, object):
         self.symbols[obj_name] = object
-        
-    
+            
     def get_object(self, owner, obj_name, key, type):
         if owner.name.value in self.symbols:
             return self.symbols[owner.name.value].get_property(owner,obj_name, key, type)
         else:
             return "none"
-
-    
-    def set_final(self, name, value, type=None):
+   
+    def set_final(self, name, value, type_=None):
         if name in self.symbols:
-            Program.error()["Default"](
-                "SyntaxError", "Identifier '{name}' cannot be redecalred".format(name=name))
+            return 'already_declared'
         else:
-            if type:
-              self.symbols[name] = {
+            if type_:
+                self.symbols[name] = {
                     'value': value, 
                     'type': type
-              }
+                }
             else:
                 self.symbols[name] = value
-    
-    
-    def del_object(self, name):
-        if name in self.symbols:
-            del self.symbols[name]
-        else:
-            Program.error()["Default"](
-                "SyntaxError", "Identifier '{name}' cannot be deleted".format(name=name))
-    
-            
+                   
     def set_current_scope(self, scope):
         self.scope = scope
 
@@ -317,18 +302,15 @@ class SymbolTable:
     
     def set_module(self, name, module):
         self.modules.set(name, module)
-
-   
+ 
     def setSymbol(self):
         self.set("none", "none")
         self.set("true",  "true")
         self.set("false", "false")
-
-    
+   
     def remove(self, name):
         del self.symbols[name]
-        
-    
+           
     def __repr__(self):
         result = {
             'symbols': self.symbols,

@@ -104,11 +104,8 @@ NOT_ALLOWED_OBJECTS_KEYS = [
     'notin',
     'is',
     'as',
-    'get',
+    'import',
     'from',
-    'export',
-    'module',
-    'require',
     'step',
     'while',
     'object',
@@ -180,11 +177,8 @@ KEYWORDS = [
     'notin',
     'is',
     'as',
-    'get',
+    'import',
     'from',
-    'export',
-    'module',
-    'require',
     'step',
     'while',
     'object',
@@ -234,11 +228,8 @@ ELIF= 'elif'
 ELSE= 'else'
 FOR= 'for'
 TO= 'to'
-GET= 'get'
+IMPORT= 'import'
 FROM= 'from'
-EXPORT = 'export'
-MODULE= 'module'
-REQUIRE= 'require'
 STEP= 'step'
 WHILE= 'while'
 TASK= 'task'

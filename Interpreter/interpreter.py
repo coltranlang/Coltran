@@ -294,7 +294,15 @@ def vna_algorithm(params, args):
              
     return starargs, nonstarargs
     
+  
+   
+def create_module_path(module_path, current_file):
+    name = module_path+'.ald'
+    path = '.' + '/' + name
+    return path
     
+    
+     
 # params_ex1 = ["*args"]
 # args_ex1 = [1,2,3,4,5,6,7,8,9,10]
 # starargs_ex1, nonstarargs_ex1 = vna_algorithm(params_ex1, args_ex1)
@@ -609,12 +617,12 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
-        def GetError(detail):
+        def ImportError(detail):
             if 'name' in detail:
                 if isinstance(detail['name'], String):
                     detail['name'] = detail['name'].value
             isDetail = {
-                'name': detail['name'] if 'name' in detail else 'GetError',
+                'name': detail['name'] if 'name' in detail else 'ImportError',
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
@@ -772,7 +780,7 @@ class Program:
             'ValueError': ValueError,
             'PropertyError': PropertyError,
             'IndexError': IndexError,
-            'GetError': GetError,
+            'ImportError': ImportError,
             'ModuleNotFoundError': ModuleNotFoundError,
             'KeyboardInterrupt': KeyboardInterrupt,
             'RecursionError': RecursionError,
@@ -879,7 +887,7 @@ class Program:
         result_object = Module(name, new_object, 'builtin')
         return result_object
 
-    def createModule(path,module_name, module, context):
+    def createModule(path,module_name, module,properties_list, context):
         res = RuntimeResult()
         lexer = Lexer(path, module)
         tokens, error = lexer.make_tokens()
@@ -892,27 +900,49 @@ class Program:
         new_context.symbolTable = SymbolTable(context.symbolTable)
 
         result = interpreter.visit(ast.node, new_context)
+        if result.error: return "", result.error
         new_object = {}
         for key, value in new_context.symbolTable.symbols.items():
-            if key == module_name:
-                if isinstance(value, Class):
-                    new_object['new'] = value
-            else:
-                new_object[key] = value
-       
+            new_object[key] = value
+        if properties_list != None:
+            for property in properties_list:
+                name = property.value
+                if name in new_object:
+                    value = new_object[name]
+                    context.symbolTable.set(name, value)
+                else:
+                    return None
+        else:
+            module_object = Module(module_name, new_object, 'module')
+            context.symbolTable.set(module_name, module_object)
+            return module_object
+
+    def makeModule(module_path, module,context):
+        res = RuntimeResult()
+        lexer = Lexer(module_path, module)
+        tokens, error = lexer.make_tokens()
+        if error: return "", error
+        parser = Parser(tokens, module_path)
+        ast = parser.parse()
+        if ast.error: return "", ast.error
+        interpreter = Interpreter()
+        new_context = Context('<module>', context)
+        new_context.symbolTable = SymbolTable(context.symbolTable)
+
+        result = interpreter.visit(ast.node, new_context)
         if result.error: return "", result.error
-        result_object = Module(module_name, new_object, 'module')
-        return result_object
-            
-            # if isinstance(result.value, List):
-            #     for tok in result.value.elements:
-            #         # check if item has export defined
-            #         if hasattr(tok, 'name'):
-            #             if tok.name == "Export":
-            #                 value = tok
-            #                 context.symbolTable.set(module_name, value)
-            #                 tok.context.symbolTable.set(module_name, value)
-        #return res.success(value)
+        new_object = {}
+        for key, value in new_context.symbolTable.symbols.items():
+            new_object[key] = value
+        
+        module_object = Module('annonymous', new_object, 'module')
+        return module_object
+
+builtin_modules = {
+    "math": Program.runFile,
+    "http": Program.runFile,
+    "file": Program.runFile,
+}
 
 
 class RuntimeResult:
@@ -1061,12 +1091,12 @@ class Al_IndexError(Al_Exception):
         return f"<IndexError {self.message}>"
 
 
-class Al_GetError(Al_Exception):
+class Al_ImportError(Al_Exception):
     def __init__(self, message):
-        super().__init__("GetError", message)
+        super().__init__("ImportError", message)
 
     def __repr__(self):
-        return f"<GetError {self.message}>"
+        return f"<ImportError {self.message}>"
 
 
 class Al_ModuleNotFoundError(Al_Exception):
@@ -1152,7 +1182,7 @@ builtin_exceptions = {
     'PropertyError': Al_PropertyError,
     'KeyError': Al_KeyError,
     'ZeroDivisionError': Al_ZeroDivisionError,
-    'GetError': Al_GetError,
+    'ImportError': Al_ImportError,
     'ModuleNotFoundError': Al_ModuleNotFoundError,
     'KeyboardInterrupt': Al_KeyboardInterrupt,
     'RecursionError': Al_RecursionError,
@@ -4514,11 +4544,11 @@ class BuiltInFunction(BaseFunction):
         #     for arg in args:
         #         v = res.register(interpreter.visit(arg, exec_context))
         #         args.append(v)
-               
+              
         method_name = f'execute_{self.name}'
         method = getattr(self, method_name, self.no_visit)
         res.register(self.check_and_populate_args(
-            method.arg_names, args, keyword_args, exec_context))
+            method.arg_names, method.default_values, args, keyword_args, exec_context))
         
         if res.should_return():
             return res
@@ -4529,15 +4559,15 @@ class BuiltInFunction(BaseFunction):
         return res.success(return_value)
 
 
-    def check_and_populate_args(self, arg_names, args, keyword_args, exec_context):
+    def check_and_populate_args(self, arg_names, default_values, args, keyword_args, exec_context):
         res = RuntimeResult()
-        res.register(self.check_args(arg_names, args, keyword_args, exec_context))
+        res.register(self.check_args(arg_names, default_values,  args, keyword_args, exec_context))
         if res.should_return(): return res
         
         return res.success(None)
     
     
-    def check_args(self, arg_names, args, keyword_args, exec_context):
+    def check_args(self, arg_names, default_values, args, keyword_args, exec_context):
         res = RuntimeResult()
         len_expected = len(arg_names)
         len_args = len(args)
@@ -4598,11 +4628,11 @@ class BuiltInFunction(BaseFunction):
         
         
         
-        res.register(self.populate_args(arg_names, args, exec_context))
+        res.register(self.populate_args(arg_names, default_values, args, exec_context))
         return res.success(None)
 
     
-    def populate_args(self, arg_names, args, exec_context):
+    def populate_args(self, arg_names, default_values, args, exec_context):
         res = RuntimeResult()
         for i in range(len(arg_names)):
             arg_name = arg_names[i]
@@ -4613,11 +4643,29 @@ class BuiltInFunction(BaseFunction):
         
         return res.success(None)
 
-   
+    #file
     def execute_read(self, exec_context):
             return handle_file_read(self.properties['file'], self, exec_context)
 
     execute_read.arg_names = []
+    execute_read.default_values = [{}]
+    
+    def execute_seek(self, exec_context):
+        offset = exec_context.symbolTable.get('offset')
+        whence = exec_context.symbolTable.get('whence')
+        try: 
+            return handle_file_seek(self.properties['file'], offset.value, whence.value, self, exec_context)
+        except:
+            raise Al_IOError({
+                "pos_start": self.pos_start if self.pos_start != None else offset.pos_start,
+                "pos_end": self.pos_end if self.pos_end != None else offset.pos_end,
+                'message': f"unable to seek file to {offset.value} with whence {whence.value}",
+                "context": self.context,
+                'exit': False
+            })
+     
+    execute_seek.arg_names = ['offset', 'whence']
+    execute_seek.default_values = [{}]
         
     def execute_write(self, exec_context):
         res = RuntimeResult()
@@ -4634,7 +4682,9 @@ class BuiltInFunction(BaseFunction):
         return handle_file_write(self.properties['file'], content, self, exec_context)
    
     execute_write.arg_names = ['value']     
-        
+    execute_write.default_values = [{}]
+    
+       
     def execute_close(self, exec_context):
         res = RuntimeResult()
         file = self.properties['file']
@@ -4643,11 +4693,9 @@ class BuiltInFunction(BaseFunction):
         return res.success(Pair([closed, Boolean(file.closed)]).setContext(exec_context).setPosition(node.pos_start, node.pos_end))
     
     execute_close.arg_names = []
+    execute_close.default_values = [{}]
     
-    
-    
-    
-    
+      
     def no_visit(self):
         res = RuntimeResult()
         raise Al_NameError({
@@ -5026,20 +5074,42 @@ class BuiltInClass(BaseClass):
         fwrite = BuiltInFunction("write", exec_context, {
             'file': file_
         })
+        fseek = BuiltInFunction("seek", exec_context, {
+            'file': file_
+        })
         fclose = BuiltInFunction("close", exec_context, {
             'file': file_,
             'isClosed': Boolean(False)                      
         })
+        
         file_object = Dict({
             'name': file.value,
             'mode': mode.value,
             'close': fclose,
         })
+        
         if mode.value == 'r':
             file_object.properties['read'] = fread
+            file_object.properties['seek'] = fseek
         elif mode.value == 'w':
             file_object.properties['write'] = fwrite
-            
+            file_object.properties['seek'] = fseek
+        elif mode.value == 'r+':
+            file_object.properties['read'] = fread
+            file_object.properties['write'] = fwrite
+            file_object.properties['seek'] = fseek
+        elif mode.value == 'w+':
+            file_object.properties['write'] = fwrite
+            file_object.properties['read'] = fread
+            file_object.properties['seek'] = fseek
+        elif mode.value == 'a':
+            file_object.properties['write'] = fwrite
+            file_object.properties['seek'] = fseek
+        elif mode.value == 'a+':
+            file_object.properties['write'] = fwrite
+            file_object.properties['read'] = fread
+            file_object.properties['seek'] = fseek
+        
         file_object.setContext(exec_context).setPosition(node.pos_start, node.pos_end)
         return res.success(file_object)
 
@@ -5236,64 +5306,7 @@ class Module(Value):
         return f"<{str(self.name)}, [built-in module]>" if self.type_ != None and self.type_ == "builtin" else self.representation
 
 
-class ModulePath(Value):
-    def __init__(self, name, path, context):
-        super().__init__()
-        self.id = name
-        self.name = name
-        self.path = path
-        self.context = context
-        self.setModule()
-        
-    def setModule(self):
-        res = RuntimeResult()
-        path = self.path+"\lib\http\main.alden"
-        module = Program.runFile(path)
-        context = self.context
-        Program.createModule(path,self.name, module, self.path, context)
-        self.value = context.symbolTable.get(self.name)
-        if isinstance(self.value, Object):
-            self.properties = self.value.properties
-            if isinstance(self.value.properties, Class):
-                self.properties = self.value.properties.properties
-        else:
-            self.properties = {}
-        return self.value
-        
-    def copy(self):
-        copy = Module(self.name, self.path, self.context)
-        copy.setPosition(self.pos_start, self.pos_end)
-        copy.setContext(self.context)
-        return copy
 
-    
-    def __str__(self):
-        return str(self.value)
-
-    def __repr__(self):
-        return f"<Module {str(self.name)}>"
-
-
-class ModuleExportValue(Value):
-    def __init__(self, value):
-        super().__init__()
-        self.value = value
-        
-    def copy(self):
-        copy = ModuleExportValue(self.value)
-        copy.setPosition(self.pos_start, self.pos_end)
-        copy.setContext(self.context)
-        return copy
-    
-    def __str__(self):
-        return str(self.value)
-    
-    def __repr__(self):
-        return f"<ModuleExportValue {str(self.name)}>"
-
-   
-
- 
 
         
 def getproperty(object, property, type_):
@@ -5538,7 +5551,7 @@ def BuiltInFunction_Len(args, node, context, keyword_args=None):
             return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         if isinstance(value, Pair):
             return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        if isinstance(value, Object):
+        if isinstance(value, Object) or isinstance(value, Module):
             return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         if isinstance(value, Dict):
             return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
@@ -6096,7 +6109,7 @@ def BuiltInFunction_List(args, node, context,keyword_args=None):
             "context": context,
             'exit': False
         })
-    elif isinstance(args[0], Object) or isinstance(args[0], Dict):
+    elif isinstance(args[0], Object) or isinstance(args[0], Dict) or isinstance(args[0], Module):
         keys = [key for key in args[0].value]
         values = [args[0].value[key] for key in keys]
         new_list = []
@@ -6141,7 +6154,7 @@ def BuiltInFunction_Pair(args, node, context,keyword_args=None):
             new_pair += (value,)
         return res.success(Pair(new_pair).setPosition(node.pos_start, node.pos_end).setContext(context))
     
-    elif isinstance(args[0], Object) or isinstance(args[0], Dict):
+    elif isinstance(args[0], Object) or isinstance(args[0], Dict) or isinstance(args[0], Module):
         keys = [key for key in args[0].value]
         values = [args[0].value[key] for key in keys]
         new_pair = ()
@@ -6522,6 +6535,8 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
                     return True
             if isinstance(type1, Object) and getType == "Object":
                     return True
+            if isinstance(type1, Module) and getType == "Module":
+                    return True
             if isinstance(type1, Class) and getType == "Class":
                     return True
             if isinstance(type1, Function) and getType == "Function":
@@ -6689,6 +6704,86 @@ def BuiltInFunction_Delay(args, node, context,keyword_args=None):
         })
  
  
+def BuiltInFunction_Require(args, node, context,keyword_args=None):
+    if keyword_args != None:
+        if len(keyword_args) > 0:
+            for key in keyword_args:
+                name = key['name']
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"require() got an unexpected keyword argument '{name}'",
+                    'context': context,
+                    'exit': False
+                })
+    res = RuntimeResult()
+    error = {
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                "message": "",
+                "context": context,
+                "exit": False
+            }
+    if len(args) == 0 or len(args) > 1:
+        raise Al_ArgumentError({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"{len(args)} arguments given, but require() takes 1 argument",
+            "context": context,
+            'exit': False
+        })
+        
+    
+    if isinstance(args[0], String):
+        module_path = args[0].value
+        if module_path.endswith(".ald"):
+            module_path = module_path[:-4]
+        else:
+            if not module_path in builtin_modules:
+                module_path = module_path + ".ald"
+        
+        module = Program.runFile(module_path)
+        if module == None:
+            if module == None:
+                if module_path in builtin_modules:
+                    if  context.symbolTable.modules.is_module_in_members(module_path):
+                        error['message'] = "Module '{}' already imported".format(module_path)
+                        raise Al_ImportError(error)
+                    else:
+                        try: 
+                            path = f"./lib/{module_path}/@{module_path}.ald"
+                            module = builtin_modules[module_path](path)
+                            module_object = Program.makeModule(module_path, module, context)
+                            return res.success(module_object)
+                        except RecursionError:
+                                error['message'] = f"cannot import '{module_path}' (most likely due to a circular import)"
+                                raise Al_ImportError(error)
+                        except FileNotFoundError:
+                            error['message'] = f"cannot import '{module_path}' (file does not exist)"
+                            raise Al_ImportError(error)
+                else:
+                    error['message'] = "Module '{}' not found".format(module_path)
+                    raise Al_ModuleNotFoundError(error)
+        
+        else:
+            if  context.symbolTable.modules.is_module_in_members(module_path):
+                error['message'] = "Module '{}' already imported".format(module_path)
+                raise Al_ImportError(error)
+            else:
+                module_object = Program.makeModule(module_path, module, context)
+                return res.success(module_object)
+        
+            
+    else:
+        raise Al_TypeError({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"require() argument must be string",
+            "context": context,
+            'exit': False
+        })
+ 
+ 
 def handle_file_open(file_name, mode, node, context):
     res = RuntimeResult()
     if mode == 'r':
@@ -6710,6 +6805,42 @@ def handle_file_open(file_name, mode, node, context):
                 'message': f"permission denied for file '{file_name}'",
                 "context": context,
                 'exit': False
+            }) 
+        except:
+            raise Al_IOError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"Unexpected error while opening file '{file_name}'",
+                "context": context,
+                'exit': False
+            })    
+    elif mode == 'r+':
+        try:
+            file = open(file_name, 'r+')
+            return file
+        except FileNotFoundError:
+            raise Al_FileNotFoundError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"File '{file_name}' not found",
+                "context": context,
+                'exit': False
+            })
+        except PermissionError:
+            raise Al_PermissionError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"permission denied for file '{file_name}'",
+                "context": context,
+                'exit': False
+            })
+        except:
+            raise Al_IOError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"Unexpected error while opening file '{file_name}'",
+                "context": context,
+                'exit': False
             })
     elif mode == 'w':
         try:
@@ -6723,7 +6854,75 @@ def handle_file_open(file_name, mode, node, context):
                 "context": context,
                 'exit': False
             }) 
- 
+        except:
+            raise Al_IOError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"Unexpected error while opening file '{file_name}'",
+                "context": context,
+                'exit': False
+            })
+    elif mode == 'w+':
+        try:
+            file = open(file_name, 'w+')
+            return file
+        except PermissionError:
+            raise Al_PermissionError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"unable to write to file '{file_name}' due to permission error",
+                "context": context,
+                'exit': False
+            }) 
+        except:
+            raise Al_IOError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"Unexpected error while opening file '{file_name}'",
+                "context": context,
+                'exit': False
+            })
+    elif mode == 'a':
+        try:
+            file = open(file_name, 'a')
+            return file
+        except PermissionError:
+           raise Al_PermissionError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"unable to write to file '{file_name}' due to permission error",
+                "context": context,
+                'exit': False
+            }) 
+        except:
+            raise Al_IOError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"Unexpected error while opening file '{file_name}'",
+                "context": context,
+                'exit': False
+            })
+    elif mode == 'a+':
+        try:
+            file = open(file_name, 'a+')
+            return file
+        except PermissionError:
+           raise Al_PermissionError({
+               "pos_start": node.pos_start,
+               "pos_end": node.pos_end,
+               'message': f"unable to write to file '{file_name}' due to permission error",
+               "context": context,
+               'exit': False
+           })
+        except:
+            raise Al_IOError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"Unexpected error while opening file '{file_name}'",
+                "context": context,
+                'exit': False
+            })
+  
   
 def handle_file_read(file, node, context):
     res = RuntimeResult()
@@ -6740,15 +6939,15 @@ def handle_file_read(file, node, context):
             content = file.read()
             return res.success(String(content))
     except:
-        raise Al_RuntimeError({
+        raise Al_IOError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"unable to read file",
             "context": context,
             'exit': False
         })
-  
-  
+    
+    
 def handle_file_write(file, data, node, context):
     res = RuntimeResult()
     try:
@@ -6768,7 +6967,7 @@ def handle_file_write(file, data, node, context):
                 'success': Boolean(True)
             }))
     except:
-        raise Al_RuntimeError({
+        raise Al_IOError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"unable to write file",
@@ -6776,13 +6975,38 @@ def handle_file_write(file, data, node, context):
             'exit': False
         })
 
+
+def handle_file_seek(file, offset, whence, node, context):
+    res = RuntimeResult()
+    try:
+        if file.closed:
+            raise Al_ValueError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"I/O operation on closed file",
+                "context": context,
+                'exit': False
+            })
+
+        else:
+            file.seek(offset, whence)
+            return res.success(None)
+    except:
+        raise Al_IOError({
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"unable to seek file to {offset} with whence {whence}",
+            "context": context,
+            'exit': False
+        })
+  
   
 def handle_file_close(file, node, context):
     res = RuntimeResult()
     file.close()
     value = NoneType('none')
     return res.success(value)
-
+    
     
 def BuiltInFunction_Exit(args, node, context,keyword_args=None):
     res = RuntimeResult()
@@ -7283,21 +7507,21 @@ def BuiltInClass_ZeroDivisionError(args, node, context, type):
             return res.success(BuiltInClass("ZeroDivisionError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_GetError(args, node, context, type):
+def BuiltInClass_ImportError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
-            'name': 'GetError',
+            'name': 'ImportError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'GetError' takes 1 or 2 arguments",
+            'message': f"'ImportError' takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
         if len(args) == 1 and isinstance(args[0], String):
-            raise Al_GetError({
-                'name': 'GetError',
+            raise Al_ImportError({
+                'name': 'ImportError',
                 'message': args[0].value,
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
@@ -7305,8 +7529,8 @@ def BuiltInClass_GetError(args, node, context, type):
                 'exit': False
             })
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_GetError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('GetError'),
+            raise Al_ImportError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ImportError'),
                 'message': args[1].value,
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
@@ -7317,16 +7541,16 @@ def BuiltInClass_GetError(args, node, context, type):
             raise Al_RuntimeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but GetError takes 1 or 2 arguments",
+                'message': f"{len(args)} arguments given, but ImportError takes 1 or 2 arguments",
                 "context": context,
                 'exit': False
             })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
-            return res.success(BuiltInClass("GetError", Dict({'name': String("GetError"), 'message': String(args[0].value)})))
+            return res.success(BuiltInClass("ImportError", Dict({'name': String("ImportError"), 'message': String(args[0].value)})))
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            return res.success(BuiltInClass("GetError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+            return res.success(BuiltInClass("ImportError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
 def BuiltInClass_ModuleNotFoundError(args, node, context, type):
@@ -7961,7 +8185,7 @@ class BuiltInMethod_String(Value):
                         "context": self.context,
                         'exit': False
                     })
-            elif isinstance(self.args[0], Object):
+            elif isinstance(self.args[0], Object) or isinstance(self.args[0], Module):
                 try:
                     return String(self.name.value.join([x.value for x in self.args[0].get_keys()])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 except:
@@ -8899,7 +9123,7 @@ class BuiltInMethod_List(Value):
                     if element.name == self.args[0].name:
                         count += 1
                 return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
+            elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Module) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
                 for element in self.name.elements:
                     if isinstance(element, Dict):
                         if element.isSame(self.args[0]):
@@ -8929,7 +9153,7 @@ class BuiltInMethod_List(Value):
                     if element.name == self.args[0].name:
                         return Number(index).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 return Number(-1).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
+            elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Module) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
                 for index, element in enumerate(self.name.elements):
                     if element.isSame(self.args[0]):
                         return Number(index).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
@@ -9242,7 +9466,7 @@ class BuiltInMethod_Pair(Value):
                     if element.name == self.args[0].name:
                         count += 1
                 return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
+            elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Module) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
                 for element in self.name.elements:
                     if isinstance(element, Dict):
                         if element.isSame(self.args[0]):
@@ -9271,7 +9495,7 @@ class BuiltInMethod_Pair(Value):
                     if element.name == self.args[0].name:
                         return Number(index).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 return Number(-1).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
+            elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Module) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
                 for index, element in enumerate(self.name.elements):
                     if element.isSame(self.args[0]):
                         return Number(index).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
@@ -9435,6 +9659,7 @@ class Types(Value):
             'Pair': Pair,
             'Dict': Dict,
             'Object': Object,
+            'Module': Module,
             'Class': Class,
             'Function': Function,
             'BuiltInFunction': BuiltInFunction,
@@ -9618,6 +9843,8 @@ class Interpreter:
                 elif type(element).__name__ == 'VarAccessNode':
                     var_name = var_name + element.id.value
         value = res.register(self.visit(node.value_node, context))
+        
+            
         if node.variable_keyword_token == "module":
             value = context.symbolTable.get(node.value_node.value)
             if value == None:
@@ -9646,7 +9873,7 @@ class Interpreter:
                         context.symbolTable.set(
                             var_name[i].name.value, value.elements[i])
 
-            elif isinstance(value, Object) or isinstance(value, Dict):
+            elif isinstance(value, Object) or isinstance(value, Dict) or isinstance(value, Module):
                 
                 if len(var_name) != len(value.properties):
                     has_star = False
@@ -9656,7 +9883,7 @@ class Interpreter:
                         if is_varags(name):
                             has_star = True
                             break
-                    values = [v  for v in value.properties.keys()]
+                    values = [v  for v in value.properties.values()]
                     for v in var_name:
                         if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
                             raise Al_ValueError({
@@ -9669,14 +9896,6 @@ class Interpreter:
                         var.append(v.name.value)
                     
                     if has_star:
-                        if len(var_names) -1 != len(values) and len(var_names) != 1:
-                            raise Al_ValueError({
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
-                                'context': context,
-                                'exit': False
-                        })
                         star_names = [name for name in var_names if is_varags(name) == True]
                         non_star_names = [name for name in var_names if is_varags(name) == False]
                         starags, nonstarargs = vna_algorithm(var_names, values)
@@ -9684,7 +9903,16 @@ class Interpreter:
                             name = make_varargs(star_name)
                             context.symbolTable.set(name, List(starags))
                         for i in range(len(non_star_names)):
-                            context.symbolTable.set(non_star_names[i], nonstarargs[i])
+                            try:
+                                context.symbolTable.set(non_star_names[i], nonstarargs[i])
+                            except:
+                                raise Al_ValueError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
+                                        'context': context,
+                                        'exit': False
+                                })
                     
                     
 
@@ -9841,7 +10069,16 @@ class Interpreter:
             elif node.variable_keyword_token == "final":
                 if value is None:
                     value = NoneType.none
-                context.symbolTable.set_final(var_name, value, "final")
+                v_ = context.symbolTable.set_final(var_name, value, "final")
+                redeclared = v_ == 'already_declared'
+                if redeclared:
+                    raise Al_NameError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"assignment to final variable '{var_name}'",
+                        'context': context,
+                        'exit': False
+                    })
         return res.success(value)
 
 
@@ -11834,48 +12071,8 @@ class Interpreter:
                 new_string += element
             context.symbolTable.set(var_name, String(new_string), assign_token)
             
-        
-    def visit_ExportModuleNode(self, node, context):
-        res = RuntimeResult()
-        modules = node.modules
-        value = ""
-        for module in modules:
-            if type(module).__name__ == "Token":
-                name = module.value
-                value = context.symbolTable.get(name)
-                if value == None:
-                    raise Al_NameError({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"name '{name}' is not defined",
-                        'context': context,
-                        'exit': False
-                    })
-                else:
-                    # print(name, value)
-                    context.symbolTable.set(name, value)
-            elif type(module).__name__ == "VarAccessNode":
-                name = module.id.value
-                value = res.register(self.visit(module, context))
-                context.symbolTable.setSymbol(name, value)
-    
-    
-    def visit_ModuleExport(self, node, context):
-        res = RuntimeResult()
-        var_name = node.name.value
-        value = context.symbolTable.get(node.value.value)
-        if value == None:
-            raise Al_NameError({
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'message': f"name '{node.value.value}' is not defined",
-                'context': context,
-                'exit': False
-            })
-        return res.success(Object(var_name,value, "module"))
-    
-    
-    def visit_GetNode(self, node, context):
+     
+    def visit_ImportNode(self, node, context):
         res = RuntimeResult()
         value = ""
         error = {
@@ -11886,36 +12083,42 @@ class Interpreter:
                 "exit": False
             }
         module_name = node.module_name.value
-        module_path = node.module_path.value + ".ald" if node.module_path.value.split('.')[-1] != "ald" else node.module_path.value
+        properties_list = node.properties
+        if node.module_path != None:
+            module_path = create_module_path(node.module_path, node.pos_start.fileName)
+        else:
+            module_path = module_name + ".ald" 
+        dots = module_path.count('.') - 1
+        #print(dots, module_path)
         module = Program.runFile(module_path)
         path = module_path
         current_file = node
         current_file_path = node.pos_start.fileName
         
         if module == None:
-            builtin_modules = {
-                "math": Program.runFile,
-                "http": Program.runFile,
-            }
-            module_path = node.module_path.value
+            name = node.module_name.value if properties_list == None else node.module_path
+            module_path = name
             if module_path in builtin_modules:
 
                 if  context.symbolTable.modules.is_module_in_members(module_name):
                     error['message'] = "Module '{}' already imported".format(module_name)
-                    raise Al_GetError(error)
+                    raise Al_ImportError(error)
                 else:
                     try: 
-                        path = f"./lib/{module_path}/main.ald"
+                        path = f"./lib/{module_path}/@{module_path}.ald"
+                        #print(path)
                         module = builtin_modules[module_path](path)
-                        module_object = Program.createModule(path,module_name, module, context) 
-                        context.symbolTable.set(module_name, module_object)
+                        if node.module_alias is not None:
+                            module_name = node.module_alias.value
+                        module_object = Program.createModule(path,module_name, module, properties_list, context) 
+                        
                         return res.success(module_object)
                     except RecursionError:
                             error['message'] = f"cannot import '{module_name}' from '{module_path}' (most likely due to a circular import)"
-                            raise Al_GetError(error)
+                            raise Al_ImportError(error)
                     except FileNotFoundError:
                         error['message'] = f"cannot import '{module_name}' from '{module_path}' (file does not exist)"
-                        raise Al_GetError(error)
+                        raise Al_ImportError(error)
             else:
                 error['message'] = "Module '{}' not found".format(module_name)
                 raise Al_ModuleNotFoundError(error)
@@ -11923,9 +12126,12 @@ class Interpreter:
         else:
             if  context.symbolTable.modules.is_module_in_members(module_name):
                 error['message'] = "Module '{}' already imported".format(module_name)
-                raise Al_GetError(error)
+                raise Al_ImportError(error)
             else:
-                module_object = Program.createModule(path,module_name, module, context)
+                if node.module_alias is not None:
+                    module_name = node.module_alias.value
+                module_object = Program.createModule(path,module_name, module, properties_list, context)
+                
                 context.symbolTable.set(module_name, module_object)
                 return res.success(module_object)
                 # try:
@@ -11934,10 +12140,10 @@ class Interpreter:
                 #     return res.success(module_object)
                 # except RecursionError:
                 #     error['message'] = f"cannot import '{module_name}' from '{module_path}' (most likely due to a circular import)"
-                #     raise Al_GetError(error)
+                #     raise Al_ImportError(error)
                 # except FileNotFoundError:
                 #         error['message'] = f"cannot import '{module_name}' from '{module_path}' (file does not exist)"
-                #         raise Al_GetError(error)   
+                #         raise Al_ImportError(error)   
     
     def visit_BinOpNode(self, node, context):
         res = RuntimeResult()
@@ -12128,7 +12334,7 @@ class Interpreter:
     
     def visit_InNode(self, node, context):
         res = RuntimeResult()
-        if type(node.iterable_node).__name__ == 'ListNode' or type(node.iterable_node).__name__ == 'PairNode' or type(node.iterable_node).__name__ == 'DictNode' or type(node.iterable_node).__name__ == 'ObjectNode' or type(node.iterable_node).__name__ == 'StringNode':
+        if type(node.iterable_node).__name__ == 'ListNode' or type(node.iterable_node).__name__ == 'PairNode' or type(node.iterable_node).__name__ == 'DictNode' or type(node.iterable_node).__name__ == 'ObjectNode' or type(node.iterable_node).__name__ == 'ModuleNode' or type(node.iterable_node).__name__ == 'StringNode':
             iterable_node = res.register(self.visit(node.iterable_node, context))
         else:
             iterable_node = res.register(self.visit(node.iterable_node, context))
@@ -12149,7 +12355,7 @@ class Interpreter:
                     })
             
     
-            if isinstance(iterable_node, Object) or isinstance(iterable_node, Dict):
+            if isinstance(iterable_node, Object) or isinstance(iterable_node, Dict) or isinstance(iterable_node, Module):
                 end_value = iterable_node.get_length()
                 values = []
                 if res.should_return() : 
@@ -12668,45 +12874,7 @@ class Interpreter:
             if res.should_return(): return res
             properties = {**properties, **{key: value}}
         return res.success(Dict(properties, None,None,context).setContext(context).setPosition(node.pos_start, node.pos_end))
-    
-    
-    def visit_ModuleObject(self, node, context):
-        res = RuntimeResult()
-        object_name = node.object_name.value
-        object_value = ""
-        properties = {}
-
-        for property in node.properties:
-            prop_name = property['name'].value
-            prop_value = res.register(self.visit(property['value'], context))
-            properties = dict(properties, **{str(prop_name): prop_value})
-            if res.should_return():
-                return res
-            object_value = ModuleObject(object_name, properties).setContext(
-                context).setPosition(node.pos_start, node.pos_end)
-            if isinstance(prop_value, NoneType):
-                object_value = ModuleObject(object_name, {'key': {}, 'value': {}}).setContext(
-                    context).setPosition(node.pos_start, node.pos_end)
-                already_defined = context.symbolTable.get(object_name)
-                if already_defined:
-                    raise Al_RuntimeError({
-                        "pos_start": node.pos_start,
-                        "pos_end": node.pos_end,
-                        "message": "Object with name '{}' already defined".format(object_name),
-                        "context": context,
-                        "exit": False
-                    })
-                context.symbolTable.set(object_name, object_value)
-            else:
-                if node.other != None:
-                    if node.other['name'] == "module":
-                        as_name = node.other["as_name"]
-                        if as_name != None:
-                            properties["__name"] = String(as_name.value).setContext(
-                                context).setPosition(node.pos_start, node.pos_end)
-                context.symbolTable.set_object(object_name, object_value)
-        return res.success(object_value)
-                                  
+                                   
     
     def visit_ClassNode(self, node, context):
         res = RuntimeResult()
@@ -12856,6 +13024,7 @@ class Interpreter:
             'isinstanceof': BuiltInFunction_IsinstanceOf,
             'hasprop': BuiltInFunction_hasprop,
             'delay': BuiltInFunction_Delay,
+            'require': BuiltInFunction_Require,
             'exit': BuiltInFunction_Exit
         }
         
@@ -13042,13 +13211,10 @@ BuiltInFunction.hasprop = BuiltInFunction("hasprop")
 BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
 BuiltInFunction.is_finite = BuiltInFunction("is_finite")
-
+BuiltInFunction.require = BuiltInFunction("require")
 
 BuiltInClass.File = BuiltInClass("File", {})
 
-file_mod_path = './builtin_modules/@file.ald'
-file_mod_code = Program.runFile(file_mod_path)
-file_mod = Program.createBuiltIn(file_mod_path, "File", file_mod_code)
 #code for the built-in class exceptions
 #'class Exception(message)\nend\nclass RuntimeError()~Exception\nend'
 code_builtin_exception = 'class Exception()\ndef @init(self,message)\n\tself.message = message\nend\nend'
@@ -13061,7 +13227,7 @@ code_builtin_valueerror = 'class ValueError()\ndef @init(self,message)\n\tself.m
 code_builtin_propertyerror = 'class PropertyError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_keyerror = 'class KeyError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_zerodivisionerror = 'class ZeroDivisionError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_geterror = 'class GetError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_ImportError = 'class ImportError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_modulenotfounderror = 'class ModuleNotFoundError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef @init(self,message)\n\tself.message = message\nend\nend'
 code_builtin_recursionerror = 'class RecursionError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
@@ -13083,7 +13249,7 @@ code_builtin_notimplementederror = 'class NotImplementedError()\ndef @init(self,
 # builtin_exception_propertyerror = Program.createBuiltIn("PropertyError", code_builtin_propertyerror).elements[0]
 # builtin_exception_keyerror = Program.createBuiltIn("KeyError", code_builtin_keyerror).elements[0]
 # builtin_exception_zerodivisionerror = Program.createBuiltIn("ZeroDivisionError", code_builtin_zerodivisionerror).elements[0]
-# builtin_exception_geterror = Program.createBuiltIn("GetError", code_builtin_geterror).elements[0]
+# builtin_exception_ImportError = Program.createBuiltIn("ImportError", code_builtin_ImportError).elements[0]
 # builtin_exception_modulenotfounderror = Program.createBuiltIn("ModuleNotFoundError", code_builtin_modulenotfounderror).elements[0]
 # builtin_exception_keyboardinterrupt = Program.createBuiltIn("KeyboardInterrupt", code_builtin_keyboardinterrupt).elements[0]
 # builtin_exception_recursionerror = Program.createBuiltIn("RecursionError", code_builtin_recursionerror).elements[0]
@@ -13104,7 +13270,7 @@ code_builtin_notimplementederror = 'class NotImplementedError()\ndef @init(self,
 #     'PropertyError': builtin_exception_propertyerror,
 #     'KeyError': builtin_exception_keyerror,
 #     'ZeroDivisionError': builtin_exception_zerodivisionerror,
-#     'GetError': builtin_exception_geterror,
+#     'ImportError': builtin_exception_ImportError,
 #     'ModuleNotFoundError': builtin_exception_modulenotfounderror,
 #     'KeyboardInterrupt': builtin_exception_keyboardinterrupt,
 #     'RecursionError': builtin_exception_recursionerror,
@@ -13125,7 +13291,7 @@ code_builtin_notimplementederror = 'class NotImplementedError()\ndef @init(self,
 # BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.class_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.inherited_from,  builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
 # BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.class_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.inherited_from, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
 # BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.class_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.inherited_from,  builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
-# BuiltInClass.GetError = BuiltInClass(builtin_exception_geterror.class_name, builtin_exception_geterror.class_args, builtin_exception_geterror.inherit_class_name, builtin_exception_geterror.inherited_from, builtin_exception_geterror.methods, builtin_exception_geterror.class_fields_modifiers, builtin_exception_geterror.context)
+# BuiltInClass.ImportError = BuiltInClass(builtin_exception_ImportError.class_name, builtin_exception_ImportError.class_args, builtin_exception_ImportError.inherit_class_name, builtin_exception_ImportError.inherited_from, builtin_exception_ImportError.methods, builtin_exception_ImportError.class_fields_modifiers, builtin_exception_ImportError.context)
 # BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.class_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.inherited_from, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
 # BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.class_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.inherited_from, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
 # BuiltInClass.RecursionError = BuiltInClass(builtin_exception_recursionerror.class_name, builtin_exception_recursionerror.class_args, builtin_exception_recursionerror.inherit_class_name, builtin_exception_recursionerror.inherited_from, builtin_exception_recursionerror.methods, builtin_exception_recursionerror.class_fields_modifiers, builtin_exception_recursionerror.context)
@@ -13211,7 +13377,7 @@ symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
 # symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
 # symbolTable_.set('KeyError', BuiltInClass.KeyError)
 # symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
-# symbolTable_.set('GetError', BuiltInClass.GetError)
+# symbolTable_.set('ImportError', BuiltInClass.ImportError)
 # symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
 # symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
 # symbolTable_.set('RecursionError', BuiltInClass.RecursionError)
@@ -13221,6 +13387,6 @@ symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
 # symbolTable_.set('PermissionError', BuiltInClass.PermissionError)
 # symbolTable_.set('NotImplementedError', BuiltInClass.NotImplementedError)
 symbolTable_.set('__@file', BuiltInClass.File)
-symbolTable_.set('File', file_mod)
+symbolTable_.set('require', BuiltInFunction.require)
 symbolTable_.setSymbol()
 

@@ -1,0 +1,106 @@
+final modes = ["a", "w", "w+", "r", "r+", "a+"]
+
+
+def @handle_mode(mode)
+    if not modes.includes(mode): 
+        raise ValueError(fm"Invalid mode: '%{mode}'")
+    end
+    return mode
+end
+
+def @get_modes()
+    return fm"Modes: %{modes.join(', ')}"
+end
+
+def @check_closed(self)
+    if self.closed:
+        raise ValueError(fm"I/O operation on closed file")
+    end
+end
+
+def @check_readable(self)
+    @check_closed(self)
+    if not self.readable:
+        raise IOError(fm"File not open for reading")
+    end
+end
+
+def @check_seekable(self,offset, whence)
+    @check_closed(self)
+    if not isinstanceof(offset, Number):
+        raise TypeError(fm"seek() arg 1 must be of type int, not %{typeof(offset)}")
+    end
+    if not isinstanceof(whence, Number):
+        raise TypeError(fm"seek() arg 2 must be of type int, not %{typeof(whence)}")
+    end
+    if isinstanceof(offset, Number) and offset < 0:
+        raise IOError(fm"cannot seek nonzero end-relative value:%{offset}")
+    end
+    if isinstanceof(whence, Number) and whence < 0 or whence > 2:
+        raise ValueError(fm"Invalid argument: whence=%{whence}")
+    end
+    if typeof(offset) != 'int':
+
+        raise TypeError(fm"expected int, got %{typeof(offset)}")
+    end
+    if typeof(whence) != 'int':
+        raise TypeError(fm"expected int, got %{typeof(whence)}")
+    end
+end
+
+def @open(file, mode)
+    mode = @handle_mode(mode)
+    attempt:
+        return __@file(file=file, mode=mode)
+    catch FileNotFoundError as e:
+        raise FileNotFoundError(fm"No such file or directory: '%{file}'")
+    catch PermissionError as e:
+        raise PermissionError(fm"Permission denied: '%{file}'")
+    catch IOError as e:
+        raise IOError(fm"I/O error: '%{e.message}'")
+    catch:
+        raise IOError(fm"I/O error: '%{file}'")
+    end
+end
+
+class File
+    def @init(self, name, mode="r")
+        self.name = name
+        self.mode = mode
+        self.closed = false
+        self.readable = mode.includes("r") or mode.includes("r+") or mode.includes("w+") or mode.includes("a+")
+        self.lineno = 0
+        self.file = @open(self.name, self.mode)
+    end
+    def toString(self)
+        return fm"%{self.name} %{self.mode}"
+    end
+    def read(self)
+        @check_readable(self)
+        return self.file.read()
+    end
+    def write(self, data)
+        @check_closed(self)
+        if self.mode == "w" or self.mode == "w+" or self.mode == "a" or self.mode == "a+" or self.mode == "r+":
+            self.file.write(data)
+        else:
+            raise IOError(fm"%{self.name} is not writable")
+        end
+    end
+    def seek(self, offset, whence=0)
+        @check_seekable(self, offset, whence)
+        attempt:
+            self.file.seek(offset, whence)
+        catch:
+            raise IOError(fm"%{self.name} is not seekable")
+        end
+        return none
+    end
+    def close(self)
+        self.file.close()
+        self.closed = true
+    end
+end
+
+
+let open = File

@@ -1,4 +1,4 @@
-class GetError(Exception):
+class ImportError(Exception):
     def @init(self,message)
         self.message = message
     end

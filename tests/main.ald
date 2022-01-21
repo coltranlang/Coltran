@@ -73,11 +73,3 @@
 # let d = dict(name = "Bob", age = 20, weight = "200")
 # println(d)
 
-
-
-let file = File.new("write.ald", "w")
-println(file.closed)
-#println(file.read())
-println(file.write("Hello World"))
-file.close()
-println(file.closed)

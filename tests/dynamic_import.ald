@@ -1,0 +1,6 @@
+println("Dynamically Imported")
+println("====================")
+
+let name = "John"
+let age = 30
+let hello = def (name) -> fm"Hello, %{name}!"

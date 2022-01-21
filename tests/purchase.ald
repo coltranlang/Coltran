@@ -1,0 +1,25 @@
+class Purchase
+    def @init(self, item, price, quantity)
+        self.item = item
+        self.price = price
+        self.quantity = quantity
+        self.total = price * quantity
+    end
+    def get_price(self)
+        return self.price
+    end
+    def get_quantity(self)
+        return self.quantity
+    end
+    def get_item(self)
+        return self.item
+    end
+    def get_total(self)
+        return self.price * self.quantity
+    end
+    def toString(self)
+        return fm"Purchase: %{self.item} %{self.price} %{self.quantity} %{self.total}"
+    end
+end
+
+let new = Purchase
