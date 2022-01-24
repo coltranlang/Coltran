@@ -53,6 +53,7 @@ import json
 
 
 
+
 regex = '[+-]?[0-9]+\.[0-9]+'
 
 string_methods = {
@@ -958,7 +959,11 @@ class Program:
                     return None, name
 
         else:
-            module_object = Module(module_name, new_object, 'module')
+            module_object = {}
+            if module_name in builtin_modules:
+                module_object = Module(module_name, new_object, 'builtin')
+            else:
+                module_object = Module(module_name, new_object, 'module')
             value = module_object
             context.symbolTable.set(module_name, module_object)
             return module_object
@@ -983,7 +988,11 @@ class Program:
         for key, value in new_context.symbolTable.symbols.items():
             new_object[key] = value
         
-        module_object = Module('annonymous', new_object, 'module')
+        module_object = {}
+        if module_path in builtin_modules:
+            module_object = Module(module_path, new_object, 'builtin')
+        else:
+            module_object = Module('annonymous', new_object, 'module')
         return module_object
 
 builtin_modules = {
@@ -5368,7 +5377,7 @@ class Module(Value):
         return copy
 
     def __repr__(self):
-        return f"<{str(self.name)}, [built-in module]>" if self.type_ != None and self.type_ == "builtin" else self.representation
+        return f"<Module '{str(self.name)}', [built-in]>" if self.type_ != None and self.type_ == "builtin" else self.representation
 
 
 
@@ -12333,16 +12342,24 @@ class Interpreter:
                 "exit": False
             }
         module_name = node.module_name.value
-        module_name_as = node.module_name_as
+        module_name_as = node.module_name_as.value if hasattr(node.module_name_as, 'value') else node.module_name_as
         properties_list = node.properties
         mods = node.mods
         current_dir_name = os.path.dirname(node.pos_start.fileName)
         curr_dir = os.path.basename(current_dir_name)
         if node.module_path != None:
-            module_path = create_module_path(node.module_path, curr_dir)[0]
-            module_path_ = create_module_path(node.module_path, curr_dir)[1]
+            calling_module_path = node.pos_start.fileName
+            current_dir_name = os.path.realpath(os.path.dirname(calling_module_path))
+            curr_dir = os.path.basename(current_dir_name)
+            paths = []
+            for path in node.module_path:
+                paths = [curr_dir] + [path]
+            module_path = create_module_path(paths, curr_dir)[0]
+            
+            module_path_ = create_module_path(paths, curr_dir)[1]
         else:
-            current_dir_name = os.path.dirname(node.pos_start.fileName)
+            calling_module_path = node.pos_start.fileName
+            current_dir_name = os.path.realpath(os.path.dirname(calling_module_path))
             curr_dir = os.path.basename(current_dir_name)
             if not module_name in builtin_modules:
                 module_path =  curr_dir + "/" + module_name + '.ald'
@@ -12350,9 +12367,8 @@ class Interpreter:
             else:
                 module_path = module_name + '.ald'
                 module_path_ = module_name
-        print(module_name, module_path)
-        dots = module_path.count('.') - 1
-        #print(dots, module_path)
+        
+        
         module = Program.runFile(module_path)
         path = module_path
         current_file = node
@@ -12382,14 +12398,19 @@ class Interpreter:
                                 error['message'] = f"cannot import '{module_name}' from '{module_path}' (file does not exist)"
                                 raise Al_ImportError(error)
                             except Exception as e:
-                                error['message'] = f"cannot import '{module_name}' (most likely due to a circular import)"
-                                raise Al_ImportError(error)
+                                name = type(e).__name__
+                                if name.split('_')[0] == 'Al':
+                                    raise e
+                                else:
+                                    error['message'] = f"cannot import '{module_name_as}' (most likely due to a circular import)"
                 
                     else:
                         error['message'] = "Module '{}' not found".format(
                             module_name_as)
                         raise Al_ModuleNotFoundError(error)
-                 
+                if isinstance(module_object, tuple) and module_object[0] == None:
+                    error['message'] = f"cannot import '{module_object[1]}' from '{module_path_}'"
+                    raise Al_ImportError(error) 
                 return res.success(module_object)
                     
                     
@@ -12418,9 +12439,12 @@ class Interpreter:
                         except FileNotFoundError:
                             error['message'] = f"cannot import '{module_name}' from '{module_path}' (file does not exist)"
                             raise Al_ImportError(error)
-                        except:
-                            error['message'] = f"cannot import '{module_name}' (most likely due to a circular import)"
-                            raise Al_ImportError(error)
+                        except Exception as e:
+                            name = type(e).__name__
+                            if name.split('_')[0] == 'Al':
+                                raise e
+                            else:
+                                error['message'] = f"cannot import '{module_name_as}' (most likely due to a circular import)"
                 else:
                     error['message'] = "Module '{}' not found".format(
                         module_name_as)
@@ -12446,10 +12470,14 @@ class Interpreter:
                 except FileNotFoundError:
                         error['message'] = f"cannot import '{module_name}' from '{module_path}' (file does not exist)"
                         raise Al_ImportError(error) 
-                except:
-                    error['message'] = f"cannot import '{module_name}' (most likely due to a circular import)"
-                    raise Al_ImportError(error)
+                except Exception as e:
+                    name = type(e).__name__
+                    if name.split('_')[0] == 'Al':
+                        raise e
+                    else:
+                        error['message'] = f"cannot import '{module_name_as}' (most likely due to a circular import)"
     
+   
     def visit_BinOpNode(self, node, context):
         res = RuntimeResult()
         try:

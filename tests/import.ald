@@ -9,8 +9,8 @@ import math # import math module
 println(math)
 import math as m # import math module as m
 println(m)
-from math import pow, abs
-println(pow(2, 3), abs(-2))
+from math import pow, abs, pi
+println(pow(2, 3), abs(-2), pi)
 import Customer from tests::customer
 println(Customer)
 import Customer as C from tests::customer
@@ -23,17 +23,17 @@ from math import *
 println(sqrt(16))
 from tests::customer import Customer
 println(Customer)
-from tests::customer import Customer as C
+from customer import Customer as C
 println(C)
-from tests::customer import Customer, Purchase
+from customer import Customer, Purchase
 println(Customer)
-from tests::customer import *
+from customer import *
 println(names)
 
 import math, file
 println(math, file)
 
-from test::functions import @add_func
+from functions import @add_func
 println(@add_func(1,2))
 
 # # HTTP

@@ -6,7 +6,7 @@ let max = def (a, b) -> if a > b: a else: b
 let pow = def (a, b) -> a ^ b
 let sqrt = def (a) -> int(a ^ 0.5)
 let abs = def (a) -> if a < 0: -a else: a
-let PI = 3.141592653589793
+let pi = 3.141592653589793
 
 
 # Documentation
