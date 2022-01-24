@@ -1,0 +1,74 @@
+# When importing a module, Alden first looks for a file with the same name as the module in the current directory.
+# If it doesn't find it, it checks if the module is a built-in module. If it is, it imports the module.
+# else it raises an ImportError.
+
+
+# A directory is a package if it contains an @__init.ald file.
+
+# import style 1
+import math # import math module
+
+
+# import style 2
+import math, file # import multiple modules
+
+
+# import style 3
+import math as m # import math module with alias m
+println(m.sqrt(25)) # prints 5
+
+# import style 4
+import @add_func from tests::functions # import @add_func function from tests package in functions.ald file
+println(@add_func(2, 3)) # prints 5
+
+
+# import style 5
+import @add_func, @sub_func from tests::functions # import @add_func and @sub_func functions from tests package in functions.ald file
+println(@add_func(2, 3)) # prints 5
+println(@sub_func(2, 3)) # prints -1
+
+
+# import style 6
+import @add_func as add_func from tests::functions # import @add_func function from tests package in functions.ald file
+println(add_func(2, 3)) # prints 5
+
+
+# import style 7
+from math import sqrt # import only sqrt function from math module
+println(sqrt(25)) # prints 5
+
+
+# Individually objects from a module can be imported using the following syntax:
+
+# import style 8
+from math import sqrt as square_root # import sqrt function from math module with alias square_root
+println(square_root(25)) # prints 5
+
+
+
+# import style 9
+from math import * # import all everything from math module
+println(sqrt(25)) # prints 5
+
+
+
+# User modules are imported using the following syntax:
+# User module needs to be prefixed with the current directory.
+# import style 10
+from tests::functions import @add_func # import @add_func function from tests package in functions.ald file
+println(@add_func(2, 3)) # prints 5
+
+
+
+# import style 11
+from tests::functions import @add_func as add # import @add_func function from tests package in functions.ald file with alias add
+println(add(2, 3)) # prints 5
+
+
+# import style 12
+from tests::functions import @add_func, @sub_func # import @add_func and @sub_func functions from tests package in functions.ald file
+println(@add_func(2, 3)) # prints 5
+
+# import style 13
+from tests::functions import * # import everything from tests package in functions.ald file
+println(@mul_func(2, 3)) # prints 6

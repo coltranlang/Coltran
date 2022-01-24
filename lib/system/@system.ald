@@ -1,0 +1,44 @@
+def @read()
+    let input = __@std_in_read()
+    return input
+end
+
+def @readline()
+    let input = __@std_in_readline()
+    return input
+end
+
+def @readlines()
+    let input = __@std_in_readlines()
+    return input
+end
+
+def @write(output)
+    # __@std_out_write(output)
+end
+
+class System
+    def @init(self)
+        self.argv = []
+        self.stdin = {
+            read: @read,
+            readline: @readline,
+            readlines: @readlines
+        }
+        self.stdout = {
+            write: @write,
+        }
+        self.stderr = {
+            write: @write,
+        }
+        # self.version = __@version()
+        # self.platform = __@platform()
+    end
+    def exit(self, code=0)
+        if code != 0:
+            raise SystemExit(fm"Exiting with code: %{code}")
+        end
+    end
+end
+
+let new = System()

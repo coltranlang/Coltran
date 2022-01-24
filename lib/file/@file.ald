@@ -1,3 +1,4 @@
+
 final modes = ["a", "w", "w+", "r", "r+", "a+"]
 
 
@@ -104,3 +105,12 @@ end
 
 
 let open = File
+
+
+
+
+
+
+
+
+
