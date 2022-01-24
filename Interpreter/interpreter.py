@@ -922,6 +922,7 @@ class Program:
         if result.error: return "", result.error
         new_object = {}
         
+        name = None
         value = None
         
         for key, value in new_context.symbolTable.symbols.items():
@@ -954,10 +955,9 @@ class Program:
                 if name in new_object:
                     value = new_object[name]
                     context.symbolTable.set(module_name, value)
-                    return value
                 else:
                     return None, name
-
+                return value
         else:
             module_object = {}
             if module_name in builtin_modules:
@@ -967,8 +967,6 @@ class Program:
             value = module_object
             context.symbolTable.set(module_name, module_object)
             return module_object
-        
-        return value
               
     def makeModule(module_path, module,context):
         res = RuntimeResult()
@@ -12374,8 +12372,6 @@ class Interpreter:
         
         module = Program.runFile(module_path)
         path = module_path
-        current_file = node
-        current_file_path = node.pos_start.fileName
         if module == None:
             if mods != None and len(mods) > 0:
                 module_object = None
@@ -12426,7 +12422,6 @@ class Interpreter:
                     else:
                         try: 
                             path = f"./lib/{module_path}/@{module_path}.ald"
-                            #print(path)
                             module = builtin_modules[module_path](path)
                             if node.module_alias is not None:
                                 module_name = node.module_alias.value

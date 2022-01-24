@@ -3,97 +3,61 @@
 # The dot notation is used to access the properties of the module objects.
 # Example: import module_name as mn and then mn.module_name
 # Example: from module_name import module_name as mn and then mn.module_name
-
+from customer import Customer
+let customer = Customer('Bob', 18, '20 Main St', '000-000-0000', 'Bob18@gmail.com')
+println(customer.toString())
+customer.add_purchase('pen', 20, 4)
+customer.add_purchase('pencil', 10, 2)
+customer.add_purchase('eraser', 5, 1)
+in customer.purchases as purchase:
+  println(purchase.toString())
+end
+println(customer.total_purchases())
+println(customer.get_total_purchases())
 # MATH
 import math # import math module
-println(math)
-import math, file # import math module and file module
-println(math, file)
-import math as m # import math module as m
-println(m)
-import rad from math # import rad from math module
-println(rad)
-import @add, @sub from functions # import @add, @sub functions from functions module
-println(@add(1,2), @sub(1,2))
-import @add as ADD from functions # import @add as ADD from functions module
-println(ADD(1,2))
-from math import pow, abs, pi  # import pow, abs, pi functions from math module
-println(pow(2, 3), abs(-2), pi) 
-import Customer from tests::customer # import Customer class from tests::customer module
-println(Customer)
-import Customer as C from tests::customer # import Customer class as C from tests::customer module
-println(C)
-from math import add # import add function from math module
-println(add(1,2))
-from math import sqrt as square_root # import sqrt function as square_root from math module
-println(square_root(25))
-from math import * # import everything from math module
-println(sqrt(16))
-from tests::customer import Customer # import Customer class from tests::customer module
-println(Customer)
-from customer import Customer as C # import Customer class as C from customer module
-println(C)
-from customer import Customer, Purchase # import Customer class and Purchase class from customer module
-println(Customer)
-from customer import * # import everything from customer module
-println(names)
-import @add from tests::functions # import @add function from tests::functions module
-println(@add(1,2)) 
+print(math.pi) # print pi
 
-import functions as f # import functions module as f
-println(f.@add(1,2))
-from functions import @add as add # import @add function as add from functions module
-println(add(1,2))
+# HTTP
+import http as h
+let url = 'http://localhost:8080/'
+let headers = {
+  'Content-Type': 'application/json'
+}
+let body = {
+  name: 'test',
+  age: 18
+}
+let http = h.new(url, headers, body)
+let http2 = h.new("http://localhost:8083/", {}, {name: 'test', age: 30})
+let http3 = h.new("http://localhost:8085/", {}, {name: 'test', age: 42})
+println(http.get())
+println(http2.get())
+println(http3.post())
 
-# # HTTP
-# # import http as h
-# # let url = 'http://localhost:8080/'
-# # let headers = {
-# #   'Content-Type': 'application/json'
-# # }
-# # let body = {
-# #   name: 'test',
-# #   age: 18
-# # }
-# # let http = h.new(url, headers, body)
-# # let http2 = h.new("http://localhost:8083/", {}, {name: 'test', age: 30})
-# # let http3 = h.new("http://localhost:8085/", {}, {name: 'test', age: 42})
-# # println(http.get())
-# # println(http2.get())
-# # println(http3.post())
-
-# # FILE
-# import file as f
-# let file = f.open('text.txt', 'r')
-# println(file.read())
+# FILE
+import file as f
+let file = f.open('text.txt', 'r')
+println(file.read())
 
 
-# # USER module
-# # module path as to be defined with current directory
-# import Customer from tests::customer
-# let customer = Customer.new('Bob', 18, '20 Main St', '000-000-0000', 'Bob18@gmail.com')
-# println(customer.toString())
-# customer.add_purchase('pen', 20, 4)
-# customer.add_purchase('pencil', 10, 2)
-# customer.add_purchase('eraser', 5, 1)
-# in customer.purchases as purchase:
-#   println(purchase.toString())
-# end
-# println(customer.total_purchases())
-# println(customer.get_total_purchases())
-
-# #Dynamic import
-# def @import(path)
-#   let mod = require(path)
-#   return mod
-# end
+# USER module
+# module path as to be defined with current directory
 
 
-# let add, min, *props = @import('math')
-# println(add(1, 2), min(1, 2))
+#Dynamic import
+def @import(path)
+  let mod = require(path)
+  return mod
+end
 
-# let mod = @import('tests/dynamic_import')
-# println(mod.hello('world'))
 
-# # System
-# println(sys)
+let add, min, *props = @import('math')
+println(add(1, 2), min(1, 2))
+
+let mod = @import('tests/dynamic_import')
+println(mod.hello('world'))
+
+# System
+import system as sys
+println(sys)

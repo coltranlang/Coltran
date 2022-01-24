@@ -4718,6 +4718,7 @@ class Parser:
         else:
             mods = properties
         module_name_as = properties[-1] if len(properties) > 0 else module_name
+        print(module_name, module_name_as, module_path, mods, properties)
         return res.success(ImportNode(module_name, properties, module_alias, module_path, module_name_as,"import",mods))
       
     def from_import_expr(self):

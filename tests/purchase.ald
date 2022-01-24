@@ -22,4 +22,4 @@ class Purchase
     end
 end
 
-let new = Purchase
+let tt = 'abc'

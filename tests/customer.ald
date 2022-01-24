@@ -1,5 +1,4 @@
 import Purchase from tests::purchase
-import math
 
 class Customer 
     def @init(self, name, age, address, phone, email)
@@ -17,7 +16,7 @@ class Customer
         return self.purchases
     end
     def add_purchase(self, price, quantity, item)
-        let purchase = Purchase.new(price, quantity, item)
+        let purchase = Purchase(price, quantity, item)
         self.purchases.append(purchase)
         return none
     end
