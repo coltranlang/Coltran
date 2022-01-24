@@ -7,34 +7,43 @@
 # MATH
 import math # import math module
 println(math)
+import math, file # import math module and file module
+println(math, file)
 import math as m # import math module as m
 println(m)
-from math import pow, abs, pi
-println(pow(2, 3), abs(-2), pi)
-import Customer from tests::customer
+import rad from math # import rad from math module
+println(rad)
+import @add, @sub from functions # import @add, @sub functions from functions module
+println(@add(1,2), @sub(1,2))
+import @add as ADD from functions # import @add as ADD from functions module
+println(ADD(1,2))
+from math import pow, abs, pi  # import pow, abs, pi functions from math module
+println(pow(2, 3), abs(-2), pi) 
+import Customer from tests::customer # import Customer class from tests::customer module
 println(Customer)
-import Customer as C from tests::customer
+import Customer as C from tests::customer # import Customer class as C from tests::customer module
 println(C)
-from math import add
+from math import add # import add function from math module
 println(add(1,2))
-from math import sqrt as square_root
+from math import sqrt as square_root # import sqrt function as square_root from math module
 println(square_root(25))
-from math import *
+from math import * # import everything from math module
 println(sqrt(16))
-from tests::customer import Customer
+from tests::customer import Customer # import Customer class from tests::customer module
 println(Customer)
-from customer import Customer as C
+from customer import Customer as C # import Customer class as C from customer module
 println(C)
-from customer import Customer, Purchase
+from customer import Customer, Purchase # import Customer class and Purchase class from customer module
 println(Customer)
-from customer import *
+from customer import * # import everything from customer module
 println(names)
+import @add from tests::functions # import @add function from tests::functions module
+println(@add(1,2)) 
 
-import math, file
-println(math, file)
-
-from functions import @add_func
-println(@add_func(1,2))
+import functions as f # import functions module as f
+println(f.@add(1,2))
+from functions import @add as add # import @add function as add from functions module
+println(add(1,2))
 
 # # HTTP
 # # import http as h

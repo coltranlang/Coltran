@@ -7,8 +7,8 @@ let pow = def (a, b) -> a ^ b
 let sqrt = def (a) -> int(a ^ 0.5)
 let abs = def (a) -> if a < 0: -a else: a
 let pi = 3.141592653589793
-
-
+let deg = def (a) -> a * pi / 180
+let rad = def (a) -> a * 180 / pi
 # Documentation
 # /**
 #     # Math module

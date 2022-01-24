@@ -6608,9 +6608,7 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
             if isinstance(type1, Dict) and getType == "Dict":
                     return True
             if isinstance(type1, Object) and getType == "Object":
-                    return True
-            if isinstance(type1, Module) and getType == "Module":
-                    return True
+                    return True     
             if isinstance(type1, Class) and getType == "Class":
                     return True
             if isinstance(type1, Function) and getType == "Function":
@@ -6619,8 +6617,12 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
                     return True
             if isinstance(type1, BuiltInMethod) and getType == "BuiltInMethod":
                     return True
+            if isinstance(type1, BuiltInClass) and getType == "BuiltInClass":
+                    return True
+            if isinstance(type1, Module) and getType == "Module":
+                    return True
             else:
-                    return False
+                return False
    
     if not isinstance(args[1], Types):
         if isinstance(args[1], Class):
@@ -9918,11 +9920,12 @@ class Types(Value):
             'Pair': Pair,
             'Dict': Dict,
             'Object': Object,
-            'Module': Module,
             'Class': Class,
             'Function': Function,
             'BuiltInFunction': BuiltInFunction,
             'BuiltInMethod': BuiltInMethod,
+            'BuiltInClass': BuiltInClass,
+            'Module': Module,
         }
         self.type = data_types[self.name]
         return self.type.__name__
@@ -12373,7 +12376,6 @@ class Interpreter:
         path = module_path
         current_file = node
         current_file_path = node.pos_start.fileName
-        
         if module == None:
             if mods != None and len(mods) > 0:
                 module_object = None
@@ -13653,7 +13655,8 @@ Types.Class = Types("Class")
 Types.Function = Types("Function")
 Types.BuiltInFunction = Types("BuiltInFunction")
 Types.BuiltInMethod = Types("BuiltInMethod")
-
+Types.BuiltInClass = Types("BuiltInClass")
+Types.Module = Types("Module")
 
 
 symbolTable_.set('print', BuiltInFunction.print)
@@ -13705,6 +13708,8 @@ symbolTable_.set('Class', Types.Class)
 symbolTable_.set('Function', Types.Function)    
 symbolTable_.set('BuiltInFunction', Types.BuiltInFunction)
 symbolTable_.set('BuiltInMethod', Types.BuiltInMethod)
+symbolTable_.set('BuiltInClass', Types.BuiltInClass)
+symbolTable_.set('Module', Types.Module)
 # symbolTable_.set('Exception', BuiltInClass.Exception)
 # symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
 # symbolTable_.set('NameError', BuiltInClass.NameError)

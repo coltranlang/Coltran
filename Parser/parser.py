@@ -1709,8 +1709,7 @@ class Parser:
             from_import_expr = res.register(self.from_import_expr())
             if res.error: return res
             return res.success(from_import_expr)
-        
-               
+                      
     def re_assign(self,name,value):
         res = ParseResult()
         return res.success(VarReassignNode(name, value))
@@ -4679,8 +4678,8 @@ class Parser:
             
             
         if self.current_token.matches(tokenList.TT_KEYWORD, 'from'):
-            # if len(properties) == 0:
-            #     properties.append(module_name)
+            if len(properties) == 0:
+                properties.append(module_name)
             if module_name.value in builtin_modules:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -4718,7 +4717,6 @@ class Parser:
                 }))
         else:
             mods = properties
-       
         module_name_as = properties[-1] if len(properties) > 0 else module_name
         return res.success(ImportNode(module_name, properties, module_alias, module_path, module_name_as,"import",mods))
       

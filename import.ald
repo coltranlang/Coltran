@@ -9,11 +9,11 @@ import math # import math module
 println(math)
 import math as m # import math module as m
 println(m)
-from math import pow, abs, pi
-println(pow(2, 3), abs(-2), pi)
-import Customer from tests::customer
+from math import pow, abs, pi # import pow, abs, pi functions from math module
+println(pow(2, 3), abs(-2), pi) 
+import Customer from tests::customer # import Customer class from tests::customer module
 println(Customer)
-import Customer as C from tests::customer
+import Customer as C from customer # import Customer class as C from tests::customer module
 println(C)
 from math import add
 println(add(1,2))
