@@ -38,6 +38,7 @@
 
 
 import os
+from pyclbr import Function
 from Parser.parser import Parser
 from Parser.stringsWithArrows import *
 from Token.token import Token
@@ -862,26 +863,6 @@ class Program:
         except FileNotFoundError:
             return None
 
-    def t(name, code):
-        res = RuntimeResult()
-        lexer = Lexer(name, code)
-        tokens, error = lexer.make_tokens()
-        if error: return "", error
-        parser = Parser(tokens, name)
-        ast = parser.parse()
-        if ast.error: return "", ast.error
-        interpreter = Interpreter()
-        new_context = Context('<module>', None)
-        new_context.symbolTable = SymbolTable()
-
-        result = interpreter.visit(ast.node, new_context)
-        new_object = {}
-        for key, value in new_context.symbolTable.symbols.items():
-            new_object[key] = value
-        if result.error: return "", result.error
-        result_object = Module(name, new_object, 'builtin')
-        return result_object
-
     def createBuiltIn(path,name, value):
         res = RuntimeResult()
         lexer = Lexer(path, value)
@@ -943,6 +924,7 @@ class Program:
             if len(properties_list) > 1:
                 for property in properties_list:
                     name = property.value
+                    print(name)
                     if name in new_object:
                         value = new_object[name]
                         context.symbolTable.set(name, value)
@@ -992,6 +974,8 @@ class Program:
         else:
             module_object = Module('annonymous', new_object, 'module')
         return module_object
+
+
 
 builtin_modules = {
     "math": Program.runFile,
@@ -4209,7 +4193,7 @@ class Function(BaseFunction):
                         'context': self.context,
                         'exit': False
                     })
-                      
+        
     # only class Function calls this method
     def run(self, keyword_args_list, args, Klass, context=None, is_Init=None):
         res = RuntimeResult()
@@ -10346,7 +10330,7 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
-        
+        print(var_name, value)
         if type(value) is dict:
             try:
                 value = value['value']
@@ -11155,7 +11139,10 @@ class Interpreter:
                                 args.append(res.register(
                                     self.visit(arg, context)))
                                 if res.should_return(): return res
-                            return_value = res.register(value.run(keyword_args_list,args, object_name))
+                            if isinstance(value, Function):
+                                return_value = res.register(value.run(keyword_args_list,args, object_name))
+                            else:
+                                return_value = res.register(value.execute(args, keyword_args_list))
                             if res.should_return(): return res
                             #if res.func_return_value is not None: return res.success(res.func_return_value)
                             return res.success(return_value)
@@ -11921,10 +11908,11 @@ class Interpreter:
         
         elif object_type == "dict" or object_type == "object":
                 try:
-                    get_value = index_value.properties[index.value]
                     if type_ == "=":
                         index_value.properties[index.value] = value_
-                    return res.success(get_value)
+                    else:
+                        get_value = index_value.properties[index.value]
+                        return res.success(get_value)
                 except KeyError:
                     raise Al_KeyError({
                         'pos_start': node.pos_start,
@@ -12716,16 +12704,40 @@ class Interpreter:
                                     'message': 'cannot assign to non-identifier',
                                     'exit': False
                                 })
-                    elif len(iterators) == 2:
+                    elif len(iterators) > 1:
                         if type(iterators[0]).__name__ == "VarAccessNode" and type(iterators[1]).__name__ == "VarAccessNode":
                             # create a new pair
+                            len_iterators = len(iterators)
                             pair = (iterable_node.get_keys(), iterable_node.get_values())
-                            new_pair = ""
-                            key, value = pair[0][i], pair[1][i]
-                            context.symbolTable.set(iterators[0].id.value, key)
-                            context.symbolTable.set(iterators[1].id.value, value)
-                            value = res.register(self.visit(node.body_node, context))
-                            elements.append(value)
+                            len_iterable_node = len(pair)
+                            #print(len_iterators, len_iterable_node, iterable_node)
+                            if len_iterators > len_iterable_node:
+                                raise Al_ValueError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'context': context,
+                                    'message': f"Too many values to unpack (expected {len_iterable_node}, got {len_iterators})",
+                                    'exit': False
+                                })
+                            elif len_iterators < len_iterable_node:
+                                raise Al_ValueError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'context': context,
+                                    'message': f"Not enough values to unpack (expected {len_iterable_node}, got {len_iterators})",
+                                    'exit': False
+                                })
+                            else:
+                                key, value = pair[0][i], pair[1][i]
+                                context.symbolTable.set(iterators[0].id.value, key)
+                                context.symbolTable.set(iterators[1].id.value, value)
+                                value = res.register(self.visit(node.body_node, context))
+                                elements.append(value)
+                                # key, value = pair[0][i], pair[1][i]
+                                # context.symbolTable.set(iterators[0].id.value, key)
+                                # context.symbolTable.set(iterators[1].id.value, value)
+                                # value = res.register(self.visit(node.body_node, context))
+                                # elements.append(value)
                             
                         else:
                             raise Al_TypeError({

@@ -1,38 +1,5 @@
-import Purchase from tests::purchase
 
-class Customer 
-    def @init(self, name, age, address, phone, email)
-        self.name = name
-        self.age = age
-        self.address = address
-        self.phone = phone
-        self.email = email
-        self.purchases = []
-    end
-    def get_info(self)
-        return fm"%{self.name} %{self.age} %{self.address} %{self.phone} %{self.email}"
-    end
-    def get_purchases(self)
-        return self.purchases
-    end
-    def add_purchase(self, price, quantity, item)
-        let purchase = Purchase(price, quantity, item)
-        self.purchases.append(purchase)
-        return none
-    end
-    def get_total_purchases(self)
-        let total = 0
-        in self.purchases as purchase:
-            total += purchase.get_total()
-        end
-        return total
-    end
-    def total_purchases(self)
-        return len(self.purchases)
-    end
-    def toString(self)
-        return fm"Customer: %{self.name} %{self.age} %{self.address} %{self.phone} %{self.email}"
-    end
-end
 
 let names = ['John', 'Mary', 'Mike', 'Bob', 'Jack']
+def @test() -> "tess"
+let v = def @t() -> names

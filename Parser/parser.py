@@ -2192,14 +2192,7 @@ class Parser:
                             'exit': False
                         }))
                     
-                    # this should be checked in the interpreter
-                    elif len(iterator_keys) > 2:
-                        return res.failure(self.error['ValueError']({
-                            'pos_start': self.current_token.pos_start,
-                            'pos_end': self.current_token.pos_end,
-                            'message': "Too many values, expected 2 or 1 but got {}".format(len(iterator_keys)),
-                            'exit': False
-                        }))
+                    
                     if self.current_token.type != tokenList.TT_COLON:
                         return res.failure(self.error['Syntax']({
                             'pos_start': self.current_token.pos_start,
@@ -2292,15 +2285,7 @@ class Parser:
                     'message': "expected a value",
                     'exit': False
                 }))
-            # this should be checked in the interpreter
-            elif len(iterator_keys) > 2:
-                self.error_detected = True
-                return res.failure(self.error['ValueError']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "Too many values, expected 2 or 1 but got {}".format(len(iterator_keys)),
-                    'exit': False
-                }))
+            
 
             if self.current_token.type != tokenList.TT_COLON:
                 self.error_detected = True
@@ -4201,6 +4186,14 @@ class Parser:
                         }))
 
                     if res.error: return res
+                    if index == "":
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "expected an expression",
+                            'exit': False
+                        }))
                     return res.success(IndexNode(atom, index, value,"="))
                 return res.success(IndexNode(atom, index))
 
@@ -4718,7 +4711,6 @@ class Parser:
         else:
             mods = properties
         module_name_as = properties[-1] if len(properties) > 0 else module_name
-        print(module_name, module_name_as, module_path, mods, properties)
         return res.success(ImportNode(module_name, properties, module_alias, module_path, module_name_as,"import",mods))
       
     def from_import_expr(self):
