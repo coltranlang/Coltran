@@ -248,8 +248,7 @@ class SymbolTable:
         for key, val in self.symbols.items():
                 return key
         return None
-    
-   
+      
     def set(self, name, value, type=None):
         if not value:
             value = "none"
@@ -319,7 +318,20 @@ class SymbolTable:
         return str(result)
 
 
-
+class ModuleNameSpace:
+    def __init__(self, parent=None):
+        self.namespace = {}
+    
+    def get(self, key):
+        value = self.namespace.get(key, None)
+        return value
+    
+    def set(self, key, value):
+        self.namespace[key] = value
+        return self
+   
+    def remove(self, name):
+        del self.namespace[name]
 
 # hash = HashTable(1000)
 # hash.set("key", "value")

@@ -1,65 +1,78 @@
 # All modules objects are not stored in the same context as the calling module.
-# This means that the module objects are not in the same context as the calling module, so any property of the module objects are not accessible.
-# The dot notation is used to access the properties of the module objects.
-# Example: import module_name as mn and then mn.module_name
-# Example: from module_name import module_name as mn and then mn.module_name
-from customer import v
-#print(names)
-println(v(),'names')
-# let customer = Customer('Bob', 18, '20 Main St', '000-000-0000', 'Bob18@gmail.com')
-# println(customer.toString())
-# customer.add_purchase('pen', 20, 4)
-# customer.add_purchase('pencil', 10, 2)
-# customer.add_purchase('eraser', 5, 1)
-# in customer.purchases as purchase:
-#   println(purchase.toString())
-# end
-# println(customer.total_purchases())
-# println(customer.get_total_purchases())
-# # MATH
-# import math # import math module
-# print(math.pi) # print pi
-
-# # HTTP
-# import http as h
-# let url = 'http://localhost:8080/'
-# let headers = {
-#   'Content-Type': 'application/json'
-# }
-# let body = {
-#   name: 'test',
-#   age: 18
-# }
-# let http = h.new(url, headers, body)
-# let http2 = h.new("http://localhost:8083/", {}, {name: 'test', age: 30})
-# let http3 = h.new("http://localhost:8085/", {}, {name: 'test', age: 42})
-# println(http.get())
-# println(http2.get())
-# println(http3.post())
-
-# # FILE
-# import file as f
-# let file = f.open('text.txt', 'r')
-# println(file.read())
+# This means that all members of the module object are not available in the calling module.
+# To access the members of the module object, you need to use the module name as a prefix.
+# The dot notation is used to access the members of the module object.
 
 
-# # USER module
-# # module path as to be defined with current directory
+
+# Due to the way Alden context is implemented, if a class or function is imported from a module, any variables defined in the global scope of the module are not available in the function or class definition when imported as a member of the module. So, to access the variables defined in the global scope of the module, you need to import the module not as a member of the calling module, but as the module itself.
+
+# The following example shows how to access the global variables defined in a function or class definition in a module.
+
+import mod as m # Import the module itself.
+println(m.@foo()) # In this case, the foo() returns the value of the global variable foo. This also helps to avoid the ambiguity of the variable name and not pollute the global namespace of the calling module.
+
+from mod import @foo # Import the module as a member of the calling module.
+#println(@foo()) # In this case, the foo() returns the value of the global variable foo as well, but the global variable foo is not available in the function or class definition, so a NameError is raised. This happens due to the scope of the function or class definition.
 
 
-# #Dynamic import
-# def @import(path)
-#   let mod = require(path)
-#   return mod
-# end
 
 
-# let add, min, *props = @import('math')
-# println(add(1, 2), min(1, 2))
+# MATH
+import math # import math module
+println(math)
+print(math.pi) # print pi
 
-# let mod = @import('tests/dynamic_import')
-# println(mod.hello('world'))
+# HTTP
+import http as h
+let url = 'http://localhost:8080/'
+let headers = {
+  'Content-Type': 'application/json'
+}
+let body = {
+  name: 'test',
+  age: 18
+}
+let http = h.new(url, headers, body)
+let http2 = h.new("http://localhost:8083/", {}, {name: 'test', age: 30})
+let http3 = h.new("http://localhost:8085/", {}, {name: 'test', age: 42})
+println(http.get())
+println(http2.get())
+println(http3.post())
 
-# # System
-# import system as sys
-# println(sys)
+# FILE
+import file as f
+let file = f.open('text.txt', 'r')
+println(file.read())
+
+
+# USER module
+import customer as c
+println(c.__@members__)
+let customer = c.Customer('Bob', 18, '20 Main St', '000-000-0000', 'Bob18@gmail.com')
+println(customer.toString())
+customer.add_purchase('pen', 20, 4)
+customer.add_purchase('pencil', 10, 2)
+customer.add_purchase('eraser', 5, 1)
+in customer.purchases as purchase:
+  println(purchase.toString())
+end
+println(customer.total_purchases())
+println(customer.get_total_purchases())
+
+#Dynamic import
+def @import(path)
+  let mod = require(path)
+  return mod
+end
+
+
+let add, min, *props = @import('math')
+println(add(1, 2), min(1, 2))
+
+let mod = @import('tests/dynamic_import')
+println(mod.hello('world'))
+
+# System
+import system as sys
+println(sys)

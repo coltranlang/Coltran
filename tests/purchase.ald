@@ -21,5 +21,3 @@ class Purchase
         return fm"Purchase: %{self.item} %{self.price} %{self.quantity} %{self.total}"
     end
 end
-
-let tt = 'abc'

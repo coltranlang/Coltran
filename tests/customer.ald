@@ -1,5 +1,38 @@
+from purchase import Purchase
 
-
-let names = ['John', 'Mary', 'Mike', 'Bob', 'Jack']
-def @test() -> "tess"
-let v = def @t() -> names
+class Customer 
+    @purchase = Purchase
+    def @init(self, name, age, address, phone, email)
+        self.name = name
+        self.age = age
+        self.address = address
+        self.phone = phone
+        self.email = email
+        self.Purchase = self.@purchase
+        self.purchases = {}
+    end
+    def get_info(self)
+        return fm"%{self.name} %{self.age} %{self.address} %{self.phone} %{self.email}"
+    end
+    def get_purchases(self)
+        return self.purchases
+    end
+    def add_purchase(self, item, price, quantity)
+        let purchase = self.Purchase(item, price, quantity)
+        self.purchases[purchase.item] = purchase
+        return none
+    end
+    def get_total_purchases(self)
+        let total = 0
+        in self.purchases as (item, purchase):
+            total += purchase.get_total()
+        end
+        return total
+    end
+    def total_purchases(self)
+        return len(self.purchases)
+    end
+    def toString(self)
+        return fm"Customer: %{self.name} %{self.age} %{self.address} %{self.phone} %{self.email}"
+    end
+end

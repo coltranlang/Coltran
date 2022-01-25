@@ -97,54 +97,52 @@ string_methods = {
     'encode': 'encode',  # String.encode(encoding, Optional: errors)
     # String.findIndex(value, Optional: start, Optional: end)
     'findIndex': 'findIndex',
-    '__getproperty': '__getproperty',  # String.__getproperty__(property)
-    '__methods__': '__methods__',  # String.__methods__()
+    '__@properties__': '__@properties__', # String.__@properties__()
 }
-
 
 number_methods = {
     'toInt': 'toInt',  # Number.toInt()
     'toFloat': 'toFloat',  # Number.toFloat()
     'toString': 'toString',  # Number.toString()
-    '__methods__': '__methods__',  # Number.__methods__()
+    '__@properties__': '__@properties__', # Number.__@properties__()
 }
 
 list_methods = {
-                'length': 'length',  # List.length
-                'append': 'append',  # List.append(value)
-                'pop': 'pop',  # List.pop(Optional: index)
-                'remove': 'remove',  # List.remove(value)
-                'insert': 'insert',  # List.insert(index, value)
-                'empty': 'empty',  # List.empty()
-                'is_empty': 'is_empty',  # List.is_empty()
-                'reverse': 'reverse',  # List.reverse()
-                'getItem': 'getItem',  # List.getItem(index)
-                'setItem': 'setItem',  # List.setItem(value, Optional: index)
-                'slice': 'slice',  # List.slice(start, end)
-                'join': 'join',  # List.join(delimiter)
-                'sort': 'sort',  # List.sort(Optional: compare)
-                'contains': 'contains',  # List.contains(value)
-                'includes': 'includes',  # List.includes(value)
-                'count': 'count',  # List.count(value)
-                'indexOf': 'indexOf',  # List.indexOf(value)
-                'map': 'map',  # List.map(function)
-                'filter': 'filter',  # List.filter(function)
-                'find': 'find',  # List.find(function)
-                'reduce': 'reduce',  # List.reduce(function)
-                'some': 'some',  # List.some(function)
-                'each': 'each',  # List.each(function)
-                'every': 'every',  # List.every(function)
-                'toString': 'toString',  # List.toString()
-                'is_number': 'is_number',  # List.is_number()
-                'is_string': 'is_string',  # List.is_string()
-                '__methods__': '__methods__',  # List.__methods__()
+    'length': 'length',  # List.length
+    'append': 'append',  # List.append(value)
+    'pop': 'pop',  # List.pop(Optional: index)
+    'remove': 'remove',  # List.remove(value)
+    'insert': 'insert',  # List.insert(index, value)
+    'empty': 'empty',  # List.empty()
+    'is_empty': 'is_empty',  # List.is_empty()
+    'reverse': 'reverse',  # List.reverse()
+    'getItem': 'getItem',  # List.getItem(index)
+    'setItem': 'setItem',  # List.setItem(value, Optional: index)
+    'slice': 'slice',  # List.slice(start, end)
+    'join': 'join',  # List.join(delimiter)
+    'sort': 'sort',  # List.sort(Optional: compare)
+    'contains': 'contains',  # List.contains(value)
+    'includes': 'includes',  # List.includes(value)
+    'count': 'count',  # List.count(value)
+    'indexOf': 'indexOf',  # List.indexOf(value)
+    'map': 'map',  # List.map(function)
+    'filter': 'filter',  # List.filter(function)
+    'find': 'find',  # List.find(function)
+    'reduce': 'reduce',  # List.reduce(function)
+    'some': 'some',  # List.some(function)
+    'each': 'each',  # List.each(function)
+    'every': 'every',  # List.every(function)
+    'toString': 'toString',  # List.toString()
+    'is_number': 'is_number',  # List.is_number()
+    'is_string': 'is_string',  # List.is_string()
+    '__@properties__': '__@properties__', # List.__@properties__()
 
 }
 
 pair_methods = {
-                'count': 'count',  # Pair.count()
-                'indexOf': 'indexOf',  # Pair.indexOf(value)
-                '__methods__': '__methods__',  # Pair.__methods__()
+    'count': 'count',  # Pair.count()
+    'indexOf': 'indexOf',  # Pair.indexOf(value)
+    '__@properties__': '__@properties__', # Pair.__@properties__()
 }
 
 dict_methods = {
@@ -158,23 +156,21 @@ dict_methods = {
         'update': 'update',  # Dict.update(dict)
         'remove': 'remove',  # Dict.remove(key)
         'empty': 'empty',  # Dict.empty()
-        '__methods__': '__methods__',  # Dict.__methods__()
-        '__properties__': '__properties__',  # Dict.__properties__()
+        '__@properties__': '__@properties__', # Dict.__@properties__()
 }
 
 object_methods = {
-    '__properties__': '__properties__',  # Object.__properties__()
-    '__properties__': '__properties__',  # Object.__properties__()
+    '__@properties__': '__@properties__', # Object.__@properties__()
 }
 
 function_methods = {
     '__methods__': '__methods__',  # Function.__methods__()
-    '__properties__': '__properties__',  # Function.__properties__()
+    '__@properties__': '__@properties__', # Function.__@properties__()
 }
 
 class_methods = {
     '__methods__': '__methods__',  # Class.__methods__()
-    '__properties__': '__properties__',  # Class.__properties__()
+    '__@properties__': '__@properties__', # Class.__@properties__()
 }
 
 immutables = [
@@ -295,8 +291,7 @@ def vna_algorithm(params, args):
              
     return starargs, nonstarargs
     
-  
-   
+    
 def create_module_path(module_path, curr_dir):
     path_ = '::'.join(module_path)
     path = '/'.join(module_path)
@@ -886,7 +881,7 @@ class Program:
         result_object = Module(name, new_object, 'builtin')
         return result_object
 
-    def createModule(path,module_name, module,properties_list, context, mods=None):
+    def createModule(path,module_name, module,properties_list, context, is_builtin):
         res = RuntimeResult()
         
         lexer = Lexer(path, module)
@@ -907,7 +902,10 @@ class Program:
         value = None
         
         for key, value in new_context.symbolTable.symbols.items():
-            new_object[key] = value
+            if isinstance(value, dict):
+                new_object[key] = value['value']
+            else:
+                new_object[key] = value
         
         
                 
@@ -924,7 +922,6 @@ class Program:
             if len(properties_list) > 1:
                 for property in properties_list:
                     name = property.value
-                    print(name)
                     if name in new_object:
                         value = new_object[name]
                         context.symbolTable.set(name, value)
@@ -942,7 +939,7 @@ class Program:
                 return value
         else:
             module_object = {}
-            if module_name in builtin_modules:
+            if is_builtin:
                 module_object = Module(module_name, new_object, 'builtin')
             else:
                 module_object = Module(module_name, new_object, 'module')
@@ -966,7 +963,10 @@ class Program:
         if result.error: return "", result.error
         new_object = {}
         for key, value in new_context.symbolTable.symbols.items():
-            new_object[key] = value
+            if isinstance(value, dict):
+                new_object[key] = value['value']
+            else:
+                new_object[key] = value
         
         module_object = {}
         if module_path in builtin_modules:
@@ -5274,7 +5274,16 @@ class Module(Value):
         self.type_ = type_
         self.get_property = self.get_property
         self.representation =f"<Module {self.name}>"
-
+        self.setMembers()
+               
+    def setMembers(self):
+        members = {}
+        member_key = '__@members__'
+        for key, value in self.properties.items():
+            if key != member_key:
+                members[key] = value
+        self.properties['__@members__'] = Dict(members)
+    
     def set_property(self, key, value):
         self.properties[key] = value
         return self
@@ -10330,7 +10339,6 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
-        print(var_name, value)
         if type(value) is dict:
             try:
                 value = value['value']
@@ -11148,12 +11156,8 @@ class Interpreter:
                             return res.success(return_value)
                             
                         else:
-                            if object_name.name == "Export":
-                                error['message'] = String(f"Export has no member '{object_key.node_to_call.value}'")
-                            else:
-                                self.error_detected = True
-                                error["message"] = String(
-                                    f"'{object_name.name}' object has no method '{object_key.node_to_call.value}'")
+                            self.error_detected = True
+                            error["message"] = String(f"'{object_name.name}' object has no method '{object_key.node_to_call.value}'")
                             raise Al_PropertyError(error)
         
         elif isinstance(object_name, BuiltInClass):
@@ -11210,7 +11214,7 @@ class Interpreter:
                     if type(object_key.node_to_call).__name__ == "Token":
                         if object_key.node_to_call.value in object_name.properties:
                             value = object_name.properties[object_key.node_to_call.value]
-                            if isinstance(value, Object):
+                            if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                                 error["message"] = f"'{object_key.node_to_call.value}' object is not callable"
                                 raise Al_PropertyError(error)
                             else:
@@ -11295,13 +11299,12 @@ class Interpreter:
                                 args.append(res.register(
                                     self.visit(arg, context)))
                                 if res.should_return(): return res
-                            value = BuiltInMethod_Dict(
-                                object_key.node_to_call.value, object_name, args, node, context)
+                            value = BuiltInMethod_Dict(object_key.node_to_call.value, object_name, args, node, context)
                             return res.success(value.name)
                         elif object_key.node_to_call.value in object_name.properties:
                             value = object_name.properties[object_key.node_to_call.value]
-                            if isinstance(value, Object):
-                                error["message"] = f"{object_key.node_to_call.value} is not callable"
+                            if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
+                                error["message"] = f"'{object_key.node_to_call.value}' is not callable"
                                 raise Al_PropertyError(error)
                             else:
                                 args_node = object_key.args_nodes
@@ -11617,20 +11620,19 @@ class Interpreter:
                             value = object_name.properties[object_key.node_to_call.value]
                             if isinstance(value, dict):
                                 value = value['value']
-                            if isinstance(value, Object):
-                                error["message"] = f"{object_key.node_to_call.value} is not callable"
+                            if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
+                                error["message"] = f"'{object_key.node_to_call.value}' is not callable"
                                 raise Al_PropertyError(error)
                             else:
                                 args_node = object_key.args_nodes
                                 keyword_args_list = object_key.keyword_args_list
                                 args = []
-                                
                                 for arg in args_node:
                                     args.append(res.register(
                                         self.visit(arg, context)))
                                     if res.should_return(): return res
-                                
                                 return_value = res.register(value.execute(args,keyword_args_list))
+                                
                                 if res.should_return():
                                         return res
                                 return res.success(return_value)
@@ -11660,8 +11662,7 @@ class Interpreter:
                         else:
                             error["message"] = f"{object_name.name} object has no property {object_key.node_to_call.id.value}"
                         raise Al_PropertyError(error)
-                    # else:
-                    #     raise Al_PropertyError(error)
+                    
                     
             elif type(object_key).__name__ == "Token":
                 if hasattr(object_name, "properties"):
@@ -11672,10 +11673,6 @@ class Interpreter:
                         else:
                             return res.success(value)
                     else:
-                        # if object_name.properties['__name']:
-                        #     name = object_name.properties['__name']
-                        #     error["message"] = f"{name} object has no property {object_key.value}"
-                        # else:
                         error["message"] = f"{object_name.name} object has no property {object_key.value}"
                         raise Al_PropertyError(error)
                        
@@ -12376,7 +12373,7 @@ class Interpreter:
                                 module = builtin_modules[module_path](path)
                                 if node.module_alias is not None:
                                     module_name = node.module_alias.value
-                                module_object = Program.createModule(path, module_name, module, None, context) 
+                                module_object = Program.createModule(path, module_name, module, None, context, True) 
                             except RecursionError:
                                     error['message'] = f"cannot import '{module_name}' from '{module_path}' (most likely due to a circular import)"
                                     raise Al_ImportError(error)
@@ -12413,7 +12410,7 @@ class Interpreter:
                             module = builtin_modules[module_path](path)
                             if node.module_alias is not None:
                                 module_name = node.module_alias.value
-                            module_object = Program.createModule(path,module_name, module, properties_list, context) 
+                            module_object = Program.createModule(path,module_name, module, properties_list, context, True) 
                             if isinstance(module_object, tuple) and module_object[0] == None:
                                 error['message'] = f"cannot import '{module_object[1]}' from '{module_path_}'"
                                 raise Al_ImportError(error)
@@ -12444,7 +12441,7 @@ class Interpreter:
                 try:
                     if node.module_alias is not None:
                         module_name = node.module_alias.value
-                    module_object = Program.createModule(path,module_name, module, properties_list, context)
+                    module_object = Program.createModule(path,module_name, module, properties_list, context, False)
                     if isinstance(module_object, tuple) and module_object[0] == None:
                         error['message'] = f"cannot import '{module_object[1]}' from '{module_path_}'"
                         raise Al_ImportError(error)
@@ -13284,13 +13281,10 @@ class Interpreter:
                 if method_name == '@init':
                     for arg in method['args']:
                         class_args.append(arg)
-                        # if len(class_args) > 0:
-                        #     if class_args[0].value == 'self':
-                        #         class_args.pop(0)
                 method_value = res.register(self.visit(method['value'], context))
                 if res.should_return(): return res
                 
-                methods = dict(methods, **{str(method_name): method_value})
+                methods = {**methods, **{method_name: method_value}}
                 class_value = Class(class_name, class_args,inherits_class_name,inherited_from,
                                     methods, class_fields_modifiers,context).setContext(context).setPosition(node.pos_start, node.pos_end)
                 context.symbolTable.set_object(class_name, class_value)
