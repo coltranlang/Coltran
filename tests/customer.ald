@@ -1,14 +1,12 @@
 from purchase import Purchase
 
 class Customer 
-    @purchase = Purchase
     def @init(self, name, age, address, phone, email)
         self.name = name
         self.age = age
         self.address = address
         self.phone = phone
         self.email = email
-        self.Purchase = self.@purchase
         self.purchases = {}
     end
     def get_info(self)
@@ -18,7 +16,7 @@ class Customer
         return self.purchases
     end
     def add_purchase(self, item, price, quantity)
-        let purchase = self.Purchase(item, price, quantity)
+        let purchase = Purchase(item, price, quantity)
         self.purchases[purchase.item] = purchase
         return none
     end
@@ -36,3 +34,6 @@ class Customer
         return fm"Customer: %{self.name} %{self.age} %{self.address} %{self.phone} %{self.email}"
     end
 end
+
+let names = ["John", "Jane", "Jack", "Jill"]
+

@@ -119,12 +119,14 @@ class Program:
 
 
 class Lexer:
-    def __init__(self, fileName, fileText, position=None):
+    def __init__(self, fileName, fileText, position=None, enviroment=None, module_name=None):
         self.fileName = fileName
         self.fileText = fileText
         self.position = position
-        self.pos = Position(
-            -1, 0, -1, fileName, fileText, "inter_p", self.position)
+        self.enviroment = enviroment
+        self.module_name = module_name
+        self.pos = Position(self.enviroment,
+                            -1, 0, -1, fileName, fileText, "inter_p", self.position, self.module_name)
         self.current_char = None
         self.advance()
 
@@ -608,7 +610,8 @@ class Lexer:
 
 
 class Position:
-    def __init__(self, index, line, column, fileName, fileText, type=None, position=None):
+    def __init__(self, enviroment, index, line, column, fileName, fileText, type=None, position=None, module_name=None):
+        self.enviroment = enviroment
         self.index = index
         self.line = line
         self.column = column
@@ -616,6 +619,7 @@ class Position:
         self.fileText = fileText
         self.type = type
         self.position = position
+        self.module_name = module_name
         if self.type == "inter_p" and self.position != None:
             self.line = self.position.line
             self.column = self.position.column - [ '\n' for i in range(self.position.column - self.index) ].count('\n') if self.position.column - [ '\n' for i in range(self.position.column - self.index) ].count('\n') == -1 else self.position.column
@@ -639,5 +643,5 @@ class Position:
         return self
 
     def copy(self):
-        return Position(self.index, self.line, self.column, self.fileName, self.fileText)
+        return Position(self.enviroment,self.index, self.line, self.column, self.fileName, self.fileText, self.type, self.position, self.module_name)
 

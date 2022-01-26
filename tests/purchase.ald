@@ -1,3 +1,17 @@
+from receipts import @get_receipts, @get_receipt, @add_receipt, @update_receipt, @delete_receipt
+let my_new_receipt = {
+    id: @get_receipts().length + 1,
+    name: 'Receipt ' + str(@get_receipts().length + 1),
+    date: '01/01/2019',
+    amount: '$400.00',
+    category: 'Food',
+    description: 'This is a description of the receipt for category Food',
+}
+
+@add_receipt(my_new_receipt)
+println("Receipts", @get_receipts())
+
+
 class Purchase
     def @init(self, item, price, quantity)
         self.item = item
@@ -21,3 +35,5 @@ class Purchase
         return fm"Purchase: %{self.item} %{self.price} %{self.quantity} %{self.total}"
     end
 end
+
+let tt = 'abc'

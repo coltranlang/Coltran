@@ -73,3 +73,56 @@
 # let d = dict(name = "Bob", age = 20, weight = "200")
 # println(d)
 
+let receipts = [
+    {
+        id: 1,
+        name: 'Receipt 1',
+        date: '01/01/2019',
+        amount: '$100.00',
+        category: 'Food',
+        description: 'This is a description of the receipt for category Food',
+    },
+    {
+        id: 2,
+        name: 'Receipt 2',
+        date: '01/01/2019',
+        amount: '$200.00',
+        category: 'Clothing',
+        description: 'This is a description of the receipt for category Clothing',
+    },
+    {
+        id: 3,
+        name: 'Receipt 3',
+        date: '01/01/2019',
+        amount: '$300.00',
+        category: 'Entertainment',
+        description: 'This is a description of the receipt for category Entertainment',
+    }
+]
+
+def @get_receipts()
+    return receipts
+end
+
+def @get_receipt(id)
+    return receipts.find(def (id) -> receipts.id == id)
+end
+
+def @add_receipt(receipt)
+    receipt.id = receipts.length + 1
+    receipts.append(receipt)
+end
+
+def @update_receipt(id, receipt)
+    receipt.id = id
+    let index = receipts.findIndex(def (receipt) -> receipt.id == id)
+    receipts[index] = receipt
+end
+
+def @delete_receipt(id)
+    let index = receipts.findIndex(def (receipt) -> receipt.id == id)
+    receipts.splice(index, 1)
+    return receipts
+end
+
+

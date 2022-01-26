@@ -1,7 +1,7 @@
 import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
-from Interpreter.interpreter import Context, Interpreter, symbolTable_, Program
+from Interpreter.interpreter import Context, Interpreter, symbolTable_, Program, ModuleNameSpace
 
 I_Al_Program = Program
 
@@ -50,6 +50,7 @@ class Al_Program:
         ast = parser.parse()
         interpreter = Interpreter()
         context = Context('<module>')
+        modulenameSpace = ModuleNameSpace()
         parser_error_detected = parser.error_detected
         # ast = parser.parse()
         # interpreter = Interpreter()

@@ -997,11 +997,11 @@ line(87)
 # rest args
 let li = [1,2,3,4,5,6,7,8,9,10,11,12,13]
 let a,*args,b,c = li
-println(a,b,c, args, "is args list")
+print(a,b,c, args, "is args list", @sep='-')
 
 let d = {'name': 'John', 'age': 21, 'hobby': 'Playing soccer'}
 let (a, *args,b,c) = d
-println(a,b,c, args, "is args dict")
+println(a,b,c, args, "is args dict", @sep='-')
 
 line(88)
 # class 

@@ -319,19 +319,27 @@ class SymbolTable:
 
 
 class ModuleNameSpace:
-    def __init__(self, parent=None):
+    def __init__(self):
         self.namespace = {}
     
-    def get(self, key):
-        value = self.namespace.get(key, None)
-        return value
     
-    def set(self, key, value):
-        self.namespace[key] = value
-        return self
+    def set(self, name, value):
+        self.namespace[name] = value
+
+        
+    def get(self, name):
+        value = self.namespace.get(name, None)
+        return value
+        
    
     def remove(self, name):
         del self.namespace[name]
+        
+    def __repr__(self):
+        result = {
+            'namespace': self.namespace,
+        }
+        return str(result)
 
 # hash = HashTable(1000)
 # hash.set("key", "value")

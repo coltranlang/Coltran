@@ -2285,7 +2285,15 @@ class Parser:
                     'message': "expected a value",
                     'exit': False
                 }))
-            
+            # this should be checked in the interpreter
+            elif len(iterator_keys) > 2:
+                self.error_detected = True
+                return res.failure(self.error['ValueError']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "Too many values, expected 2 or 1 but got {}".format(len(iterator_keys)),
+                    'exit': False
+                }))
 
             if self.current_token.type != tokenList.TT_COLON:
                 self.error_detected = True
@@ -4144,6 +4152,7 @@ class Parser:
     def make_string_expr(self, inter_pv, position):
         interpolated = []
         for el in inter_pv:
+            #print(el)
             lexer = Lexer(self.file_name, el, position)
             token, error = lexer.make_tokens()
             parser = Parser(token, self.file_name, position)

@@ -1,5 +1,4 @@
-let foo = 'foo'
-
-def @foo()
-   return foo
-end
+let foo_var = "foo"
+let bar_var = "bar"
+let foo = def () -> fm"Foo: %{foo_var}"
+let bar = def () -> fm"Bar: %{bar_var}"

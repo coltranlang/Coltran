@@ -105,8 +105,54 @@ end
 
 
 let open = File
-
-
+def @check_arg_type(arg,expected_type)
+    match expected_type:
+        case "string":
+            if not isinstanceof(arg, String):
+                raise TypeError("Expected string, got " + typeof(arg))
+            end
+        end
+        case "number":
+            if not isinstanceof(arg, Number):
+                raise TypeError("Expected number, got " + typeof(arg))
+            end
+        end
+        case "boolean":
+            if not isinstanceof(arg, Boolean):
+                raise TypeError("Expected boolean, got " + typeof(arg))
+            end
+        end
+        case "list":
+            if not isinstanceof(arg, List):
+                raise TypeError("Expected list, got " + typeof(arg))
+            end
+        end
+        case "dict":
+            if not isinstanceof(arg, Object):
+                raise TypeError("Expected dict, got " + typeof(arg))
+            end
+        end
+        case "function":
+            if not isinstanceof(arg, Function):
+                raise TypeError("Expected function, got " + typeof(arg))
+            end
+        end
+        case "object":
+            if not isinstanceof(arg, Object):
+                raise TypeError("Expected object, got " + typeof(arg))
+            end
+        end
+        case "class":
+            if not isinstanceof(arg, Class):
+                raise TypeError("Expected class, got " + typeof(arg))
+            end
+        end
+    end
+end
+def @write(output)
+    @check_arg_type(output, "string")
+    __@std_out_write(output)
+end
 
 
 
