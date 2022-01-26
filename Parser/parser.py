@@ -4112,6 +4112,7 @@ class Parser:
         return res.success(PairNode(elements, pos_start, self.current_token.pos_end.copy()))
 
     def string_interp(self):
+        # string_interp ::= '"' (str_chars | %'{' expr '}')* '"'
         res = ParseResult()
         pos_start = self.current_token.pos_start.copy()
         inter_pv = None
@@ -4122,8 +4123,9 @@ class Parser:
             while self.current_token.type == tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING or tokenList.TT_BACKTICK:
                 value = self.current_token.value
                 regex = Regex().compile('%{(.*?)}')
-                # we need to allow escaping of the %{}
-                # check if the string has a double % and double { and double }
+                # check if % is present in the string but {} is not closed
+                if value.count('{') != value.count('}'):
+                    print('error 2')
                 regex2 = Regex().compile('%%{{(.*?)}}')
                 if regex2.match(value):
                     value = regex2.sub('%{\\1}', value)
@@ -4152,14 +4154,22 @@ class Parser:
     def make_string_expr(self, inter_pv, position):
         interpolated = []
         for el in inter_pv:
-            #print(el)
-            lexer = Lexer(self.file_name, el, position)
-            token, error = lexer.make_tokens()
-            parser = Parser(token, self.file_name, position)
-            ast = parser.parse()
-            for element in ast.node.elements:
-                interpolated.append(element)
-                self.string_expr = interpolated
+            if el == '':
+                self.error_detected = True
+                self.error['Syntax']({
+                    'pos_start': position,
+                    'pos_end': position,
+                    'message': "fm-string: no empty expressions",
+                    'exit': False
+                })
+                
+            # lexer = Lexer(self.file_name, el, position)
+            # token, error = lexer.make_tokens()
+            # parser = Parser(token, self.file_name, position)
+            # ast = parser.parse()
+            # for element in ast.node.elements:
+            #     interpolated.append(element)
+            #     self.string_expr = interpolated
         return self.string_expr
 
     def index_get(self, atom):
