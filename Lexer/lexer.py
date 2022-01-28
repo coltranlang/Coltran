@@ -119,14 +119,15 @@ class Program:
 
 
 class Lexer:
-    def __init__(self, fileName, fileText, position=None, enviroment=None, module_name=None):
+    def __init__(self, fileName, fileText, position=None, environment=None, module_name=None, fm_string=None):
         self.fileName = fileName
         self.fileText = fileText
         self.position = position
-        self.enviroment = enviroment
+        self.environment = environment
         self.module_name = module_name
-        self.pos = Position(self.enviroment,
-                            -1, 0, -1, fileName, fileText, "inter_p", self.position, self.module_name)
+        self.fm_string = fm_string
+        self.pos = Position(self.environment,
+                            -1, 0, -1, fileName, fileText, "inter_p", self.position, self.module_name, self.fm_string)
         self.current_char = None
         self.advance()
 
@@ -481,7 +482,7 @@ class Lexer:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': "Expected ' \" ' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column),
+                'message': "unterminated string literal",
                 'exit': False
             })
         self.advance()
@@ -530,7 +531,7 @@ class Lexer:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': 'Expected " \' " at (line: {}, column: {})'.format(self.pos.line + 1, self.pos.column),
+                'message': "unterminated string literal",
                 'exit': False
             })
         self.advance()
@@ -578,7 +579,7 @@ class Lexer:
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': 'Expected " ` " at (line: {}, column: {})'.format(self.pos.line + 1, self.pos.column),
+                'message': "unterminated string literal",
                 'exit': False
             })
         self.advance()
@@ -610,8 +611,8 @@ class Lexer:
 
 
 class Position:
-    def __init__(self, enviroment, index, line, column, fileName, fileText, type=None, position=None, module_name=None):
-        self.enviroment = enviroment
+    def __init__(self, environment, index, line, column, fileName, fileText, type=None, position=None, module_name=None, fm_string=None):
+        self.environment = environment
         self.index = index
         self.line = line
         self.column = column
@@ -620,6 +621,7 @@ class Position:
         self.type = type
         self.position = position
         self.module_name = module_name
+        self.fm_string = fm_string
         if self.type == "inter_p" and self.position != None:
             self.line = self.position.line
             self.column = self.position.column - [ '\n' for i in range(self.position.column - self.index) ].count('\n') if self.position.column - [ '\n' for i in range(self.position.column - self.index) ].count('\n') == -1 else self.position.column
@@ -643,5 +645,5 @@ class Position:
         return self
 
     def copy(self):
-        return Position(self.enviroment,self.index, self.line, self.column, self.fileName, self.fileText, self.type, self.position, self.module_name)
+        return Position(self.environment,self.index, self.line, self.column, self.fileName, self.fileText, self.type, self.position, self.module_name, self.fm_string)
 

@@ -1026,6 +1026,20 @@ end
 
 @main()
 @main(code="Hello", file="test.alden")
+# test for fm-string
+let person = {
+    name: "Bob",
+    age: 20,
+    weight: "200",
+}
+line(90)
+println(fm'Hello %{person.name}') # Hello Bob
+# to escape the % sign
+println(fm'Hello %%{person.name}, escape %') # Hello %Bob, escape %
+# to escape the {}
+println(fm'Hello %{{person.name}}, escape {}') # Hello {Bob}, escape {}
+# to escape the % sign and {}
+println(fm'Hello %%{{person.name}}, escape %%{{""}}') # Hello %{Bob}, escape %{}
 #println(dic_user["name"]) # error
 # def @makeList(item, list=[])
 #     list.append(item)

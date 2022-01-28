@@ -81,5 +81,11 @@ let person = {
     age: 20,
     weight: "200",
 }
-
-println(fm"Hello %{person.name}")
+line(90)
+println(fm'Hello %{person.name}') # Hello Bob
+# to escape the % sign
+println(fm'Hello %%{person.name}, escape %') # Hello %Bob, escape %
+# to escape the {}
+println(fm'Hello %{{person.name}}, escape {}') # Hello {Bob}, escape {}
+# to escape the % sign and {}
+println(fm'Hello %%{{person.name}}, escape %%{{""}}') # Hello %{Bob}, escape %{}

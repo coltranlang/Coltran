@@ -891,7 +891,6 @@ class Program:
         ast = parser.parse()
         if ast.error: return "", ast.error
         interpreter = Interpreter()
-        interpreter.environment = 'module'
         new_context = Context('<module>', context)
         new_context.symbolTable = SymbolTable(context.symbolTable)
 
@@ -10192,6 +10191,9 @@ class Interpreter:
     def visit_StringInterpNode(self, node, context):
         res = RuntimeResult()
         values_to_replace = node.values_to_replace
+        # for value_node in values_to_replace:
+        #     expr = res.register(self.visit(value_node, context))
+        #     print(expr)
         string_to_interp = res.register(self.visit(node.expr, context)).value
         inter_pv = node.inter_pv
         value = ""
@@ -10535,7 +10537,7 @@ class Interpreter:
         if var_name in context.symbolTable.symbols and value is None:
             value = context.symbolTable.get(NoneType.none)
         elif value is None:
-            is_module_environment = node.pos_start.enviroment == 'module'
+            is_module_environment = node.pos_start.environment == 'module'
             module_name = node.pos_start.module_name
             if is_module_environment and module_name != None and module_namespace is not None and len(module_namespace.namespace) > 0:
                 if  module_namespace.get(module_name) is not None and var_name in module_namespace.get(module_name):
@@ -10583,7 +10585,6 @@ class Interpreter:
                         'context': context,
                         'exit': False
                     })
-                
                 
                 exception_details =  {
                     'pos_start': node.pos_start,

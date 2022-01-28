@@ -1227,7 +1227,7 @@ class Parser:
                 'exit': False
             }))
         return res.success(node)
-    
+            
     def comp_expr(self):
         res = ParseResult()
         if self.current_token.matches(tokenList.TT_KEYWORD, 'not'):
@@ -1773,50 +1773,6 @@ class Parser:
             return res.success(PropertySetNode(object_, name, value))
 
         return res.success(PropertyNode(object_, name))
-
-    def make_expr(self,atom):
-        res = ParseResult()
-        name = atom
-        arg_nodes = []
-        if self.current_token.type == tokenList.TT_LPAREN:
-            res.register_advancement()
-            self.advance()
-            if self.current_token.type == tokenList.TT_RPAREN:
-                res.register_advancement()
-                self.advance()
-                call_node = res.success(CallNode(name, arg_nodes))
-                name = res.register(call_node)
-
-                return res.success(name)
-            else:
-                arg_nodes.append(res.register(self.expr()))
-                if res.error:
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': f"expected ')'",
-                        'exit': False
-                    }))
-
-                while self.current_token.type == tokenList.TT_COMMA:
-                    res.register_advancement()
-                    self.advance()
-                    arg_nodes.append(res.register(self.expr()))
-                    if res.error:
-                        return res
-
-                if self.current_token.type != tokenList.TT_RPAREN:
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "expected ',' or ')'",
-                        'exit': False
-                    }))
-                res.register_advancement()
-                self.advance()
-                call_node = res.success(CallNode(name, arg_nodes))
-                name = res.register(call_node)
-                return res.success(name)
 
     def if_expr(self):
         res = ParseResult()
@@ -4112,7 +4068,6 @@ class Parser:
         return res.success(PairNode(elements, pos_start, self.current_token.pos_end.copy()))
 
     def string_interp(self):
-        # string_interp ::= '"' (str_chars | %'{' expr '}')* '"'
         res = ParseResult()
         pos_start = self.current_token.pos_start.copy()
         inter_pv = None
@@ -4122,22 +4077,27 @@ class Parser:
             string_to_interp = self.current_token.value
             while self.current_token.type == tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING or tokenList.TT_BACKTICK:
                 value = self.current_token.value
+                string_repr = self.current_token.pos_start.fileText
                 regex = Regex().compile('%{(.*?)}')
-                # check if % is present in the string but {} is not closed
                 if value.count('{') != value.count('}'):
-                    print('error 2')
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "fm-string: unmatched '{'" if value.count('{') > value.count('}') else "fm-string: unmatched '}'",
+                        'exit': False
+                    }))
                 regex2 = Regex().compile('%%{{(.*?)}}')
                 if regex2.match(value):
                     value = regex2.sub('%{\\1}', value)
                 if value.find('{{') != -1:
-                    value = value.replace('{{', '{')
-                    value = value.replace('}}', '}')
+                    value = value.replace('{{', '{').replace('}}', '}')
                 interp_values = regex.match(value)
                 if interp_values:
                     inter_pv = interp_values
                     expr = res.register(self.expr())
                     interpolated_string = self.make_string_expr(
-                        inter_pv, expr.pos_start)
+                        inter_pv, pos_start,string_repr)
                     return res.success(StringInterpNode(expr,  interpolated_string, string_to_interp, pos_start, self.current_token.pos_end.copy(),inter_pv))
                 else:
                     expr = res.register(self.expr())
@@ -4151,7 +4111,7 @@ class Parser:
                 }))
         return res.success(StringNode(self.current_token))
 
-    def make_string_expr(self, inter_pv, position):
+    def make_string_expr(self, inter_pv, position, string_repr):
         interpolated = []
         for el in inter_pv:
             if el == '':
@@ -4162,14 +4122,16 @@ class Parser:
                     'message': "fm-string: no empty expressions",
                     'exit': False
                 })
-                
-            # lexer = Lexer(self.file_name, el, position)
-            # token, error = lexer.make_tokens()
-            # parser = Parser(token, self.file_name, position)
-            # ast = parser.parse()
-            # for element in ast.node.elements:
-            #     interpolated.append(element)
-            #     self.string_expr = interpolated
+            
+            environment = self.current_token.pos_start.environment if self.current_token != None else None
+            mod_name = self.current_token.pos_start.module_name if self.current_token != None else None
+            lexer = Lexer(self.file_name, el, position, environment, mod_name, string_repr)
+            token, error = lexer.make_tokens()
+            parser = Parser(token, self.file_name, position)
+            ast = parser.parse()
+            for element in ast.node.elements:
+                interpolated.append(element)
+                self.string_expr = interpolated
         return self.string_expr
 
     def index_get(self, atom):

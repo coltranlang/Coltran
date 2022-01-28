@@ -19,7 +19,7 @@ def stringsWithArrows(text, pos_start, pos_end):
         error += ' ' * column_start + '^' * (column_end - column_start + 1)
         error_at = error.find('^')
         error_at_text = error[:error_at]
-        
+        print(pos_start)
         # Append to result
         result = error_at_text
         result += '\n' + '^' * len(error_at_text.rstrip()) + '\n'
