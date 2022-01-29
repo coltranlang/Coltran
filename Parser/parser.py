@@ -1204,6 +1204,7 @@ class Parser:
                 spread_expr = res.register(self.spread_expr(var_name, variable_keyword_token))
                 return res.success(spread_expr)
             expr = res.register(self.expr())
+            
             if expr == "":
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -1214,6 +1215,25 @@ class Parser:
                 }))
             if res.error:
                 return res
+            pair_exprs = []
+            while self.current_token.type == tokenList.TT_COMMA:
+                pair_exprs.append(expr)
+                res.register_advancement()
+                self.advance()
+                expr = res.register(self.expr())
+                pair_exprs.append(expr)
+                if expr == "":
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "expected an expression",
+                        'exit': False
+                    }))
+                if res.error: return res
+            if len(pair_exprs) > 0:
+                pair_node = PairNode(pair_exprs, self.current_token.pos_start, self.current_token.pos_end)
+                return res.success(VarAssignNode(var_name, pair_node, variable_keyword_token))
             return res.success(VarAssignNode(var_name, expr, variable_keyword_token))
         
         node = res.register(self.binaryOperation(

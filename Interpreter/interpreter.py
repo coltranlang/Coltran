@@ -5528,8 +5528,10 @@ def BuiltInFunction_Print(args, node, context,keyword_args=None):
 
 
     else:
-        v = " ".join(values)
-        sys.stdout.write(v)
+        sep = ' '
+        end = '\n'
+        result = sep.join(values) + end
+        sys.stdout.write(result)
     return res.success(NoneType.none)
 
 
@@ -5597,14 +5599,14 @@ def BuiltInFunction_PrintLn(args, node, context,keyword_args=None):
                 pass
 
 
-
+    
 
 
     else:
-        sep = ' '
+        sep = ''
         end = '\n'
         file = None
-        result = sep.join(values) + end
+        result = sep + end.join(values) + end
         sys.stdout.write(result)
     return res.success(NoneType.none)
 
