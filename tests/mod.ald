@@ -1,4 +1,4 @@
 let foo_var = "foo"
 let bar_var = "bar"
-let foo = def () -> fm"Foo: %{fowo_var}"
+let foo = def () -> fm"Foo: %{foo_var}"
 let bar = def () -> fm"Bar: %{bar_var}"

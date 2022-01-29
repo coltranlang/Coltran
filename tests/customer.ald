@@ -36,4 +36,3 @@ class Customer
 end
 
 let names = ["John", "Jane", "Jack", "Jill"]
-

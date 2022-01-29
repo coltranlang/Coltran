@@ -42,26 +42,7 @@ import re
 #   This file contains the lexer class which is responsible for tokenizing the input file.
 
 
-class Regex:
-        def __init__(self):
-            self.value = None
 
-        def parse(self, text, pos_start, pos_end):
-            wildcard_token = Token(tokenList.TT_WILDCARD, None, pos_start, pos_end)
-            start_token = Token(tokenList.TT_START, None, pos_start, pos_end)
-            end_token = Token(tokenList.TT_END, None, pos_start, pos_end)
-            comma_token = Token(tokenList.TT_COMMA, None, pos_start, pos_end)
-            arrow_token = Token(tokenList.TT_ARROW, None, pos_start, pos_end)
-            plus_token = Token(tokenList.TT_PLUS, None, pos_start, pos_end)
-            star_token = Token(tokenList.TT_STAR, None, pos_start, pos_end)
-            question_token = Token(tokenList.QUESTION, None, pos_start, pos_end)
-            pipe_token = Token(tokenList.TT_PIPE, None, pos_start, pos_end)
-            
-        def compile(self, pattern):
-            self.pattern = re.compile(pattern)
-            return self
-        def match(self, text):
-            return self.pattern.findall(text)
 class Program:
     def error():
         def IllegalCharacter(options):
@@ -455,13 +436,12 @@ class Lexer:
                     if self.current_char == '"':
                         string += '"'
                     else:
-                        string += self.current_char
-                        # Program.error()['Syntax']({
-                        #     'pos_start': pos_start,
-                        #     'pos_end': self.pos,
-                        #     'message': 'Invalid escape character',
-                        #     'exit': False
-                        # })
+                        Program.error()['Syntax']({
+                            'pos_start': pos_start,
+                            'pos_end': self.pos,
+                            'message': 'Invalid escape character',
+                            'exit': False
+                        })
                     
             else:
                 if character:
@@ -505,11 +485,15 @@ class Lexer:
                 if self.current_char in escape_characters:
                     string += escape_characters[self.current_char]
                 else:
-                    character = False
-                    if self.current_char == '"':
-                        string += '"'
+                    if self.current_char == "'":
+                        string += "'"
                     else:
-                        string += self.current_char
+                        Program.error()['Syntax']({
+                            'pos_start': pos_start,
+                            'pos_end': self.pos,
+                            'message': 'Invalid escape character',
+                            'exit': False
+                        })
 
             else:
                 if character:
@@ -554,10 +538,15 @@ class Lexer:
                 if self.current_char in escape_characters:
                     string += escape_characters[self.current_char]
                 else:
-                    if self.current_char == '"':
-                        string += '"'
+                    if self.current_char == '`':
+                        string += '`'
                     else:
-                        string += self.current_char
+                        Program.error()['Syntax']({
+                            'pos_start': pos_start,
+                            'pos_end': self.pos,
+                            'message': 'Invalid escape character',
+                            'exit': False
+                        })
 
             else:
                 if character:
@@ -609,7 +598,6 @@ class Lexer:
             self.advance()
 
 
-
 class Position:
     def __init__(self, environment, index, line, column, fileName, fileText, type=None, position=None, module_name=None, fm_string=None):
         self.environment = environment
@@ -631,7 +619,9 @@ class Position:
             'line': self.line,
             'column': self.column,
             'fileName': self.fileName,
-            'fileText': self.fileText
+            'fileText': self.fileText,
+            'module': self.module_name,
+            'fm_string': self.fm_string
         })
 
     def advance(self, current_char=None):

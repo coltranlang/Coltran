@@ -9,7 +9,7 @@ let my_new_receipt = {
 }
 
 @add_receipt(my_new_receipt)
-println("Receipts", @get_receipts())
+println(fm"Receipts: %{@get_receipts()}", @end='\n')
 
 
 class Purchase
@@ -35,5 +35,3 @@ class Purchase
         return fm"Purchase: %{self.item} %{self.price} %{self.quantity} %{self.total}"
     end
 end
-
-let tt = 'abc'

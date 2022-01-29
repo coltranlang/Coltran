@@ -221,10 +221,9 @@ class Program:
         sys.exit(1)
 
     def asString(detail):
-        result = f'\nFile {detail["pos_start"].fileName}, line {detail["pos_start"].line + 1}'
-        result += '\n\n' +  \
-            stringsWithArrows(
-                detail["pos_start"].fileText, detail["pos_start"], detail["pos_end"])
+        #result = "Traceback (most recent call last):\n"
+        result = f'File {detail["pos_start"].fileName}, line {detail["pos_start"].line + 1}'
+        result += '\n' + stringsWithArrows(detail["pos_start"].fileText, detail["pos_start"], detail["pos_end"])
         result += f'\n{detail["name"]}: {detail["message"]}'
         return result
 
@@ -697,7 +696,7 @@ class CallNode:
 
 
 class ImportNode:
-    def __init__(self, module_name, properties, module_alias,module_path, module_name_as,type_,mods=None):
+    def __init__(self, module_name, properties, module_alias,module_path, module_name_as,type_,mods=None, from_module_name=None):
         self.id = module_name
         self.module_name = module_name
         self.properties = properties if len(properties) > 0 else None
@@ -706,6 +705,7 @@ class ImportNode:
         self.module_name_as = module_name_as
         self.type_ = type_
         self.mods = mods
+        self.from_module_name = from_module_name
         if self.module_alias:
             self.pos_start = self.module_alias.pos_start
         else:
@@ -4077,7 +4077,7 @@ class Parser:
             string_to_interp = self.current_token.value
             while self.current_token.type == tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING or tokenList.TT_BACKTICK:
                 value = self.current_token.value
-                string_repr = self.current_token.pos_start.fileText
+                string_repr = self.current_token
                 regex = Regex().compile('%{(.*?)}')
                 if value.count('{') != value.count('}'):
                     self.error_detected = True
@@ -4717,7 +4717,7 @@ class Parser:
             }))
 
         module_name = self.current_token
-        
+        from_module_name = module_name
         self.skipLines()
         
         if self.current_token.type == tokenList.TT_DOUBLE_COLON:
@@ -4805,7 +4805,8 @@ class Parser:
                 
                 
         module_name_as = module_path[-1] if len(module_path) > 0 else module_name
-        return res.success(ImportNode(module_name, properties, module_alias, module_path, module_name_as, "from"))
+        
+        return res.success(ImportNode(module_name, properties, module_alias, module_path, module_name_as, "from", None,from_module_name))
               
     def binaryOperation(self, func_1, ops, func_2=None):
         if func_2 == None:

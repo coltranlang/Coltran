@@ -1,5 +1,4 @@
-from mod import foo, bar
-println(foo(), bar())
+
 let receipts = []
 
 def @check_recipts()

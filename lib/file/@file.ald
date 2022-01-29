@@ -105,6 +105,7 @@ end
 
 
 let open = File
+
 def @check_arg_type(arg,expected_type)
     match expected_type:
         case "string":
