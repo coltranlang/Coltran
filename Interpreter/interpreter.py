@@ -2925,7 +2925,7 @@ class Dict(Value):
     def get_keys(self):
         keys = []
         for key in self.properties:
-            keys.append(String(key))
+            keys.append(key)
         return keys
 
     def get_values(self):
@@ -3041,7 +3041,7 @@ class Object(Value):
     def get_keys(self):
         keys = []
         for key in self.properties:
-            keys.append(String(key))
+            keys.append(key)
         return keys
 
     def get_values(self):
@@ -5334,7 +5334,7 @@ class Module(Value):
     def get_keys(self):
         keys = []
         for key in self.properties:
-            keys.append(String(key))
+            keys.append(key)
         return keys
 
     def get_values(self):
@@ -6876,6 +6876,230 @@ def BuiltInFunction_Require(args, node, context,keyword_args=None):
         })
 
 
+def BuiltInFunction_Enumerate(args, node, context,keyword_args=None):
+    res = RuntimeResult()
+    interpreter = Interpreter()
+    valid_keywords_args = ["start"]
+    keyword_args_names = []
+    keywords = {}
+    if len(args) == 0:
+        raise Al_ArgumentError({
+            'pos_start': node.pos_start,
+            'pos_end': node.pos_end,
+            'message': f"enumerate() takes at least 1 argument",
+            'context': context,
+            'exit': False
+        })
+    if len(args) > 2:
+        raise Al_ArgumentError({
+            'pos_start': node.pos_start,
+            'pos_end': node.pos_end,
+            'message': f"enumerate() takes at most 2 arguments",
+            'context': context,
+            'exit': False
+        })
+    if keyword_args != None and len(keyword_args) > 0:
+        for keyword_arg in keyword_args:
+            name = keyword_arg['name']
+            value = res.register(interpreter.visit(keyword_arg['value'], context))
+            if not isinstance(value, Number):
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"type '{TypeOf(value).getType()}' cannot be interpreted as an integer",
+                    'context': context,
+                    'exit': False
+                })
+            value = value.value
+            if not isinstance(value, int):
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"type '{TypeOf(value).getType()}' cannot be interpreted as an integer",
+                    'context': context,
+                    'exit': False
+                })
+            keywords[name] = value
+            if name in valid_keywords_args:
+                keyword_args_names.append(name)
+            else:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"enumerate() got an unexpected keyword argument '{keyword_arg['name']}'",
+                    'context': context,
+                    'exit': False
+                })
+    
+        
+    if len(args) == 1:
+        if isinstance(args[0], List) or isinstance(args[0], Pair): 
+            if len(keyword_args_names) == 0:
+                dict_enumerate = {}
+                for i in range(len(args[0].elements)):
+                    key = Number(i)
+                    value = args[0].elements[i]
+                    dict_enumerate[key] = value
+                enumerate_object = Dict(dict_enumerate)
+                return res.success(enumerate_object)
+            elif len(keyword_args_names) == 1:
+                if isinstance(args[0], List) or isinstance(args[0], Pair):
+                    dict_enumerate = {}
+                    for i in range(len(args[0].elements)):
+                        start_value = keywords["start"]
+                        key = Number(i + start_value)
+                        value = args[0].elements[i]
+                        dict_enumerate[key] = value
+                    enumerate_object = Dict(dict_enumerate)
+                    return res.success(enumerate_object)
+        elif isinstance(args[0], String):
+            if len(keyword_args_names) == 0:
+                dict_enumerate = {}
+                for i in range(len(args[0].value)):
+                    key = Number(i)
+                    value = String(args[0].value[i])
+                    dict_enumerate[key] = value
+                enumerate_object = Dict(dict_enumerate)
+                return res.success(enumerate_object)
+            elif len(keyword_args_names) == 1:
+                if isinstance(args[0], String):
+                    dict_enumerate = {}
+                    for i in range(len(args[0].value)):
+                        start_value = keywords["start"]
+                        key = Number(i + start_value)
+                        value = String(args[0].value[i])
+                        dict_enumerate[key] = value
+                    enumerate_object = Dict(dict_enumerate)
+                    return res.success(enumerate_object)
+        elif isinstance(args[0], Dict) or isinstance(args[0], Object) or isinstance(args[0], Module):
+            if len(keyword_args_names) == 0:
+                dict_enumerate = {}
+                object_key = -1
+                for key in args[0].properties:
+                    value_key = key
+                    object_key += 1
+                    key = Number(object_key)
+                    value = Number(value_key)
+                    dict_enumerate[key] = value
+                enumerate_object = Dict(dict_enumerate)
+                return res.success(enumerate_object)
+            elif len(keyword_args_names) == 1:
+                if isinstance(args[0], Dict) or isinstance(args[0], Object) or isinstance(args[0], Module):
+                    dict_enumerate = {}
+                    object_key = -1
+                    for key in args[0].properties:
+                        start_value = keywords["start"]
+                        value_key = key
+                        object_key += 1
+                        key = Number(object_key + start_value)
+                        value = Number(value_key)
+                        dict_enumerate[key] = value
+                    enumerate_object = Dict(dict_enumerate)
+                    return res.success(enumerate_object)
+                    
+                    
+                               
+        else:
+            raise Al_TypeError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+                'context': context,
+                'exit': False
+            })
+    elif len(args) == 2:
+        if isinstance(args[0], List) or isinstance(args[0], Pair):
+            if isinstance(args[1], Number):
+                dict_enumerate = {}
+                for i in range(len(args[0].elements)):
+                    start_value = args[1].value
+                    if not isinstance(start_value, int):
+                       raise Al_TypeError({
+                           'pos_start': node.pos_start,
+                           'pos_end': node.pos_end,
+                           'message': f"type '{TypeOf(start_value).getType()}' cannot be interpreted as an integer",
+                           'context': context,
+                           'exit': False
+                          })
+                    key = Number(i + start_value)
+                    value = args[0].elements[i]
+                    dict_enumerate[key] = value
+                enumerate_object = Dict(dict_enumerate)
+                return res.success(enumerate_object)
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"type '{TypeOf(args[1]).getType()}' cannot be interpreted as an integer",
+                    'context': context,
+                    'exit': False
+                })
+        elif isinstance(args[0], String):
+            if isinstance(args[1], Number):
+                dict_enumerate = {}
+                for i in range(len(args[0].value)):
+                    start_value = args[1].value
+                    if not isinstance(start_value, int):
+                          raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"type '{TypeOf(start_value).getType()}' cannot be interpreted as an integer",
+                                'context': context,
+                                'exit': False
+                            })
+                    key = Number(i + start_value)
+                    value = String(args[0].value[i])
+                    dict_enumerate[key] = value
+                enumerate_object = Dict(dict_enumerate)
+                return res.success(enumerate_object)
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"type '{TypeOf(args[1]).getType()}' cannot be interpreted as an integer",
+                    'context': context,
+                    'exit': False
+                })
+        elif isinstance(args[0], Dict) or isinstance(args[0], Object) or isinstance(args[0], Module):
+            if isinstance(args[1], Number):
+                dict_enumerate = {}
+                object_key = -1
+                for key in args[0].properties:
+                    start_value = args[1].value
+                    if not isinstance(start_value, int):
+                            raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"type '{TypeOf(start_value).getType()}' cannot be interpreted as an integer",
+                                'context': context,
+                                'exit': False
+                            })
+                    value_key = key
+                    object_key += 1
+                    key = Number(object_key + start_value)
+                    value = Number(value_key)
+                    dict_enumerate[key] = value
+                enumerate_object = Dict(dict_enumerate)
+                return res.success(enumerate_object)
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"type '{TypeOf(args[1]).getType()}' cannot be interpreted as an integer",
+                    'context': context,
+                    'exit': False
+                })
+            
+        else:
+            raise Al_TypeError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+                'context': context,
+                'exit': False
+            })
+            
+        
 def handle_file_open(file_name, mode, node, context):
     res = RuntimeResult()
     if mode == 'r':
@@ -8538,7 +8762,7 @@ class BuiltInMethod_String(Value):
                     })
             elif isinstance(self.args[0], Object) or isinstance(self.args[0], Module):
                 try:
-                    return String(self.name.value.join([x.value for x in self.args[0].get_keys()])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return String(self.name.value.join([x for x in self.args[0].get_keys()])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
                 except:
                     raise Al_RuntimeError({
                         "pos_start": self.node.pos_start,
@@ -13597,6 +13821,7 @@ class Interpreter:
             'hasprop': BuiltInFunction_hasprop,
             'delay': BuiltInFunction_Delay,
             'require': BuiltInFunction_Require,
+            'enumerate': BuiltInFunction_Enumerate,
             'std_in_read': BuiltInFunction_StdInRead,
             'std_in_readline': BuiltInFunction_StdInReadLine,
             'std_in_readlines': BuiltInFunction_StdInReadLines,
@@ -13793,6 +14018,7 @@ BuiltInFunction.hasprop = BuiltInFunction("hasprop")
 BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
 BuiltInFunction.is_finite = BuiltInFunction("is_finite")
+BuiltInFunction.enumerate = BuiltInFunction("enumerate")
 BuiltInFunction.require = BuiltInFunction("require")
 BuiltInFunction.std_in_read = BuiltInFunction("std_in_read")
 BuiltInFunction.std_in_readline = BuiltInFunction("std_in_readline")
@@ -13946,6 +14172,7 @@ symbolTable_.set('hasprop', BuiltInFunction.hasprop)
 symbolTable_.set('max', BuiltInFunction.max)
 symbolTable_.set('min', BuiltInFunction.min)
 symbolTable_.set('is_finite', BuiltInFunction.is_finite)
+symbolTable_.set('enumerate', BuiltInFunction.enumerate)
 symbolTable_.set('Number', Types.Number)
 symbolTable_.set('String', Types.String)
 symbolTable_.set('Boolean', Types.Boolean)
@@ -13992,4 +14219,5 @@ symbolTable_.set('__@sys_version', BuiltInFunction.sys_version)
 symbolTable_.set('__@sys_platform', BuiltInFunction.sys_platform)
 symbolTable_.set('require', BuiltInFunction.require)
 symbolTable_.setSymbol()
+
 

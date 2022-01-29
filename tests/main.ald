@@ -91,11 +91,3 @@ print(fm'Hello %{{person.name}}, escape {}') # Hello {Bob}, escape {}
 print(fm'Hello %%{{person.name}}, escape %%{{""}}') # Hello %{Bob}, escape %{}
 
 
-let seasons = ["Spring", "Summer", "Autumn", "Winter"]
-let count = 1
-in seasons as season:
-    let result = count, season # pairs are created with a comma
-    let result2 = (count, season) # creating pairs with parentheses
-    print(result, result2) # (1, Spring), (1, Spring) ... same result
-    count += 1
-end
