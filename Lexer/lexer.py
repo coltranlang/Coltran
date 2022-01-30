@@ -91,10 +91,9 @@ class Program:
         sys.exit(1)
 
     def asString(detail):
-        result = f'\nFile {detail["pos_start"].fileName}, line {detail["pos_start"].line + 1}'
-        result += '\n\n' +  \
-            stringsWithArrows(
-                detail["pos_start"].fileText, detail["pos_start"], detail["pos_end"])
+        #result = "Traceback (most recent call last):\n"
+        result = f'File {detail["pos_start"].fileName}, line {detail["pos_start"].line + 1}'
+        result += '\n' + stringsWithArrows(detail["pos_start"].fileText, detail["pos_start"], detail["pos_end"])
         result += f'\n{detail["name"]}: {detail["message"]}'
         return result
 
@@ -415,7 +414,6 @@ class Lexer:
 
     def make_double_string(self):
         string = ''
-        string_concat = ''
         character = True
         pos_start = self.pos.copy()
         escape_character = False

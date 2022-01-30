@@ -1,5 +1,5 @@
 # # let name = "Kenny"
-# # println(name.upperCase())
+# # print(name.upperCase())
 # let person = {
 #     name: "Bob",
 # }
@@ -11,7 +11,7 @@
 #         self.name = name
 #     end
 #     def Test(self,*args,greeting,name)
-#         println(args,greeting, name)
+#         print(args,greeting, name)
 #     end
 #     def toString(self)
 #         return fm"Class %{self.name}"
@@ -21,7 +21,7 @@
 # let a = A("A name")
 # a.Test("Hello", "World", name="Bob", greeting="Hi")
 # #a.Test("Hi", "Kenny", "Bob", "Kenny")
-# println(a.toString())
+# print(a.toString())
 
 
 
@@ -41,9 +41,9 @@
 
 # let car1 = Car("Ford", "2000", "red", "2018")
 # let car2 = Car("Honda", "1000", "blue", "2017")
-# println(car1.toString())
-# println(car2.toString())
-# println(car1 == car2)
+# print(car1.toString())
+# print(car2.toString())
+# print(car1 == car2)
 
 # def @Car(manufacturer, weight, color, year)
 #     return fm"%{manufacturer} %{weight} %{color} %{year}"
@@ -51,19 +51,19 @@
 
 # # let car3 = @Car("Toyota", "2000", "red", "2018")
 # # let car4 = @Car("Chevy", "1000", "blue", "2017")
-# # println(car3)
-# # println(car4)
+# # print(car3)
+# # print(car4)
 
 # # Todo: work on varargs and keyword args
 # def @join_sep(sep, *args, end_)
-#     println(sep, args, end_)
+#     print(sep, args, end_)
 #     let nums = ''
 #     in args as arg:
 #         nums += str(arg) + sep
 #     end
 #     return nums + end_
 # end
-# println(@join_sep('-', 1,2,3,4,5,6,7,8,9,10, end_ = '::'))
+# print(@join_sep('-', 1,2,3,4,5,6,7,8,9,10, end_ = '::'))
 
 # let name, age = {
 #     name: "Bob",
@@ -71,23 +71,69 @@
 # }
 
 # let d = dict(name = "Bob", age = 20, weight = "200")
-# println(d)
+# print(d)
 
 
 
 
-let person = {
-    name: "Bob",
-    age: 20,
-    weight: "200",
-}
-line(90)
-print(fm'Hello %{person.name}') # Hello Bob
-# to escape the % sign
-print(fm'Hello %%{person.name}, escape %') # Hello %Bob, escape %
-# to escape the {}
-print(fm'Hello %{{person.name}}, escape {}') # Hello {Bob}, escape {}
-# to escape the % sign and {}
-print(fm'Hello %%{{person.name}}, escape %%{{""}}') # Hello %{Bob}, escape %{}
 
 
+let text = 'hello'
+print(text.upperCase())
+let text = 'Hello'
+print(text.lowerCase())
+let text = 'Hello'
+print(text.capitalize())
+let text = 'Hello'
+print(text.title())
+let text = 'Hello'
+print(text.split('l'))
+let text = 'Hello'
+print(text.rsplit('l'))
+let text = 'Hello'
+print(text.split('l', 1))
+let text = 'Hello'
+print(text.rsplit('l', 1))
+let text = 'Hello World'
+print(text.join('-'))
+let text = 'Hello'
+print(text.replace('e', 'a'))
+let text = 'Hello'
+print(text.replace('e', 'a', 1))
+let text = 'Hello'
+print(text.replace('e', 'a', 2))
+let text = 'Hello'
+print(text.length)
+let text = 'Hello'
+print(text.is_empty())
+let text = ' '
+print(text.is_space())
+let text = 'Hello'
+print(text.is_identifier())
+let text = 'Hello'
+print(text.is_alpha())
+let text = 'Hello'
+print(text.is_digit())
+let text = ''
+print(text.is_alnum())
+let text = 'Hello'
+print(text.is_printable())
+let text = 'Hello'
+print(text.is_lowerCase())
+let text = 'Hello'
+print(text.is_upperCase())
+let text = 'Hello'
+print(text.is_title())
+let text = 'Hello {0}!, you are {1} years old'
+text = text.format("Bob", 20)
+print(text)
+let text = 'Hello {name}!, you are {age} years old'
+text = text.format(age=22, name="John")
+print(text)
+let text = 'Hello {name}!, you are {age} years old'
+text = text.format_map(dict(name="Michael", age=35))
+print(text)
+let text = str(bt'Hello')
+print(text)
+# let text = 'Hello'
+# print(text.encode())

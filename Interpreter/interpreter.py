@@ -58,47 +58,6 @@ import json
 
 regex = '[+-]?[0-9]+\.[0-9]+'
 
-string_methods = {
-    'upperCase': 'upperCase',  # String.upperCase()
-    'lowerCase': 'lowerCase',  # String.lowerCase()
-    'capitalize': 'capitalize',  # String.capitalize()
-    'split': 'split',  # String.split(delimiter)
-    'join': 'join',  # String.join(delimiter)
-    'substr': 'substr',  # String.substr(start, end)
-    'replace': 'replace',  # String.replace(old, new, Optional: count)
-    'slice': 'slice',  # String.slice(start, end)
-    'strip': 'strip',  # String.strip()
-    'length': 'length',  # String.length
-    'charAt': 'charAt',  # String.charAt(index)
-    'includes': 'includes',  # String.includes(substring)
-    'startsWith': 'startsWith',  # String.startsWith(substring)
-    'find': 'find',  # String.find(value, Optional: start, Optional: end)
-    'count': 'count',  # String.count(value)
-    'format': 'format',  # String.format(value)
-    'isDigit': 'isDigit',  # String.isDigit()
-    'isAlpha': 'isAlpha',  # String.isAlpha()
-    'isAscii': 'isAscii',  # String.isAscii()
-    'isLower': 'isLower',  # String.isLower()
-    'isUpper': 'isUpper',  # String.isUpper()
-    'title': 'title',  # String.title()
-    'translate': 'translate',  # String.translate(table)
-    'zfill': 'zfill',  # String.zfill(width)
-    'splitlines': 'splitlines',  # String.splitlines()
-    'isSpace': 'isSpace',  # String.isSpace()
-    'isTitle': 'isTitle',  # String.isTitle()
-    'isNumeric': 'isNumeric',  # String.isNumeric()
-    'lstrip': 'lstrip',  # String.lstrip()
-    'rstrip': 'rstrip',  # String.rstrip()
-    'partition': 'partition',  # String.partition(sep)
-    'rpartition': 'rpartition',  # String.rpartition(sep)
-    # String.startswith(prefix, Optional: start, Optional: end)
-    'startsWith': 'startsWith',
-    # String.endswith(suffix, Optional: start, Optional: end)
-    'endsWith': 'endsWith',
-    'encode': 'encode',  # String.encode(encoding, Optional: errors)
-    'findIndex': 'findIndex', # String.findIndex(func)
-    '__@properties__': '__@properties__', # String.__@properties__()
-}
 
 number_methods = {
     'to_int': 'to_int',  # Number.to_int()
@@ -181,37 +140,56 @@ immutables = [
 ]
 
 
-def string_split(string, delimiter):
-    res = []
-    start = 0
-    while True:
-        index = string.find(delimiter, start)
-        if index == -1:
-            res.append(string[start:])
-            break
-        else:
-            res.append(string[start:index])
-            start = index + len(delimiter)
-    return res
-
 
 def getsubstr(string, start, end):
         return string[start:end]
 
 
 def string_strip(text):
-    split_text = text.split()
+    list_text = []
     new_text = ''
-    for i in range(len(split_text)):
-        if i == 0:
-            new_text += split_text[i].strip()
-        else:
-            new_text += ' ' + split_text[i].strip()
+    for i in range(len(text)):
+        list_text.append(text[i])
+    for i in range(len(list_text)):
+        if list_text[i] != ' ':
+            new_text += list_text[i]
     return new_text
 
 
+def string_rstrip(text):
+    list_text = []
+    new_text = ''
+    for i in range(len(text)):
+        list_text.append(text[i])
+    while list_text[-1] == ' ':
+        list_text.pop()
+    for i in range(len(list_text)):
+        new_text += list_text[i]
+    return new_text
+
+       
+def string_lstrip(text):
+    list_text = []
+    new_text = ''
+    for i in range(len(text)):
+        list_text.append(text[i])
+    while list_text[0] == ' ':
+        list_text.pop(0)
+    for i in range(len(list_text)):
+        new_text += list_text[i]
+    return new_text
+
+
+def string_rsplit(string, delimiter, maxsplit=-1):
+    return string.rsplit(delimiter, maxsplit)
+        
+        
+def string_split(string, delimiter):
+    max_split = -1
+    return string.split(delimiter, max_split)
+        
+        
 def string_count(string, value, start=0, end=None):
-    # return how many times value appears in string
     count = 0
     if end is None:
         end = len(string)
@@ -220,6 +198,22 @@ def string_count(string, value, start=0, end=None):
             count += 1
     return count
 
+
+def string_partition(string, string_to_search):
+    index = string.find(string_to_search)
+    if index == -1:
+        return (string, '', '')
+    else:
+        return (string[:index], string_to_search, string[index + len(string_to_search):])
+    
+    
+def string_rpartition(string, string_to_search):
+    index = string.rfind(string_to_search)
+    if index == -1:
+        return ('', '', string)
+    else:
+        return (string[:index], string_to_search, string[index + len(string_to_search):])
+    
 
 def is_static(string):
     if len(string) == 0:
@@ -356,6 +350,54 @@ def is_emptyString(value):
     return value == ""
 
 
+def check_args(expected_len, args_given, message, pos_start, pos_end, context):
+    expected_len1 = expected_len
+    expected_len2 = None
+    if isinstance(expected_len, tuple):
+        expected_len1 = expected_len[0]
+        expected_len2 = expected_len[1]
+    
+    if expected_len2 == None:
+        if len(args_given) != expected_len1:
+            raise Al_ArgumentError({
+                'pos_start': pos_start,
+                'pos_end': pos_end,
+                'message': message,
+                'context': context,
+                'exit': False
+            })
+    else:
+        if len(args_given) > expected_len2 or len(args_given) < expected_len1:
+            raise Al_ArgumentError({
+                'pos_start': pos_start,
+                'pos_end': pos_end,
+                'message': message,
+                'context': context,
+                'exit': False
+            })
+    
+  
+def check_type(expected_type, type_given, message, pos_start, pos_end, context):
+    if isinstance(expected_type, list):
+        if type_given not in expected_type:
+            raise Al_ArgumentError({
+                'pos_start': pos_start,
+                'pos_end': pos_end,
+                'message': message,
+                'context': context,
+                'exit': False
+            })
+    else:
+        if not isinstance(type_given, expected_type):
+            raise Al_TypeError({
+                'pos_start': pos_start,
+                'pos_end': pos_end,
+                'message': message,
+                'context': context,
+                'exit': False
+            })
+        
+
 class TypeOf:
     def __init__(self, type):
         self.type = type
@@ -366,14 +408,18 @@ class TypeOf:
             result = 'string'
         elif self.type == 'tuple':
             result = 'pair'
-        elif isinstance(self.type, Number) or type(self.type).__name__ == "NumberNode":
-            if re.match(regex, str(self.type)):
-                result = 'float'
-            else:
+        elif isinstance(self.type, Number):
+            if isinstance(self.type.value, int):
                 result = 'int'
+            elif isinstance(self.type.value, float):
+                result = 'float'
+            elif isinstance(self.type.value, complex):
+                result = 'complex'
         else:
             if isinstance(self.type, str) or isinstance(self.type, String):
                 result = 'string'
+            elif isinstance(self.type, ByteString):
+                result = 'bytes'
             elif isinstance(self.type, tuple) or isinstance(self.type, Pair):
                 result = 'pair'
             elif isinstance(self.type, Object):
@@ -614,6 +660,22 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
+        def UnicodeDecodeError(detail):
+            if 'name' in detail:
+                if isinstance(detail['name'], String):
+                    detail['name'] = detail['name'].value
+            isDetail = {
+                'name': detail['name'] if 'name' in detail else 'UnicodeDecodeError',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+
         def ImportError(detail):
             if 'name' in detail:
                 if isinstance(detail['name'], String):
@@ -793,6 +855,7 @@ class Program:
             'ValueError': ValueError,
             'PropertyError': PropertyError,
             'IndexError': IndexError,
+            'UnicodeDecodeError': UnicodeDecodeError,
             'ImportError': ImportError,
             'ModuleNotFoundError': ModuleNotFoundError,
             'KeyboardInterrupt': KeyboardInterrupt,
@@ -1158,6 +1221,14 @@ class Al_IndexError(Al_Exception):
         return f"<IndexError {self.message}>"
 
 
+class Al_UnicodeDecodeError(Al_Exception):
+    def __init__(self, message):
+        super().__init__("UnicodeDecodeError", message)
+    
+    def __repr__(self):
+        return f"<UnicodeDecodeError {self.message}>"
+
+
 class Al_ImportError(Al_Exception):
     def __init__(self, message):
         super().__init__("ImportError", message)
@@ -1257,6 +1328,7 @@ builtin_exceptions = {
     'PropertyError': Al_PropertyError,
     'KeyError': Al_KeyError,
     'ZeroDivisionError': Al_ZeroDivisionError,
+    'UnicodeDecodeError': Al_UnicodeDecodeError,
     'ImportError': Al_ImportError,
     'ModuleNotFoundError': Al_ModuleNotFoundError,
     'KeyboardInterrupt': Al_KeyboardInterrupt,
@@ -1664,7 +1736,7 @@ class Number(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't multiply {TypeOf(self.value).getType()} with {TypeOf(other.value).getType()}",
+            'message': f"can't multiply '{TypeOf(self.value).getType()}' with '{TypeOf(other.value).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -2022,10 +2094,59 @@ class Number(Value):
 
 
 class String(Value):
-    def __init__(self, value, arg=None):
+    def __init__(self, value):
         super().__init__()
         self.value = value
         self.id = value
+        self.string_properties = {
+            'upperCase': f"<{str('upperCase')}()>, [ built-in string method ]",
+            'lowerCase': f"<{str('lowerCase')}()>, [ built-in string method ]",
+            'capitalize': f"<{str('capitalize')}()>, [ built-in string method ]",
+            'split': f"<{str('split')}(delimiter)>, [ built-in string method ]",
+            'rsplit': f"<{str('rsplit')}(delimiter)>, [ built-in string method ]",
+            'join': f"<{str('join')}(delimiter)>, [ built-in string method ]",
+            'substr': f"<{str('substr')}(start, length)>, [ built-in string method ]",
+            'replace': f"<{str('replace')}(old, new, count)>, [ built-in string method ]",
+            'slice': f"<{str('slice')}(start, end)>, [ built-in string method ]",
+            'strip': f"<{str('strip')}(chars)>, [ built-in string method ]",
+            'lstrip': f"<{str('lstrip')}(chars)>, [ built-in string method ]",
+            'rstrip': f"<{str('rstrip')}(chars)>, [ built-in string method ]",
+            'length': f"<{str('length')}()>, [ built-in string method ]",
+            'charAt': f"<{str('charAt')}(index)>, [ built-in string method ]",
+            'includes': f"<{str('includes')}(value)>, [ built-in string method ]",
+            'startsWith': f"<{str('startsWith')}(substr)>, [ built-in string method ]",
+            'find': f"<{str('find')}(value, start, end)>, [ built-in string method ]",
+            'rfind': f"<{str('rfind')}(value, start, end)>, [ built-in string method ]",
+            'findIndex': f"<{str('findIndex')}(value, start, end)>, [ built-in string method ]",
+            'rfindIndex': f"<{str('rfindIndex')}(value, start, end)>, [ built-in string method ]",
+            'count': f"<{str('count')}(value)>, [ built-in string method ]",
+            'format': f"<{str('format')}(value1, value2, ...)>, [ built-in string method ]",
+            'format_map': f"<{str('format_map')}(dict)>, [ built-in string method ]",
+            'is_empty': f"<{str('is_empty')}()>, [ built-in string method ]",
+            'is_digit': f"<{str('is_digit')}()>, [ built-in string method ]",
+            'is_decimal': f"<{str('is_decimal')}()>, [ built-in string method ]",
+            'is_alpha': f"<{str('is_alpha')}()>, [ built-in string method ]",
+            'is_numeric': f"<{str('is_numeric')}()>, [ built-in string method ]",
+            'is_alnum': f"<{str('is_alnum')}()>, [ built-in string method ]",
+            'is_ascii': f"<{str('is_ascii')}()>, [ built-in string method ]",
+            'is_lowerCase': f"<{str('is_lowerCase')}()>, [ built-in string method ]",
+            'is_upperCase': f"<{str('is_upperCase')}()>, [ built-in string method ]",
+            'is_title': f"<{str('is_title')}()>, [ built-in string method ]",
+            'is_space': f"<{str('is_space')}()>, [ built-in string method ]",
+            'is_printable': f"<{str('is_printable')}()>, [ built-in string method ]",
+            'is_identifier': f"<{str('is_identifier')}()>, [ built-in string method ]",
+            'startsWith': f"<{str('startsWith')}(value, start, end)>, [ built-in string method ]",
+            'endsWith': f"<{str('endsWith')}(value, start, end)>, [ built-in string method ]",
+            'title': f"<{str('title')}()>, [ built-in string method ]",
+            'zfill': f"<{str('zfill')}(width)>, [ built-in string method ]",
+            'ascii_code': f"<{str('ascii_code')}()>, [ built-in string method ]",
+            'swapcase': f"<{str('swapcase')}()>, [ built-in string method ]",
+            'splitlines': f"<{str('splitlines')}(keeplinebreaks)>, [ built-in string method ]",
+            'partition': f"<{str('partition')}(sep)>, [ built-in string method ]",
+            'rpartition': f"<{str('rpartition')}(sep)>, [ built-in string method ]",
+            'encode': f"<{str('encode')}(encoding, errors)>, [ built-in string method ]",
+            '__@properties__': f"<{str('__@properties__')}()>, [ built-in string method ]",
+        }
 
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
@@ -2154,7 +2275,911 @@ class String(Value):
 
     def or_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+     
+    def upperCase(self, args, kwargs, var_name=None):
+        check_args(0, args, f"{len(args)} arguments given, but upperCase() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        return String(self.value.upper()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+     
+    def lowerCase(self, args, kwargs, var_name=None):
 
+        check_args(0, args, f"{len(args)} arguments given, but lowerCase() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        return String(self.value.lower()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    def capitalize(self, args, kwargs, var_name=None):
+        check_args(0, args, f"{len(args)} arguments given, but capitalize() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        return String(self.value.capitalize()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    def title(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but title() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        return String(self.value.title()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    def zfill(self, args, kwargs, var_name=None):
+        
+        check_args(1, args, f"{len(args)} arguments given, but zfill() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        check_type(Number, args[0], f"zfill() argument must be of type Number, but got {TypeOf(args[0]).getType()}", self.pos_start, self.pos_end, self.context)
+        
+        return String(self.value.zfill(args[0].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def swapcase(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but swapcase() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        return String(self.value.swapcase()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                
+    def ascii_code(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+
+        check_args(0, args, f"{len(args)} arguments given, but ascii_code() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        return Number(ord(self.value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def partition(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        
+        check_args(1, args, f"{len(args)} arguments given, but partition() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        check_type(String, args[0], f"partition() argument must be of type String, but got {TypeOf(args[0]).getType()}", self.pos_start, self.pos_end, self.context)
+        
+        if args[0].value == '':
+            raise Al_ValueError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': "no empty separator",
+                'context': self.context,
+                'exit': False
+            })
+        values = string_partition(self.value, args[0].value)
+        pair_result = ()
+        for value in values:
+            pair_result += (String(value).setContext(self.context).setPosition(self.pos_start, self.pos_end),)
+        return Pair(pair_result).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    def rpartition(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        
+        check_args(1, args, f"{len(args)} arguments given, but rpartition() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        check_type(String, args[0], f"rpartition() argument must be of type String, but got {TypeOf(args[0]).getType()}", self.pos_start, self.pos_end, self.context)
+        
+        if args[0].value == '':
+            raise Al_ValueError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': "no empty separator",
+                'context': self.context,
+                'exit': False
+            })
+            
+        values = string_rpartition(self.value, args[0].value)
+        pair_result = ()
+        for value in values:
+            pair_result += (String(value).setContext(self.context).setPosition(self.pos_start, self.pos_end),)
+        return Pair(pair_result).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    def strip(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        if len(args) != 0:
+            raise Al_ArgumentError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but strip() takes no argument",
+                "context": self.context,
+                'exit': False
+            })
+        else:
+            return String(string_strip(self.value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def rstrip(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        check_args(0, args, f"{len(args)} arguments given, but rstrip() takes no argument", self.pos_start, self.pos_end, self.context)
+        return String(string_rstrip(self.value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+      
+    def lstrip(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        check_args(0, args, f"{len(args)} arguments given, but lstrip() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        return String(string_lstrip(self.value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def split(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        if len(args) == 0:
+            value = []
+            split_list = self.value.split()
+            for i in split_list:
+                value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+            return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif len(args) == 1:
+            if isinstance(args[0], String):
+                if args[0].value == " ":
+                    value = []
+                    split_list = self.value.split()
+                    for i in split_list:
+                        value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+                    return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                elif args[0].value == "":
+                    value = []
+                    split_list = self.value.split()
+                    for i in split_list:
+                        value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+                    return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                else:
+                    value = []
+                    split_list = self.value.split(args[0].value)
+                    for i in split_list:
+                        value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+                    return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for split()",
+                    "context": self.context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String) and isinstance(args[1], Number):
+                if args[1].value < 0:
+                    raise Al_RuntimeError({
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
+                        'message': f"{args[1].value} is not a valid argument for split()",
+                        "context": self.context,
+                        'exit': False
+                    })
+                else:
+                    value = []
+                    split_list = self.value.split(args[0].value, args[1].value)
+                    for i in split_list:
+                        value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+                    return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not a valid arguments for split()",
+                    "context": self.context,
+                    'exit': False
+                })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but split() takes 1 or 2 arguments",
+                "context": self.context,
+                'exit': False
+            })
+
+    def rsplit(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        
+        check_args((1,2), args, f"{len(args)} arguments given, but rsplit() takes at least 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        check_type(String, args[0], f"argument 1 of type '{TypeOf(args[0]).getType()}' is not a valid argument for rsplit()", self.pos_start, self.pos_end, self.context)
+        
+            
+        if len(args) == 2:
+            check_type(Number, args[1], f"argument 2 of type '{TypeOf(args[1]).getType()}' is not a valid argument for rsplit()", self.pos_start, self.pos_end, self.context)
+        
+        if len(args) == 1:
+            value = []
+            split_list = string_rsplit(self.value, args[0].value)
+            for i in split_list:
+                value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+            return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+        elif len(args) == 2:
+            value = []
+            split_list = string_rsplit(self.value, args[0].value, args[1].value)
+            for i in split_list:
+                value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+            return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            
+    def splitlines(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        
+        check_args((0,1), args, f"{len(args)} arguments given, but splitlines() takes 0 or 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        if len(args) == 0:
+            value = []
+            split_list = self.value.splitlines(False)
+            for i in split_list:
+                value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+            return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif len(args) == 1:
+            check_type(Boolean, args[0], f"argument 1 of type '{TypeOf(args[0]).getType()}' is not a valid argument for splitlines()", self.pos_start, self.pos_end, self.context)
+            
+            if args[0].value == 'true':
+                # keep line breaks
+                value = []
+                split_list = str(self.value).splitlines(True)
+                for i in split_list:
+                    value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+                return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                value = []
+                split_list = self.value.splitlines(False)
+                for i in split_list:
+                    value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+                return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+         
+    def join(self, args, kwargs, var_name=None):
+        if len(args) == 1:
+            if isinstance(args[0], List):
+                try:
+                    return String(self.value.join([x.value for x in args[0].elements])).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                except:
+                    raise Al_TypeError({
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
+                        'message': f"expected sequence of strings, but got {TypeOf(args[0]).getType()}",
+                        "context": self.context,
+                        'exit': False
+                    })
+            elif isinstance(args[0], Pair):
+                try:
+                    return String(self.value.join([x.value for x in args[0].elements])).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                except:
+                    raise Al_TypeError({
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
+                        'message': f"expected sequence of strings, but got {TypeOf(args[0]).getType()}",
+                        "context": self.context,
+                        'exit': False
+                    })
+            elif isinstance(args[0], Object) or isinstance(args[0], Module):
+                try:
+                    return String(self.value.join([x for x in args[0].get_keys()])).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                except:
+                    raise Al_TypeError({
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
+                        'message': f"expected sequence of strings, but got {TypeOf(args[0]).getType()}",
+                        "context": self.context,
+                        'exit': False
+                    })
+            elif isinstance(args[0], String):
+                return String(self.value.join(args[0].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for join()",
+                    "context": self.context,
+                    'exit': False
+                })
+        else:
+            raise Al_ArgumentError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but join() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            })
+
+    def replace(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        if len(args) == 2:
+            if isinstance(args[0], String) and isinstance(args[1], String):
+                return String(self.value.replace(args[0].value, args[1].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_RuntimeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not a valid arguments for replace()",
+                    "context": self.context,
+                    'exit': False
+                })
+        elif len(args) == 3:
+            if isinstance(args[0], String) and isinstance(args[1], String) and isinstance(args[2], Number):
+                return String(self.value.replace(args[0].value, args[1].value, args[2].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}', '{TypeOf(args[1]).getType()}' and '{TypeOf(args[2]).getType()}' are not a valid arguments for replace()",
+                    "context": self.context,
+                    'exit': False
+                })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but replace() takes 2 arguments",
+                "context": self.context,
+                'exit': False
+            })
+
+    def length(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        raise Al_TypeError({
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
+            'message': f"'length' is not a callable",
+            "context": self.context,
+            'exit': False
+        })
+
+    def substr(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        if len(args) == 1:
+            if isinstance(args[0], Number):
+                start = args[0].value
+                end = len(self.value)
+                return String(getsubstr(self.value, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_RuntimeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for substr()",
+                    "context": self.context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], Number) and isinstance(args[1], Number):
+                start = args[0].value
+                end = args[1].value + 1
+                return String(getsubstr(self.value, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_RuntimeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not a valid arguments for substr()",
+                    "context": self.context,
+                    'exit': False
+                })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but substr() takes 2 arguments",
+                "context": self.context,
+                'exit': False
+            })
+
+    def slice(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        if len(args) == 1:
+            if isinstance(args[0], Number):
+                start = args[0].value
+                end = len(self.value)
+                return String(getsubstr(self.value, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_RuntimeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for slice()",
+                    "context": self.context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], Number) and isinstance(args[1], Number):
+                start = args[0].value
+                end = args[1].value + 1
+                return String(getsubstr(self.value, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_RuntimeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not a valid arguments for slice()",
+                    "context": self.context,
+                    'exit': False
+                })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but slice() takes 2 arguments",
+                "context": self.context,
+                'exit': False
+            })
+
+    def charAt(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        if len(args) == 0:
+            string = self.value.replace(" ", "")
+            start = 0
+            end = 1
+            return String(getsubstr(string, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        if len(args) == 1:
+            if isinstance(args[0], Number):
+                string = self.value.replace(" ", "")
+                start = args[0].value
+                end = start + 1
+                return String(getsubstr(string, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_RuntimeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for charAt()",
+                    "context": self.context,
+                    'exit': False
+                })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but charAt() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            })
+
+    def includes(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                string = self.value.replace(" ", "")
+                substring = args[0].value.replace(" ", "")
+                return Boolean(string.find(substring) != -1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_RuntimeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for includes()",
+                    "context": self.context,
+                    'exit': False
+                })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but includes() takes 1 argument",
+                "context": self.context,
+                'exit': False
+            })
+
+    def count(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                return Number(self.value.count(args[0].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for count()",
+                    "context": self.context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String) and isinstance(args[1], Number):
+                return Number(self.value.count(args[0].value, args[1].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not a valid arguments for count()",
+                    "context": self.context,
+                    'exit': False
+                })
+        elif len(args) == 3:
+            if isinstance(args[0], String) and isinstance(args[1], Number) and isinstance(args[2], Number):
+                return Number(self.value.count(args[0].value, args[1].value, args[2].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' and '{TypeOf(args[2]).getType()}' are not a valid arguments for count()",
+                    "context": self.context,
+                    'exit': False
+                })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but count() takes 1 argument and 2 optional arguments",
+                "context": self.context,
+                'exit': False
+            })
+
+    def startsWith(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                string = self.value.replace(" ", "")
+                substring = args[0].value.replace(" ", "")
+                return Boolean(string.startswith(substring)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for startsWith()",
+                    "context": self.context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String) and isinstance(args[1], Number):
+                string = self.value.replace(" ", "")
+                substring = args[0].value.replace(" ", "")
+                start = args[1].value
+                end = start + 1
+                return Boolean(getsubstr(string, start, end).startswith(substring)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not valid arguments for startsWith()",
+                    "context": self.context,
+                    'exit': False
+                })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but startsWith() takes 1 or 2 arguments",
+                "context": self.context,
+                'exit': False
+            })
+
+    def endsWith(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                string = self.value.replace(" ", "")
+                substring = args[0].value.replace(" ", "")
+                return Boolean(string.endswith(substring)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for endsWith()",
+                    "context": self.context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String) and isinstance(args[1], Number):
+                string = self.value.replace(" ", "")
+                substring = args[0].value.replace(" ", "")
+                start = args[1].value
+                end = start + 1
+                return Boolean(getsubstr(string, start, end).endswith(substring)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not valid arguments for endsWith()",
+                    "context": self.context,
+                    'exit': False
+                })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but endsWith() takes 1 or 2 arguments",
+                "context": self.context,
+                'exit': False
+            })
+
+    def find(self, args, kwargs, var_name=None):
+        
+        check_args((1,3), args, f"{len(args)} arguments given, but find() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
+        
+        if len(args) == 1:
+            check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for find()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.find(args[0].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif len(args) == 2:
+            check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for find()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[1], f"type '{TypeOf(args[1]).getType()}' is not a valid argument for find()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.find(args[0].value, args[1].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            
+        elif len(args) == 3:
+            check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for find()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[1], f"type '{TypeOf(args[1]).getType()}' is not a valid argument for find()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[2], f"type '{TypeOf(args[2]).getType()}' is not a valid argument for find()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.find(args[0].value, args[1].value, args[2].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+    def rfind(self, args, kwargs, var_name=None):
+        
+        check_args((1,3), args, f"{len(args)} arguments given, but rfind() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
+        
+        if len(args) == 1:
+            check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for rfind()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.rfind(args[0].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif len(args) == 2:
+            check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for rfind()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[1], f"type '{TypeOf(args[1]).getType()}' is not a valid argument for rfind()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.rfind(args[0].value, args[1].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+           
+        elif len(args) == 3:
+            check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for rfind()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[1], f"type '{TypeOf(args[1]).getType()}' is not a valid argument for rfind()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[2], f"type '{TypeOf(args[2]).getType()}' is not a valid argument for rfind()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.rfind(args[0].value, args[1].value, args[2].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def findIndex(self, args, kwargs, var_name=None):
+        
+        check_args((1,3), args, f"{len(args)} arguments given, but findIndex() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
+        
+        
+        if len(args) == 1:
+            check_type(String, args[0],f"type '{TypeOf(args[0]).getType()}' is not a valid argument for findIndex()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.find(args[0].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif len(args) == 2:
+            check_type(String, args[0],f"type '{TypeOf(args[0]).getType()}' is not a valid argument for findIndex()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[1],f"type '{TypeOf(args[1]).getType()}' is not a valid argument for findIndex()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.find(args[0].value, args[1].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif len(args) == 3:
+            check_type(String, args[0],f"type '{TypeOf(args[0]).getType()}' is not a valid argument for findIndex()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[1],f"type '{TypeOf(args[1]).getType()}' is not a valid argument for findIndex()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[2],f"type '{TypeOf(args[2]).getType()}' is not a valid argument for findIndex()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.find(args[0].value, args[1].value, args[2].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def rfindIndex(self, args, kwargs, var_name=None):
+        
+        check_args((1,3), args, f"{len(args)} arguments given, but rfindIndex() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
+        
+        if len(args) == 1:
+            check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for rfindIndex()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.rindex(args[0].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif len(args) == 2:
+            check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for rfindIndex()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[1], f"type '{TypeOf(args[1]).getType()}' is not a valid argument for rfindIndex()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.rindex(args[0].value, args[1].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                
+        elif len(args) == 3:
+            check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for rfindIndex()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[1], f"type '{TypeOf(args[1]).getType()}' is not a valid argument for rfindIndex()", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[2], f"type '{TypeOf(args[2]).getType()}' is not a valid argument for rfindIndex()", self.pos_start, self.pos_end, self.context)
+            return Number(self.value.rindex(args[0].value, args[1].value, args[2].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def is_upperCase(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but is_upper() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        return Boolean(self.value.isupper()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def is_lowerCase(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but is_lower() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        return Boolean(self.value.islower()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def is_alpha(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but is_alpha() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        return Boolean(self.value.isalpha()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def is_digit(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but is_digit() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        return Boolean(self.value.isdigit()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    def is_decimal(self, args, kwargs, var_name=None):
+        check_args(0, args, f"{len(args)} arguments given, but is_decimal() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        return Boolean(self.value.isdecimal()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def is_numeric(self, args, kwargs, var_name=None):
+        check_args(0, args, f"{len(args)} arguments given, but is_numeric() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        return Boolean(self.value.isnumeric()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def is_alnum(self, args, kwargs, var_name=None):
+        check_args(0, args, f"{len(args)} arguments given, but is_alnum() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+    
+        return Boolean(self.value.isalnum()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def is_ascii(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but is_ascii() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        return Boolean(self.value.isascii()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+       
+    def is_alum(self, args, kwargs, var_name=None):
+        check_args(0, args, f"{len(args)} arguments given, but is_alum() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        return Boolean(self.value.isalnum()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+       
+    def is_space(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but is_space() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        
+        return Boolean(self.value.isspace()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    def is_title(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but is_title() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        
+        return Boolean(self.value.istitle()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+     
+    def is_identifier(self, args, kwargs, var_name=None):
+
+        check_args(0, args, f"{len(args)} arguments given, but is_identifier() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        return Boolean(self.value.isidentifier()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+      
+    def is_printable(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but is_printable() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        
+        
+        return Boolean(self.value.isprintable()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+     
+    def is_empty(self, args, kwargs, var_name=None):
+        if len(args) == 0:
+            return Boolean(self.value == '').setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        else:
+            raise Al_RuntimeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"{len(args)} arguments given, but is_empty() takes 0 arguments",
+                "context": self.context,
+                'exit': False
+            })
+
+    def format(self, args, kwargs, var_name=None):
+        res = RuntimeResult()
+        interpreter = Interpreter()
+        new_args = []
+        string = self.value
+        keywords = {}
+        kwargs_names = []
+        keys_replace = []
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                value = res.register(interpreter.visit(key['value'], self.context))
+                keywords[name] = value
+                kwargs_names.append(name)
+            for name, value in keywords.items():
+                string_replace = f"{'{' + str(name) + '}'}"
+                string_key_match = re.findall(r'{(.*?)}', string)
+                key_not_valid_names = [name for name in string_key_match if name not in kwargs_names]
+                for key_not_valid_name in key_not_valid_names:
+                    raise Al_KeyError({
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
+                        'message': f"'{key_not_valid_name}'",
+                        "context": self.context,
+                        'exit': False
+                    })
+                if not string_replace in string:
+                    raise Al_KeyError({
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
+                        'message': f"'{name}'",
+                        "context": self.context,
+                        'exit': False
+                    })
+                string = string.replace('{' + str(name) + '}', str(value.value))
+                        
+             
+
+        else:
+            if len(args) == 0:
+                raise Al_ArgumentError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"{len(args)} arguments given, but format() takes 1 or more arguments",
+                    "context": self.context,
+                    'exit': False
+                })
+            if isinstance(args[0], List) or isinstance(args[0], Pair):
+                for arg in args[0].elements:
+                    new_args.append(arg)
+            
+                
+            for arg in args:
+                new_args.append(arg)
+            for i in range(len(new_args)):
+                keys_replace.append(i)
+            for i in range(len(new_args)):
+                string_key_match = re.findall(r'{(.*?)}', string)
+                for key_not_valid_name in string_key_match:
+                    try:
+                       key_not_valid_name = int(key_not_valid_name)
+                       key_not_valid_name * 1
+                    except Exception as e:
+                        raise Al_KeyError({
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"'{key_not_valid_name}'",
+                            'context': self.context,
+                            'exit': False
+                        })
+                keys = re.findall(r'{(.*?)}', string)
+                if len(keys) != len(new_args):
+                    for key in keys:
+                        k = int(key)
+                        if k not in keys_replace:
+                            raise Al_IndexError({
+                                "pos_start": self.pos_start,
+                                "pos_end": self.pos_end,
+                                'message': f"replacement index '{k}' is out of range",
+                                "context": self.context,
+                                'exit': False
+                            })
+                string = string.replace('{' + str(i) + '}', str(new_args[i].value))
+        
+        return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+           
+    def format_map(self, args, kwargs, var_name=None):
+        string = self.value
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                raise Al_KeyError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"format_map() got an unexpected keyword argument '{name}'",
+                    'context': self.context,
+                    'exit': False
+                })
+                
+        
+        if isinstance(args[0], Dict):
+            for name, value in args[0].properties.items():
+                string_replace = f"{'{' + str(name) + '}'}"
+                string_key_match = re.findall(r'{(.*?)}', string)
+                key_not_valid_names = [name for name in string_key_match if name not in args[0].properties]
+                for key_not_valid_name in key_not_valid_names:
+                    raise Al_KeyError({
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
+                        'message': f"'{key_not_valid_name}'",
+                        "context": self.context,
+                        'exit': False
+                    })
+                if not string_replace in string:
+                    raise Al_KeyError({
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
+                        'message': f"'{name}'",
+                        "context": self.context,
+                        'exit': False
+                    })
+                string = string.replace('{' + str(name) + '}', str(value.value))
+        else:
+            raise Al_TypeError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"format_map() argument 1 must be Dict, not {args[0].type}",
+                'context': self.context,
+                'exit': False
+            })
+        return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+     
+    def encode(self, args, kwargs, var_name=None):
+        text = 'Hello'
+        print(text.encode() == b'Hello')
+        string = ''
+        check_args((0,2), args, f"{len(args)} arguments given, but encode() takes 0 or 2 arguments", self.pos_start, self.pos_end, self.context)
+        
+        errors = [ 'strict', 'backsplashreplace', 'errors', 'ignore', 'namereplace','replace','xmlcharrefreplace' ]
+        
+        if len(args) == 0:
+            encoding = 'utf-8'
+            errors = 'strict'
+            try:
+                string = str(self.value.encode(encoding, errors))
+                return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            except:
+                raise Al_UnicodeDecodeError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"invalid encoding '{encoding}'",
+                    'context': self.context,
+                    'exit': False
+                })
+                    
+    def string_properties(self, args, kwargs, var_name=None):
+        
+        check_args(0, args, f"{len(args)} arguments given, but properties() takes 0 arguments", self.pos_start, self.pos_end, self.context)
+        
+        return Dict(self.string_properties).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+        
     def copy(self):
         copy = String(self.value)
         copy.setPosition(self.pos_start, self.pos_end)
@@ -2169,6 +3194,79 @@ class String(Value):
 
     def __repr__(self):
         return f"'{self.value}'"
+
+
+string_methods = {
+    'upperCase': String.upperCase, # DONE
+    'lowerCase': String.lowerCase, # DONE
+    'capitalize': String.capitalize, # DONE
+    'split': String.split, # DONE
+    'rsplit': String.rsplit, # DONE
+    'join': String.join, # DONE
+    'substr': String.substr, # DONE
+    'replace': String.replace, # DONE
+    'slice': String.slice, # DONE
+    'strip': String.strip, # DONE
+    'lstrip': String.lstrip, # DONE
+    'rstrip': String.rstrip, # DONE
+    'length': String.length, # DONE
+    'charAt': String.charAt, # DONE
+    'includes': String.includes, # DONE
+    'startsWith': String.startsWith, # DONE
+    'find': String.find, # DONE
+    'rfind': String.rfind, # DONE
+    'findIndex': String.findIndex, # DONE
+    'rfindIndex': String.rfindIndex, # DONE
+    'count': String.count, # DONE
+    'format': String.format, # DONE
+    'format_map': String.format_map, # DONE
+    'is_empty': String.is_empty, # DONE
+    'is_digit': String.is_digit, # DONE
+    'is_decimal': String.is_decimal, # DONE
+    'is_alpha': String.is_alpha, # DONE
+    'is_numeric': String.is_numeric, # DONE
+    'is_alnum': String.is_alnum, # DONE
+    'is_ascii': String.is_ascii, # DONE
+    'is_lowerCase': String.is_lowerCase, # DONE
+    'is_upperCase': String.is_upperCase, # DONE
+    'is_title': String.is_title, # DONE
+    'is_space': String.is_space, # DONE
+    'is_printable': String.is_printable, # DONE
+    'is_identifier': String.is_identifier, # DONE
+    'startsWith': String.startsWith, # DONE
+    'endsWith': String.endsWith, # DONE
+    'title': String.title, # DONE
+    'zfill': String.zfill, # DONE
+    'ascii_code': String.ascii_code, # DONE
+    'swapcase': String.swapcase, # DONE
+    'splitlines': String.splitlines, # DONE
+    'partition': String.partition, # DONE
+    'rpartition': String.rpartition, # DONE
+    'encode': String.encode, 
+    '__@properties__': String.string_properties,  # DONE
+}
+
+
+
+class ByteString(Value):
+    def __init__(self, value):
+        self.value = bytes(str(value), 'utf-8')
+        self.representation = str(value)
+        super().__init__()
+        
+    def copy(self):
+        copy = ByteString(self.value)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+        
+    def __str__(self):
+        return self.representation
+
+    def __repr__(self):
+        return self.representation
+
+
 
 
 class Boolean(Value):
@@ -5468,6 +6566,8 @@ def BuiltInFunction_Print(args, node, context,keyword_args=None):
         value = str(arg)
         if isinstance(arg, String):
             value = arg.value
+        if isinstance(arg, ByteString):
+            value = arg.representation
         else:
             try:
                 if value[0] == "'":
@@ -5544,6 +6644,8 @@ def BuiltInFunction_PrintLn(args, node, context,keyword_args=None):
         value = str(arg)
         if isinstance(arg, String):
             value = arg.value
+        if isinstance(arg, ByteString):
+            value = arg.representation
         else:
             try:
                 if value[0] == "'":
@@ -8036,6 +9138,53 @@ def BuiltInClass_ZeroDivisionError(args, node, context, type):
             return res.success(BuiltInClass("ZeroDivisionError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
+def BuiltInClass_UnicodeDecodeError(args, node, context, type):
+    res = RuntimeResult()
+    if len(args) == 0 or len(args) > 2:
+        raise Al_ArgumentError({
+            'name': 'UnicodeDecodeError',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"'UnicodeDecodeError' takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 1 and isinstance(args[0], String):
+            raise Al_UnicodeDecodeError({
+                'name': 'UnicodeDecodeError',
+                'message': args[0].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            raise Al_UnicodeDecodeError({
+                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('UnicodeDecodeError'),
+                'message': args[1].value,
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        else:
+            raise Al_RuntimeError({
+                "pos_start": node.pos_start,
+                "pos_end": node.pos_end,
+                'message': f"{len(args)} arguments given, but UnicodeDecodeError takes 1 or 2 arguments",
+                "context": context,
+                'exit': False
+            })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("UnicodeDecodeError", Dict({'name': String("UnicodeDecodeError"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("UnicodeDecodeError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+    
+    
+    
 def BuiltInClass_ImportError(args, node, context, type):
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 2:
@@ -8501,7 +9650,6 @@ def BuiltInFunction_Http_Get():
 
 
 # Built-in methods
-
 class BuiltInMethod(Value):
 
     def __init__(self, value, arg=None):
@@ -8558,8 +9706,8 @@ class BuiltInMethod_Number(Value):
 
     def no_method(self):
         raise Al_PropertyError({
-            "pos_start": self.node.pos_start,
-            "pos_end": self.node.pos_end,
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
             'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
             "context": self.context,
             'exit': False
@@ -8595,700 +9743,21 @@ class BuiltInMethod_String(Value):
 
     def no_method(self):
         raise Al_PropertyError({
-            "pos_start": self.node.pos_start,
-            "pos_end": self.node.pos_end,
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
             'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
             "context": self.context,
             'exit': False
         })
 
 
-
     def is_true(self):
         return True if self.name else False
 
-
-    def BuiltInMethod_upperCase(self):
-        res = RuntimeResult()
-        if len(self.args) != 0:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but UpperCase() takes no argument",
-                "context": self.context,
-                'exit': False
-            })
-        else:
-            value = String(self.name.value.upper()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            return value
+    
 
 
-    def BuiltInMethod_lowerCase(self):
-        res = RuntimeResult()
-        if len(self.args) != 0:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but LowerCase() takes no argument",
-                "context": self.context,
-                'exit': False
-            })
-        else:
-            return String(self.name.value.lower()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
 
-
-    def BuiltInMethod_capitalize(self):
-        res = RuntimeResult()
-        if len(self.args) != 0:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but Capitalize() takes no argument",
-                "context": self.context,
-                'exit': False
-            })
-        else:
-            return String(self.name.value.capitalize()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-
-
-    def BuiltInMethod_strip(self):
-        res = RuntimeResult()
-        if len(self.args) != 0:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but strip() takes no argument",
-                "context": self.context,
-                'exit': False
-            })
-        else:
-            return String(string_strip(self.name.value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-
-
-    def BuiltInMethod_split(self):
-        res = RuntimeResult()
-        if len(self.args) == 0:
-            value = []
-            split_list = self.name.value.split()
-            for i in split_list:
-                value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
-            return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-        elif len(self.args) == 1:
-            if isinstance(self.args[0], String):
-                if self.args[0].value == " ":
-                    value = []
-                    split_list = self.name.value.split()
-                    for i in split_list:
-                        value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
-                    return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                elif self.args[0].value == "":
-                    value = []
-                    split_list = self.name.value.split()
-                    for i in split_list:
-                        value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
-                    return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                else:
-                    value = []
-                    split_list = self.name.value.split(self.args[0].value)
-                    for i in split_list:
-                        value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
-                    return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for split()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 2:
-            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
-                if self.args[1].value < 0:
-                    raise Al_RuntimeError({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
-                        'message': f"{self.args[1].value} is not a valid argument for split()",
-                        "context": self.context,
-                        'exit': False
-                    })
-                else:
-                    value = []
-                    split_list = self.name.value.split(self.args[0].value, self.args[1].value)
-                    for i in split_list:
-                        value.append(String(i).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end))
-                    return List(value).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for split()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but split() takes 1 or 2 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_join(self):
-        res = RuntimeResult()
-        if len(self.args) == 1:
-            if isinstance(self.args[0], List):
-                try:
-                    return String(self.name.value.join([x.value for x in self.args[0].elements])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                except:
-                    raise Al_RuntimeError({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
-                        'message': f"expected sequence of strings, but got {TypeOf(self.args[0]).getType()}",
-                        "context": self.context,
-                        'exit': False
-                    })
-            elif isinstance(self.args[0], Pair):
-                try:
-                    return String(self.name.value.join([x.value for x in self.args[0].elements])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                except:
-                    raise Al_RuntimeError({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
-                        'message': f"expected sequence of strings, but got {TypeOf(self.args[0]).getType()}",
-                        "context": self.context,
-                        'exit': False
-                    })
-            elif isinstance(self.args[0], Object) or isinstance(self.args[0], Module):
-                try:
-                    return String(self.name.value.join([x for x in self.args[0].get_keys()])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                except:
-                    raise Al_RuntimeError({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
-                        'message': f"expected sequence of strings, but got {TypeOf(self.args[0]).getType()}",
-                        "context": self.context,
-                        'exit': False
-                    })
-            elif isinstance(self.args[0], String):
-                return String(self.name.value.join(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for join()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but join() takes 1 argument",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_replace(self):
-        res = RuntimeResult()
-        if isinstance(self.name, BuiltInMethod_String):
-            pass
-            #print(self.name.value, "replace")
-        if len(self.args) == 2:
-            if isinstance(self.args[0], String) and isinstance(self.args[1], String):
-                return String(self.name.value.replace(self.args[0].value, self.args[1].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_RuntimeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for replace()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 3:
-            if isinstance(self.args[0], String) and isinstance(self.args[1], String) and isinstance(self.args[2], Number):
-                return String(self.name.value.replace(self.args[0].value, self.args[1].value, self.args[2].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}', '{TypeOf(self.args[1]).getType()}' and '{TypeOf(self.args[2]).getType()}' are not a valid arguments for replace()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but replace() takes 2 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_length(self):
-        res = RuntimeResult()
-        raise Al_RuntimeError({
-            "pos_start": self.node.pos_start,
-            "pos_end": self.node.pos_end,
-            'message': f"'length' is not a callable",
-            "context": self.context,
-            'exit': False
-        })
-
-
-    def BuiltInMethod_substr(self):
-        res = RuntimeResult()
-        if len(self.args) == 1:
-            if isinstance(self.args[0], Number):
-                start = self.args[0].value
-                end = len(self.name.value)
-                return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_RuntimeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for substr()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 2:
-            if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
-                start = self.args[0].value
-                end = self.args[1].value + 1
-                return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_RuntimeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for substr()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but substr() takes 2 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_slice(self):
-        res = RuntimeResult()
-        if len(self.args) == 1:
-            if isinstance(self.args[0], Number):
-                start = self.args[0].value
-                end = len(self.name.value)
-                return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_RuntimeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for slice()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 2:
-            if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
-                start = self.args[0].value
-                end = self.args[1].value + 1
-                return String(getsubstr(self.name.value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_RuntimeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for slice()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but slice() takes 2 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_charAt(self):
-        res = RuntimeResult()
-        if len(self.args) == 0:
-            string = self.name.value.replace(" ", "")
-            start = 0
-            end = 1
-            return String(getsubstr(string, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-        if len(self.args) == 1:
-            if isinstance(self.args[0], Number):
-                string = self.name.value.replace(" ", "")
-                start = self.args[0].value
-                end = start + 1
-                return String(getsubstr(string, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_RuntimeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for charAt()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but charAt() takes 1 argument",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_includes(self):
-        res = RuntimeResult()
-        if len(self.args) == 1:
-            if isinstance(self.args[0], String):
-                string = self.name.value.replace(" ", "")
-                substring = self.args[0].value.replace(" ", "")
-                return Boolean(string.find(substring) != -1).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_RuntimeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for includes()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but includes() takes 1 argument",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_count(self):
-        res = RuntimeResult()
-        if len(self.args) == 1:
-            if isinstance(self.args[0], String):
-                return Number(self.name.value.count(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for count()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 2:
-            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
-                return Number(self.name.value.count(self.args[0].value, self.args[1].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not a valid arguments for count()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 3:
-            if isinstance(self.args[0], String) and isinstance(self.args[1], Number) and isinstance(self.args[2], Number):
-                return Number(self.name.value.count(self.args[0].value, self.args[1].value, self.args[2].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' and '{TypeOf(self.args[2]).getType()}' are not a valid arguments for count()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but count() takes 1 argument and 2 optional arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_startsWith(self):
-        res = RuntimeResult()
-        if len(self.args) == 1:
-            if isinstance(self.args[0], String):
-                string = self.name.value.replace(" ", "")
-                substring = self.args[0].value.replace(" ", "")
-                return Boolean(string.startswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for startsWith()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 2:
-            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
-                string = self.name.value.replace(" ", "")
-                substring = self.args[0].value.replace(" ", "")
-                start = self.args[1].value
-                end = start + 1
-                return Boolean(getsubstr(string, start, end).startswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for startsWith()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but startsWith() takes 1 or 2 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_endsWith(self):
-        res = RuntimeResult()
-        if len(self.args) == 1:
-            if isinstance(self.args[0], String):
-                string = self.name.value.replace(" ", "")
-                substring = self.args[0].value.replace(" ", "")
-                return Boolean(string.endswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for endsWith()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 2:
-            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
-                string = self.name.value.replace(" ", "")
-                substring = self.args[0].value.replace(" ", "")
-                start = self.args[1].value
-                end = start + 1
-                return Boolean(getsubstr(string, start, end).endswith(substring)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for endsWith()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but endsWith() takes 1 or 2 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_find(self):
-        res = RuntimeResult()
-        if len(self.args) == 1:
-            if isinstance(self.args[0], String):
-                return Number(self.name.value.find(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for find()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 2:
-            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
-                start = self.args[1].value
-                return Number(self.name.value.find(self.args[0].value, start)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for find()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 3:
-            if isinstance(self.args[0], String) and isinstance(self.args[1], Number) and isinstance(self.args[2], Number):
-                start = self.args[1].value
-                end = self.args[2].value
-                return Number(self.name.value.find(self.args[0].value, start, end)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}', '{TypeOf(self.args[1]).getType()}' and '{TypeOf(self.args[2]).getType()}' are not valid arguments for find()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but find() takes 1, 2 or 3 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_findIndex(self):
-        res = RuntimeResult()
-        if len(self.args) == 1:
-            if isinstance(self.args[0], String):
-                return Number(self.name.value.find(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for findIndex()",
-                    "context": self.context,
-                    'exit': False
-                })
-        elif len(self.args) == 2:
-            if isinstance(self.args[0], String) and isinstance(self.args[1], Number):
-                start = self.args[1].value
-                return Number(self.name.value.find(self.args[0].value, start)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for findIndex()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but findIndex() takes 1 or 2 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_isUpper(self):
-        res = RuntimeResult()
-        if len(self.args) == 0:
-            return Boolean(self.name.value.isupper()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but isUpper() takes 0 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_isLower(self):
-        res = RuntimeResult()
-        if len(self.args) == 0:
-            return Boolean(self.name.value.islower()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but isLower() takes 0 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_isAlpha(self):
-        res = RuntimeResult()
-        if len(self.args) == 0:
-            return Boolean(self.name.value.isalpha()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but isAlpha() takes 0 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_isDigit(self):
-        res = RuntimeResult()
-        if len(self.args) == 0:
-            return Boolean(self.name.value.isdigit()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but isDigit() takes 0 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_isNumeric(self):
-        res = RuntimeResult()
-        if len(self.args) == 0:
-            return Boolean(self.name.value.isnumeric()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but isNumeric() takes 0 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_is_empty(self):
-        res = RuntimeResult()
-        if len(self.args) == 0:
-            return Boolean(self.name.value == '').setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but isNumeric() takes 0 arguments",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_format(self):
-        res = RuntimeResult()
-        args = self.args
-        if len(args) == 1:
-            if isinstance(args[0], List) or isinstance(args[0], Pair):
-                string = self.name.value
-                values = args[0].elements
-                for i in range(len(values)):
-                    string = string.replace('{' + str(i) + '}', str(values[i].value))
-                return String(string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
-                    'message': f"type '{TypeOf(args[0]).getType()}' is not valid argument for format()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
-                'message': f"{len(self.args)} arguments given, but format() takes 1 argument",
-                "context": self.context,
-                'exit': False
-            })
 
     # def BuiltInMethod___getproperty(self):
     #     res = RuntimeResult()
@@ -9298,19 +9767,19 @@ class BuiltInMethod_String(Value):
     #             method = BuiltInMethod_String.BuiltInMethod_[self.args[0].value]
     #             #is_method = getattr(self, method, NoneType.none)
     #             print(method)
-    #             #return String(BuiltInMethod.__getattribute__(self, self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+    #             #return String(BuiltInMethod.__getattribute__(self, self.args[0].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
     #         else:
     #             raise Al_TypeError({
-    #                 "pos_start": self.node.pos_start,
-    #                 "pos_end": self.node.pos_end,
+    #                 "pos_start": self.pos_start,
+    #                 "pos_end": self.pos_end,
     #                 'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for __getproperty()",
     #                 "context": self.context,
     #                 'exit': False
     #             }))
     #     else:
     #         raise Al_RuntimeError({
-    #             "pos_start": self.node.pos_start,
-    #             "pos_end": self.node.pos_end,
+    #             "pos_start": self.pos_start,
+    #             "pos_end": self.pos_end,
     #             'message': f"{len(self.args)} arguments given, but __getproperty() takes 1 argument",
     #             "context": self.context,
     #             'exit': False
@@ -9364,8 +9833,8 @@ class BuiltInMethod_List(Value):
 
     def no_method(self):
         raise Al_PropertyError({
-            "pos_start": self.node.pos_start,
-            "pos_end": self.node.pos_end,
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
             'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
             "context": self.context,
             'exit': False
@@ -9379,8 +9848,8 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_length(self):
         res = RuntimeResult()
         raise Al_ArgumentError({
-            "pos_start": self.node.pos_start,
-            "pos_end": self.node.pos_end,
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
             'message': f"'length' is not a callable",
             "context": self.context,
             'exit': False
@@ -9392,18 +9861,18 @@ class BuiltInMethod_List(Value):
         if len(self.args) == 1:
             if  self.name.elements == None:
                 raise Al_PropertyError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"'NoneType' object object has no property '{list_methods[self.type]}'",
                     "context": self.context,
                     'exit': False
                 })
-            value = List(self.name.elements.append(self.args[0])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            value = List(self.name.elements.append(self.args[0])).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             return value
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for append()",
                 "context": self.context,
                 'exit': False
@@ -9413,14 +9882,14 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_pop(self):
         res = RuntimeResult()
         if len(self.args) == 0:
-             return List(self.name.elements.pop()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+             return List(self.name.elements.pop()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         elif len(self.args) == 1:
             if isinstance(self.args[0], Number):
-                    return List(self.name.elements.pop(self.args[0].value)).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return List(self.name.elements.pop(self.args[0].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for pop()",
                     "context": self.context,
                     'exit': False
@@ -9428,8 +9897,8 @@ class BuiltInMethod_List(Value):
 
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but pop() takes 0 or 1 arguments",
                 "context": self.context,
                 'exit': False
@@ -9439,11 +9908,11 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_remove(self):
         res = RuntimeResult()
         if len(self.args) == 1:
-           return List(self.name.elements.remove(self.args[0])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+           return List(self.name.elements.remove(self.args[0])).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but remove() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -9454,19 +9923,19 @@ class BuiltInMethod_List(Value):
         res = RuntimeResult()
         if len(self.args) == 2:
             if isinstance(self.args[0], Number):
-                return List(self.name.elements.insert(self.args[0].value, self.args[1])).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return List(self.name.elements.insert(self.args[0].value, self.args[1])).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for insert()",
                     "context": self.context,
                     'exit': False
                 })
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but insert() takes 2 arguments",
                 "context": self.context,
                 'exit': False
@@ -9479,14 +9948,14 @@ class BuiltInMethod_List(Value):
             new_list = []
             for el in self.name.elements:
                 new_list.insert(0, el)
-            value = List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            value = List(new_list).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             self.context.symbolTable.set(self.var_name, value)
             return value
 
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but reverse() takes 0 arguments",
                 "context": self.context,
                 'exit': False
@@ -9496,11 +9965,11 @@ class BuiltInMethod_List(Value):
     def BuiltInMethod_empty(self):
         res = RuntimeResult()
         if len(self.args) == 0:
-            return List(self.name.elements.clear()).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return List(self.name.elements.clear()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but empty() takes 0 arguments",
                 "context": self.context,
                 'exit': False
@@ -9511,11 +9980,11 @@ class BuiltInMethod_List(Value):
         res = RuntimeResult()
         if len(self.args) == 1:
             if isinstance(self.args[0], Number):
-                    return List(self.name.elements[self.args[0].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return List(self.name.elements[self.args[0].value]).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for getItem()",
                     "context": self.context,
                     'exit': False
@@ -9523,8 +9992,8 @@ class BuiltInMethod_List(Value):
 
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but getItem() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -9538,11 +10007,11 @@ class BuiltInMethod_List(Value):
                     old_value = self.name.elements[self.args[0].value]
                     new_value = self.args[1]
                     self.name.elements[self.args[0].value] = new_value
-                    return List(self.name.elements).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return List(self.name.elements).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for setItem()",
                     "context": self.context,
                     'exit': False
@@ -9553,8 +10022,8 @@ class BuiltInMethod_List(Value):
 
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but setItem() takes 2 arguments",
                 "context": self.context,
                 'exit': False
@@ -9573,11 +10042,11 @@ class BuiltInMethod_List(Value):
                             new_string += str(element.value)
                         if element != self.name.elements[-1]:
                             new_string += self.args[0].value
-                    return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return String(new_string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for join()",
                     "context": self.context,
                     'exit': False
@@ -9592,11 +10061,11 @@ class BuiltInMethod_List(Value):
                     new_string += str(element.value)
                 if element != self.name.elements[-1]:
                     new_string += ","
-            return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return String(new_string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but join() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -9623,25 +10092,25 @@ class BuiltInMethod_List(Value):
 
             if isinstance(self.args[0], String) or isinstance(self.args[0], Number):
                 if self.args[0].value in new_list:
-                    return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
                 else:
-                    return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             elif isinstance(self.args[0], BuiltInFunction):
                 if self.args[0].name in new_list:
-                    return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
                 else:
-                    return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             elif isinstance(self.args[0], Dict):
                 isSame = False
                 for element in new_list:
                     if isinstance(element, Dict):
                         isSame = element.isSame(self.args[0])
 
-                return Boolean(isSame).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return Boolean(isSame).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but includes() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -9657,23 +10126,23 @@ class BuiltInMethod_List(Value):
                 for element in self.name.elements:
                     if element.value == self.args[0].value:
                         count += 1
-                return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return Number(count).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             elif isinstance(self.args[0], BuiltInFunction):
                 for element in self.name.elements:
                     if element.name == self.args[0].name:
                         count += 1
-                return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return Number(count).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Module) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
                 for element in self.name.elements:
                     if isinstance(element, Dict):
                         if element.isSame(self.args[0]):
                             count += 1
-                return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return Number(count).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but count() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -9684,13 +10153,13 @@ class BuiltInMethod_List(Value):
         res = RuntimeResult()
         if len(self.args) == 0:
             if len(self.name.elements) == 0:
-                return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
-                return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but is_empty() takes 0 arguments",
                 "context": self.context,
                 'exit': False
@@ -9703,12 +10172,12 @@ class BuiltInMethod_List(Value):
             # check if all elements are numbers
             for element in self.name.elements:
                 if not isinstance(element, Number):
-                    return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but is_number() takes 0 arguments",
                 "context": self.context,
                 'exit': False
@@ -9720,12 +10189,12 @@ class BuiltInMethod_List(Value):
         if len(self.args) == 0:
             for element in self.name.elements:
                 if not isinstance(element, String):
-                    return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-            return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but is_string() takes 0 arguments",
                 "context": self.context,
                 'exit': False
@@ -9738,8 +10207,8 @@ class BuiltInMethod_List(Value):
             new_string = ""
             if  self.name.elements == None:
                 raise Al_PropertyError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"'NoneType' object object has no property '{list_methods[self.type]}'",
                 "context": self.context,
                 'exit': False
@@ -9751,11 +10220,11 @@ class BuiltInMethod_List(Value):
                 else:
                     new_string += str(element)
                     new_string += ", " if element != self.name.elements[-1] else ""
-            return String(new_string).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return String(new_string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but toString() takes 0 arguments",
                 "context": self.context,
                 'exit': False
@@ -9769,11 +10238,11 @@ class BuiltInMethod_List(Value):
             for element in self.name.properties.properties:
                 if element.value != "__methods__":
                     new_list.append(element)
-            return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return List(new_list).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but __properies__() takes 0 arguments",
                 "context": self.context,
                 'exit': False
@@ -9788,19 +10257,19 @@ class BuiltInMethod_List(Value):
                 new_list = []
                 for element in self.name.elements:
                     new_list.append(res.register(func.execute([element], self.keyword_args)))
-                return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return List(new_list).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for map()",
                     "context": self.context,
                     'exit': False
                 })
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but map() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -9818,20 +10287,20 @@ class BuiltInMethod_List(Value):
                     if isinstance(new_res, Boolean):
                         if new_res.value == "true":
                             new_list.append(element)
-                return List(new_list).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return List(new_list).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for filter()",
                     "context": self.context,
                     'exit': False
                 })
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but filter() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -9865,8 +10334,8 @@ class BuiltInMethod_List(Value):
                                     return self.name.elements[i]
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for find()",
                     "context": self.context,
                     'exit': False
@@ -9874,8 +10343,8 @@ class BuiltInMethod_List(Value):
 
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but find() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -9909,16 +10378,16 @@ class BuiltInMethod_List(Value):
                                     return Number(i)
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for findIndex()",
                     "context": self.context,
                     'exit': False
                 })
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but findIndex() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -9933,19 +10402,19 @@ class BuiltInMethod_List(Value):
                 if index <= len(self.name.elements):
                     # remove element at index
                     self.name.elements.pop(index)
-                    return List(self.name.elements).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return List(self.name.elements).setContext(self.context).setPosition(self.pos_start, self.pos_end)
                 else:
                     raise Al_IndexError({
-                        'pos_start': self.node.pos_start,
-                        'pos_end': self.node.pos_end,
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
                         'message': f"index {index} is out of range",
                         'context': self.context,
                         'exit': False
                     })
             else:
                 raise Al_TypeError({
-                    'pos_start': self.node.pos_start,
-                    'pos_end': self.node.pos_end,
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for removeAt()",
                     'context': self.context,
                     'exit': False
@@ -9953,8 +10422,8 @@ class BuiltInMethod_List(Value):
 
         else:
             raise Al_ArgumentError({
-                'pos_start': self.node.pos_start,
-                'pos_end': self.node.pos_end,
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
                 'message': f"{len(self.args)} arguments given, but removeAt() takes 1 argument",
                 'context': self.context,
                 'exit': False
@@ -9965,11 +10434,11 @@ class BuiltInMethod_List(Value):
             res = RuntimeResult()
             if len(self.args) == 2:
                 if isinstance(self.args[0], Number) and isinstance(self.args[1], Number):
-                        return List(self.name.elements[self.args[0].value:self.args[1].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                        return List(self.name.elements[self.args[0].value:self.args[1].value]).setContext(self.context).setPosition(self.pos_start, self.pos_end)
                 else:
                     raise Al_TypeError({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
                         'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for slice()",
                         "context": self.context,
                         'exit': False
@@ -9977,19 +10446,19 @@ class BuiltInMethod_List(Value):
             elif len(self.args) == 1:
                 if isinstance(self.name, List):
                     if isinstance(self.args[0], Number):
-                        return List(self.name.elements[self.args[0].value:]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                        return List(self.name.elements[self.args[0].value:]).setContext(self.context).setPosition(self.pos_start, self.pos_end)
                     else:
                         raise Al_RuntimeError({
-                            "pos_start": self.node.pos_start,
-                            "pos_end": self.node.pos_end,
+                            "pos_start": self.pos_start,
+                            "pos_end": self.pos_end,
                             'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for slice()",
                             "context": self.context,
                             'exit': False
                         })
             else:
                 raise Al_ArgumentError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"{len(self.args)} arguments given, but slice() takes 2 arguments",
                     "context": self.context,
                     'exit': False
@@ -10008,13 +10477,13 @@ class BuiltInMethod_List(Value):
                             new_list = self.name.elements[:index] + self.name.elements[index+deleteCount:]
                             self.name.elements = new_list
                             value = List(new_list).setContext(self.context).setPosition(
-                                self.node.pos_start, self.node.pos_end)
+                                self.pos_start, self.pos_end)
                             self.context.symbolTable.set(self.var_name, value)
                             return value
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' and '{TypeOf(self.args[1]).getType()}' are not valid arguments for splice()",
                     "context": self.context,
                     'exit': False
@@ -10022,19 +10491,19 @@ class BuiltInMethod_List(Value):
         elif len(self.args) == 1:
             if isinstance(self.name, List):
                 if isinstance(self.args[0], Number):
-                    return List(self.name.elements[:self.args[0].value]).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                    return List(self.name.elements[:self.args[0].value]).setContext(self.context).setPosition(self.pos_start, self.pos_end)
                 else:
                     raise Al_TypeError({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
                         'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for splice()",
                         "context": self.context,
                         'exit': False
                     })
         else:
             raise Al_ArgumentError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but splice() takes 2 arguments",
                 "context": self.context,
                 'exit': False
@@ -10054,16 +10523,16 @@ class BuiltInMethod_List(Value):
                     return accumulator
                 else:
                     raise Al_ArgumentError({
-                        "pos_start": self.node.pos_start,
-                        "pos_end": self.node.pos_end,
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
                         'message': f"{len(func.arg_names)} arguments given, but reduce() takes 2 arguments",
                         "context": self.context,
                         'exit': False
                     })
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid type for reduce()",
                     "context": self.context,
                     'exit': False
@@ -10112,8 +10581,8 @@ class BuiltInMethod_Pair(Value):
 
     def no_method(self):
         raise Al_PropertyError({
-            "pos_start": self.node.pos_start,
-            "pos_end": self.node.pos_end,
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
             'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
             "context": self.context,
             'exit': False
@@ -10132,23 +10601,23 @@ class BuiltInMethod_Pair(Value):
                 for element in self.name.elements:
                     if element.value == self.args[0].value:
                         count += 1
-                return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return Number(count).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             elif isinstance(self.args[0], BuiltInFunction):
                 for element in self.name.elements:
                     if element.name == self.args[0].name:
                         count += 1
-                return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return Number(count).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Module) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
                 for element in self.name.elements:
                     if isinstance(element, Dict):
                         if element.isSame(self.args[0]):
                             count += 1
-                return Number(count).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                return Number(count).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but count() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -10160,22 +10629,22 @@ class BuiltInMethod_Pair(Value):
             if isinstance(self.args[0], String) or isinstance(self.args[0], Number):
                 for index, element in enumerate(self.name.elements):
                     if element.value == self.args[0].value:
-                        return Number(index).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                return Number(-1).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                        return Number(index).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                return Number(-1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             elif isinstance(self.args[0], BuiltInFunction) or isinstance(self.args[0], BuiltInClass):
                 for index, element in enumerate(self.name.elements):
                     if element.name == self.args[0].name:
-                        return Number(index).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                return Number(-1).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                        return Number(index).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                return Number(-1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             elif isinstance(self.args[0], Dict) or isinstance(self.args[0], Object) or isinstance(self.args[0], Module) or isinstance(self.args[0], Class) or isinstance(self.args[0], List) or isinstance(self.args[0], Pair):
                 for index, element in enumerate(self.name.elements):
                     if element.isSame(self.args[0]):
-                        return Number(index).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                return Number(-1).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                        return Number(index).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                return Number(-1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but findIndex() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -10224,8 +10693,8 @@ class BuiltInMethod_Dict(Value):
 
     def no_method(self):
         raise Al_PropertyError({
-            "pos_start": self.node.pos_start,
-            "pos_end": self.node.pos_end,
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
             'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
             "context": self.context,
             'exit': False
@@ -10241,20 +10710,20 @@ class BuiltInMethod_Dict(Value):
             if isinstance(self.args[0], String) or isinstance(self.args[0], Number):
                 for key, value in self.name.properties.items():
                     if key == self.args[0].value:
-                        return Boolean(True).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
-                return Boolean(False).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+                        return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
                 raise Al_TypeError({
-                    "pos_start": self.node.pos_start,
-                    "pos_end": self.node.pos_end,
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for hasprop()",
                     "context": self.context,
                     'exit': False
                 })
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but hasprop() takes 1 argument",
                 "context": self.context,
                 'exit': False
@@ -10267,11 +10736,11 @@ class BuiltInMethod_Dict(Value):
             keys = []
             for key in self.name.properties.keys():
                 keys.append(key)
-            return List(keys).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but keys() takes 0 argument",
                 "context": self.context,
                 'exit': False
@@ -10284,11 +10753,11 @@ class BuiltInMethod_Dict(Value):
             values = []
             for value in self.name.properties.values():
                 values.append(value)
-            return List(values).setContext(self.context).setPosition(self.node.pos_start, self.node.pos_end)
+            return List(values).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_RuntimeError({
-                "pos_start": self.node.pos_start,
-                "pos_end": self.node.pos_end,
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
                 'message': f"{len(self.args)} arguments given, but values() takes 0 argument",
                 "context": self.context,
                 'exit': False
@@ -10325,6 +10794,7 @@ class Types(Value):
         data_types = {
             'Number': Number,
             'String': String,
+            'Bytes': ByteString,
             'Boolean': Boolean,
             'NoneType': NoneType,
             'List': List,
@@ -10416,11 +10886,18 @@ class Interpreter:
 
     def visit_StringNode(self, node, context):
         return RuntimeResult().success(
-            String(node.tok.value, node.arg).setContext(
+            String(node.tok.value).setContext(
                 context).setPosition(node.pos_start, node.pos_end)
         )
 
 
+    def visit_ByteStringNode(self, node, context):
+        return RuntimeResult().success(
+            ByteString(node.tok.value).setContext(
+                context).setPosition(node.pos_start, node.pos_end)
+        )
+        
+    
     def visit_StringInterpNode(self, node, context):
         res = RuntimeResult()
         values_to_replace = node.values_to_replace
@@ -11930,14 +12407,13 @@ class Interpreter:
             elif type(object_key).__name__ == "PropertyNode":
                 if type(object_key.id).__name__ ==  "CallNode":
                     if object_key.id.node_to_call.id.value in string_methods:
+                        method_name = object_key.id.node_to_call.value
                         args = []
+                        kwargs = object_key.id.keyword_args_list
                         for arg in object_key.id.args_nodes:
-                            args.append(res.register(
-                                self.visit(arg, context)))
+                            args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        value = BuiltInMethod_String(
-                            object_key.id.node_to_call.id.value, object_name, args, node, context, var_name,object_key.id.keyword_args_list)
-                        return res.success(value)
+                        return res.success(string_methods[method_name](object_name, args, kwargs))
                     else:
                         error["message"] = f"'string' object has no property '{object_key.id.node_to_call.id.value}'"
                         raise Al_PropertyError(error)
@@ -11952,14 +12428,13 @@ class Interpreter:
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in string_methods:
+                        method_name = object_key.node_to_call.value
                         args = []
+                        kwargs = object_key.keyword_args_list
                         for arg in object_key.args_nodes:
-                            args.append(res.register(
-                                self.visit(arg, context)))
+                            args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        value = BuiltInMethod_String(
-                            object_key.node_to_call.value, object_name, args, node, context,var_name,object_key.keyword_args_list)
-                        return res.success(value.name)
+                        return res.success(string_methods[method_name](object_name, args, kwargs))
                     else:
                         error["message"] = f"'string' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
@@ -14121,6 +14596,7 @@ code_builtin_notimplementederror = 'class NotImplementedError()\ndef @init(self,
 
 Types.Number = Types("Number")
 Types.String = Types("String")
+Types.Bytes = Types("Bytes")
 Types.Boolean = Types("Boolean")
 Types.NoneType = Types("NoneType")
 Types.List = Types("List")
@@ -14175,6 +14651,7 @@ symbolTable_.set('is_finite', BuiltInFunction.is_finite)
 symbolTable_.set('enumerate', BuiltInFunction.enumerate)
 symbolTable_.set('Number', Types.Number)
 symbolTable_.set('String', Types.String)
+symbolTable_.set('Bytes', Types.Bytes)
 symbolTable_.set('Boolean', Types.Boolean)
 symbolTable_.set('NoneType', Types.NoneType)
 symbolTable_.set('List', Types.List)
@@ -14193,6 +14670,7 @@ symbolTable_.set('Module', Types.Module)
 # symbolTable_.set('ArgumentError', BuiltInClass.ArgumentError)
 # symbolTable_.set('TypeError', BuiltInClass.TypeError)
 # symbolTable_.set('IndexError', BuiltInClass.IndexError)
+# symbolTable_.set('UnicodeDecodeError', BuiltInClass.UnicodeDecodeError)
 # symbolTable_.set('ValueError', BuiltInClass.ValueError)
 # symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
 # symbolTable_.set('KeyError', BuiltInClass.KeyError)
@@ -14206,6 +14684,7 @@ symbolTable_.set('Module', Types.Module)
 # symbolTable_.set('FileNotFoundError', BuiltInClass.FileNotFoundError)
 # symbolTable_.set('PermissionError', BuiltInClass.PermissionError)
 # symbolTable_.set('NotImplementedError', BuiltInClass.NotImplementedError)
+
 symbolTable_.set('__@file', BuiltInClass.File)
 symbolTable_.set('__@std_in_read', BuiltInFunction.std_in_read)
 symbolTable_.set('__@std_in_readline', BuiltInFunction.std_in_readline)

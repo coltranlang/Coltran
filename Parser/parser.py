@@ -247,11 +247,22 @@ class NumberNode:
 
 
 class StringNode:
-    def __init__(self, tok, arg=None):
+    def __init__(self, tok):
         self.name = tok
         self.tok = tok
         self.id = tok
-        self.arg = arg
+        self.pos_start = self.tok.pos_start
+        self.pos_end = self.tok.pos_end
+
+    def __repr__(self):
+        return f'{self.tok}'
+
+
+class ByteStringNode:
+    def __init__(self, tok):
+        self.name = tok
+        self.tok = tok
+        self.id = tok
         self.pos_start = self.tok.pos_start
         self.pos_end = self.tok.pos_end
 
@@ -1709,9 +1720,13 @@ class Parser:
 
         elif tok.matches(tokenList.TT_KEYWORD, 'fm'):
             string_interp = res.register(self.string_interp())
-            if res.error:
-                return res
+            if res.error:return res
             return res.success(string_interp)
+        
+        elif tok.matches(tokenList.TT_KEYWORD, 'bt'):
+            byte_expr = res.register(self.byte_expr())
+            if res.error: return res
+            return res.success(byte_expr)
 
         elif tok.matches(tokenList.TT_KEYWORD, 'del'):
             del_expr = res.register(self.del_expr())
@@ -4153,6 +4168,23 @@ class Parser:
                 interpolated.append(element)
                 self.string_expr = interpolated
         return self.string_expr
+
+    def byte_expr(self):
+        res = ParseResult()
+        pos_start = self.current_token.pos_start.copy()
+        self.skipLines()
+        if self.current_token.type == tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING or tokenList.TT_BACKTICK:
+            byte_string = self.current_token
+            self.skipLines()
+            return res.success(ByteStringNode(byte_string))
+        else:
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "expected a string",
+                'exit': False
+            }))
 
     def index_get(self, atom):
         res = ParseResult()

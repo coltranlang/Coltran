@@ -29,6 +29,8 @@ println(str.findIndex("World")) # 6
 println(str.findIndex("World", 5)) # 6
 println(str.find("World")) # 6
 println(str.find("World", 5)) # 6
+println(str.rfind("World")) # 6
+println(str.rfindIndex("World")) # 6
 println(str.replace("World", "Universe")) # Hello Universe
 println(str.replace("World", "Universe", 1)) # Hello Universe
 println(str.join("-")) # Hello-World
@@ -46,15 +48,56 @@ println(text2.count("apple", 10, 24)) # 1
 println(str[::-1]) # dlroW olleH
 println(str.slice(0, 5)) # Hello
 println(text.find("e", 5, 10)) # 8
-println("hello".isUpper()) # false
-println("HELLO".isUpper()) # true
-println("hello".isLower()) # true
-println("HELLO".isLower()) # false
-println("hello".isAlpha()) # true
-println("123".isDigit()) # true
-println("5903".isNumeric()) # true
+println("hello".is_upperCase()) # false
+println("HELLO".is_upperCase()) # true
+println("hello".is_lowerCase()) # true
+println("HELLO".is_lowerCase()) # false
+println("hello".is_alpha()) # true
+println("123".is_digit()) # true
+println("5903".is_numeric()) # true
 println("{0} {1} Plays for Barca".format(("Lionel", "Messi"))) # Lionel Messi Plays for Barca
-
+let text = ' '
+print(text.is_space()) # true
+let text = 'Hello'
+print(text.is_identifier()) # true
+let text = 'Hello'
+print(text.is_alpha()) # true
+let text = 'Hello'
+print(text.is_digit()) # false
+let text = ''
+print(text.is_alnum()) # false
+#ascii  code
+let text = "A".ascii_code() # 65
+println(text)
+let text = "A"
+println(text.is_ascii()) # true
+let text = 'Hello'
+print(text.is_printable()) # true
+let text = 'Hello'
+print(text.is_lowerCase()) # true
+let text = 'Hello'
+print(text.is_upperCase()) # false
+let text = 'Hello'
+print(text.is_title()) # true
+let text = "\u0033"
+print(text.is_decimal()) # true
+let text = 'Hello {0}!, you are {1} years old'
+text = text.format("Bob", 20) # Hello Bob!, you are 20 years old
+print(text)
+let text = 'Hello {name}!, you are {age} years old'
+text = text.format(age=22, name="John") # Hello John!, you are 22 years old
+print(text)
+let text = 'Hello {name}!, you are {age} years old'
+text = text.format_map(dict(name="Michael", age=35)) # Hello Michael!, you are 35 years old
+print(text)
+let text = "Hello My Name Is Kenny"
+print(text.swapcase()) # hELLO my nAME iS kENNY
+# let text = 'Hello'
+# print(text.encode())
+let string_methods = ''.__@properties__()
+in string_methods as (method_name, method):
+    print(method_name, method)
+end
 # String slicing with for-to-loop
 let str = "Hello, World!"
 for i = 0 to str.length - 1:
