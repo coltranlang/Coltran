@@ -88,7 +88,7 @@ let text = 'Hello {name}!, you are {age} years old'
 text = text.format(age=22, name="John") # Hello John!, you are 22 years old
 print(text)
 let text = 'Hello {name}!, you are {age} years old'
-text = text.format_map(dict(name="Michael", age=35)) # Hello Michael!, you are 35 years old
+text = text.format_dict(dict(name="Michael", age=35)) # Hello Michael!, you are 35 years old
 print(text)
 let text = "Hello My Name Is Kenny"
 print(text.swapcase()) # hELLO my nAME iS kENNY

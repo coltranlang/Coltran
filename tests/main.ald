@@ -95,6 +95,6 @@ print(arr_reduce_3) # 100
 def @reducer_2(total, current_value, current_index, arr)
     return total + current_value + current_index + arr.length
 end
-let arr_reduce_4 = arr.reduce(@reducer_2)
+let arr_reduce_4 = arr.reduce(@reducer_2, 100)
 print(arr_reduce_4) # 300
 

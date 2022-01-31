@@ -284,6 +284,7 @@ def create_module_path(module_path):
 # print(starargs_ex4, nonstarargs_ex4, "is the result 4")
 
 
+
 symbolTable_ = SymbolTable()
 
 module_namespace = ModuleNameSpace()
@@ -3449,7 +3450,7 @@ class String(Value):
         
         return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
            
-    def format_map(self, args, kwargs, var_name=None):
+    def format_dict(self, args, kwargs, var_name=None):
         string = self.value
         if len(kwargs) > 0:
             for key in kwargs:
@@ -3457,7 +3458,7 @@ class String(Value):
                 raise Al_KeyError({
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"format_map() got an unexpected keyword argument '{name}'",
+                    'message': f"format_dict() got an unexpected keyword argument '{name}'",
                     'context': self.context,
                     'exit': False
                 })
@@ -3469,18 +3470,18 @@ class String(Value):
                 string_key_match = re.findall(r'{(.*?)}', string)
                 key_not_valid_names = [name for name in string_key_match if name not in args[0].properties]
                 for key_not_valid_name in key_not_valid_names:
+                    if key_not_valid_name == '':
+                        raise Al_ValueError({
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"format string contains positional fields",
+                            'context': self.context,
+                            'exit': False
+                        })
                     raise Al_KeyError({
                         "pos_start": self.pos_start,
                         "pos_end": self.pos_end,
                         'message': f"'{key_not_valid_name}'",
-                        "context": self.context,
-                        'exit': False
-                    })
-                if not string_replace in string:
-                    raise Al_KeyError({
-                        "pos_start": self.pos_start,
-                        "pos_end": self.pos_end,
-                        'message': f"'{name}'",
                         "context": self.context,
                         'exit': False
                     })
@@ -3489,7 +3490,7 @@ class String(Value):
             raise Al_TypeError({
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"format_map() argument 1 must be Dict, not {args[0].type}",
+                'message': f"format_dict() argument 1 must be Dict, not {args[0].type}",
                 'context': self.context,
                 'exit': False
             })
@@ -3672,7 +3673,7 @@ string_methods = {
     'rfindIndex': String.rfindIndex, # DONE
     'count': String.count, # DONE
     'format': String.format, # DONE
-    'format_map': String.format_map, # DONE
+    'format_dict': String.format_dict, # DONE
     'is_empty': String.is_empty, # DONE
     'is_digit': String.is_digit, # DONE
     'is_decimal': String.is_decimal, # DONE
@@ -4162,6 +4163,7 @@ class NoneType(Value):
 
     def __repr__(self):
         return f'{self.value}'
+
 
 
 Boolean.true = Boolean("true")
