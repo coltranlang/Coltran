@@ -77,63 +77,24 @@
 
 
 
+let arr = [1,2,3,4,5,6,7,8,9,10]
+print(arr)
+let arr_map = arr.map(def(x) -> x * 2)
+print(arr_map) # [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+let arr_filter = arr.filter(def(x) -> x % 2 == 0)
+print(arr_filter) # [2, 4, 6, 8, 10]
+let arr_reduce = arr.reduce(def(x, y) -> x + y)
+print(arr_reduce) # 55
+let arr_reduce_2 = arr.reduce(def(x, y) -> x + y, 100)
+print(arr_reduce_2) # 155
+def @reducer(total, current_value, current_index)
+    return total + current_value + current_index
+end
+let arr_reduce_3 = arr.reduce(@reducer)
+print(arr_reduce_3) # 100
+def @reducer_2(total, current_value, current_index, arr)
+    return total + current_value + current_index + arr.length
+end
+let arr_reduce_4 = arr.reduce(@reducer_2)
+print(arr_reduce_4) # 300
 
-let text = 'hello'
-print(text.upperCase())
-let text = 'Hello'
-print(text.lowerCase())
-let text = 'Hello'
-print(text.capitalize())
-let text = 'Hello'
-print(text.title())
-let text = 'Hello'
-print(text.split('l'))
-let text = 'Hello'
-print(text.rsplit('l'))
-let text = 'Hello'
-print(text.split('l', 1))
-let text = 'Hello'
-print(text.rsplit('l', 1))
-let text = 'Hello World'
-print(text.join('-'))
-let text = 'Hello'
-print(text.replace('e', 'a'))
-let text = 'Hello'
-print(text.replace('e', 'a', 1))
-let text = 'Hello'
-print(text.replace('e', 'a', 2))
-let text = 'Hello'
-print(text.length)
-let text = 'Hello'
-print(text.is_empty())
-let text = ' '
-print(text.is_space())
-let text = 'Hello'
-print(text.is_identifier())
-let text = 'Hello'
-print(text.is_alpha())
-let text = 'Hello'
-print(text.is_digit())
-let text = ''
-print(text.is_alnum())
-let text = 'Hello'
-print(text.is_printable())
-let text = 'Hello'
-print(text.is_lowerCase())
-let text = 'Hello'
-print(text.is_upperCase())
-let text = 'Hello'
-print(text.is_title())
-let text = 'Hello {0}!, you are {1} years old'
-text = text.format("Bob", 20)
-print(text)
-let text = 'Hello {name}!, you are {age} years old'
-text = text.format(age=22, name="John")
-print(text)
-let text = 'Hello {name}!, you are {age} years old'
-text = text.format_map(dict(name="Michael", age=35))
-print(text)
-let text = str(bt'Hello')
-print(text)
-# let text = 'Hello'
-# print(text.encode())

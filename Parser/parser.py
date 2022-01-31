@@ -1458,7 +1458,7 @@ class Parser:
                         return res.failure(self.error['Syntax']({
                             'pos_start': self.current_token.pos_start,
                             'pos_end': self.current_token.pos_end,
-                            'message': "invalid syntax",
+                            'message': "positional argument cannot be followed by keyword argument",
                             'exit': False
                         }))
             else:
@@ -1531,7 +1531,7 @@ class Parser:
                             return res.failure(self.error['Syntax']({
                                 'pos_start': self.current_token.pos_start,
                                 'pos_end': self.current_token.pos_end,
-                                'message': "invalid syntax",
+                                'message': "positional argument cannot be followed by keyword argument",
                                 'exit': False
                             })) 
                 else:
@@ -1568,7 +1568,6 @@ class Parser:
 
             else:
                 arg_nodes, keyword_args_list = self.make_call()
-       
        
        
        

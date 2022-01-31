@@ -92,12 +92,12 @@ text = text.format_map(dict(name="Michael", age=35)) # Hello Michael!, you are 3
 print(text)
 let text = "Hello My Name Is Kenny"
 print(text.swapcase()) # hELLO my nAME iS kENNY
-# let text = 'Hello'
-# print(text.encode())
+let text = 'Hello'.encode(encoding='utf8', errors='strict')
+print(text) # bt'Hello'
+text = text.decode(encoding='utf-8', errors='strict')
+print(text) # Hello
 let string_methods = ''.__@properties__()
-in string_methods as (method_name, method):
-    print(method_name, method)
-end
+print(string_methods)
 # String slicing with for-to-loop
 let str = "Hello, World!"
 for i = 0 to str.length - 1:
