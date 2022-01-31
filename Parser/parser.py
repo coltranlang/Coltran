@@ -104,15 +104,16 @@ def has_at_symbol(text):
     return False
 
 builtin_modules = {
-    'sys': 'sys',
-    're': 're',
-    'os': 'os',
     'math': 'math',
+    'http': 'http',
     'file': 'file',
+    'system': 'system',
+    'os': 'os',
+    'date': 'date',
+    're': 're',
     'random': 'random',
     'hashlib': 'hashlib',
-    'http': 'http',
-    'date': 'date',
+    'vna': 'vna',
 }
 
 operation_methods = {

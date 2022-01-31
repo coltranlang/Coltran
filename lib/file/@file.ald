@@ -65,7 +65,7 @@ def @open(file, mode)
 end
 
 class File
-    def @init(self, name, mode="r")
+    def __@init__(self, name, mode="r")
         self.name = name
         self.mode = mode
         self.closed = false

@@ -1,7 +1,7 @@
 from purchase import Purchase
 
 class Customer 
-    def @init(self, name, age, address, phone, email)
+    def __@init__(self, name, age, address, phone, email)
         self.name = name
         self.age = age
         self.address = address

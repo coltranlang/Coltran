@@ -98,3 +98,9 @@ end
 let arr_reduce_4 = arr.reduce(@reducer_2, 100)
 print(arr_reduce_4) # 300
 
+import Vna from vna
+print(Vna)
+let params = ['*rest','a', 'b']
+let args = [1,2,3,4,5,6,7,8,9,10]
+let vna = Vna(params, args).create()
+print(vna)

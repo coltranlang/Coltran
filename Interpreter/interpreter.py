@@ -66,10 +66,10 @@ number_methods = {
     '__@properties__': '__@properties__', # Number.__@properties__()
 }
 
-
 pair_methods = {
     'count': 'count',  # Pair.count()
     'findIndex': 'findIndex',  # Pair.findIndex(func)
+    'indexOf': 'indexOf',  # Pair.indexOf(value)
     '__@properties__': '__@properties__', # Pair.__@properties__()
 }
 
@@ -1048,6 +1048,7 @@ builtin_modules = {
     're': Program.runFile,
     'random': Program.runFile,
     'hashlib': Program.runFile,
+    'vna': Program.runFile,
 }
 
 
@@ -3640,7 +3641,7 @@ class String(Value):
                     })
         check_args(0, args, f"{len(args)} arguments given, but properties() takes 0 arguments", self.pos_start, self.pos_end, self.context)
         
-        keys = [key for key, value in string_methods.items()]
+        keys = [String(key) for key, value in string_methods.items()]
         return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
        
     def __str__(self):
@@ -4641,7 +4642,39 @@ class List(Value):
                     if element.isSame(args[0]):
                         count += 1
             return Number(count).setContext(self.context).setPosition(self.pos_start, self.pos_end)
-
+      
+    def indexOf(self, args, kwargs, var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"indexOf() takes no keyword arguments",
+                        'context': self.context,
+                        'exit': False
+                    })
+                    
+        check_args(1, args, f"{len(args)} arguments given, but indexOf() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        if isinstance(args[0], String) or isinstance(args[0], Number):
+            for index, element in enumerate(self.elements):
+                if element.value == args[0].value:
+                    return Number(index).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return Number(-1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif isinstance(args[0], BuiltInFunction) or isinstance(args[0], BuiltInClass):
+            for index, element in enumerate(self.elements):
+                if element.name == args[0].name:
+                    return Number(index).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return Number(-1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif isinstance(args[0], Dict) or isinstance(args[0], Object) or isinstance(args[0], Class) or isinstance(args[0], List) or isinstance(args[0], Pair) or isinstance(args[0], Module):
+            for index, element in enumerate(self.elements):
+                if element.isSame(args[0]):
+                    return Number(index).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return Number(-1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+         
     def is_empty(self, args, kwargs, var_name=None):
         if len(kwargs) > 0:
             for key in kwargs:
@@ -5133,7 +5166,7 @@ class List(Value):
         
         check_args(0, args, f"{len(args)} arguments given, but __@properties__() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
         
-        keys = [key for key, value in list_methods.items()]
+        keys = [String(key) for key, value in list_methods.items()]
         return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
        
     def __str__(self):
@@ -5172,6 +5205,7 @@ list_methods = {
     'sort': List.sort,
     'includes': List.includes,
     'count': List.count,
+    'indexOf': List.indexOf,
     'findIndex': List.findIndex,
     'map': List.map,
     'filter': List.filter,
@@ -6817,7 +6851,7 @@ class Function(BaseFunction):
         # if keyword_args_list != None and len(keyword_args_list) > 0:
         #     args = new_args
         #print(Klass.properties)
-        if '@init' in Klass.properties:
+        if '__@init__' in Klass.properties:
             args = [Klass] + new_args
 
         # if len(args) > 0:
@@ -6860,7 +6894,7 @@ class Function(BaseFunction):
     def run_check_args(self, args, klass_,keyword_args):
         res = RuntimeResult()
         interpreter = Interpreter()
-        class_name = klass_.name if self.name == "@init" else self.name
+        class_name = klass_.name if self.name == "__@init__" else self.name
         exec_context = self.generate_new_context()
         default_values = {}
         len_args = len(args)
@@ -7014,7 +7048,7 @@ class Function(BaseFunction):
     def run_populate_args(self, klass_, keyword_args, args, exec_context):
         res = RuntimeResult()
         interpreter = Interpreter()
-        class_name = klass_.name if self.name == "@init" else self.name
+        class_name = klass_.name if self.name == "__@init__" else self.name
         default_values = {}
         len_expected = len(self.arg_names)
         len_args = len(args) - 1
@@ -7318,13 +7352,13 @@ class Class(BaseClass):
         self.value = f"<Class {str(self.class_name)}>"
         self.context = context
         self.body_node = None
-        self.representation = self.value
+        self.str__ = self.value
         args = []
         for arg in self.class_args:
             args.append(arg.value) if hasattr(arg, "value") else args.append(arg)
         self.class_args = args
 
-
+    
     def execute(self, args, keyword_args_list):
         res = RuntimeResult()
         interpreter = Interpreter()
@@ -7350,7 +7384,7 @@ class Class(BaseClass):
                 self.properties = class_properties
                 method.context.symbolTable.set(
                     "super", self.inherit_class_name) if self.inherit_class_name != None else None
-                if method_name == "@init":
+                if method_name == "__@init__":
                     method_ = method
                     method_args = method.arg_names
                     default_values = method.default_values
@@ -7359,6 +7393,8 @@ class Class(BaseClass):
                     if len(method_args) > 0:
                         method_args = method_args[1:]
                         class_args = method_args
+                
+                    
 
             if method_ != None:
                 res.register(method_.run(keyword_args_list,args, self, new_context))
@@ -7486,9 +7522,23 @@ class Class(BaseClass):
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
 
-
+    
+    def __set_str__(self):
+        res = RuntimeResult()
+        string = f"<Class {str(self.class_name)}>"
+        if len(self.properties) > 0:
+            for method_name, method in self.properties.items():
+                if method_name == "__@str__":
+                    _str = method
+                    _str_args = method.arg_names
+                    default_values = method.default_values
+                    string = res.register(_str.run([], [], self, self.generate_new_context()))
+                    if res.should_return(): return res
+        return string
+                    
+ 
     def __repr__(self):
-        return self.representation
+        return str(self.__set_str__())
 
 
 class BuiltInClass(BaseClass):
@@ -7903,7 +7953,7 @@ class Module(Value):
         
         check_args(0, args, f"{len(args)} arguments given, but __@members__() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
         
-        keys = [key for key, value in self.properties.items()]
+        keys = [String(key) for key, value in self.properties.items()]
         return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
    
     def __repr__(self):
@@ -12552,17 +12602,7 @@ class Interpreter:
                                     'exit': False
                                 })
                     else:
-                        if type(value).__name__ in immutables:
-                            raise Al_TypeError({
-                                'name': String('TypeError'),
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'message': f"cannot set name '{var_name}' to immutable type '{TypeOf(value).getType()}'",
-                                'context': context,
-                                'exit': False
-                            })
-                        else:
-                            context.symbolTable.set(var_name, value, "let")
+                        context.symbolTable.set(var_name, value, "let")
 
         else:
             raise Al_NameError({
@@ -12614,7 +12654,7 @@ class Interpreter:
                     value = f"<{str(object_key.value)}()>, [ built-in class method ]"
                     return res.success(BuiltInMethod(value))
                 else:
-                    error["message"] = f"'{object_name.name}' object object has no property '{object_key.value}'"
+                    error["message"] = f"'{object_name.name}' object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
 
             elif type(object_key).__name__ == "CallNode":
@@ -14682,7 +14722,7 @@ class Interpreter:
         if node.methods != '' and node.methods != None:
             for method in node.methods:
                 method_name = method['name'].value
-                if method_name == '@init':
+                if method_name == '__@init__':
                     for arg in method['args']:
                         class_args.append(arg)
                 method_value = res.register(self.visit(method['value'], context))
@@ -14978,25 +15018,25 @@ BuiltInFunction.sys_platform = BuiltInFunction("sys_platform")
 BuiltInClass.File = BuiltInClass("File", {})
 #code for the built-in class exceptions
 #'class Exception(message)\nend\nclass RuntimeError()~Exception\nend'
-code_builtin_exception = 'class Exception()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_runtime = 'class RuntimeError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_nameerror = 'class NameError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_argumenterror = 'class ArgumentError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_typeerror = 'class TypeError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_indexerror = 'class IndexError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_valueerror = 'class ValueError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_propertyerror = 'class PropertyError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_keyerror = 'class KeyError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_zerodivisionerror = 'class ZeroDivisionError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_ImportError = 'class ImportError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_modulenotfounderror = 'class ModuleNotFoundError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_recursionerror = 'class RecursionError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_ioerror = 'class IOError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_oserror = 'class OSError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_filenotfounderror = 'class FileNotFoundError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_permissionerror = 'class PermissionError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
-code_builtin_notimplementederror = 'class NotImplementedError()\ndef @init(self,message)\n\tself.message = message\nend\nend'
+code_builtin_exception = 'class Exception()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_runtime = 'class RuntimeError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_nameerror = 'class NameError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_argumenterror = 'class ArgumentError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_typeerror = 'class TypeError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_indexerror = 'class IndexError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_valueerror = 'class ValueError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_propertyerror = 'class PropertyError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_keyerror = 'class KeyError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_zerodivisionerror = 'class ZeroDivisionError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_ImportError = 'class ImportError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_modulenotfounderror = 'class ModuleNotFoundError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_recursionerror = 'class RecursionError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_ioerror = 'class IOError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_oserror = 'class OSError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_filenotfounderror = 'class FileNotFoundError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_permissionerror = 'class PermissionError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
+code_builtin_notimplementederror = 'class NotImplementedError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
 
 
 

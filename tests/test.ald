@@ -101,7 +101,7 @@ println(@add(1, 2))
 
 # test for class type
 class Car
-    def @init(self, name, color)
+    def __@init__(self, name, color)
         self.name = name
         self.color = color
     end
@@ -386,7 +386,7 @@ end
 @test.call = def () -> println("I was just called")
 @test.call()
 class Person()
-    def @init(self, fname, lname)
+    def __@init__(self, fname, lname)
         self.firstName = fname
         self.lastName = lname
     end
@@ -923,7 +923,7 @@ object ObDic
     type: "object"
 end
 class Dic
-    def @init(self, name, age, email, hobby, verfied)
+    def __@init__(self, name, age, email, hobby, verfied)
         self.name = "ken"
     end
 end
