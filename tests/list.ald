@@ -18,3 +18,4 @@ def @reducer_2(total, current_value, current_index, arr)
 end
 let arr_reduce_4 = arr.reduce(@reducer_2)
 print(arr_reduce_4) # 300
+

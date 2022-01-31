@@ -4736,25 +4736,7 @@ class List(Value):
                 new_string += str(element)
                 new_string += ", " if element != self.elements[-1] else ""
         return String(new_string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
-        
-    def __properties__(self, args, kwargs, var_name=None):
-        if len(kwargs) > 0:
-            for key in kwargs:
-                name = key['name']
-                if name:
-                    raise Al_ArgumentError({
-                        'pos_start': self.pos_start,
-                        'pos_end': self.pos_end,
-                        'message': f"__@properties__() takes no keyword arguments",
-                        'context': self.context,
-                        'exit': False
-                    })
-        
-        check_args(0, args, f"{len(args)} arguments given, but __@properties__() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
-        
-        keys = [key for key, value in list_methods.items()]
-        return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
-
+    
     def map(self, args, kwargs, var_name=None):
         if len(kwargs) > 0:
             for key in kwargs:
@@ -5127,13 +5109,31 @@ class List(Value):
             'context': self.context,
             'exit': False
         })
-              
+           
     def copy(self):
         copy = List(self.elements, self.properties)
         copy.setContext(self.context)
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
-
+        
+    def __properties__(self, args, kwargs, var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"__@properties__() takes no keyword arguments",
+                        'context': self.context,
+                        'exit': False
+                    })
+        
+        check_args(0, args, f"{len(args)} arguments given, but __@properties__() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        
+        keys = [key for key, value in list_methods.items()]
+        return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+       
     def __str__(self):
         try:
             if self.type == "split":
@@ -7802,16 +7802,7 @@ class Module(Value):
         self.type_ = type_
         self.get_property = self.get_property
         self.representation =f"<Module {self.name}>"
-        self.setMembers()
-
-    def setMembers(self):
-        members = {}
-        member_key = '__@members__'
-        for key, value in self.properties.items():
-            if key != member_key:
-                members[key] = value
-        self.properties['__@members__'] = Dict(members)
-
+ 
     def set_property(self, key, value):
         self.properties[key] = value
         return self
@@ -7894,10 +7885,31 @@ class Module(Value):
         copy.setPosition(self.pos_start, self.pos_end)
         copy.setContext(self.context)
         return copy
-
+    
+    def __members__(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"__@members__() takes no keyword arguments",
+                        'context': self.context,
+                        'exit': False
+                    })
+        
+        check_args(0, args, f"{len(args)} arguments given, but __@members__() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        
+        keys = [key for key, value in self.properties.items()]
+        return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+   
     def __repr__(self):
         return f"<Module '{str(self.name)}', [built-in]>" if self.type_ != None and self.type_ == "builtin" else self.representation
 
+module_methods = {
+    '__@members__': Module.__members__,
+}
 
 
 def getproperty(object, property, type_):
@@ -13006,64 +13018,56 @@ class Interpreter:
                         raise Al_PropertyError(error)
 
             elif type(object_key).__name__ == "CallNode":
-                if hasattr(object_name, "properties"):
-                    if type(object_key.node_to_call).__name__ == "Token":
-                        if object_key.node_to_call.value in object_name.properties:
-                            value = object_name.properties[object_key.node_to_call.value]
-                            if isinstance(value, dict):
-                                value = value['value']
-                            if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
-                                error["message"] = f"'{object_key.node_to_call.value}' is not callable"
-                                raise Al_NameError(error)
-                            else:
-                                args_node = object_key.args_nodes
-                                keyword_args_list = object_key.keyword_args_list
-                                args = []
-                                for arg in args_node:
-                                    args.append(res.register(
-                                        self.visit(arg, context)))
-                                    if res.should_return(): return res
-                                return_value = res.register(value.execute(args,keyword_args_list))
-
-                                if res.should_return():
-                                        return res
-                                return res.success(return_value)
+                if type(object_key.node_to_call).__name__ == "Token":
+                    if object_key.node_to_call.value in object_name.properties:
+                        value = object_name.properties[object_key.node_to_call.value]
+                        if isinstance(value, dict):
+                            value = value['value']
+                        if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
+                            error["message"] = f"'{object_key.node_to_call.value}' is not callable"
+                            raise Al_NameError(error)
                         else:
-                            error["message"] = f"{node.name.id.value} object has no property '{object_key.node_to_call.value}'"
-                            raise Al_PropertyError(error)
-                else:
-                    if object_key.node_to_call.id.value in object_name.properties:
-                        value = object_name.properties[object_key.node_to_call.id.value]
-                        args_node = object_key.args_nodes
-                        keyword_args_list = object_key.keyword_args_list
+                            args_node = object_key.args_nodes
+                            keyword_args_list = object_key.keyword_args_list
+                            args = []
+                            for arg in args_node:
+                                args.append(res.register(
+                                    self.visit(arg, context)))
+                                if res.should_return(): return res
+                            return_value = res.register(value.execute(args,keyword_args_list))
+
+                            if res.should_return():
+                                    return res
+                            return res.success(return_value)
+                    elif object_key.node_to_call.value in module_methods:
+                        method_name = object_key.node_to_call.value
                         args = []
-
-                        for arg in args_node:
-                            args.append(res.register(
-                                self.visit(arg, context)))
+                        kwargs = object_key.keyword_args_list
+                        if kwargs == None:
+                            kwargs = []
+                        for arg in object_key.args_nodes:
+                            args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-
-                        return_value = res.register(value.run(keyword_args_list,args))
-                        if res.should_return():
-                                return res
-
-                        return res.success(return_value)
+                        return res.success(module_methods[method_name](object_name, args, kwargs))
                     else:
-                        error["message"] = f"{object_name.name} object has no property '{object_key.node_to_call.id.value}'"
+                        error["message"] = f"{node.name.id.value} object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
+                
 
 
             elif type(object_key).__name__ == "Token":
-                if hasattr(object_name, "properties"):
-                    if object_key.value in object_name.properties:
-                        value = object_name.properties[object_key.value]
-                        if isinstance(value, dict):
-                            return res.success(value['value'])
-                        else:
-                            return res.success(value)
+                if object_key.value in object_name.properties:
+                    value = object_name.properties[object_key.value]
+                    if isinstance(value, dict):
+                        return res.success(value['value'])
                     else:
-                        error["message"] = f"{object_name.name} object has no property '{object_key.value}'"
-                        raise Al_PropertyError(error)
+                        return res.success(value)
+                if object_key.value in module_methods:
+                    value = f"<{str(object_key.value)}()>, [ built-in module method ]"
+                    return res.success(BuiltInMethod(value))
+                else:
+                    error["message"] = f"{object_name.name} object has no property '{object_key.value}'"
+                    raise Al_PropertyError(error)
 
         else:
             self.error_detected = True
