@@ -39,6 +39,7 @@ def @check_rest_name(names)
 end
 
 
+
 class Vna
     rest_list = []
     collected_list = []

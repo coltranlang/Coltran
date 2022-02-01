@@ -198,6 +198,7 @@ KEYWORDS = [
     'bt',
     'raise',
     'del',
+    'freeze',
 ]
 
 TYPES = [

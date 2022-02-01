@@ -66,37 +66,12 @@ number_methods = {
     '__@properties__': '__@properties__', # Number.__@properties__()
 }
 
-pair_methods = {
-    'count': 'count',  # Pair.count()
-    'findIndex': 'findIndex',  # Pair.findIndex(func)
-    'indexOf': 'indexOf',  # Pair.indexOf(value)
-    '__@properties__': '__@properties__', # Pair.__@properties__()
-}
 
-dict_methods = {
-        'length': 'length',  # Dict.length
-        'hasprop': 'hasprop',  # Dict.hasprop(key)
-        'keys': 'keys',  # Dict.keys()
-        'values': 'values',  # Dict.values()
-        'items': 'items',  # Dict.items()
-        'get': 'get',  # Dict.get(key)
-        'set': 'set',  # Dict.set(key, value)
-        'update': 'update',  # Dict.update(dict)
-        'remove': 'remove',  # Dict.remove(key)
-        'empty': 'empty',  # Dict.empty()
-        '__@properties__': '__@properties__', # Dict.__@properties__()
-}
-
-object_methods = {
-    '__@properties__': '__@properties__', # Object.__@properties__()
-}
 
 function_methods = {
-    '__@properties__': '__@properties__', # Function.__@properties__()
 }
 
 class_methods = {
-    '__@methods__': '__methods__',  # Class.__methods__()
     '__@properties__': '__@properties__', # Class.__@properties__()
 }
 
@@ -685,13 +660,20 @@ class Program:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
         def KeyboardInterrupt(detail):
-            error = f'\nFile "{detail["pos_start"].fileName}", line {detail["pos_start"].line + 1} in {detail["context"].display_name if detail["context"].display_name != "none" or None else "<module>"}\n'
-            error += f"\nKeyboardInterrupt: {detail['message']}"
-
+            if 'name' in detail:
+                if isinstance(detail['name'], String):
+                    detail['name'] = detail['name'].value
+            isDetail = {
+                'name': detail['name'] if 'name' in detail else 'KeyboardInterrupt',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
             if detail['exit']:
-                Program.printErrorExit(error)
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
             else:
-                Program.printError(error)
+                Program.printError(Program.asStringTraceBack(isDetail))
 
         def RecursionError(detail):
             if 'name' in detail:
@@ -908,13 +890,13 @@ class Program:
         res = RuntimeResult()
         lexer = Lexer(path, value)
         tokens, error = lexer.make_tokens()
+        new_context = Context('<module>')
+        new_context.symbolTable = symbolTable_
         if error: return "", error
-        parser = Parser(tokens, name)
+        parser = Parser(tokens, name, new_context)
         ast = parser.parse()
         if ast.error: return "", ast.error
         interpreter = Interpreter()
-        new_context = Context('<module>')
-        new_context.symbolTable = symbolTable_
         result = interpreter.visit(ast.node, new_context)
         new_object = {}
         for key, value in new_context.symbolTable.symbols.items():
@@ -929,114 +911,123 @@ class Program:
 
     def createModule(path, module_name, module_from_name, module,properties_list, context, is_builtin,pos_start,pos_end):
         res = RuntimeResult()
-        lexer = Lexer(path, module, None, 'module', module_name)
-        tokens, error = lexer.make_tokens()
-        if error: return "", error
-        parser = Parser(tokens, path)
-        ast = parser.parse()
-        if ast.error: return "", ast.error
-        interpreter = Interpreter()
         mod_name = module_from_name if module_from_name != None else module_name
         new_context = Context(mod_name, context, pos_start)
         new_context.symbolTable = SymbolTable(context.symbolTable)
-
-        result = interpreter.visit(ast.node, new_context)
-        if result.error: return "", result.error
-        new_object = {}
-        module_namespace_properties = {}
-        name = None
-        value = None
-
-        for key, value in new_context.symbolTable.symbols.items():
-            if isinstance(value, dict):
-                new_object[key] = value['value']
+        lexer = Lexer(path, module, new_context, None, 'module', module_name)
+        try:
+            tokens, error = lexer.make_tokens()
+            if error: return "", error
+            parser = Parser(tokens, path, new_context)
+            ast = parser.parse()
+            interpreter = Interpreter()
+            parser_error_detected = parser.error_detected
+            if parser_error_detected == True:
+                return None
             else:
-                new_object[key] = value
+                result = interpreter.visit(ast.node, new_context)
+                if result.error: return "", result.error
+                new_object = {}
+                module_namespace_properties = {}
+                name = None
+                value = None
 
-
-
-        if module_name == '*':
-            for key, value in new_object.items():
-                value = value
-                context.symbolTable.set(key, value)
-            return value
-
-
-
-        if properties_list != None:
-            value = None
-            if len(properties_list) > 1:
-                for property in properties_list:
-                    name = property.value
-                    if name in new_object:
-                        value = new_object[name]
-                        context.symbolTable.set(name, value)
-                        for k, v in value.context.symbolTable.symbols.items():
-                            if  k != name:
-                                module_namespace_properties[k] = v
-                                module_namespace.set(name, module_namespace_properties)
+                for key, value in new_context.symbolTable.symbols.items():
+                    if isinstance(value, dict):
+                        new_object[key] = value['value']
                     else:
-                        return None, name
-                return value
+                        new_object[key] = value
 
-            elif len(properties_list) == 1:
-                name = properties_list[0].value
-                if name in new_object:
-                    value = new_object[name]
-                    context.symbolTable.set(module_name, value)
-                    for k, v in value.context.symbolTable.symbols.items():
-                        if  k != name:
-                            module_namespace_properties[k] = v
-                            module_namespace.set(name, module_namespace_properties)
+
+
+                if module_name == '*':
+                    for key, value in new_object.items():
+                        value = value
+                        context.symbolTable.set(key, value)
+                    return value
+
+
+
+                if properties_list != None:
+                    value = None
+                    if len(properties_list) > 1:
+                        for property in properties_list:
+                            name = property.value
+                            if name in new_object:
+                                value = new_object[name]
+                                context.symbolTable.set(name, value)
+                                for k, v in value.context.symbolTable.symbols.items():
+                                    if  k != name:
+                                        module_namespace_properties[k] = v
+                                        module_namespace.set(name, module_namespace_properties)
+                            else:
+                                return None, name
+                        return value
+
+                    elif len(properties_list) == 1:
+                        name = properties_list[0].value
+                        if name in new_object:
+                            value = new_object[name]
+                            context.symbolTable.set(module_name, value)
+                            for k, v in value.context.symbolTable.symbols.items():
+                                if  k != name:
+                                    module_namespace_properties[k] = v
+                                    module_namespace.set(name, module_namespace_properties)
+                        else:
+                            return None, name
+                        return value
+
                 else:
-                    return None, name
-                return value
+                    module_object = {}
+                    value_ = None
+                    for key, value in new_object.items():
+                        value_ = value
+                    if value_ != 'none':
+                        for k, v in value_.context.symbolTable.symbols.items():
+                            module_namespace.set(k, v)
+                    if is_builtin:
+                        module_object = Module(module_name, new_object, 'builtin')
+                    else:
+                        module_object = Module(module_name, new_object, 'module')
+                    value = module_object
+                    context.symbolTable.set(module_name, module_object)
 
-        else:
-            module_object = {}
-            value_ = None
-            for key, value in new_object.items():
-                value_ = value
-            if value_ != 'none':
-                for k, v in value_.context.symbolTable.symbols.items():
-                    module_namespace.set(k, v)
-            if is_builtin:
-                module_object = Module(module_name, new_object, 'builtin')
-            else:
-                module_object = Module(module_name, new_object, 'module')
-            value = module_object
-            context.symbolTable.set(module_name, module_object)
-
-            return module_object
+                    return module_object
+        except:
+            pass
 
     def makeModule(module_path, module,context,pos_start,pos_end):
         res = RuntimeResult()
         lexer = Lexer(module_path, module, None, 'module')
-        tokens, error = lexer.make_tokens()
-        if error: return "", error
-        parser = Parser(tokens, module_path)
-        ast = parser.parse()
-        if ast.error: return "", ast.error
-        interpreter = Interpreter()
-        new_context = Context('<module>', context, pos_start)
-        new_context.symbolTable = SymbolTable(context.symbolTable)
-
-        result = interpreter.visit(ast.node, new_context)
-        if result.error: return "", result.error
-        new_object = {}
-        for key, value in new_context.symbolTable.symbols.items():
-            if isinstance(value, dict):
-                new_object[key] = value['value']
+        try:
+            tokens, error = lexer.make_tokens()
+            if error: return "", error
+            new_context = Context('<module>', context, pos_start)
+            new_context.symbolTable = SymbolTable(context.symbolTable)
+            parser = Parser(tokens, module_path, new_context)
+            ast = parser.parse()
+            parser_error_detected = parser.error_detected
+            interpreter = Interpreter()
+            if parser_error_detected == True:
+                sys.exit(1)
             else:
-                new_object[key] = value
+                result = interpreter.visit(ast.node, new_context)
+                if result.error: return "", result.error
+                new_object = {}
+                for key, value in new_context.symbolTable.symbols.items():
+                    if isinstance(value, dict):
+                        new_object[key] = value['value']
+                    else:
+                        new_object[key] = value
 
-        module_object = {}
-        if module_path in builtin_modules:
-            module_object = Module(module_path, new_object, 'builtin')
-        else:
-            module_object = Module('annonymous', new_object, 'module')
-        return module_object
-
+                module_object = {}
+                if module_path in builtin_modules:
+                    module_object = Module(module_path, new_object, 'builtin')
+                else:
+                    module_object = Module('annonymous', new_object, 'module')
+                return module_object
+        except:
+            pass
 
 builtin_modules = {
     "math": Program.runFile,
@@ -1126,6 +1117,11 @@ class Al_Exception(Exception):
 
     def __repr__(self):
         return f"<Exception {self.name}: {self.message}>"
+
+
+class Al_SyntaxError(Exception):
+    def __init__(self, error):
+        pass
 
 
 class Al_ZeroDivisionError(Al_Exception):
@@ -2223,7 +2219,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"upperCase() takes no keyword arguments",
+                        'message': f"upperCase() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2242,7 +2238,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"lowerCase() takes no keyword arguments",
+                        'message': f"lowerCase() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2258,7 +2254,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"capitalize() takes no keyword arguments",
+                        'message': f"capitalize() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2276,7 +2272,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"title() takes no keyword arguments",
+                        'message': f"title() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2292,7 +2288,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"zfill() takes no keyword arguments",
+                        'message': f"zfill() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2310,7 +2306,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"swapcase() takes no keyword arguments",
+                        'message': f"swapcase() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2326,7 +2322,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"ascii_code() takes no keyword arguments",
+                        'message': f"ascii_code() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2343,7 +2339,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"partition() takes no keyword arguments",
+                        'message': f"partition() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2374,7 +2370,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"rpartition() takes no keyword arguments",
+                        'message': f"rpartition() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2406,7 +2402,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"strip() takes no keyword arguments",
+                        'message': f"strip() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2429,7 +2425,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"rstrip() takes no keyword arguments",
+                        'message': f"rstrip() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2444,7 +2440,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"lstrip() takes no keyword arguments",
+                        'message': f"lstrip() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2460,7 +2456,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"split() takes no keyword arguments",
+                        'message': f"split() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2539,7 +2535,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"rsplit() takes no keyword arguments",
+                        'message': f"rsplit() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2573,7 +2569,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"splitlines() takes no keyword arguments",
+                        'message': f"splitlines() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2611,7 +2607,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"join() takes no keyword arguments",
+                        'message': f"join() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2676,7 +2672,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"replace() takes no keyword arguments",
+                        'message': f"replace() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2728,7 +2724,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"substr() takes no keyword arguments",
+                        'message': f"substr() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2775,7 +2771,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"slice() takes no keyword arguments",
+                        'message': f"slice() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2822,7 +2818,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"charAt() takes no keyword arguments",
+                        'message': f"charAt() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2862,7 +2858,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"includes() takes no keyword arguments",
+                        'message': f"includes() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2896,7 +2892,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"count() takes no keyword arguments",
+                        'message': f"count() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2950,7 +2946,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"startsWith() takes no keyword arguments",
+                        'message': f"startsWith() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -2999,7 +2995,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"endsWith() takes no keyword arguments",
+                        'message': f"endsWith() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -3048,7 +3044,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"find() takes no keyword arguments",
+                        'message': f"find() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -3076,7 +3072,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"rfind() takes no keyword arguments",
+                        'message': f"rfind() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -3104,7 +3100,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"findIndex() takes no keyword arguments",
+                        'message': f"findIndex() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -3132,7 +3128,7 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"rfindIndex() takes no keyword arguments",
+                        'message': f"rfindIndex() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -3160,11 +3156,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_upperCase() takes no keyword arguments",
+                        'message': f"is_upperCase() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_upper() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_upper() takes no argument",self.pos_start, self.pos_end, self.context)
         
         return Boolean(self.value.isupper()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3176,11 +3172,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_lowerCase() takes no keyword arguments",
+                        'message': f"is_lowerCase() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_lower() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_lower() takes no argument",self.pos_start, self.pos_end, self.context)
         
         return Boolean(self.value.islower()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3192,11 +3188,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_alpha() takes no keyword arguments",
+                        'message': f"is_alpha() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_alpha() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_alpha() takes no argument",self.pos_start, self.pos_end, self.context)
         
         return Boolean(self.value.isalpha()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3208,11 +3204,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_digit() takes no keyword arguments",
+                        'message': f"is_digit() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_digit() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_digit() takes no argument",self.pos_start, self.pos_end, self.context)
         
         return Boolean(self.value.isdigit()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
     
@@ -3224,11 +3220,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_decimal() takes no keyword arguments",
+                        'message': f"is_decimal() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_decimal() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_decimal() takes no argument",self.pos_start, self.pos_end, self.context)
         
         return Boolean(self.value.isdecimal()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3240,11 +3236,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_numeric() takes no keyword arguments",
+                        'message': f"is_numeric() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_numeric() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_numeric() takes no argument",self.pos_start, self.pos_end, self.context)
         
         return Boolean(self.value.isnumeric()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3256,11 +3252,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_alnum() takes no keyword arguments",
+                        'message': f"is_alnum() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_alnum() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_alnum() takes no argument",self.pos_start, self.pos_end, self.context)
     
         return Boolean(self.value.isalnum()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3272,11 +3268,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_ascii() takes no keyword arguments",
+                        'message': f"is_ascii() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_ascii() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_ascii() takes no argument",self.pos_start, self.pos_end, self.context)
         
         return Boolean(self.value.isascii()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
           
@@ -3288,11 +3284,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_space() takes no keyword arguments",
+                        'message': f"is_space() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_space() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_space() takes no argument",self.pos_start, self.pos_end, self.context)
         
         
         return Boolean(self.value.isspace()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -3305,11 +3301,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_title() takes no keyword arguments",
+                        'message': f"is_title() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_title() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_title() takes no argument",self.pos_start, self.pos_end, self.context)
         
         
         return Boolean(self.value.istitle()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -3322,11 +3318,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_identifier() takes no keyword arguments",
+                        'message': f"is_identifier() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_identifier() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_identifier() takes no argument",self.pos_start, self.pos_end, self.context)
         
         return Boolean(self.value.isidentifier()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
       
@@ -3338,11 +3334,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_printable() takes no keyword arguments",
+                        'message': f"is_printable() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_printable() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_printable() takes no argument",self.pos_start, self.pos_end, self.context)
         
         
         return Boolean(self.value.isprintable()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -3355,12 +3351,12 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_empty() takes no keyword arguments",
+                        'message': f"is_empty() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
         
-        check_args(0, args, f"{len(args)} arguments given, but is_empty() takes 0 arguments",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but is_empty() takes no argument",self.pos_start, self.pos_end, self.context)
         
         
         return Boolean(self.value == '').setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -3496,7 +3492,7 @@ class String(Value):
                 'exit': False
             })
         return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
-     
+                
     def encode(self, args, kwargs, var_name=None):
         res = RuntimeResult()
         interpreter = Interpreter()
@@ -3635,11 +3631,11 @@ class String(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"__@properties__() takes no keyword arguments",
+                        'message': f"__@properties__() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but properties() takes 0 arguments", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} arguments given, but properties() takes no argument", self.pos_start, self.pos_end, self.context)
         
         keys = [String(key) for key, value in string_methods.items()]
         return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -4371,7 +4367,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"append() takes no keyword arguments",
+                        'message': f"append() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4396,7 +4392,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"pop() takes no keyword arguments",
+                        'message': f"pop() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4409,6 +4405,9 @@ class List(Value):
             check_type(Number, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for pop()", self.pos_start, self.pos_end, self.context)
             
             return List(self.elements.pop(args[0].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+    def extend(self, args, kwargs, var_name=None):
+        pass
             
     def remove(self, args, kwargs, var_name=None):
         if len(kwargs) > 0:
@@ -4418,7 +4417,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"remove() takes no keyword arguments",
+                        'message': f"remove() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4434,7 +4433,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"insert() takes no keyword arguments",
+                        'message': f"insert() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4452,7 +4451,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"reverse() takes no keyword arguments",
+                        'message': f"reverse() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4475,7 +4474,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"empty() takes no keyword arguments",
+                        'message': f"empty() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4492,7 +4491,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"getItem() takes no keyword arguments",
+                        'message': f"getItem() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4510,7 +4509,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"setItem() takes no keyword arguments",
+                        'message': f"setItem() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4532,7 +4531,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"join() takes no keyword arguments",
+                        'message': f"join() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4571,7 +4570,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"includes() takes no keyword arguments",
+                        'message': f"includes() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4619,7 +4618,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"count() takes no keyword arguments",
+                        'message': f"count() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4651,7 +4650,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"indexOf() takes no keyword arguments",
+                        'message': f"indexOf() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4683,7 +4682,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_empty() takes no keyword arguments",
+                        'message': f"is_empty() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4700,7 +4699,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_number() takes no keyword arguments",
+                        'message': f"is_number() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4724,7 +4723,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"is_string() takes no keyword arguments",
+                        'message': f"is_string() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4747,7 +4746,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"toString() takes no keyword arguments",
+                        'message': f"toString() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4780,7 +4779,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"map() takes no keyword arguments",
+                        'message': f"map() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4806,7 +4805,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"filter() takes no keyword arguments",
+                        'message': f"filter() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4834,7 +4833,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"find() takes no keyword arguments",
+                        'message': f"find() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4875,7 +4874,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"findIndex() takes no keyword arguments",
+                        'message': f"findIndex() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4916,7 +4915,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"removeAt() takes no keyword arguments",
+                        'message': f"removeAt() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4945,7 +4944,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"slice() takes no keyword arguments",
+                        'message': f"slice() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -4970,7 +4969,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"splice() takes no keyword arguments",
+                        'message': f"splice() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -5003,7 +5002,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"reduce() takes no keyword arguments",
+                        'message': f"reduce() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -5084,7 +5083,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"sort() takes no keyword arguments",
+                        'message': f"sort() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -5109,7 +5108,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"some() takes no keyword arguments",
+                        'message': f"some() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -5144,6 +5143,8 @@ class List(Value):
             'context': self.context,
             'exit': False
         })
+    
+
            
     def copy(self):
         copy = List(self.elements, self.properties)
@@ -5159,7 +5160,7 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"__@properties__() takes no keyword arguments",
+                        'message': f"__@properties__() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -5168,6 +5169,29 @@ class List(Value):
         
         keys = [String(key) for key, value in list_methods.items()]
         return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+     
+    def __string__(self, args, kwargs, var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"__@str__() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        
+        check_args(0, args, f"{len(args)} arguments given, but __@str__() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        
+        string = ""
+        
+        for element in self.elements:
+            string += str(element) + ", "
+        string = string[:-2]
+        return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
        
     def __str__(self):
         try:
@@ -5191,6 +5215,7 @@ list_methods = {
     'length': List.length,
     'append': List.append,
     'pop': List.pop,
+    'extend': List.extend,
     'remove': List.remove,
     'insert': List.insert,
     'empty': List.empty,
@@ -5214,7 +5239,7 @@ list_methods = {
     'some': List.some,
     'every': List.every,
     'each': List.each,
-    'toString': List.__str__,
+    '__@str__': List.__string__,
     'is_number': List.is_number,
     'is_string': List.is_string,
     '__@properties__': List.__properties__,
@@ -5424,6 +5449,79 @@ class Pair(Value):
         else:
             return False
 
+    def count(self, args, kwargs, var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"count() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args(1, args, f"{len(args)} arguments given, but count() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        count = 0
+        if isinstance(args[0], String) or isinstance(args[0], Number):
+            for element in self.elements:
+                if element.value == args[0].value:
+                    count += 1
+            return Number(count).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif isinstance(args[0], BuiltInFunction):
+            for element in self.elements:
+                if element.name == args[0].name:
+                    count += 1
+            return Number(count).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif isinstance(args[0], Dict) or isinstance(args[0], Object) or isinstance(args[0], Module) or isinstance(args[0], Class) or isinstance(args[0], List) or isinstance(args[0], Pair):
+            for element in self.elements:
+                if isinstance(element, Dict):
+                    if element.isSame(args[0]):
+                        count += 1
+            return Number(count).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    def length(self, args, kwargs, var_name=None):
+        raise Al_ArgumentError({
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
+            'message': f"'length' is not a callable",
+            "context": self.context,
+            'exit': False
+        })
+    
+    def indexOf(self, args, kwargs, var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"indexOf() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+                    
+        check_args(1, args, f"{len(args)} arguments given, but indexOf() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        if isinstance(args[0], String) or isinstance(args[0], Number):
+            for index, element in enumerate(self.elements):
+                if element.value == args[0].value:
+                    return Number(index).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return Number(-1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif isinstance(args[0], BuiltInFunction) or isinstance(args[0], BuiltInClass):
+            for index, element in enumerate(self.elements):
+                if element.name == args[0].name:
+                    return Number(index).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return Number(-1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        elif isinstance(args[0], Dict) or isinstance(args[0], Object) or isinstance(args[0], Class) or isinstance(args[0], List) or isinstance(args[0], Pair) or isinstance(args[0], Module):
+            for index, element in enumerate(self.elements):
+                if element.isSame(args[0]):
+                    return Number(index).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return Number(-1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+      
     def is_true(self):
         return len(self.elements) > 0
 
@@ -5433,12 +5531,61 @@ class Pair(Value):
         copy.setContext(self.context)
         return copy
 
+    def __properties__(self, args, kwargs, var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"__@properties__() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        
+        check_args(0, args, f"{len(args)} arguments given, but __@properties__() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        
+        keys = [String(key) for key, value in list_methods.items()]
+        return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
+    def __string__(self, args, kwargs, var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"__@str__() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+
+        check_args(0, args, f"{len(args)} arguments given, but __@str__() takes exactly 0 argument",
+                   self.pos_start, self.pos_end, self.context)
+
+        string = ""
+
+        for element in self.elements:
+            string += str(element) + ", "
+        string = string[:-2]
+        return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
     def __str__(self):
         try:
             return f'({", ".join([str(x) for x in self.elements])})'
         except:
             return "()"
 
+
+pair_methods = {
+    'length': Pair.length,
+    'count': Pair.count,
+    'indexOf': Pair.indexOf,
+    '__@str__': Pair.__string__,
+    '__@properties__': Pair.__properties__,
+}
 
 class Dict(Value):
     def __init__(self, properties, keys=None, values=None, context=None):
@@ -5530,7 +5677,351 @@ class Dict(Value):
 
     def is_true(self):
         return len(self.properties) > 0
+  
+    def length(self,args,kwargs,var_name=None):
+        raise Al_TypeError({
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
+            'message': f"'length' is not a callable",
+            "context": self.context,
+            'exit': False
+        })
 
+    def hasprop(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"hasprop() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args(1, args, f"{len(args)} arguments given, but hasprop() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        check_type((String,Number), args[0], f"hasprop() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+        
+        
+        for key, value in self.properties.items():
+            if key == args[0].value:
+                return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+    def keys(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"keys() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args(0, args, f"{len(args)} arguments given, but keys() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        
+        keys = []
+        for key in self.properties.keys():
+            keys.append(String(key))
+        return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+    def values(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"values() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args(0, args, f"{len(args)} arguments given, but values() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        values = []
+        for value in self.properties.values():
+            values.append(value)
+        return List(values).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+    def items(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"items() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args(0, args, f"{len(args)} arguments given, but items() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+
+        items = []
+        
+        for key, value in self.properties.items():
+            if isinstance(key, str):
+                key = String(key)
+            elif isinstance(key, int):
+                key = Number(key)
+            items.append(Pair([key, value]))
+        return List(items).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                          
+    def get(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"get() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args((1,2), args, f"{len(args)} arguments given, but get() expects at least 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        check_type((String,Number), args[0], f"get() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+        
+        
+        if len(args) == 2:
+            key = args[0].value
+            default = args[1]
+            if key in self.properties:
+                return self.properties[key]
+            else:
+                return default
+            
+        
+        key = args[0].value
+        default = NoneType()
+        if key in self.properties:
+            return self.properties[key]
+        else:
+            return default
+             
+    def set(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"set() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args((1,2), args, f"{len(args)} arguments given, but set() expects 2 arguments", self.pos_start, self.pos_end, self.context)
+        
+        
+        
+        
+        if len(args) == 1:
+            check_type((Dict,Object), args[0], f"set() argument 1 must be of type dict or object, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+            
+            for key, value in args[0].properties.items():
+                self.properties[key] = value
+                    
+                
+            
+        
+        
+        if len(args) == 2:
+            check_type(
+                (String, Number), args[0], f"set() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+            name = args[0]
+            value = args[1]
+            
+            if isinstance(name, String):
+                if name.value in self.properties:
+                    self.properties[name.value] = value
+                else:
+                    self.properties[String(name.value)] = value
+                
+            elif isinstance(name, Number):
+                if name.value in self.properties:
+                    self.properties[name.value] = value
+                else:
+                    self.properties[Number(name.value)] = value
+            
+        return NoneType().setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    def update(self,args,kwargs,var_name=None):
+        res = RuntimeResult()
+        interpreter = Interpreter()
+        
+        
+        check_args((0,2), args, f"{len(args)} arguments given, but update() expects 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        
+        if len(args) == 2:
+            check_type((String,Number), args[0], f"update() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+            name = args[0]
+            value = args[1]
+            if isinstance(name, String):
+                if name.value in self.properties:
+                    self.properties[name.value] = value
+                else:
+                    raise Al_KeyError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"cannot update non-existing key: '{name.value}'",
+                        'context': self.context,
+                        'exit': False
+                    })
+            
+            elif isinstance(name, Number):
+                if name.value in self.properties:
+                    self.properties[name.value] = value
+                else:
+                   raise Al_KeyError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"cannot update non-existing key: '{name.value}'",
+                        'context': self.context,
+                        'exit': False
+                    })
+             
+            
+        if len(args) == 1:
+            if len(kwargs) != 0:
+                for key in kwargs:
+                    name = key['name']
+                raise Al_ArgumentError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"update() requires no keyword argument, when using a {TypeOf(args[0]).getType()} as argument",
+                    'context': self.context,
+                    'exit': False
+                })
+            check_type((Dict,Object), args[0], f"update() argument 1 must be of type dict or object, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+            
+            for key, value in args[0].properties.items():
+                if key in self.properties:
+                    self.properties[key] = value
+                else:
+                    raise Al_KeyError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"cannot update non-existing key: '{key}'",
+                        'context': self.context,
+                        'exit': False
+                    })        
+            
+            
+        if len(args) == 0:
+            if len(kwargs) == 0:
+                raise Al_ArgumentError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"update() takes at least 1 keyword argument",
+                    'context': self.context,
+                    'exit': False
+                })
+            else:
+                keywords = {}
+                name = None
+                value = None
+                for key in kwargs:
+                    name = key['name']
+                    value = res.register(interpreter.visit(key['value'], self.context))
+                    if name in self.properties:
+                        self.properties[name] = value
+                    else:
+                        raise Al_KeyError({
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"cannot update non-existing key: '{name.value}'",
+                            'context': self.context,
+                            'exit': False
+                        })
+        
+        return NoneType().setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    def delete(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"delete() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args(1, args, f"{len(args)} arguments given, but delete() expects 1 argument",
+                   self.pos_start, self.pos_end, self.context)
+        
+        
+        check_type((String,Number), args[0], f"delete() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+        
+        
+        
+        if args[0].value in self.properties:
+            del self.properties[args[0].value]
+        
+        
+        return NoneType().setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                
+    def clear(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"clear() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        
+        check_args(0, args, f"{len(args)} arguments given, but clear() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        
+        
+        self.properties = {}
+        
+        return Dict(self.properties).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            
+    def pretty(self,args,kwargs,var_name=None):
+        pass   
+    
+    def __properties__(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"__@properties__() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+                    
+        check_args(0, args, f"{len(args)} arguments given, but __@properties__() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        
+        keys = []
+        
+        for key in self.properties:
+            keys.append(String(key).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+            
+        return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+        
+        
     def copy(self):
         copy = Dict(self.properties)
         copy.setContext(self.context)
@@ -5542,6 +6033,22 @@ class Dict(Value):
             return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items() if not k.startswith('__')])}}}"
         except:
             return f'{self.properties}'
+
+dict_methods = {
+    'length': Dict.length,
+    'hasprop': Dict.hasprop,
+    'keys': Dict.keys,
+    'values': Dict.values,
+    'items': Dict.items,
+    'get': Dict.get,
+    'set': Dict.set,
+    'update': Dict.update,
+    'delete': Dict.delete,
+    'clear': Dict.clear,
+    'pretty': Dict.pretty,
+    '__@properties__': Dict.__properties__,
+}
+
 
 
 class Object(Value):
@@ -5660,6 +6167,158 @@ class Object(Value):
             }
             return None, self.illegal_operation_typerror(error, other)
 
+    def length(self,args,kwargs,var_name=None):
+        raise Al_TypeError({
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
+            'message': f"'length' is not a callable",
+            "context": self.context,
+            'exit': False
+        })
+
+    def hasprop(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"hasprop() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args(1, args, f"{len(args)} arguments given, but hasprop() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        check_type((String,Number), args[0], f"hasprop() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+        
+        
+        for key, value in self.properties.items():
+            if key == args[0].value:
+                return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+    def keys(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"keys() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args(0, args, f"{len(args)} arguments given, but keys() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        
+        keys = []
+        for key in self.properties.keys():
+            keys.append(String(key))
+        return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+    def values(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"values() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args(0, args, f"{len(args)} arguments given, but values() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        values = []
+        for value in self.properties.values():
+            values.append(value)
+        return List(values).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+    def items(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"items() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args(0, args, f"{len(args)} arguments given, but items() takes no argument", self.pos_start, self.pos_end, self.context)
+        
+
+        items = []
+        
+        for key, value in self.properties.items():
+            items.append(Pair([String(key), value]))
+        return List(items).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                          
+    def get(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"get() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args((1,2), args, f"{len(args)} arguments given, but get() expects at least 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        check_type((String,Number), args[0], f"get() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+        
+        
+        if len(args) == 2:
+            key = args[0].value
+            default = args[1]
+            if key in self.properties:
+                return self.properties[key]
+            else:
+                return default
+            
+        
+        key = args[0].value
+        default = NoneType()
+        if key in self.properties:
+            return self.properties[key]
+        else:
+            return default
+                        
+    def pretty(self,args,kwargs,var_name=None):
+        pass   
+       
+    def __properties__(self,args,kwargs,var_name=None):
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"__@properties__() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+                    
+        check_args(0, args, f"{len(args)} arguments given, but __@properties__() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        
+        keys = []
+        
+        for key in self.properties:
+            keys.append(String(key).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+            
+        return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+
     def is_true(self):
         return len(self.properties) > 0
 
@@ -5672,6 +6331,16 @@ class Object(Value):
     def __repr__(self):
         return self.representation
 
+object_methods = {
+    'length': Object.length,
+    'hasprop': Object.hasprop,
+    'keys': Object.keys,
+    'values': Object.values,
+    'items': Object.items,
+    'get': Object.get,
+    'pretty': Object.pretty,
+    '__@properties__': Object.__properties__,
+}
 
 class BaseFunction(Value):
     def __init__(self, name):
@@ -7540,13 +8209,50 @@ class Class(BaseClass):
     def __repr__(self):
         return str(self.__set_str__())
 
-
+print(str(), int(), float(), bool(), list(),dict())
 class BuiltInClass(BaseClass):
     def __init__(self, name,properties):
         super().__init__(name)
         self.properties = properties
         self.value = f"<{str(self.name)}, [built-in class]>"
         self.representation = self.value
+        self.ACCEPTED_KEYWORD_ARGS_CLASS = {
+            'str': {
+                'args': 1,
+                'kwargs': 'none',
+                'required': False
+            },
+            'int': {
+                'args': 1,
+                'kwargs': 'none',
+                'required': False
+            },
+            'float': {
+                'args': 1,
+                'kwargs': 'none',
+                'required': False
+            },
+            'bool': {
+                'args': 1,
+                'kwargs': 'none',
+                'required': False
+            },
+            'list': {
+                'args': 1,
+                'kwargs': 'none',
+                'required': False
+            },
+            'pair': {
+                'args': 1,
+                'kwargs': 'none',
+                'required': False
+            },
+            'dict': {
+                'args': 1,
+                'kwargs': 'many',
+                'required': False
+            },
+        }
 
 
     def execute(self, args, keyword_args_list):
@@ -7570,7 +8276,7 @@ class BuiltInClass(BaseClass):
         if res.should_return():
             return res
 
-        return_value = res.register(class_(exec_context))
+        return_value = res.register(class_(exec_context, keyword_args, args))
         if res.should_return():
             return res
         return res.success(return_value)
@@ -7588,7 +8294,7 @@ class BuiltInClass(BaseClass):
         len_expected = len(arg_names)
         len_args = len(args)
         keyword_args_names = []
-
+        
         exception_details = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -7597,45 +8303,40 @@ class BuiltInClass(BaseClass):
             'exit': False
         }
 
-        if len(keyword_args) > 0:
-            for name, value in keyword_args.items():
-                if not name in arg_names:
-                    raise Al_ArgumentError({
-                    'pos_start': self.pos_start,
-                    'pos_end': self.pos_end,
-                    'message': f"{self.name}() got an unexpected keyword argument '{name}'",
-                    'context': self.context,
-                    'exit': False
-                })
-                if not isinstance(value, String):
-                    raise Al_TypeError({
-                        'pos_start': self.pos_start,
-                        'pos_end': self.pos_end,
-                        'message': f"File() keyword argument '{name}' must be of type string",
-                        'context': self.context,
-                        'exit': False
-                    })
-
-                keyword_args_names.append(name)
-            len_keyword_args = len(keyword_args_names)
-            #print(keyword_args_names, len_keyword_args, len_expected, len_args)
-
-            if len_keyword_args > len_expected:
-                exception_details['message'] = f"{self.name}() requires {len_expected} positional {'argument'  if len_expected <= 1 else 'arguments'} but {len_keyword_args} {'was' if len_keyword_args <= 1 else 'were'} given"
+        
+        if self.name in self.ACCEPTED_KEYWORD_ARGS_CLASS:
+            if len(args) > self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['args']:
                 raise Al_ArgumentError(exception_details)
-            if len_keyword_args < len_expected:
-                if len_keyword_args == 1 and len_args == 1:
-                    args.append(keyword_args[keyword_args_names[0]])
-                else:
-                    exception_details['message'] = f"{self.name}() requires {len_expected} positional {'argument'  if len_expected <= 1 else 'arguments'} but {len_keyword_args} {'was' if len_keyword_args <= 1 else 'were'} given"
+            if len(args) < self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['args']:
+                if self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['kwargs'] == 'many':
+                    if len(keyword_args) == 0:
+                        if self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['required']:
+                            raise Al_ArgumentError(exception_details)
+                        else:
+                            return res.success(None)
+                    else:
+                        return res.success(None)
+                elif self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['kwargs'] == 'one':
+                    if len(keyword_args) == 0:
+                        if self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['required']:
+                            raise Al_ArgumentError(exception_details)
+                        else:
+                            return res.success(None)
+                    else:
+                        return res.success(None)
+                    
+                elif self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['kwargs'] == 'none':
+                    if len(keyword_args) > 0:
+                        exception_details['message'] = f"{self.name}() takes no keyword argument"
+                        raise Al_ArgumentError(exception_details)
+            
+            if len(args) == 0:
+                if self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['required']:
                     raise Al_ArgumentError(exception_details)
-            elif len_keyword_args == len_expected:
-                for i in range(len_expected):
-                    if keyword_args_names[i] in arg_names:
-                        # append at the correct index
-                        args.insert(arg_names.index(keyword_args_names[i]), keyword_args[keyword_args_names[i]])
+                else:
+                    return res.success(None)    
 
-
+        
         else:
             if len(args) > len_expected:
                 raise Al_ArgumentError(exception_details)
@@ -7670,7 +8371,7 @@ class BuiltInClass(BaseClass):
         })
 
 
-    def execute_File(self, exec_context):
+    def execute_File(self, exec_context, keyword_args, args):
         res = RuntimeResult()
         file = exec_context.symbolTable.get("file")
         mode = exec_context.symbolTable.get("mode")
@@ -7751,6 +8452,233 @@ class BuiltInClass(BaseClass):
 
     execute_File.arg_names = ["file", "mode"]
 
+    def execute_str(self, exec_context, keyword_args, args):
+        object = exec_context.symbolTable.get("object")
+        res = RuntimeResult()
+        if object == None:
+            return res.success(String(''))
+        
+        
+        if hasattr(object, "value"):
+            return res.success(String(str(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        else:
+            new_string = String(str(object))
+            new_string.setPosition(self.pos_start, self.pos_end).setContext(exec_context)
+            return res.success(new_string)
+
+    execute_str.arg_names = ["object"]
+    
+    
+    def execute_int(self, exec_context, keyword_args, args):
+        object = exec_context.symbolTable.get("object")
+        res = RuntimeResult()
+        if object == None:
+            return res.success(Number(0))
+        
+        if isinstance(object, Number):
+            return res.success(Number(int(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        if isinstance(object, String):
+            try:
+                return res.success(Number(int(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+            except ValueError:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(object).getType()}' is not a valid type for int()",
+                    "context": exec_context,
+                    'exit': False
+                })
+        if isinstance(object, Boolean):
+            return res.success(Number(int(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        raise Al_TypeError({
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
+            'message': f"int() argument must be of type number, string or boolean, not {TypeOf(object).getType()}",
+            "context": exec_context,
+            'exit': False
+        })
+    
+    execute_int.arg_names = ["object"]
+    
+    
+    def execute_float(self, exec_context, keyword_args, args):
+        object = exec_context.symbolTable.get("object")
+        res = RuntimeResult()
+        if object == None:
+            return res.success(Number(0.0))
+        if isinstance(object, Number):
+            return res.success(Number(float(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        if isinstance(object, String):
+            try:
+                return res.success(Number(float(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+            except ValueError:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(object).getType()}' is not a valid type for float()",
+                    "context": exec_context,
+                    'exit': False
+                })
+        if isinstance(object, Boolean):
+            return res.success(Number(float(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        raise Al_TypeError({
+            "pos_start": self.pos_start,
+            "pos_end": self.pos_end,
+            'message': f"float() argument must be of type number, string or boolean, not {TypeOf(object).getType()}",
+            "context": exec_context,
+            'exit': False
+        })
+    
+    execute_float.arg_names = ['object']
+    
+    
+    def execute_bool(self, exec_context, keyword_args, args):
+        object = exec_context.symbolTable.get("object")
+        res = RuntimeResult()
+        if object == None:
+            return res.success(Boolean(False))
+        if isinstance(object, Boolean):
+            return res.success(object)
+        if isinstance(object, Number):
+            return res.success(Boolean(bool(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        if isinstance(object, String):
+            try:
+                return res.success(Boolean(bool(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+            except ValueError:
+                raise Al_TypeError({
+                    "pos_start": self.pos_start,
+                    "pos_end": self.pos_end,
+                    'message': f"type '{TypeOf(object).getType()}' is not a valid type for bool()",
+                    "context": exec_context,
+                    'exit': False
+                })
+        else:
+            bool_ = Boolean(bool(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context)
+            return res.success(bool_)
+    
+    execute_bool.arg_names = ['object']
+    
+    
+    def execute_list(self, exec_context, keyword_args, args):
+        object = exec_context.symbolTable.get("object")
+        res = RuntimeResult()
+        if object == None:
+            return res.success(List([]))
+        if isinstance(object, List):
+            return res.success(object)
+        if isinstance(object, Pair):
+            new_list = []
+            for element in object.elements:
+                new_list.append(element)
+            return res.success(List(new_list).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        elif isinstance(object, String):
+            new_list = []
+            for char in object.value:
+                new_list.append(String(char).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+            return res.success(List(new_list).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        elif isinstance(object, Boolean):
+            raise Al_TypeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"type '{TypeOf(object).getType()}' is not iterable",
+                "context": exec_context,
+                'exit': False
+            })
+        elif isinstance(object, Object) or isinstance(object, Dict) or isinstance(object, Module):
+            keys = [key for key in object.value]
+            values = [object.value[key] for key in keys]
+            new_list = []
+            for key in keys:
+                if isinstance(key, str):
+                    new_list.append(String(key).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+                elif isinstance(key, int):
+                    new_list.append(Number(key).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+            return res.success(List(new_list).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+
+
+        else:
+            raise Al_TypeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"type '{TypeOf(object).getType()}' is not iterable",
+                "context": exec_context,
+                'exit': False
+            })
+    
+    execute_list.arg_names = ['object']
+    
+    
+    def execute_pair(self, exec_context, keyword_args, args):
+        object = exec_context.symbolTable.get("object")
+        res = RuntimeResult()
+        if object == None:
+            return res.success(Pair([]))
+
+        if isinstance(object, Pair):
+            return res.success(object)
+
+        elif isinstance(object, String):
+            new_pair = ()
+            for char in object.value:
+                new_pair += (String(char).setPosition(self.pos_start, self.pos_end).setContext(exec_context),)
+            return res.success(Pair(new_pair).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+
+        elif isinstance(object, List):
+            new_pair = ()
+            for value in object.value:
+                new_pair += (value,)
+            return res.success(Pair(new_pair).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+
+        elif isinstance(object, Object) or isinstance(object, Dict) or isinstance(object, Module):
+            keys = [key for key in object.value]
+            values = [object.value[key] for key in keys]
+            new_pair = ()
+            for key in keys:
+                if isinstance(key, str):
+                    new_pair += (String(key).setPosition(self.pos_start, self.pos_end).setContext(exec_context),)
+                elif isinstance(key, int):
+                    new_pair += (Number(key).setPosition(self.pos_start, self.pos_end).setContext(exec_context),)  
+            return (Pair(new_pair).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+
+        else:
+            raise Al_TypeError({
+                "pos_start": self.pos_start,
+                "pos_end": self.pos_end,
+                'message': f"type '{TypeOf(object).getType()}' is not iterable",
+                "context": exec_context,
+                'exit': False
+            })
+    
+    execute_pair.arg_names = ['object']
+    
+    
+    def execute_dict(self, exec_context, keyword_args, args):
+        object = exec_context.symbolTable.get("object")
+        res = RuntimeResult()
+        if keyword_args is None or len(keyword_args) == 0:
+            if object == None:
+                return res.success(Dict({}))
+            if isinstance(object, String):
+                if object.value == "":
+                    return res.success(Dict({}).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+                else:
+                    raise Al_ArgumentError({
+                        "pos_start": self.pos_start,
+                        "pos_end": self.pos_end,
+                        'message': f"dict expected 1 argument, but got {len(object)}",
+                        "context": exec_context,
+                        'exit': False
+                    })
+            elif isinstance(object, Dict) or isinstance(object, Object) or isinstance(object, Module):
+                return res.success(object)
+               
+            return res.success(Dict({}).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        else:
+            return res.success(Dict(keyword_args).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+    
+    execute_dict.arg_names = ['object']
+    
+    
 
     def generate_new_instance(self, class_args,new_context):
         return Class(self.class_name, class_args, self.inherit_class_name, self.inherited_from, self.properties, self.class_fields_modifiers, new_context)
@@ -7946,7 +8874,7 @@ class Module(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"__@members__() takes no keyword arguments",
+                        'message': f"__@members__() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
@@ -7958,6 +8886,7 @@ class Module(Value):
    
     def __repr__(self):
         return f"<Module '{str(self.name)}', [built-in]>" if self.type_ != None and self.type_ == "builtin" else self.representation
+
 
 module_methods = {
     '__@members__': Module.__members__,
@@ -8188,15 +9117,16 @@ def BuiltInFunction_PrintLn(args, node, context,keyword_args=None):
 def BuiltInFunction_Len(args, node, context, keyword_args=None):
         res = RuntimeResult()
         if keyword_args != None and len(keyword_args) > 0:
-            for keyword_arg in keyword_args:
-                name = keyword_arg['name']
-                raise Al_ArgumentError({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"len() got an unexpected keyword argument '{name}'",
-                    'context': context,
-                    'exit': False
-                })
+            for key in keyword_args:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"len() takes no keyword argument",
+                        'context': context,
+                        'exit': False
+                    })
         if len(args) > 1:
             raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, len() requires 1 argument", 'context': context, 'exit': False})
 
@@ -8230,6 +9160,17 @@ def BuiltInFunction_Len(args, node, context, keyword_args=None):
 
 
 def BuiltInFunction_Input(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"input() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 1:
         raise Al_ArgumentError({
@@ -8275,6 +9216,17 @@ def BuiltInFunction_Input(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_InputInt(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"inputInt() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 1:
         raise Al_RuntimeError({
@@ -8325,6 +9277,17 @@ def BuiltInFunction_InputInt(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_InputFloat(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"inputFloat() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 1:
         raise Al_RuntimeError({
@@ -8375,9 +9338,20 @@ def BuiltInFunction_InputFloat(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_InputBool(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"inputBool() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 1:
-        raise Al_RuntimeError({
+        raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but inputBool() takes 0 or 1 argument(s)",
@@ -8416,6 +9390,17 @@ def BuiltInFunction_InputBool(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Append(args, node,context, keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"append() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 2 or len(args) < 2:
         raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, append() requires 2 arguments", 'context': context, 'exit': False})
@@ -8435,6 +9420,17 @@ def BuiltInFunction_Append(args, node,context, keyword_args=None):
 
 
 def BuiltInFunction_Pop(args, node, context, keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"pop() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 2 or len(args) < 2:
         raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, pop() requires 2 arguments", 'context': context, 'exit': False})
@@ -8472,6 +9468,17 @@ def BuiltInFunction_Pop(args, node, context, keyword_args=None):
 
 
 def BuiltInFunction_Extend(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"extend() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 2 or len(args) < 2:
         raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, extend() requires 2 arguments", 'context': context, 'exit': False})
@@ -8500,6 +9507,17 @@ def BuiltInFunction_Extend(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Remove(args, node, context, keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"remove() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 2 or len(args) < 2:
         raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, remove() requires 2 arguments", 'context': context, 'exit': False})
@@ -8541,6 +9559,17 @@ def Range(start, end, step):
 
 
 def BuiltInFunction_Range(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"range() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     start = 0
     end = 0
@@ -8623,250 +9652,6 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None):
     return res.success(Range(start, end, step).setPosition(node.pos_start, node.pos_end).setContext(context))
     
 
-def BuiltInFunction_Int(args, node, context,keyword_args=None):
-    res = RuntimeResult()
-    if len(args) != 1:
-        raise Al_RuntimeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but int() takes 1 argument",
-            "context": context,
-            'exit': False
-        })
-    if isinstance(args[0], Number):
-        return res.success(Number(int(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    if isinstance(args[0], String):
-        try:
-            return res.success(Number(int(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        except ValueError:
-            raise Al_TypeError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for int()",
-                "context": context,
-                'exit': False
-            })
-    if isinstance(args[0], Boolean):
-        return res.success(Number(int(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    raise Al_TypeError({
-        "pos_start": node.pos_start,
-        "pos_end": node.pos_end,
-        'message': f"int() argument must be of type number, string or boolean, not {TypeOf(args[0]).getType()}",
-        "context": context,
-        'exit': False
-    })
-
-
-def BuiltInFunction_Float(args, node, context,keyword_args=None):
-    res = RuntimeResult()
-    if len(args) != 1:
-        raise Al_RuntimeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but float() takes 1 argument",
-            "context": context,
-            'exit': False
-        })
-    if isinstance(args[0], Number):
-        return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    if isinstance(args[0], String):
-        try:
-            return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        except ValueError:
-            raise Al_TypeError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for float()",
-                "context": context,
-                'exit': False
-            })
-    if isinstance(args[0], Boolean):
-        return res.success(Number(float(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    raise Al_TypeError({
-        "pos_start": node.pos_start,
-        "pos_end": node.pos_end,
-        'message': f"float() argument must be of type number, string or boolean, not {TypeOf(args[0]).getType()}",
-        "context": context,
-        'exit': False
-    })
-
-
-def BuiltInFunction_Bool(args, node, context,keyword_args=None):
-    res = RuntimeResult()
-    if len(args) != 1:
-        raise Al_RuntimeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but bool() takes 1 argument",
-            "context": context,
-            'exit': False
-        })
-    if isinstance(args[0], Boolean):
-        return res.success(args[0])
-    if isinstance(args[0], Number):
-        return res.success(Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    if isinstance(args[0], String):
-        try:
-            return res.success(Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        except ValueError:
-            raise Al_TypeError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"type '{TypeOf(args[0]).getType()}' is not a valid type for bool()",
-                "context": context,
-                'exit': False
-            })
-    else:
-        bool_ = Boolean(bool(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context)
-        return res.success(bool_)
-
-
-def BuiltInFunction_Str(args, node, context,keyword_args=None):
-    res = RuntimeResult()
-    if len(args) != 1:
-        raise Al_RuntimeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but str() takes 1 argument",
-            "context": context,
-            'exit': False
-        })
-    if hasattr(args[0], "value"):
-        return res.success(String(str(args[0].value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-    else:
-        new_string = String(str(args[0]))
-        new_string.setPosition(node.pos_start, node.pos_end).setContext(context)
-        return res.success(new_string)
-
-
-def BuiltInFunction_List(args, node, context,keyword_args=None):
-    res = RuntimeResult()
-    if len(args) != 1:
-        raise Al_ArgumentError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but list() takes 1 argument",
-            "context": context,
-            'exit': False
-        })
-    if isinstance(args[0], List):
-        return res.success(args[0])
-    if isinstance(args[0], Pair):
-        new_list = []
-        for element in args[0].elements:
-            new_list.append(element)
-        return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
-    elif isinstance(args[0], String):
-        new_list = []
-        for char in args[0].value:
-            new_list.append(String(char).setPosition(node.pos_start, node.pos_end).setContext(context))
-        return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
-    elif isinstance(args[0], Boolean):
-        raise Al_TypeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
-            "context": context,
-            'exit': False
-        })
-    elif isinstance(args[0], Object) or isinstance(args[0], Dict) or isinstance(args[0], Module):
-        keys = [key for key in args[0].value]
-        values = [args[0].value[key] for key in keys]
-        new_list = []
-        for key in keys:
-            new_list.append(key)
-        return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
-
-
-    else:
-        raise Al_TypeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
-            "context": context,
-            'exit': False
-        })
-
-
-def BuiltInFunction_Pair(args, node, context,keyword_args=None):
-    res = RuntimeResult()
-    if len(args) != 1:
-        raise Al_RuntimeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but pair() takes 1 argument",
-            "context": context,
-            'exit': False
-        })
-
-    if isinstance(args[0], Pair):
-        return res.success(args[0])
-
-    elif isinstance(args[0], String):
-        new_pair = ()
-        for char in args[0].value:
-            new_pair += (String(char).setPosition(node.pos_start, node.pos_end).setContext(context),)
-        return res.success(Pair(new_pair).setPosition(node.pos_start, node.pos_end).setContext(context))
-
-    elif isinstance(args[0], List):
-        new_pair = ()
-        for value in args[0].value:
-            new_pair += (value,)
-        return res.success(Pair(new_pair).setPosition(node.pos_start, node.pos_end).setContext(context))
-
-    elif isinstance(args[0], Object) or isinstance(args[0], Dict) or isinstance(args[0], Module):
-        keys = [key for key in args[0].value]
-        values = [args[0].value[key] for key in keys]
-        new_pair = ()
-        for key in keys:
-            new_pair += (key,)
-        return res.success(Pair(new_pair).setPosition(node.pos_start, node.pos_end).setContext(context))
-
-    else:
-        raise Al_TypeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
-            "context": context,
-            'exit': False
-        })
-
-
-def BuiltInFunction_Dict(args, node, context,keyword_args=None):
-    res = RuntimeResult()
-    interpreter = Interpreter()
-    # dict only accepts kewword arguments
-    if keyword_args is None or len(keyword_args) == 0:
-        if len(args) != 0:
-            if isinstance(args[0], String):
-                if args[0].value == "":
-                    return res.success(Dict({}).setPosition(node.pos_start, node.pos_end).setContext(context))
-                else:
-                    raise Al_ArgumentError({
-                        "pos_start": node.pos_start,
-                        "pos_end": node.pos_end,
-                        'message': f"dict expected 1 argument, but got {len(args)}",
-                        "context": context,
-                        'exit': False
-                    })
-
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"dict expected 1 argument, but got {len(args)}",
-                "context": context,
-                'exit': False
-            })
-        return res.success(Dict({}).setPosition(node.pos_start, node.pos_end).setContext(context))
-    else:
-        keywords = {}
-        for keyword in keyword_args:
-            name = keyword['name']
-            value = res.register(interpreter.visit(keyword['value'], context))
-            if res.should_return(): return res
-            keywords[name] = value
-        return res.success(Dict(keywords).setPosition(node.pos_start, node.pos_end).setContext(context))
-   
 
 def BuiltInFunction_Zip(args, node, context,keyword_args=None):
     res = RuntimeResult()
@@ -8875,6 +9660,17 @@ def BuiltInFunction_Zip(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Max(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"max() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 2:
         raise Al_RuntimeError({
@@ -8898,6 +9694,17 @@ def BuiltInFunction_Max(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Min(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"min() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 2:
         raise Al_RuntimeError({
@@ -8921,6 +9728,17 @@ def BuiltInFunction_Min(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_is_finite(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"is_finite() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) != 1:
         raise Al_RuntimeError({
@@ -8948,6 +9766,17 @@ def BuiltInFunction_is_finite(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Sorted(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"sorted() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 1:
         raise Al_RuntimeError({
@@ -8979,6 +9808,17 @@ def BuiltInFunction_Sorted(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Substr(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"substr() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 3:
         raise Al_RuntimeError({
@@ -9013,6 +9853,17 @@ def BuiltInFunction_Substr(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Reverse(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"reverse() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 1:
         raise Al_RuntimeError({
@@ -9043,7 +9894,18 @@ def BuiltInFunction_Reverse(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_Format(args, node):
+def BuiltInFunction_Format(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"format() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     string = args[0].value
     values_list = args[1].value
     regex = Regex().compile('{(.*?)}')
@@ -9051,6 +9913,17 @@ def BuiltInFunction_Format(args, node):
 
 
 def BuiltInFunction_Typeof(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"typeof() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 1:
         raise Al_RuntimeError({
@@ -9073,6 +9946,17 @@ def BuiltInFunction_Typeof(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"isinstanceof() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) == 1 or len(args) > 2:
         raise Al_RuntimeError({
@@ -9164,6 +10048,17 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_hasprop(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"hasprop() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
 
     if len(args) == 0:
@@ -9210,6 +10105,17 @@ def BuiltInFunction_hasprop(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Line(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"line() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) == 0:
         raise Al_RuntimeError({
@@ -9245,6 +10151,17 @@ def BuiltInFunction_Line(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Clear(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"clear() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) > 0:
         raise Al_RuntimeError({
@@ -9260,6 +10177,17 @@ def BuiltInFunction_Clear(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Delay(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"delay() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) == 0 or len(args) > 1:
         raise Al_RuntimeError({
@@ -9284,14 +10212,14 @@ def BuiltInFunction_Delay(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Require(args, node, context,keyword_args=None):
-    if keyword_args != None:
-        if len(keyword_args) > 0:
-            for key in keyword_args:
-                name = key['name']
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
                 raise Al_ArgumentError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"require() got an unexpected keyword argument '{name}'",
+                    'message': f"require() takes no keyword argument",
                     'context': context,
                     'exit': False
                 })
@@ -9585,8 +10513,53 @@ def BuiltInFunction_Enumerate(args, node, context,keyword_args=None):
                 'context': context,
                 'exit': False
             })
-            
+   
+   
+def BuiltInFunction_Freeze(args, node, context, keyword_args=None):
+    res = RuntimeResult()
+    interpreter = Interpreter()
+    if len(args) != 0:
+        raise Al_ArgumentError({
+            'pos_start': node.pos_start,
+            'pos_end': node.pos_end,
+            'message': f"freeze() takes no argument but {len(args)} were given",
+            'context': context,
+            'exit': False
+        })
         
+    
+    if len(keyword_args) == 0:
+        raise Al_ArgumentError({
+            'pos_start': node.pos_start,
+            'pos_end': node.pos_end,
+            'message': f"missing keyword argument for freeze()",
+            'context': context,
+            'exit': False
+        })   
+        
+    keywords = {}
+    
+    for key in keyword_args:
+        name = key['name']
+        value = res.register(interpreter.visit(key['value'], context))
+        keywords = {
+            'name': name,
+            'value': value
+        }
+        
+    if len(keywords) != 2:
+        raise Al_ArgumentError({
+            'pos_start': node.pos_start,
+            'pos_end': node.pos_end,
+            'message': f"too many keyword arguments for freeze()",
+            'context': context,
+        })
+    
+    for name, value in keywords.items():
+        var_name = context.symbolTable.get(name)
+        print(var_name)
+    
+    
 def handle_file_open(file_name, mode, node, context):
     res = RuntimeResult()
     if mode == 'r':
@@ -9816,9 +10789,20 @@ def handle_std_in(node, context):
 
 
 def BuiltInFunction_Exit(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"exit() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     res = RuntimeResult()
     if len(args) == 0:
-        sys.exit()
+        sys.exit(0)
     elif len(args) > 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -9833,7 +10817,7 @@ def BuiltInFunction_Exit(args, node, context,keyword_args=None):
         elif args[0].value == 1:
             sys.exit(1)
         else:
-            raise Al_RuntimeError({
+            raise Al_ValueError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{args[0].value} is not a valid exit code",
@@ -9841,7 +10825,7 @@ def BuiltInFunction_Exit(args, node, context,keyword_args=None):
                 'exit': False
             })
     else:
-        raise Al_TypeError({
+        raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"exit() argument must be number",
@@ -9851,6 +10835,17 @@ def BuiltInFunction_Exit(args, node, context,keyword_args=None):
 
 
 def BuiltInFunction_Random(args, node, context,keyword_args=None):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"random() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     print(args)
 
 
@@ -11269,118 +12264,6 @@ class BuiltInMethod_Pair(Value):
         return f"<{str(self.type)}()>, [ built-in pair method ]"
 
 
-class BuiltInMethod_Dict(Value):
-    def __init__(self, type, name, args, node, context):
-        super().__init__()
-        self.type = type
-        self.name = name
-        self.value = name
-        self.args = args
-        self.node = node
-        self.context = context
-        self.execute()
-
-    def execute(self):
-        res = RuntimeResult()
-        if self.type in dict_methods:
-            method = f"BuiltInMethod_{dict_methods[self.type]}"
-            is_method = getattr(self, method, self.no_method)
-            value = is_method()
-            self.name = value
-            if type(self.name).__name__ == "RuntimeResult":
-                self.name = ''
-        return self.name
-
-    def no_method(self):
-        raise Al_PropertyError({
-            "pos_start": self.pos_start,
-            "pos_end": self.pos_end,
-            'message': f"'{TypeOf(self.name).getType()}' object object has no property '{self.type}'",
-            "context": self.context,
-            'exit': False
-        })
-
-
-    def is_true(self):
-        return True if self.name else False
-
-    def BuiltInMethod_hasprop(self):
-        res = RuntimeResult()
-        if len(self.args) == 1:
-            if isinstance(self.args[0], String) or isinstance(self.args[0], Number):
-                for key, value in self.name.properties.items():
-                    if key == self.args[0].value:
-                        return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
-                return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
-            else:
-                raise Al_TypeError({
-                    "pos_start": self.pos_start,
-                    "pos_end": self.pos_end,
-                    'message': f"type '{TypeOf(self.args[0]).getType()}' is not a valid argument for hasprop()",
-                    "context": self.context,
-                    'exit': False
-                })
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.pos_start,
-                "pos_end": self.pos_end,
-                'message': f"{len(self.args)} arguments given, but hasprop() takes 1 argument",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_keys(self):
-        res = RuntimeResult()
-        if len(self.args) == 0:
-            keys = []
-            for key in self.name.properties.keys():
-                keys.append(key)
-            return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.pos_start,
-                "pos_end": self.pos_end,
-                'message': f"{len(self.args)} arguments given, but keys() takes 0 argument",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def BuiltInMethod_values(self):
-        res = RuntimeResult()
-        if len(self.args) == 0:
-            values = []
-            for value in self.name.properties.values():
-                values.append(value)
-            return List(values).setContext(self.context).setPosition(self.pos_start, self.pos_end)
-        else:
-            raise Al_RuntimeError({
-                "pos_start": self.pos_start,
-                "pos_end": self.pos_end,
-                'message': f"{len(self.args)} arguments given, but values() takes 0 argument",
-                "context": self.context,
-                'exit': False
-            })
-
-
-    def copy(self):
-        copy = BuiltInMethod_Dict(
-            self.type, self.name, self.args, self.node, self.context)
-        copy.setContext(self.context)
-        copy.setPosition(self.pos_start, self.pos_end)
-        return copy
-
-
-
-    def __str__(self):
-        return f"{self.name}"
-
-
-
-    def repr(self):
-        return f"<{str(self.type)}()>, [ built-in dict method ]"
-
 
 class Types(Value):
     def __init__(self, name):
@@ -11444,7 +12327,6 @@ class Types(Value):
 def BuiltInModule_Http(context):
     module_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return Module("http", module_path, context)
-
 
 
 
@@ -11946,6 +12828,14 @@ class Interpreter:
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"name '{var_name}' cannot be reassigned",
+                        'context': context,
+                        'exit': False
+                    })
+                if var_type == "freeze":
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"assignment to frozen variable '{var_name}'",
                         'context': context,
                         'exit': False
                     })
@@ -12652,7 +13542,7 @@ class Interpreter:
                     return res.success(value)
                 elif object_key.value in class_methods:
                     value = f"<{str(object_key.value)}()>, [ built-in class method ]"
-                    return res.success(BuiltInMethod(value))
+                    return res.success(String(value))
                 else:
                     error["message"] = f"'{object_name.name}' object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
@@ -12773,8 +13663,12 @@ class Interpreter:
                     
             elif type(object_key).__name__ == "Token":
                 if object_key.value in object_methods:
-                    value = f"<{str(object_key.value)}()>, [ built-in object method ]"
-                    return res.success(BuiltInMethod(value))
+                    if object_key.value == "length":
+                        value = len(object_name.properties)
+                        return res.success(Number(value))
+                    else:
+                        value = f"<{str(object_key.value)}()>, [ built-in object method ]"
+                        return res.success(String(value))
                 if hasattr(object_name, "properties"):
                     if object_key.value in object_name.properties:
                         value = object_name.properties[object_key.value]
@@ -12787,7 +13681,7 @@ class Interpreter:
             if type(object_key).__name__ == "VarAccessNode":
                 if object_key.id.value in dict_methods:
                         value = f"<{str(object_key.id.value)}()>, [ built-in dict method ]"
-                        return res.success(BuiltInMethod(value))
+                        return res.success(String(value))
                 if hasattr(object_name, "properties"):
                     if object_key.id.value in object_name.properties:
                         value = object_name.properties[object_key.id.value]
@@ -12836,8 +13730,12 @@ class Interpreter:
             
             elif type(object_key).__name__ == "Token":
                 if object_key.value in dict_methods:
+                    if object_key.value == "length":
+                        value = len(object_name.properties)
+                        return res.success(Number(value))
+                    else:
                         value = f"<{str(object_key.value)}()>, [ built-in dict method ]"
-                        return res.success(BuiltInMethod(value))
+                        return res.success(String(value))
                 elif hasattr(object_name, "properties"):
                     if object_key.value in object_name.properties:
                         value = object_name.properties[object_key.value]
@@ -12863,7 +13761,7 @@ class Interpreter:
                         return res.success(Number(len(object_name.elements)))
                     else:
                         value = f"<{str(object_key.id.value)}()>, [ built-in list method ]"
-                        return res.success(BuiltInMethod(value))
+                        return res.success(String(value))
 
             if type(object_key).__name__ == "Token":
                 if object_key.value in list_methods:
@@ -12871,7 +13769,7 @@ class Interpreter:
                     if object_key.value == "length":
                         return res.success(Number(len(object_name.value)))
                     else:
-                        return res.success(BuiltInMethod(value))
+                        return res.success(String(value))
                 else:
                     error["message"] = f"'list' object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
@@ -12900,7 +13798,7 @@ class Interpreter:
                         return res.success(Number(len(object_name.elements)))
                     else:
                         value = f"<{str(object_key.value)}()>, [ built-in pair method ]"
-                        return res.success(BuiltInMethod(value))
+                        return res.success(String(value))
                 else:
                     error["message"] = f"'pair' object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
@@ -12928,7 +13826,7 @@ class Interpreter:
                     if object_key.value == "length":
                         return res.success(Number(len(object_name.value)))
                     else:
-                        return res.success(BuiltInMethod(value))
+                        return res.success(String(value))
                 else:
                     error["message"] = f"'string' object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
@@ -12944,7 +13842,7 @@ class Interpreter:
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        return res.success(string_methods[method_name](object_name, args, kwargs))
+                        return res.success(string_methods[method_name](object_name, args, kwargs, var_name))
                     else:
                         error["message"] = f"'string' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
@@ -12953,7 +13851,7 @@ class Interpreter:
             if type(object_key).__name__ == "Token":
                 if object_key.value in number_methods:
                     value = f"<{str(object_key.value)}()>, [ built-in number method ]"
-                    return res.success(BuiltInMethod(value))
+                    return res.success(String(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' object has no property {object_key.value}"
                     raise Al_PropertyError(error)
@@ -12961,7 +13859,7 @@ class Interpreter:
             elif type(object_key).__name__ == "VarAccessNode":
                 if object_key.id.value in number_methods:
                     value = f"<{str(object_key.id.value)}()>, [ built-in number method ]"
-                    return res.success(BuiltInMethod(value))
+                    return res.success(String(value))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' object has no property {object_key.id.value}"
                     raise Al_PropertyError(error)
@@ -13028,7 +13926,7 @@ class Interpreter:
             if type(object_key).__name__ == "Token":
                 if object_key.value in bytes_methods:
                     value = f"<{str(object_key.value)}()>, [ built-in bytes method ]"
-                    return res.success(BuiltInMethod(value))
+                    return res.success(String(value))
                 else:
                     error["message"] = f"'bytes' object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
@@ -13106,7 +14004,7 @@ class Interpreter:
                         return res.success(value)
                 if object_key.value in module_methods:
                     value = f"<{str(object_key.value)}()>, [ built-in module method ]"
-                    return res.success(BuiltInMethod(value))
+                    return res.success(String(value))
                 else:
                     error["message"] = f"{object_name.name} object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
@@ -13137,7 +14035,7 @@ class Interpreter:
         object_name = res.register(self.visit(node.name, context))
         property = node.property
         value = res.register(self.visit(node.value, context))
-        # print(object_name, property, value)
+        # print(object_name, property, value, type(object_name))
         operation = node.type_
         error = {
             "name": "PropertyError",
@@ -13178,6 +14076,26 @@ class Interpreter:
 
         if isinstance(object_name, Class):
             if type(property).__name__ == "Token":
+                name = node.name.value if hasattr(node.name, "value") else node.name.id.value
+                var_name = context.symbolTable.get(name)
+                if isinstance(var_name,dict):
+                    if var_name['type'] == "freeze":
+                            if property.value in object_name.properties:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"assignment to read-only property: '{property.value}'",
+                                    'context': context,
+                                    'exit': False
+                                })
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"cannot set '{property.value}' on immutable object",
+                                    'context': context,
+                                    'exit': False
+                                })
                 if hasattr(object_name, "properties"):
                     if is_static(property.value):
                         Program.printError(f"Warning: assignment to static property '{property.value}' \nCannot modify static property '{property.value}'")
@@ -13198,6 +14116,26 @@ class Interpreter:
 
         elif isinstance(object_name, Dict):
             if type(property).__name__ == "Token":
+                name = node.name.value if hasattr(node.name, "value") else node.name.id.value
+                var_name = context.symbolTable.get(name)
+                if isinstance(var_name,dict):
+                    if var_name['type'] == "freeze":
+                            if property.value in object_name.properties:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"assignment to read-only property: '{property.value}'",
+                                    'context': context,
+                                    'exit': False
+                                })
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"cannot set '{property.value}' on immutable object",
+                                    'context': context,
+                                    'exit': False
+                                })
                 if hasattr(object_name, "properties"):
                    object_name.properties[property.value] = value
 
@@ -13207,6 +14145,26 @@ class Interpreter:
 
         elif isinstance(object_name, Object):
             if type(property).__name__ == "Token":
+                name = node.name.value if hasattr(node.name, "value") else node.name.id.value
+                var_name = context.symbolTable.get(name)
+                if isinstance(var_name,dict):
+                    if var_name['type'] == "freeze":
+                            if property.value in object_name.properties:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"assignment to read-only property: '{property.value}'",
+                                    'context': context,
+                                    'exit': False
+                                })
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"cannot set '{property.value}' on immutable object",
+                                    'context': context,
+                                    'exit': False
+                                })
                 if property.value in object_methods:
                     error["message"] = f"'object' object property '{property.value}' is read-only"
                     raise Al_PropertyError(error)
@@ -13281,6 +14239,17 @@ class Interpreter:
                 try:
                     get_value = index_value.elements[index.value]
                     if type_ == "=":
+                        name = node.name.value if hasattr(node.name, "value") else node.name.id.value
+                        var_name = context.symbolTable.get(name)
+                        if isinstance(var_name,dict):
+                            if var_name['type'] == "freeze":
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"assignment to read-only property: '{index.value}'",
+                                    'context': context,
+                                    'exit': False
+                                })
                         index_value.elements[index.value] = value_
                     return res.success(get_value)
                 except IndexError:
@@ -13312,7 +14281,7 @@ class Interpreter:
                         raise Al_TypeError({
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
-                            'message': f"immutable object does not support item assignment",
+                            'message': f"assignment on immutable object",
                             'context': context,
                             'exit': False
                         })
@@ -13341,6 +14310,17 @@ class Interpreter:
         elif object_type == "dict" or object_type == "object":
                 try:
                     if type_ == "=":
+                        name = node.name.value if hasattr(node.name, "value") else node.name.id.value
+                        var_name = context.symbolTable.get(name)
+                        if isinstance(var_name,dict):
+                            if var_name['type'] == "freeze":
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"assignment to read-only property: '{index.value}'",
+                                    'context': context,
+                                    'exit': False
+                                })
                         index_value.properties[index.value] = value_
                     else:
                         get_value = index_value.properties[index.value]
@@ -13361,6 +14341,17 @@ class Interpreter:
                 try:
                     get_value = index_value.value[index.value]
                     if type_ == "=":
+                        name = node.name.value if hasattr(node.name, "value") else node.name.id.value
+                        var_name = context.symbolTable.get(name)
+                        if isinstance(var_name,dict):
+                            if var_name['type'] == "freeze":
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"assignment to read-only property: '{index.value}'",
+                                    'context': context,
+                                    'exit': False
+                                })
                         index_value.value[index.value] = value_
                     return res.success(String(get_value))
                 except IndexError:
@@ -13836,7 +14827,10 @@ class Interpreter:
                 if isinstance(module_object, tuple) and module_object[0] == None:
                     error['message'] = f"cannot import name '{module_object[1]}' from '{module_path_}'"
                     raise Al_ImportError(error)
-                return res.success(module_object)
+                if not isinstance(module_object, tuple) and module_object == None:
+                    raise Al_SyntaxError(error)
+                else:
+                    return res.success(module_object)
             else:
                 name = node.module_name.value if properties_list == None else node.module_path[0]
                 module_path = name
@@ -13856,7 +14850,10 @@ class Interpreter:
                             if isinstance(module_object, tuple) and module_object[0] == None:
                                 error['message'] = f"cannot import name '{module_object[1]}' from '{module_path_}'"
                                 raise Al_ImportError(error)
-                            return res.success(module_object)
+                            if not isinstance(module_object, tuple) and module_object == None:
+                                raise Al_SyntaxError(error)
+                            else:
+                                return res.success(module_object)
                         except RecursionError:
                                 error['message'] = f"cannot import name '{module_name}' from '{module_path}' (most likely due to a circular import)"
                                 raise Al_ImportError(error)
@@ -13889,7 +14886,10 @@ class Interpreter:
                     if isinstance(module_object, tuple) and module_object[0] == None:
                         error['message'] = f"cannot import name '{module_object[1]}' from '{module_path_}'"
                         raise Al_ImportError(error)
-                    return res.success(module_object)
+                    if not isinstance(module_object, tuple) and module_object == None:
+                        raise Al_SyntaxError(error)
+                    else:
+                        return res.success(module_object)
                 except RecursionError:
                     error['message'] = f"cannot import name '{module_name}' from '{module_path}' (most likely due to a circular import)"
                     raise Al_ImportError(error)
@@ -14084,7 +15084,7 @@ class Interpreter:
             raise Al_KeyboardInterrupt({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': f"",
+                'message': f"KeyboardInterrupt",
                 'context': context,
                 'exit': False
             })
@@ -14216,14 +15216,52 @@ class Interpreter:
                                 'exit': False
                             })
                     elif len(iterators) == 2:
-                        raise Al_TypeError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'context': context,
-                            'message': f'cannot iterate with type {TypeOf(iterable_node.elements[i]).getType()}',
-                            'exit': False
-                        })
+                        iterators_keys = []
+                        for iterator in iterators:
+                            if type(iterator).__name__ == "VarAccessNode":
+                                iterators_keys.append(iterator.id.value)
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'context': context,
+                                    'message': 'cannot assign to non-identifier',
+                                    'exit': False
+                                })
+                        is_iterable = False
+                        for iterable in iterable_node.elements:
+                            if isinstance(iterable, Pair):
+                                if len(iterable.elements) == 2:
+                                    is_iterable = True
+                                else:
+                                    raise Al_ValueError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'context': context,
+                                        'message': f"Too many values to unpack (expected {len(iterable)}, got {len(iterable)})",
+                                        'exit': False
+                                    })
 
+                            
+                        
+                        
+                        if is_iterable:
+                            context.symbolTable.set(iterators_keys[0], iterable_node.elements[i].elements[0])
+                            context.symbolTable.set(iterators_keys[1], iterable_node.elements[i].elements[1])
+                            value = res.register(self.visit(node.body_node, context))
+                            elements.append(value)
+                            if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                                return res
+                        else:
+                            raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'context': context,
+                                'message': f'cannot iterate with type {TypeOf(iterable_node.elements[i]).getType()}',
+                                'exit': False
+                            })
+                    
+                        
             elif isinstance(iterable_node, Pair):
                 end_value = len(iterable_node.elements)
                 if res.should_return() :
@@ -14251,6 +15289,43 @@ class Interpreter:
                                 'exit': False
                             })
                     elif len(iterators) == 2:
+                        iterators_keys = []
+                        for iterator in iterators:
+                            if type(iterator).__name__ == "VarAccessNode":
+                                iterators_keys.append(iterator.id.value)
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'context': context,
+                                    'message': 'cannot assign to non-identifier',
+                                    'exit': False
+                                })
+                        is_iterable = False
+                        for iterable in iterable_node.elements:
+                            if isinstance(iterable, Pair):
+                                if len(iterable.elements) == 2:
+                                    is_iterable = True
+                                else:
+                                    raise Al_ValueError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'context': context,
+                                        'message': f"Too many values to unpack (expected {len(iterable)}, got {len(iterable)})",
+                                        'exit': False
+                                    })
+
+                            
+                        
+                        
+                        if is_iterable:
+                            context.symbolTable.set(iterators_keys[0], iterable_node.elements[i].elements[0])
+                            context.symbolTable.set(iterators_keys[1], iterable_node.elements[i].elements[1])
+                            value = res.register(self.visit(node.body_node, context))
+                            elements.append(value)
+                            if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                                return res
+                        else:
                             raise Al_TypeError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
@@ -14307,7 +15382,7 @@ class Interpreter:
             raise Al_KeyboardInterrupt({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': f"",
+                'message': f"KeyboardInterrupt",
                 'context': context,
                 'exit': False
             })
@@ -14341,7 +15416,7 @@ class Interpreter:
             raise Al_KeyboardInterrupt({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
-                'message': f"",
+                'message': f"KeyboardInterrupt",
                 'context': context,
                 'exit': False
             })
@@ -14610,7 +15685,7 @@ class Interpreter:
         object_value = ""
         properties = {}
         for property in node.properties:
-            prop_name = property['name'].value
+            prop_name = ['name'].value
             prop_value = res.register(self.visit(property['value'], context))
             properties = {**properties, **{prop_name: prop_value}}
             if res.should_return(): return res
@@ -14779,14 +15854,7 @@ class Interpreter:
             'inputInt': BuiltInFunction_InputInt,
             'inputFloat': BuiltInFunction_InputFloat,
             'format': BuiltInFunction_Format,
-            'str': BuiltInFunction_Str,
             'range': BuiltInFunction_Range,
-            'int': BuiltInFunction_Int,
-            'float': BuiltInFunction_Float,
-            'bool': BuiltInFunction_Bool,
-            'list': BuiltInFunction_List,
-            'pair' : BuiltInFunction_Pair,
-            'dict': BuiltInFunction_Dict,
             'zip': BuiltInFunction_Zip,
             'max': BuiltInFunction_Max,
             'min': BuiltInFunction_Min,
@@ -14807,6 +15875,7 @@ class Interpreter:
             'delay': BuiltInFunction_Delay,
             'require': BuiltInFunction_Require,
             'enumerate': BuiltInFunction_Enumerate,
+            'freeze': BuiltInFunction_Freeze,
             'std_in_read': BuiltInFunction_StdInRead,
             'std_in_readline': BuiltInFunction_StdInReadLine,
             'std_in_readlines': BuiltInFunction_StdInReadLines,
@@ -14966,6 +16035,15 @@ class Interpreter:
         return RuntimeResult().success_break()
 
 
+    def visit_FreezeNode(self, node, context):
+        res = RuntimeResult()
+        name = node.object.id.value if hasattr(node.object, 'id') else node.object.value
+        object = res.register(self.visit(node.object, context))
+        context.symbolTable.set(name, {
+            'value': object,
+            'type': 'freeze'
+        })
+
 BuiltInFunction.print = BuiltInFunction("print")
 BuiltInFunction.println = BuiltInFunction("println")
 BuiltInFunction.exit = BuiltInFunction("exit")
@@ -14976,13 +16054,6 @@ BuiltInFunction.inputBool = BuiltInFunction("inputBool")
 BuiltInFunction.clear = BuiltInFunction("clear")
 BuiltInFunction.len = BuiltInFunction("len")
 BuiltInFunction.range = BuiltInFunction("range")
-BuiltInFunction.str = BuiltInFunction("str")
-BuiltInFunction.int = BuiltInFunction("int")
-BuiltInFunction.float = BuiltInFunction("float")
-BuiltInFunction.bool = BuiltInFunction("bool")
-BuiltInFunction.list = BuiltInFunction("list")
-BuiltInFunction.pair = BuiltInFunction("pair")
-BuiltInFunction.dict = BuiltInFunction("dict")
 BuiltInFunction.zip = BuiltInFunction("zip")
 BuiltInFunction.line = BuiltInFunction("line")
 BuiltInFunction.append = BuiltInFunction("append")
@@ -15004,6 +16075,7 @@ BuiltInFunction.max = BuiltInFunction("max")
 BuiltInFunction.min = BuiltInFunction("min")
 BuiltInFunction.is_finite = BuiltInFunction("is_finite")
 BuiltInFunction.enumerate = BuiltInFunction("enumerate")
+BuiltInFunction.freeze = BuiltInFunction("freeze")
 BuiltInFunction.require = BuiltInFunction("require")
 BuiltInFunction.std_in_read = BuiltInFunction("std_in_read")
 BuiltInFunction.std_in_readline = BuiltInFunction("std_in_readline")
@@ -15016,6 +16088,13 @@ BuiltInFunction.sys_exit = BuiltInFunction("sys_exit")
 BuiltInFunction.sys_version = BuiltInFunction("sys_version")
 BuiltInFunction.sys_platform = BuiltInFunction("sys_platform")
 BuiltInClass.File = BuiltInClass("File", {})
+BuiltInClass.str = BuiltInClass("str", {})
+BuiltInClass.int = BuiltInClass("int", {})
+BuiltInClass.float = BuiltInClass("float", {})
+BuiltInClass.bool = BuiltInClass("bool", {})
+BuiltInClass.list = BuiltInClass("list", {})
+BuiltInClass.pair = BuiltInClass("pair", {})
+BuiltInClass.dict = BuiltInClass("dict", {})
 #code for the built-in class exceptions
 #'class Exception(message)\nend\nclass RuntimeError()~Exception\nend'
 code_builtin_exception = 'class Exception()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
@@ -15131,13 +16210,13 @@ symbolTable_.set('inputBool', BuiltInFunction.inputBool)
 symbolTable_.set('clear', BuiltInFunction.clear)
 symbolTable_.set('len', BuiltInFunction.len)
 symbolTable_.set('range', BuiltInFunction.range)
-symbolTable_.set('str', BuiltInFunction.str)
-symbolTable_.set('int', BuiltInFunction.int)
-symbolTable_.set('float', BuiltInFunction.float)
-symbolTable_.set('bool', BuiltInFunction.bool)
-symbolTable_.set('list', BuiltInFunction.list)
-symbolTable_.set('pair', BuiltInFunction.pair)
-symbolTable_.set('dict', BuiltInFunction.dict)
+symbolTable_.set('str', BuiltInClass.str)
+symbolTable_.set('int', BuiltInClass.int)
+symbolTable_.set('float', BuiltInClass.float)
+symbolTable_.set('bool', BuiltInClass.bool)
+symbolTable_.set('list', BuiltInClass.list)
+symbolTable_.set('pair', BuiltInClass.pair)
+symbolTable_.set('dict', BuiltInClass.dict)
 symbolTable_.set('zip', BuiltInFunction.zip)
 symbolTable_.set('line', BuiltInFunction.line)
 symbolTable_.set('append', BuiltInFunction.append)
@@ -15159,6 +16238,7 @@ symbolTable_.set('max', BuiltInFunction.max)
 symbolTable_.set('min', BuiltInFunction.min)
 symbolTable_.set('is_finite', BuiltInFunction.is_finite)
 symbolTable_.set('enumerate', BuiltInFunction.enumerate)
+symbolTable_.set('freeze', BuiltInFunction.freeze)
 symbolTable_.set('Number', Types.Number)
 symbolTable_.set('String', Types.String)
 symbolTable_.set('Bytes', Types.Bytes)

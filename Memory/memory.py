@@ -242,7 +242,6 @@ class SymbolTable:
         self.id = 0
         self.parent = parent
         self.scope = Environment(self.parent)
-        self.exception = Exception(self.scope)
     
     def get_by_value(self, value):
         for key, val in self.symbols.items():
@@ -259,7 +258,7 @@ class SymbolTable:
             }
         else:
             self.symbols[name] = value
-        #print(f"{name} is set to {value}")
+        
     def get(self, name):
         value = self.symbols.get(name, None)
         if value == None and self.parent:
