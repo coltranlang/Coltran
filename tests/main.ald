@@ -124,5 +124,8 @@ let ar = [{
     age: 20,
 }]
 
+class Person
+end
 
-
+import testlang
+print(testlang.__@members__)

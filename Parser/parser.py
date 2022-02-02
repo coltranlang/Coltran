@@ -468,27 +468,6 @@ class SpreadNode:
         return f'{self.name}'
 
 
-class ExportModuleNode:
-    def __init__(self, modules):
-        self.modules = modules
-        if isinstance(self.modules[0], dict):
-            self.pos_start = self.modules[0]['pos_start']
-            self.pos_end = self.modules[-1]['pos_end']
-        else:
-            self.pos_start = self.modules[0].pos_start
-            self.pos_end = self.modules[-1].pos_end
-
-    def __repr__(self):
-        return f'{self.modules}'
-
-
-class ModuleExport:
-    def __init__(self, name, value):
-        self.name = name
-        self.id = name
-        self.value = value
-        self.pos_start = self.name.pos_start
-        self.pos_end = self.value.pos_end
 
 
 class BooleanNode:
@@ -973,15 +952,7 @@ class Parser:
             return res.success(ReturnNode(expr, pos_start, self.current_token.pos_end.copy()))
 
         if self.current_token.matches(tokenList.TT_KEYWORD, 'continue'):
-            if self.scope != "for" and self.scope != "while" and self.scope != "in":
-                self.error_detected = True
-                return res.failure(self.error['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "no proper loop for 'continue'",
-                    'context': self.context,
-                    'exit': False,
-                }))
+            print(self.scope)
             res.register_advancement()
             self.advance()
             return res.success(ContinueNode(pos_start, self.current_token.pos_end.copy()))
@@ -2460,16 +2431,8 @@ class Parser:
                     'context': self.context,
                     'exit': False
                 }))
-            # this should be checked in the interpreter
-            elif len(iterator_keys) > 2:
-                self.error_detected = True
-                return res.failure(self.error['ValueError']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "Too many values, expected 2 or 1 but got {}".format(len(iterator_keys)),
-                    'context': self.context,
-                    'exit': False
-                }))
+           
+            
 
             if self.current_token.type != tokenList.TT_COLON:
                 self.error_detected = True
@@ -4288,6 +4251,7 @@ class Parser:
         return res.success(ListNode(elements, pos_start, self.current_token.pos_end.copy()))
 
     def pair_expr(self):
+        
         res = ParseResult()
         elements = []
         pos_start = self.current_token.pos_start.copy()

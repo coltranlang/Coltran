@@ -224,7 +224,6 @@ class Module:
         return key in self.modules
     
     def is_path_in_members(self, key):
-        print(key, self.paths)
         return key in self.paths
 
     def add_module(self, key, value):

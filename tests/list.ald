@@ -19,3 +19,22 @@ end
 let arr_reduce_4 = arr.reduce(@reducer_2)
 print(arr_reduce_4) # 300
 
+let fruits = ["apple", "banana", "cherry"]
+let sizes = ["small", "medium", "large"]
+
+
+
+
+for i=0 to fruits.length:
+    for j=0 to sizes.length:
+        print(sizes[j], fruits[i])
+    end
+end
+# The 'in' loop provides a better way to iterate over an array and is more readable than the for loop.
+# They both produce the same result: ["red apple", "red banana", "red cherry", "big apple", "big banana", "big cherry", "small apple", "small banana", "small cherry"]
+
+in fruits as fruit:
+    in sizes as size:
+        print(size, fruit)
+    end
+end

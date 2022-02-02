@@ -103,3 +103,11 @@ let str = "Hello, World!"
 for i = 0 to str.length - 1:
     println(str[i:i+2])
 end
+
+let greet = "Hello"
+
+# should print "H e l l o"
+in greet as letter:
+    println(letter, @end=" ")
+end
+

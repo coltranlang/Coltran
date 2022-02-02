@@ -8564,7 +8564,8 @@ class BuiltInClass(BaseClass):
                     if len(keyword_args) > 0:
                         exception_details['message'] = f"{self.name}() takes no keyword argument"
                         raise Al_ArgumentError(exception_details)
-                
+                    else:
+                        return res.success(None)
                 
                 elif len_args == 0 and len(keyword_args) == 0 and self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['required']:
                     raise Al_ArgumentError(exception_details)
@@ -8610,7 +8611,7 @@ class BuiltInClass(BaseClass):
                 raise Al_ArgumentError(exception_details)
 
 
-
+        
         res.register(self.populate_args(arg_names, args, exec_context))
         return res.success(None)
 
@@ -10280,13 +10281,14 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
                 return res.success(Boolean(False).setPosition(node.pos_start, node.pos_end).setContext(context))
         elif isinstance(args[1], Pair):
             for type in args[1].elements:
-                if isinstance(type, Types):
-                    return res.success(Boolean(getInstance(args[0], type)).setPosition(node.pos_start, node.pos_end).setContext(context))
-                elif isinstance(type, Class):
-                    if isinstance(args[0], Class):
-                        return res.success(Boolean(args[0].name == type.name).setPosition(node.pos_start, node.pos_end).setContext(context))
+                if isinstance(type, Types) or isinstance(type, Class):
+                    if getInstance(args[0], type):
+                        return res.success(Boolean(True).setPosition(node.pos_start, node.pos_end).setContext(context))
                     else:
-                        return res.success(Boolean(False).setPosition(node.pos_start, node.pos_end).setContext(context))
+                        if isinstance(args[0], Class):
+                            if args[0].name == type.name:
+                                return res.success(Boolean(True).setPosition(node.pos_start, node.pos_end).setContext(context))
+                            
                 else:
                     raise Al_TypeError({
                             "pos_start": node.pos_start,
@@ -10295,6 +10297,7 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
                             "context": context,
                             'exit': False
                     })
+            return res.success(Boolean(False).setPosition(node.pos_start, node.pos_end).setContext(context))
 
         else:
             raise Al_TypeError({
@@ -12579,7 +12582,6 @@ class Types(Value):
 
     def __repr__(self):
         return f"<Class {self.name}>"
-
 
 
 
@@ -15483,7 +15485,7 @@ class Interpreter:
                                 })
                         is_iterable = False
                         for iterable in iterable_node.elements:
-                            if isinstance(iterable, Pair):
+                            if isinstance(iterable, Pair) or isinstance(iterable, List):
                                 if len(iterable.elements) == 2:
                                     is_iterable = True
                                 else:
@@ -15491,7 +15493,7 @@ class Interpreter:
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
                                         'context': context,
-                                        'message': f"Too many values to unpack (expected {len(iterable)}, got {len(iterable)})",
+                                        'message': f"Too many values to unpack (expected {len(iterators)}, got {len(iterable.elements)})",
                                         'exit': False
                                     })
 
@@ -15513,9 +15515,54 @@ class Interpreter:
                                 'message': f'cannot iterate with type {TypeOf(iterable_node.elements[i]).getType()}',
                                 'exit': False
                             })
-                    
+                    else:
+                        iterators_keys = []
+                        for iterator in iterators:
+                            if type(iterator).__name__ == "VarAccessNode":
+                                iterators_keys.append(iterator.id.value)
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'context': context,
+                                    'message': 'cannot assign to non-identifier',
+                                    'exit': False
+                                })
+                        is_iterable = False
+                        for iterable in iterable_node.elements:
+                            if isinstance(iterable, Pair) or isinstance(iterable, List):
+                                if len(iterable.elements) == len(iterators):
+                                    is_iterable = True
+                                else:
+                                    raise Al_ValueError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'context': context,
+                                        'message': f"Too many values to unpack (expected {len(iterators)}, got {len(iterable.elements)})",
+                                        'exit': False
+                                    })
+
+                        if is_iterable:
+                            for j in range(len(iterators)):
+                                context.symbolTable.set(
+                                    iterators_keys[j], iterable_node.elements[i].elements[j])
+
+                            value = res.register(self.visit(
+                                node.body_node, context))
+                            elements.append(value)
+                            if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                                return res
+                        else:
+                            raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'context': context,
+                                'message': f'cannot iterate with type {TypeOf(iterable_node.elements[i]).getType()}',
+                                'exit': False
+                            })
                         
             elif isinstance(iterable_node, Pair):
+                is_iterable = False
                 end_value = len(iterable_node.elements)
                 if res.should_return() :
                     return res
@@ -15554,9 +15601,9 @@ class Interpreter:
                                     'message': 'cannot assign to non-identifier',
                                     'exit': False
                                 })
-                        is_iterable = False
+                        
                         for iterable in iterable_node.elements:
-                            if isinstance(iterable, Pair):
+                            if isinstance(iterable, Pair) or isinstance(iterable, List):
                                 if len(iterable.elements) == 2:
                                     is_iterable = True
                                 else:
@@ -15564,13 +15611,11 @@ class Interpreter:
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
                                         'context': context,
-                                        'message': f"Too many values to unpack (expected {len(iterable)}, got {len(iterable)})",
+                                        'message': f"Too many values to unpack (expected {len(iterators)}, got {len(iterable.elements)})",
                                         'exit': False
                                     })
 
                             
-                        
-                        
                         if is_iterable:
                             context.symbolTable.set(iterators_keys[0], iterable_node.elements[i].elements[0])
                             context.symbolTable.set(iterators_keys[1], iterable_node.elements[i].elements[1])
@@ -15586,7 +15631,55 @@ class Interpreter:
                                 'message': f'cannot iterate with type {TypeOf(iterable_node.elements[i]).getType()}',
                                 'exit': False
                             })
-
+                    else:
+                        iterators_keys = []
+                        for iterator in iterators:
+                            if type(iterator).__name__ == "VarAccessNode":
+                                iterators_keys.append(iterator.id.value)
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'context': context,
+                                    'message': 'cannot assign to non-identifier',
+                                    'exit': False
+                                })
+                        is_iterable = False
+                        for iterable in iterable_node.elements:
+                            if isinstance(iterable, Pair) or isinstance(iterable, List):
+                                if len(iterable.elements) == len(iterators):
+                                    is_iterable = True
+                                else:
+                                    raise Al_ValueError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'context': context,
+                                        'message': f"Too many values to unpack (expected {len(iterators)}, got {len(iterable.elements)})",
+                                        'exit': False
+                                    })
+                                    
+                      
+                        if is_iterable:
+                            for j in range(len(iterators)):
+                                context.symbolTable.set(iterators_keys[j], iterable_node.elements[i].elements[j])
+                                
+                            
+                            value = res.register(self.visit(node.body_node, context))
+                            elements.append(value)
+                            if res.should_return() and res.loop_continue == False and res.loop_break == False: 
+                                return res
+                        else:
+                            raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'context': context,
+                                'message': f'cannot iterate with type {TypeOf(iterable_node.elements[i]).getType()}',
+                                'exit': False
+                            })  
+                        
+                        
+                        
+                        
             elif isinstance(iterable_node, String):
                 end_value = len(iterable_node.value)
                 if res.should_return() :
