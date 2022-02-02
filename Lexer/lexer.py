@@ -230,7 +230,7 @@ class Lexer:
                             'exit': False
                         })
             tokens.append(Token(tokenList.TT_EOF, pos_start=self.pos))
-            return tokens, None
+            return tokens, self.error_detected
         except:
             pass
     def make_number(self):
@@ -516,7 +516,7 @@ class Lexer:
         self.advance()
         escape_characters = {
             'n': '\n',
-            't': '\t'
+            't': '\t',
         }
 
         while self.current_char != None and (self.current_char != "'" or escape_character):

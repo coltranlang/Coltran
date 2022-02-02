@@ -22,7 +22,7 @@ println(http3.post())
 
 # FILE
 import file as f
-let file = f.open('text.txt', 'r')
+let file = f.open('README.md', 'r')
 println(file.read())
 
 from customer import Customer
@@ -32,7 +32,7 @@ customer.add_purchase('pen', 20, 4)
 customer.add_purchase('pencil', 10, 2)
 customer.add_purchase('eraser', 5, 1)
 in customer.purchases as purchase:
-  println(purchase.toString())
+  println(purchase.__@str__())
 end
 println(fm"%{2 + 2}")
 println(customer.total_purchases())

@@ -950,7 +950,7 @@ class Parser:
                 statements.append(statement)
             return res.success(ListNode(statements, pos_start, self.current_token.pos_end.copy()))
 
-        except:
+        except KeyboardInterrupt:
             pass
 
     def statement(self):
@@ -1426,6 +1426,26 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 name = self.current_token
+                if name != None and name.value == '' or name.value == None:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "expected property name after '.'",
+                        'context': self.context,
+                        'exit': False
+                    }))
+                
+                if name == None:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "expected property name after '.'",
+                        'context': self.context,
+                        'exit': False
+                    }))
+                    
                 if atom == '':
                     # then we want to make it a floating point number e.g. .5 == 0.5
                     if name != '' and isinstance(name.value, int):
@@ -5104,18 +5124,24 @@ class Parser:
 
 
         if self.current_token.type != tokenList.TT_IDENTIFIER:
-            self.error_detected = True
-            return res.failure(self.error['Syntax']({
-                'pos_start': self.current_token.pos_start,
-                'pos_end': self.current_token.pos_end,
-                'message': f"expected an identifier",
-                'context': self.context,
-                'exit': False
-            }))
+            if self.current_token.type == tokenList.TT_DOT:
+                module_name = Token(tokenList.TT_IDENTIFIER, str("."), pos_start, self.current_token.pos_end)
+                from_module_name = module_name
+                self.skipLines()
+            else:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': f"expected an identifier or '.'",
+                    'context': self.context,
+                    'exit': False
+                }))
 
-        module_name = self.current_token
-        from_module_name = module_name
-        self.skipLines()
+        elif self.current_token.type == tokenList.TT_IDENTIFIER:
+            module_name = self.current_token
+            from_module_name = module_name
+            self.skipLines()
 
         if self.current_token.type == tokenList.TT_DOUBLE_COLON:
             self.skipLines()

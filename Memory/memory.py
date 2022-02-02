@@ -201,10 +201,19 @@ class Environment:
 class Module:
     def __init__(self, parent=None):
         self.modules = {}
+        self.paths = {}
         self.parent = parent
 
-    def get(self, key):
+    def get_module(self, key):
         value = self.modules.get(key, None)
+        if value == None and self.parent:
+            value = self.parent.get(key)
+        if value == None:
+            return "none"
+        return value
+    
+    def get_path(self, key):
+        value = self.paths.get(key, None)
         if value == None and self.parent:
             value = self.parent.get(key)
         if value == None:
@@ -213,9 +222,16 @@ class Module:
     
     def is_module_in_members(self, key):
         return key in self.modules
+    
+    def is_path_in_members(self, key):
+        print(key, self.paths)
+        return key in self.paths
 
-    def set(self, key, value):
+    def add_module(self, key, value):
         self.modules[key] = value
+        
+    def add_path(self, key, value):
+        self.paths[key] = value
         
     def __repr__(self):
         output = 'Current modules:\n'

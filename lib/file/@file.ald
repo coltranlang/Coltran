@@ -52,15 +52,14 @@ end
 def @open(file, mode)
     mode = @handle_mode(mode)
     attempt:
-        return __@file(file=file, mode=mode)
+        return __@file__(file, mode=mode)
     catch FileNotFoundError as e:
         raise FileNotFoundError(fm"No such file or directory: '%{file}'")
     catch PermissionError as e:
         raise PermissionError(fm"Permission denied: '%{file}'")
     catch IOError as e:
         raise IOError(fm"I/O error: '%{e.message}'")
-    catch:
-        raise IOError(fm"I/O error: '%{file}'")
+    
     end
 end
 

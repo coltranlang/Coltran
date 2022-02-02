@@ -1,5 +1,5 @@
 from purchase import Purchase
-
+print("Module 'customer' is imported")
 class Customer 
     def __@init__(self, name, age, address, phone, email)
         self.name = name

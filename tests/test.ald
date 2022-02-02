@@ -1046,14 +1046,14 @@ let seasons = ["Spring", "Summer", "Autumn", "Winter"]
 in enumerate(seasons, start=1) as (count, season):
     print(count, season) # Enumerate is a built-in function that returns an a dictionary-like object that contains the index and value of each item in the iterable.   
 end
+line(92)
 # without enumerate
 let count = 1
-print()
 in seasons as season:
     print(count, season)
     count += 1
 end
-line(92)
+line(93)
 # pairs
 let seasons = ["Spring", "Summer", "Autumn", "Winter"]
 let count = 1

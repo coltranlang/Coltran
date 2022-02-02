@@ -74,12 +74,12 @@ println(text.is_ascii()) # true
 let text = 'Hello'
 print(text.is_printable()) # true
 let text = 'Hello'
-print(text.is_lowerCase()) # true
+print(text.is_lowerCase()) # false
 let text = 'Hello'
 print(text.is_upperCase()) # false
 let text = 'Hello'
 print(text.is_title()) # true
-let text = "\u0033"
+let text = "0033"
 print(text.is_decimal()) # true
 let text = 'Hello {0}!, you are {1} years old'
 text = text.format("Bob", 20) # Hello Bob!, you are 20 years old
@@ -96,7 +96,7 @@ let text = 'Hello'.encode(encoding='utf8', errors='strict')
 print(text) # bt'Hello'
 text = text.decode(encoding='utf-8', errors='strict')
 print(text) # Hello
-let string_methods = ''.__@properties__()
+let string_methods = ''.__@methods__
 print(string_methods)
 # String slicing with for-to-loop
 let str = "Hello, World!"
