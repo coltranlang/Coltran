@@ -23,25 +23,25 @@ println(num)
 
 line(2)
 # Bubble Sort
-def @checkList(list)
-    if  not list and list.isEmpty():
+def @checkList(arr)
+    if  not arr and arr.is_empty():
         return false
     end
     return true
 end
 
-def @bubblesort(list=[])
-    # Check if the list is empty or the list are numbers
-    if not @checkList(list):
-        raise Exception(fm"Expected List, got '%{typeof(list)}'")
+def @bubblesort(arr=[])
+    # Check if the arr is empty or the arr are numbers
+    if not @checkList(arr):
+        raise Exception(fm"Expected List, got '%{typeof(arr)}'")
     else:
-        if list.isNumber():
-            for i = 0 to list.length:
-                for j = 0 to list.length - 1:
-                    if list[j] > list[j + 1]:
-                        let temp = list[j]
-                        list[j] = list[j + 1]
-                        list[j + 1] = temp
+        if arr.is_number():
+            for i = 0 to arr.length:
+                for j = 0 to arr.length - 1:
+                    if arr[j] > arr[j + 1]:
+                        let temp = arr[j]
+                        arr[j] = arr[j + 1]
+                        arr[j + 1] = temp
                     end
                 end
             end
@@ -49,99 +49,119 @@ def @bubblesort(list=[])
             raise Exception(fm"Expected List of numbers")
         end
     end
-    return list
+    return arr
 end
 
-let list = [5, 3, 8, 6, 2, 1, 4, 7]
+let arr = [5, 3, 8, 6, 2, 1, 4, 7]
 
-println(list)
-println(@bubblesort(list)) # [1, 2, 3, 4, 5, 6, 7, 8]
+println(arr)
+println(@bubblesort(arr)) # [1, 2, 3, 4, 5, 6, 7, 8]
 
 
 
 
 
 line(3)
-def @is_varags(string)
-    if len(string) == 0:
-        return false
+# Binary Tree. leetcode.com example
+class TreeNode()
+    def __@init__(self, x)
+        self.val = x
+        self.left = none
+        self.right = none
     end
-    return string[0] == '*'
 end
 
-# varargs *args
-def @vna_algorithm(params, args)
-    let len_params = len(params)
-    let len_args = len(args)
-    let starargs = []
-    let nonstarargs = []
-    in range(len_params) as i:
-        let first_positional_arg = i
-        let last_positional_arg  = len_params - 1
-        if @is_varags(params[i]):
-            if len_params == 1:
-                let start_index = params.indexOf(params[i])
-                starargs = args[start_index:]
-            else:
-                # if first_positional_arg is == to 0 then the starargs is the first positional arg
-                # and we need to get the args starting from the starargs index and ending at the index of the nonstarargs e.g params = ["*args","a","b","c"] args = [1,2,3,4,5,6,7,8,9,10]
-                # starargs = [1,2,3,4,5,6,7] nonstarargs = [8,9,10]
-                if first_positional_arg == 0:
-                    let start_index = params.indexOf(params[i])
-                    starargs = args[start_index:len_args - len_params + 1]
-                    nonstarargs = args[len_args - len_params + 1:]
-                # if last_positional_arg is == to i then the *args is at the last position of the pramater, then we get the args starting from the nonargs and ending at the startargs index e.g params = ["a","b","c","*args"] args = [1,2,3,4,5,6,7,8,9,10]
-                # starargs = [4,5,6,7,8,9,10] nonstarargs = [1,2,3]
-                elif last_positional_arg == i:
-                    let start_index = params.indexOf(params[i])
-                    starargs = args[start_index:len_args]
-                    nonstarargs = args[0:start_index]
-                # if the *args is in the middle of the params then we get the args starting from the nonargs and ending at the startargs index e.g params = ["a","b","c","*args","d","e"] args = [1,2,3,4,5,6,7,8,9,10]
-                # starargs = [4,5,6,7,8] nonstarargs = [1,2,3,9,10]
-                else:
-                    let start_index = params.indexOf(params[i])
-                    let first_args = args[0:start_index]
-                    let non_args_names = params[start_index:len_params]
-                    let non_args_names = non_args_names.filter(def (name) -> @is_varags(name) == false)
-                    
-                    # we reverse the args
-                    let reversed_args = args[::-1][0:len(non_args_names)]
-                    let reversed_args_names = non_args_names[::-1]
-                    starargs = args[start_index:len_args - len_params + start_index + 1]
-                    let re_reversed_args = reversed_args[::-1]
-                    let re_reversed_args_names = reversed_args_names[::-1]
-                    nonstarargs = first_args + re_reversed_args
-                end
-            end
+
+def @treeNodeToString(root)
+    if not root:
+        return "[]"
+    end
+    let output = ""
+    let queue = [root]
+    let current = 0
+    while current != len(queue):
+        let node = queue[current]
+        current += 1
+
+        if not node:
+            output += "null, "
+            current += 1
+            continue
         end
-    end        
-    return starargs, nonstarargs
-end  
-    
-let params_ex1 = ["*args"]
-let args_ex1 = [1,2,3,4,5,6,7,8,9,10]
-let starargs_ex1, nonstarargs_ex1 = @vna_algorithm(params_ex1, args_ex1)
-println(starargs_ex1, nonstarargs_ex1, "is the result 1")
+        output += fm"%{node.val}, "
+        queue.append(node.left)
+        queue.append(node.right)
+    end
+    return "[" + output[:-2] + "]"
+end
 
-let params_ex2 = ["*args", "a", "b", "c"]
-let args_ex2 = [1,2,3,4,5,6,7,8,9,10]
-let starargs_ex2, nonstarargs_ex2 = @vna_algorithm(params_ex2, args_ex2)
-println(starargs_ex2, nonstarargs_ex2, "is the result 2")
+def @stringToTreeNode(input)
+    let input = input.strip()
+    let input = input[1:-1]
+    if not input:
+        return none
+    end
+    let inputValues = in input.split(',') as s: s.strip()
+    let root = TreeNode(int(inputValues[0]))
+    let nodeQueue = [root]
+    let front = 0
+    let index = 1
+    while index < len(inputValues):
+        let node = nodeQueue[front]
+        front = front + 1
 
-let params_ex3 = ["a", "b", "c","*args"]
-let args_ex3 = [1,2,3,4,5,6,7,8,9,10]
-let starargs_ex3, nonstarargs_ex3 = @vna_algorithm(params_ex3, args_ex3)
-println(starargs_ex3, nonstarargs_ex3, "is the result 3")
+        let item = inputValues[index]
+        index = index + 1
+        if item != "null":
+            let leftNumber = int(item)
+            node.left = TreeNode(leftNumber)
+            nodeQueue.append(node.left)
+        end
+        if index >= len(inputValues):
+            break
+        end
+        item = inputValues[index]
+        index = index + 1
+        if item != "null":
+            let rightNumber = int(item)
+            node.right = TreeNode(rightNumber)
+            nodeQueue.append(node.right)
+        end
+    end
+    return root
+end
 
 
-let params_ex4 = ["a", "b", "c","*args", "d", "e"]
-let args_ex4 = [1,2,3,4,5,6,7,8,9,10]
-let starargs_ex4, nonstarargs_ex4 = @vna_algorithm(params_ex4, args_ex4)
-println(starargs_ex4, nonstarargs_ex4, "is the result 4")
+def @prettyPrintTree(node, prefix="", isLeft=true)
+    if not node:
+        print("Empty Tree")
+        return
+    end
+    if node.right:
+        if isLeft:
+            @prettyPrintTree(node.right, prefix + "│   ", false)
+        else:
+            @prettyPrintTree(node.right, prefix + "    ", false)
+        end
+    end
+    if isLeft:
+        print(prefix + "└── " + fm"%{node.val}")
+    else:
+        print(prefix + "┌── " + fm"%{node.val}")
+    end
+    if node.left:
+        if isLeft:
+            @prettyPrintTree(node.left, prefix + "    ", true)
+        else:
+            @prettyPrintTree(node.left, prefix + "│   ", true)
+        end
+    end
+end
 
 
-let params_ex5 = ["a", "b", "c","*args", "d", "e", "f"]
-let args_ex5 = [1,2,3,4,5,6,7,8,9,10]
-let starargs_ex5, nonstarargs_ex5 = @vna_algorithm(params_ex5, args_ex5)
-println(starargs_ex5, nonstarargs_ex5, "is the result 5")
+def @main()
+    let root = @stringToTreeNode("[1,2,3,4,5,6,7]")
+    @prettyPrintTree(root)
+end
 
+@main()

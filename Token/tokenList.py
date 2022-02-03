@@ -195,8 +195,10 @@ KEYWORDS = [
     'continue',
     'break',
     'fm',
+    'bt',
     'raise',
     'del',
+    'freeze',
 ]
 
 TYPES = [

@@ -1,5 +1,0 @@
-class NotImplementedError(Exception):
-    def @init(self,message)
-        self.message = message
-    end
-end

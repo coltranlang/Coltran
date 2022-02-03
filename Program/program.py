@@ -1,7 +1,7 @@
 import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
-from Interpreter.interpreter import Context, Interpreter, symbolTable_, Program
+from Interpreter.interpreter import Context, Interpreter, symbolTable_, Program, ModuleNameSpace
 
 I_Al_Program = Program
 
@@ -41,54 +41,59 @@ class Al_Program:
 
     def run(fileName, text):
         # Generate tokens
-        lexer = Lexer(fileName, text)
-        tokens, error = lexer.make_tokens()
-        if error: return "", error
-
-        # Generate AST
-        parser = Parser(tokens, fileName)
-        ast = parser.parse()
-        interpreter = Interpreter()
         context = Context('<module>')
-        parser_error_detected = parser.error_detected
-        # ast = parser.parse()
-        # interpreter = Interpreter()
-        # context = Context('<module>')
-        # parser_error_detected = parser.error_detected
-        # if parser_error_detected == False:
-        #     if ast:
-        #         if ast.error:
-        #             return "", ast.error
-        #         context.symbolTable = symbolTable_
-        #         result = interpreter.visit(ast.node, context)
-        #         interpreter_error_detected = interpreter.error_detected
-        #         #print(f"Error detected: {interpreter_error_detected}")
-        #         if hasattr(result, 'value') and hasattr(result, 'error'):
-        #             return result.value, ""
-
-        #         return result, "none"
-        #     else:
-        #         return "none"
-        # else:
-        #     return "", ''
+        modulenameSpace = ModuleNameSpace()
+        lexer = Lexer(fileName, text, context)
         try:
-            if parser_error_detected == False:
-                if ast:
-                    if ast.error:
-                        return "", ast.error
-                    context.symbolTable = symbolTable_
-                    result = interpreter.visit(ast.node, context)
-                    return result.value, ""
-                else:
-                    return ""
-            else:
-                return "", ''
-        except Exception as e:
-            return I_Al_Program.error()[e.name](e.message)
+            tokens, error = lexer.make_tokens()
+            if error:
+                return "", error
 
+            # Generate AST
+            parser = Parser(tokens, fileName, context)
+            ast = parser.parse()
+            interpreter = Interpreter()
+            parser_error_detected = parser.error_detected
+            # ast = parser.parse()
+            # interpreter = Interpreter()
+            # context = Context('<module>')
+            # parser_error_detected = parser.error_detected
+            # if parser_error_detected == False:
+            #     if ast:
+            #         if ast.error:
+            #             return "", ast.error
+            #         context.symbolTable = symbolTable_
+            #         result = interpreter.visit(ast.node, context)
+            #         interpreter_error_detected = interpreter.error_detected
+            #         #print(f"Error detected: {interpreter_error_detected}")
+            #         if hasattr(result, 'value') and hasattr(result, 'error'):
+            #             return result.value, ""
+
+            #         return result, "none"
+            #     else:
+            #         return "none"
+            # else:
+            #     return "", ''
+            try:
+                if parser_error_detected == False:
+                    if ast:
+                        if ast.error:
+                            return "", ast.error
+                        context.symbolTable = symbolTable_
+                        result = interpreter.visit(ast.node, context)
+                        return result.value, ""
+                    else:
+                        return ""
+                else:
+                    return None
+            except Exception as e:
+                return I_Al_Program.error()[e.name](e.message)
+        except Exception as e:
+            raise e
+        
     def runFile(fileName):
         try:
-            with open(fileName, 'r') as file:
+            with open(fileName, 'r', encoding='utf-8') as file:
                 text = file.read()
                 if fileName[-4:] != ".ald":
                     print(f"File '{fileName}' is not a valid alden file")
@@ -96,31 +101,36 @@ class Al_Program:
                 else:
                     result  = Al_Program.run(fileName, text)
                     return result
+                
         except FileNotFoundError:
             print(f"can't open file '{fileName}': No such file or directory")
             return False
     
     def repl():
-        while True:
-            text = input('>>> ')
-            result, error = Al_Program.run("<stdin>", text)
-            if type(result).__name__ == "List":
-                if len(result.elements) == 1:
-                    result = result.elements[0]
-                    print(result) if result != None else print("")
-                else:
-                    result = result.elements
-                    print(result)
-            if error:
-                error = 'none'
-                print(error)
-   
-    def runRepl():
         try:
-            Al_Program.repl()
+            while True:
+                text = input('>>> ')
+                result, error = Al_Program.run("<stdin>", text)
+                if type(result).__name__ == "List":
+                    if len(result.elements) == 1:
+                        result = result.elements[0]
+                        print(result) if result != None else print("")
+                    else:
+                        result = result.elements
+                        print(result, 'ff')
+                if error:
+                    error = 'none' if error == '' else error
+                    print(error)
         except KeyboardInterrupt:
             print("\nExit?")
             print('Use exit() to exit')
-            Al_Program.runRepl()
+            Al_Program.repl()
+        except Exception as e:
+            if text == "exit()" or text == "exit":
+                sys.exit(0)
+            Al_Program.repl()
+   
+    def runRepl():
+        Al_Program.repl()
             
 
