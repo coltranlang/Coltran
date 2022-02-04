@@ -35,7 +35,7 @@ def @bubblesort(arr=[])
     if not @checkList(arr):
         raise Exception(fm"Expected List, got '%{typeof(arr)}'")
     else:
-        if arr.is_number():
+        if arr.is_number() or arr.is_string():
             for i = 0 to arr.length:
                 for j = 0 to arr.length - 1:
                     if arr[j] > arr[j + 1]:
@@ -52,10 +52,12 @@ def @bubblesort(arr=[])
     return arr
 end
 
-let arr = [5, 3, 8, 6, 2, 1, 4, 7]
-
+let arr = ["Orange", "Apple", "Banana", "Mango"]
+let arr2 = [5, 3, 8, 6, 2, 1, 4, 7]
 println(arr)
-println(@bubblesort(arr)) # [1, 2, 3, 4, 5, 6, 7, 8]
+println(@bubblesort(arr)) # ["Apple", "Banana", "Mango", "Orange"]
+println(arr2)
+println(@bubblesort(arr2)) # [1, 2, 3, 4, 5, 6, 7, 8]
 
 
 

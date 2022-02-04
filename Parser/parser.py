@@ -302,6 +302,17 @@ class StringNode:
         return f'{self.tok}'
 
 
+class DocStringNode:
+    def __init__(self, tok):
+        self.name = tok
+        self.tok = tok
+        self.id = tok
+        self.pos_start = self.tok.pos_start
+        self.pos_end = self.tok.pos_end
+
+    def __repr__(self):
+        return f'{self.tok}'
+
 class ByteStringNode:
     def __init__(self, tok):
         self.name = tok
@@ -1267,8 +1278,8 @@ class Parser:
                 spread_expr = res.register(self.spread_expr(
                         var_name, variable_keyword_token))
                 return res.success(spread_expr)
-            expr = res.register(self.expr())
             
+            expr = res.register(self.expr())
             if expr == "":
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -1732,6 +1743,10 @@ class Parser:
             res.register_advancement()
             self.advance()
             return res.success(StringNode(tok))
+        elif tok.type == tokenList.TT_DOC_STRING:
+            res.register_advancement()
+            self.advance()
+            return res.success(DocStringNode(tok))
         elif tok.type == tokenList.TT_IDENTIFIER:
             self.skipLines()
             if self.current_token.type == tokenList.TT_EQ:

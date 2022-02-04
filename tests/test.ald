@@ -1063,6 +1063,19 @@ in seasons as season:
     print(result, result2) # (1, Spring), (1, Spring) ... same result
     count += 1
 end
+line(94)
+# Docstring|Multi-line string
+# def @main()
+#     /**
+#      * This is a docstring
+#      * 
+#      * @param {string} name 
+#      * @param {string} [age] 
+#      * @returns {string} 
+#      */
+#     print("Hello", __@doc__)
+# end
+# @main()
 #println(dic_user["name"]) # error
 # def @makeList(item, list=[])
 #     list.append(item)

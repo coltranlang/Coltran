@@ -129,3 +129,44 @@ end
 
 class Test
 end
+
+let new_array = [65, 44, 12, 4]
+def @callback(element, index, array)
+    let sum = element + index
+    return sum
+end
+let new_array_map = new_array.map(@callback)
+print(new_array_map)
+
+let users_arr = [{
+    name: "Bob",
+    age: 20,
+    vehicles: [{
+        name: "Ford",
+        year: 2018,
+    }, {
+        name: "Honda",
+        year: 2017,
+    }],
+    can_drive: false,
+}, {
+    name: "Kenny",
+    age: 20,
+    vehicles: [{
+        name: "Toyota",
+        year: 2018,
+    }, {
+        name: "Chevy",
+        year: 2017,
+    }],
+    can_drive: true,
+}]
+def @check_can_drive(user)
+    return user.can_drive
+end
+# let can_drive = users_arr.filter(@check_can_drive)
+# print(can_drive)
+
+let fruits = ["Orange", "Apple", "Banana", "Mango"]
+print(fruits.sort())
+print(sorted([5,20,4,10,1])) # [1, 4, 5, 10, 15, 20]

@@ -1598,9 +1598,9 @@ class Value:
 
 
 class Statement(Value):
-    def __init__(self, elements=None):
+    def __init__(self, elements):
         super().__init__()
-        self.elements = elements if elements is not None else []
+        self.elements = elements
         self.value = self.elements
 
     def copy(self):
@@ -3487,12 +3487,25 @@ class String(Value):
             for i in range(len(new_args)):
                 keys_replace.append(i)
             for i in range(len(new_args)):
+                keys_empty = []
+                is_keys_empty = False
+                new_keys = []
                 string_key_match = re.findall(r'{(.*?)}', string)
                 for key_not_valid_name in string_key_match:
                     try:
                        key_not_valid_name = int(key_not_valid_name)
                        key_not_valid_name * 1
                     except Exception as e:
+                        if key_not_valid_name == '':
+                            raise Al_KeyError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"cannot use empty string in place of an index",
+                                'context': self.context,
+                                'exit': False
+                            })
+                            # is_keys_empty = True
+                            # keys_empty.append(i)  
                         raise Al_KeyError({
                             'pos_start': self.pos_start,
                             'pos_end': self.pos_end,
@@ -3500,7 +3513,17 @@ class String(Value):
                             'context': self.context,
                             'exit': False
                         })
+               
+                
                 keys = re.findall(r'{(.*?)}', string)
+                # if is_keys_empty:
+                #     for i in range(len(keys)):
+                #         if i not in keys_empty:
+                #             new_keys.append(i)
+                #     keys = new_keys
+                    # change the emty braces to contain the numbers in keys
+                
+                
                 if len(keys) != len(new_args):
                     for key in keys:
                         k = int(key)
@@ -3512,6 +3535,8 @@ class String(Value):
                                 "context": self.context,
                                 'exit': False
                             })
+                            
+                
                 string = string.replace('{' + str(i) + '}', str(new_args[i].value))
         
         return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -3716,6 +3741,14 @@ class String(Value):
     def __repr__(self):
         return f"'{self.value}'"
 
+
+class DocString(String):
+    def __init__(self, value):
+        super().__init__(value)
+        self.type = 'docstring'
+    
+    def __str__(self):
+        return f"'''{self.value}'''"
 
 string_methods = {
     'upperCase': String.upperCase, # DONE
@@ -4239,12 +4272,56 @@ Boolean.true = Boolean("true")
 Boolean.false = Boolean("false")
 NoneType.none = NoneType("none")
 
+def sort_func(elements):
+    new_elements = []
+    sorted_elements = []
+    len_elements = len(elements)
+    element_types = {
+        'String': String,
+        'Number': Number,
+        'Boolean': Boolean
+    }
+    elements_type_at_index = {}
+    
+    for element in elements:
+        if isinstance(element, Boolean):
+            if element.value == "true":
+                new_elements.append(int(1))
+            else:
+                new_elements.append(int(0))
+        else:
+            new_elements.append(element.value)
+    
+    # for i in range(len_elements):
+    #     for j in range(len_elements -1):
+    #         try:
+    #             if new_elements[j] > new_elements[j + 1]:
+    #                 temp = new_elements[j]
+    #                 new_elements[j] = new_elements[j + 1]
+    #                 new_elements[j + 1] = temp
+    #                 # we need to convert each element to its type
+
+    #         except:
+    #             pass  
+        sorted_elements = sorted(new_elements)
+    for i in range(len_elements):
+       elements_type_at_index[i] = type(elements[i]).__name__
+    for i in range(len_elements):
+        if elements_type_at_index[i] == 'String':
+            sorted_elements[i] = element_types['String'](sorted_elements[i])
+        elif elements_type_at_index[i] == 'Number':
+            sorted_elements[i] = element_types['Number'](sorted_elements[i])
+        elif elements_type_at_index[i] == 'Boolean':
+            sorted_elements[i] = element_types['Boolean'](sorted_elements[i])
+        
+    
+    return sorted_elements
 
 class List(Value):
     
     def __init__(self, elements, properties=None):
         super().__init__()
-        self.elements = elements if elements else []
+        self.elements = elements
         self.value = self.elements
         self.type = type
         self.id = self.elements
@@ -4460,7 +4537,12 @@ class List(Value):
                 "context": self.context,
                 'exit': False
             })
-        value = List(self.elements.append(args[0])).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+       
+       
+        
+        self.elements.append(args[0])
+        values = self.elements
+        value = List(values).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         return value
         
     def pop(self, args, kwargs, var_name=None):
@@ -4862,6 +4944,8 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
+       
+       
         check_args(1, args, f"{len(args)} arguments given, but map() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
         
         
@@ -4871,9 +4955,32 @@ class List(Value):
         
         func = args[0]
         new_list = []
-        for element in self.elements:
-            new_list.append(res.register(func.execute([element], kwargs)))
-            if res.should_return(): return res
+        
+        check_args((1,3), func.arg_names, f"reduce() expects no more than 4 arguments", self.pos_start, self.pos_end, self.context)
+        
+        if len(func.arg_names) == 1:
+            for element in self.elements:
+                new_list.append(res.register(func.execute([element], kwargs)))
+                if res.should_return(): return res
+                
+        elif len(func.arg_names) == 2:
+            index = 0
+            for i in range(len(self.elements)):
+                index = Number(i).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                new_list.append(res.register(func.execute([self.elements[i], index], kwargs)))
+                if res.should_return(): return res
+            
+                
+        elif len(func.arg_names) == 3:
+            index = 0
+            elements = List(self.elements).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            for i in range(len(self.elements)):
+                index = Number(i).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                new_list.append(res.register(func.execute([self.elements[i], index, elements], kwargs)))
+                if res.should_return(): return res
+                
+                
+                
         return List(new_list).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         
     def filter(self, args, kwargs, var_name=None):
@@ -4898,13 +5005,114 @@ class List(Value):
         
         func = args[0]
         new_list = []
-        for element in self.elements:
-            new_res = res.register(func.execute([element], kwargs))
-            if res.should_return(): return res
-            if isinstance(new_res, Boolean):
-                if new_res.value == "true":
-                    new_list.append(element)
+        
+        check_args((1,3), func.arg_names, f"reduce() expects no more than 4 arguments", self.pos_start, self.pos_end, self.context)
+        
+        
+        if len(func.arg_names) == 1:
+            for element in self.elements:
+                new_res = res.register(func.execute([element], kwargs))
+                if res.should_return(): return res
+                if isinstance(new_res, Boolean):
+                    if new_res.value == "true":
+                        new_list.append(element)
+                        
+        elif len(func.arg_names) == 2:
+            index = 0
+            for i in range(len(self.elements)):
+                element = self.elements[i]
+                index = Number(i).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                new_res = res.register(func.execute([self.elements[i], index], kwargs))
+                if res.should_return(): return res
+                if isinstance(new_res, Boolean):
+                    if new_res.value == "true":
+                        new_list.append(element)
+                    
+                    
+        elif len(func.arg_names) == 3:
+            index = 0
+            elements = List(self.elements).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            for i in range(len(self.elements)):
+                element = self.elements[i]
+                index = Number(i).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                new_res = res.register(func.execute([self.elements[i], index, elements], kwargs))
+                if res.should_return(): return res
+                if isinstance(new_res, Boolean):
+                    if new_res.value == "true":
+                        new_list.append(element)
+                    
+                        
+                        
         return List(new_list).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+     
+    def sort(self, args, kwargs, var_name=None):
+        if args == None:
+            return BuiltInFunction("sort", self.context)
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"sort() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        check_args((0,1), args, f"{len(args)} arguments given, but sort() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        if len(self.elements) == 0:
+            return List([]).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        
+        if len(args) == 0:
+            new_elements = []
+            def is_all_strings(elements):
+                for element in elements:
+                    if not isinstance(element, String):
+                        return False
+                return True
+            def is_all_numbers(elements):
+                for element in elements:
+                    if not isinstance(element, Number):
+                        return False
+                return True
+            def is_all_booleans(elements):
+                for element in elements:
+                    if not isinstance(element, Boolean):
+                        return False
+                return True
+                    
+            
+            if is_all_strings(self.elements):
+                sorted_elements = sort_func(self.elements)
+                value = List(sorted_elements).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                return value
+            elif is_all_numbers(self.elements):
+                sorted_elements = sort_func(self.elements)
+                value = List(sorted_elements).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                return value
+            elif is_all_booleans(self.elements):
+                sorted_elements = sort_func(self.elements)
+                value = List(sorted_elements).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+                return value
+            else:
+                for i in range(len(self.elements)):
+                    for j in range(len(self.elements)):
+                        if type(self.elements[i]).__name__ != type(self.elements[j]).__name__:
+                            raise Al_TypeError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"'>' not supported between instances of '{TypeOf(self.elements[j]).getType()}' and '{TypeOf(self.elements[i]).getType()}'",
+                                'context': self.context,
+                                'exit': False
+                            })
+                        
+        # if len(args) == 1:
+        #     check_type(Function, args[0],f"sort() takes a function as an argument", self.pos_start, self.pos_end, self.context)
+            
+        #     res = RuntimeResult()
+
+        #     func = args[0]
            
     def find(self, args, kwargs, var_name=None):
         if args == None:
@@ -5101,6 +5309,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
+        
         check_args((1,2), args, f"{len(args)} arguments given, but reduce() takes exactly 2 arguments", self.pos_start, self.pos_end, self.context)
         
         check_type(Function, args[0], f"argument 1 of reduce() must be a function", self.pos_start, self.pos_end, self.context)
@@ -5169,26 +5378,6 @@ class List(Value):
                     total = res.register(func.execute([total, current_value, current_index, return_list], kwargs))
                     if res.should_return(): return res
             return total
-      
-    def sort(self, args, kwargs, var_name=None):
-        if args == None:
-            return BuiltInFunction("sort", self.context)
-        if len(kwargs) > 0:
-            for key in kwargs:
-                name = key['name']
-                if name:
-                    raise Al_ArgumentError({
-                        'pos_start': self.pos_start,
-                        'pos_end': self.pos_end,
-                        'message': f"sort() takes no keyword argument",
-                        'context': self.context,
-                        'exit': False
-                    })
-        check_args(0, args, f"{len(args)} arguments given, but sort() takes no arguments", self.pos_start, self.pos_end, self.context)
-        
-        value = List(sorted(self.elements)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
-        self.context.symbolTable.set(var_name, value)
-        return value
     
     def some(self, args, kwargs, var_name=None):
         if args == None:
@@ -7988,7 +8177,6 @@ function_methods = {
 }
 
 
-
 class BuiltInFunction(BaseFunction):
     def __init__(self, name, context=None, properties=None):
         super().__init__(name)
@@ -8440,7 +8628,7 @@ class BuiltInClass(BaseClass):
                 'args': 1,
                 'kwargs': 'none',
                 'optional': False,
-                'required': False
+                'required': True
             },
             'bool': {
                 'args': 1,
@@ -8562,7 +8750,10 @@ class BuiltInClass(BaseClass):
                         exception_details['message'] = f"{self.name}() takes no keyword argument"
                         raise Al_ArgumentError(exception_details)
                     else:
-                        return res.success(None)
+                        if self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['required']:
+                            raise Al_ArgumentError(exception_details)
+                        else:
+                            return res.success(None)
                 
                 elif len_args == 0 and len_kwargs == 0 and self.ACCEPTED_KEYWORD_ARGS_CLASS[self.name]['required']:
                     raise Al_ArgumentError(exception_details)
@@ -8741,15 +8932,11 @@ class BuiltInClass(BaseClass):
 
     execute_str.arg_names = ["object"]
     
-    
-   
-    
-    
+      
     def execute_float(self, exec_context, keyword_args, args):
         object = exec_context.symbolTable.get("object")
         res = RuntimeResult()
-        if object == None:
-            return res.success(Number(0.0))
+            
         if isinstance(object, Number):
             return res.success(Number(float(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
         if isinstance(object, String):
@@ -8774,7 +8961,53 @@ class BuiltInClass(BaseClass):
         })
     
     execute_float.arg_names = ['object']
+        
     
+    def execute_chr(self, exec_context, keyword_args, args):
+        object = exec_context.symbolTable.get("object")
+        res = RuntimeResult()
+        
+        check_type(Number, object, "chr() argument must be of type number, not '{}'".format(TypeOf(object).getType()), self.pos_start, self.pos_end, exec_context)
+        
+        check_type(int, object.value, f"'float' object cannot be interpreted as an integer", self.pos_start, self.pos_end, exec_context)
+        try:
+            return res.success(String(chr(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        except Exception as e:
+            raise Al_ValueError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"invalid literal for chr(): '{object.value}'",
+                'context': exec_context,
+                'exit': False
+            })
+
+    
+    execute_chr.arg_names = ['object']
+    
+    
+    
+    def execute_ord(self, exec_context, keyword_args, args):
+        object = exec_context.symbolTable.get("object")
+        res = RuntimeResult()
+        
+        
+        check_args(1, args, f"ord() takes exactly 1 argument ({len(args)} given)", self.pos_start, self.pos_end, exec_context)
+        
+        
+        check_type(String, object, "ord() argument must be of type string, not '{}'".format(TypeOf(object).getType()), self.pos_start, self.pos_end, exec_context)
+        
+        try:
+            return res.success(Number(ord(object.value)).setPosition(self.pos_start, self.pos_end).setContext(exec_context))
+        except Exception as e:
+            raise Al_ValueError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"invalid literal for ord(): '{object.value}'",
+                'context': exec_context,
+                'exit': False
+            })
+    
+    execute_ord.arg_names = ['object']
     
     def execute_bool(self, exec_context, keyword_args, args):
         object = exec_context.symbolTable.get("object")
@@ -9146,7 +9379,6 @@ def getproperty(object, property, type_):
 
     return value
 
-
 # Built-in functions
 def handle_sep(values, sep, type_,node, context):
     result = ''
@@ -9271,7 +9503,7 @@ def BuiltInFunction_Print(args, node, context,keyword_args=None):
         sep = ' '
         end = '\n'
         result = sep.join(values) + end
-        print(result)
+        sys.stdout.write(result)
     return res.success(NoneType.none)
 
 
@@ -10021,21 +10253,53 @@ def BuiltInFunction_Sorted(args, node, context,keyword_args=None):
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but sort() takes 1 argument",
+            'message': f"{len(args)} arguments given, but sorted() takes 1 argument",
             "context": context,
             'exit': False
         })
 
     if isinstance(args[0], List):
-        new_elements = []
         elements = args[0].elements
-        for element in elements:
-            if hasattr(element, 'value'):
-                new_elements.append(element.value)
-            else:
-                new_elements.append(element)
-        is_sorted = sorted(new_elements)
-        return res.success(List(is_sorted).setPosition(node.pos_start, node.pos_end).setContext(context))
+        def is_all_strings(elements):
+            for element in elements:
+                if not isinstance(element, String):
+                    return False
+            return True
+        def is_all_numbers(elements):
+            for element in elements:
+                if not isinstance(element, Number):
+                    return False
+            return True
+        def is_all_booleans(elements):
+            for element in elements:
+                if not isinstance(element, Boolean):
+                    return False
+            return True
+                
+        
+        if is_all_strings(elements):
+            sorted_elements = sort_func(elements)
+            value = List(sorted_elements).setContext(context).setPosition(node.pos_start, node.pos_end)
+            return value
+        elif is_all_numbers(elements):
+            sorted_elements = sort_func(elements)
+            value = List(sorted_elements).setContext(context).setPosition(node.pos_start, node.pos_end)
+            return value
+        elif is_all_booleans(elements):
+            sorted_elements = sort_func(elements)
+            value = List(sorted_elements).setContext(context).setPosition(node.pos_start, node.pos_end)
+            return value
+        else:
+            for i in range(len(elements)):
+                for j in range(len(elements)):
+                    if type(elements[i]).__name__ != type(elements[j]).__name__:
+                        raise Al_TypeError({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"'>' not supported between instances of '{TypeOf(elements[j]).getType()}' and '{TypeOf(elements[i]).getType()}'",
+                            'context': context,
+                            'exit': False
+                        }) 
     else:
         raise Al_TypeError({
             "pos_start": node.pos_start,
@@ -12585,6 +12849,8 @@ class BuiltInMethod_Pair(Value):
 types = {
         'int': 'int',
         'float': 'float',
+        'complex': 'complex',
+        'chr': 'chr',
         'str': 'str',
         'bool': 'bool',
         'bytes': 'bytes',
@@ -12635,15 +12901,6 @@ class Types(Value):
         return f"<class {self.name}>"
 
 
-
-# Built-in modules
-
-def BuiltInModule_Http(context):
-    module_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return Module("http", module_path, context)
-
-
-
 class Interpreter:
 
     def __init__(self):
@@ -12687,6 +12944,13 @@ class Interpreter:
         )
 
 
+    def visit_DocStringNode(self, node, context):
+        return RuntimeResult().success(
+            DocString(node.tok.value).setContext(
+                context).setPosition(node.pos_start, node.pos_end)
+        )
+
+
     def visit_ByteStringNode(self, node, context):
         return RuntimeResult().success(
             Bytes(node.tok.value).setContext(
@@ -12705,11 +12969,11 @@ class Interpreter:
                 for pv in range(len(inter_pv)):
                     replace_value = res.register(self.visit(values_to_replace[pv], context))
                     value_replaced = str(replace_value)
-                    if isinstance(replace_value, String):
-                        value_replaced = str(replace_value.value)
-                    else:
-                        if value_replaced[0] == "'":
-                            value_replaced = str(value_replaced[1:-1])
+                    # if isinstance(replace_value, String):
+                    #     value_replaced = str(replace_value.value)
+                    # else:
+                    #     if value_replaced[0] == "'":
+                    #         value_replaced = str(value_replaced[1:-1])
                     if value_replaced == "None":
                         value_replaced = str(NoneType.none)
                     string_to_interp = string_to_interp.replace(
@@ -12737,13 +13001,12 @@ class Interpreter:
     def visit_ListNode(self, node, context):
         res = RuntimeResult()
         elements = []
-        properties = Dict({String(k) : String(v) for k, v in list_methods.items()})
         for element_node in node.elements:
             element_value = res.register(self.visit(element_node, context))
             if res.should_return():
                 return res
             elements.append(element_value)
-        return res.success(List(elements, properties).setContext(context).setPosition(node.pos_start, node.pos_end))
+        return res.success(List(elements).setContext(context).setPosition(node.pos_start, node.pos_end))
 
 
     def visit_BooleanNode(self, node, context):
@@ -16429,6 +16692,8 @@ class Interpreter:
             'type': 'freeze'
         })
 
+
+
 BuiltInFunction.print = BuiltInFunction("print")
 BuiltInFunction.println = BuiltInFunction("println")
 BuiltInFunction.exit = BuiltInFunction("exit")
@@ -16476,6 +16741,9 @@ BuiltInClass.File = BuiltInClass("File", {})
 BuiltInClass.str = BuiltInClass("str", {})
 BuiltInClass.int = BuiltInClass("int", {})
 BuiltInClass.float = BuiltInClass("float", {})
+BuiltInClass.complex = BuiltInClass("complex", {})
+BuiltInClass.chr = BuiltInClass("chr", {})
+BuiltInClass.ord = BuiltInClass("ord", {})
 BuiltInClass.bool = BuiltInClass("bool", {})
 BuiltInClass.list = BuiltInClass("list", {})
 BuiltInClass.pair = BuiltInClass("pair", {})
@@ -16570,6 +16838,8 @@ code_builtin_notimplementederror = 'class NotImplementedError()\ndef __@init__(s
 
 Types.int = Types("int")
 Types.float = Types("float")
+Types.complex = Types("complex")
+Types.chr = Types("chr")
 Types.str = Types("str")
 Types.bool = Types("bool")
 Types.list = Types("list")
@@ -16591,6 +16861,9 @@ symbolTable_.set('range', BuiltInFunction.range)
 symbolTable_.set('str', BuiltInClass.str)
 symbolTable_.set('int', BuiltInClass.int)
 symbolTable_.set('float', BuiltInClass.float)
+symbolTable_.set('complex', BuiltInClass.complex)
+symbolTable_.set('chr', BuiltInClass.chr)
+symbolTable_.set('ord', BuiltInClass.ord)
 symbolTable_.set('bool', BuiltInClass.bool)
 symbolTable_.set('list', BuiltInClass.list)
 symbolTable_.set('pair', BuiltInClass.pair)

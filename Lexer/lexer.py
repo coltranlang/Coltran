@@ -357,6 +357,12 @@ class Lexer:
                 tok_type = tokenList.TT_FLOOR_DIV_EQ
             else:
                 tok_type = tokenList.TT_FLOOR_DIV
+        elif self.current_char == '*':
+            self.advance()
+            if self.current_char == '*':
+                self.advance()
+                tok_type = self.make_doc_string()
+                return tok_type
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
     
     def make_mod_or_mod_equal(self):
@@ -460,6 +466,8 @@ class Lexer:
             't': '\t',
             '\es': "\\",
         }
+        
+        
         while self.current_char != None and (self.current_char != '"' or escape_character):
             if self.current_char == '\\':
                 self.advance()
@@ -645,9 +653,34 @@ class Lexer:
         self.advance()
         return Token(tokenList.TT_BACKTICK_STRING, string, pos_start, self.pos)    
     
+    def make_doc_string(self):
+        doc_string = ''
+        pos_start = self.pos.copy()
+        while self.current_char != None:
+            doc_string += self.current_char
+            pos_start = self.pos.copy()
+            self.advance()
+            # check if doc string is closed
+            if self.current_char == '*':
+                self.advance()
+                if self.current_char == '/':
+                    self.advance()
+                    return Token(tokenList.TT_DOC_STRING, doc_string, pos_start, self.pos)
+                else:
+                    doc_string += '*'
+        return None, Program.error()['Syntax']({
+            'pos_start': pos_start,
+            'pos_end': self.pos,
+            'message': "unterminated doc string",
+            'context': self.context,
+            'exit': False
+        })
+        
+       
     def make_unicode_char(self):
         unicode_char = ''
         string = ''
+        pos_start = self.pos.copy()
         self.advance()
         unicode_char = self.current_char
         self.advance()
@@ -656,7 +689,18 @@ class Lexer:
         unicode_char += self.current_char
         self.advance()
         unicode_char += self.current_char
-        string += chr(int(unicode_char, 16))
+        try:
+            string += chr(int(unicode_char, 16))
+        except Exception as e: 
+            self.error_detected = True
+            line = pos_start.line
+            return Program.error()['Syntax']({
+                'pos_start': self.pos,
+                'pos_end': self.pos,
+                'message': f"(unicode error) 'unicodeescape' can't decode bytes in position {line+1}-{self.pos.column+1}: \\u{unicode_char}",
+                'context': self.context,
+                'exit': False
+            })
         return string
     
     def make_colon_or_type_assoc(self):
