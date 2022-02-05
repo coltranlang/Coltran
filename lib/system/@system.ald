@@ -89,7 +89,7 @@ class System
 end
 
 
-let path = __@sys_path__()
+let path = ['.', '../ccdd', '.fg.g', '../ccdd/fg.g']
 let argv = __@sys_argv__()
 
 let version = __@sys_version__()

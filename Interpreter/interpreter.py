@@ -2547,7 +2547,7 @@ class String(Value):
         elif len(args) == 2:
             if isinstance(args[0], String) and isinstance(args[1], Number):
                 if args[1].value < 0:
-                    raise Al_RuntimeError({
+                    raise Al_ArgumentError({
                         "pos_start": self.pos_start,
                         "pos_end": self.pos_end,
                         'message': f"{args[1].value} is not a valid argument for split()",
@@ -2569,7 +2569,7 @@ class String(Value):
                     'exit': False
                 })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
                 'message': f"{len(args)} arguments given, but split() takes 1 or 2 arguments",
@@ -2738,7 +2738,7 @@ class String(Value):
             if isinstance(args[0], String) and isinstance(args[1], String):
                 return String(self.value.replace(args[0].value, args[1].value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
-                raise Al_RuntimeError({
+                raise Al_TypeError({
                     "pos_start": self.pos_start,
                     "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not a valid arguments for replace()",
@@ -2757,7 +2757,7 @@ class String(Value):
                     'exit': False
                 })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
                 'message': f"{len(args)} arguments given, but replace() takes 2 arguments",
@@ -2797,7 +2797,7 @@ class String(Value):
                 end = len(self.value)
                 return String(getsubstr(self.value, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
-                raise Al_RuntimeError({
+                raise Al_TypeError({
                     "pos_start": self.pos_start,
                     "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for substr()",
@@ -2810,7 +2810,7 @@ class String(Value):
                 end = args[1].value + 1
                 return String(getsubstr(self.value, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
-                raise Al_RuntimeError({
+                raise Al_TypeError({
                     "pos_start": self.pos_start,
                     "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not a valid arguments for substr()",
@@ -2818,7 +2818,7 @@ class String(Value):
                     'exit': False
                 })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
                 'message': f"{len(args)} arguments given, but substr() takes 2 arguments",
@@ -2846,7 +2846,7 @@ class String(Value):
                 end = len(self.value)
                 return String(getsubstr(self.value, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
-                raise Al_RuntimeError({
+                raise Al_TypeError({
                     "pos_start": self.pos_start,
                     "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for slice()",
@@ -2859,7 +2859,7 @@ class String(Value):
                 end = args[1].value + 1
                 return String(getsubstr(self.value, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
-                raise Al_RuntimeError({
+                raise Al_TypeError({
                     "pos_start": self.pos_start,
                     "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(args[0]).getType()}' and '{TypeOf(args[1]).getType()}' are not a valid arguments for slice()",
@@ -2867,7 +2867,7 @@ class String(Value):
                     'exit': False
                 })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
                 'message': f"{len(args)} arguments given, but slice() takes 2 arguments",
@@ -2901,7 +2901,7 @@ class String(Value):
                 end = start + 1
                 return String(getsubstr(string, start, end)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
-                raise Al_RuntimeError({
+                raise Al_TypeError({
                     "pos_start": self.pos_start,
                     "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for charAt()",
@@ -2909,7 +2909,7 @@ class String(Value):
                     'exit': False
                 })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
                 'message': f"{len(args)} arguments given, but charAt() takes 1 argument",
@@ -2937,7 +2937,7 @@ class String(Value):
                 substring = args[0].value.replace(" ", "")
                 return Boolean(string.find(substring) != -1).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             else:
-                raise Al_RuntimeError({
+                raise Al_TypeError({
                     "pos_start": self.pos_start,
                     "pos_end": self.pos_end,
                     'message': f"type '{TypeOf(args[0]).getType()}' is not a valid argument for includes()",
@@ -2945,7 +2945,7 @@ class String(Value):
                     'exit': False
                 })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
                 'message': f"{len(args)} arguments given, but includes() takes 1 argument",
@@ -3001,7 +3001,7 @@ class String(Value):
                     'exit': False
                 })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
                 'message': f"{len(args)} arguments given, but count() takes 1 argument and 2 optional arguments",
@@ -3052,7 +3052,7 @@ class String(Value):
                     'exit': False
                 })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
                 'message': f"{len(args)} arguments given, but startsWith() takes 1 or 2 arguments",
@@ -3103,7 +3103,7 @@ class String(Value):
                     'exit': False
                 })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
                 'message': f"{len(args)} arguments given, but endsWith() takes 1 or 2 arguments",
@@ -6089,19 +6089,10 @@ class Dict(Value):
 
     def merge(self, other):
         if isinstance(other, Dict) or isinstance(other, Object):
+            new_properties = self.properties.copy()
             for key, value in other.properties.items():
-                if key.startswith("__"):
-                    continue
-                else:
-                    self.properties[key] = value
-            return Dict(self.properties), None
-        elif isinstance(other, Class):
-            for key, value in other.properties.items():
-                if key.startswith("__"):
-                    continue
-                else:
-                    self.properties[key] = value
-            return Dict(self.properties), None
+                new_properties[key] = value
+            return Dict(new_properties).setContext(self.context).setPosition(self.pos_start, self.pos_end), None
         else:
             error = {
                 'pos_start': self.pos_start,
@@ -6611,19 +6602,10 @@ class Object(Value):
 
     def merge(self, other):
         if isinstance(other, Dict) or isinstance(other, Object):
+            new_properties = self.properties.copy()
             for key, value in other.properties.items():
-                if key.startswith("__"):
-                    continue
-                else:
-                    self.properties[key] = value
-            return Dict(self.properties), None
-        elif isinstance(other, Class):
-            for key, value in other.properties.items():
-                if key.startswith("__"):
-                    continue
-                else:
-                    self.properties[key] = value
-            return Dict(self.properties), None
+                new_properties[key] = value
+            return Dict(new_properties).setContext(self.context).setPosition(self.pos_start, self.pos_end), None
         else:
             error = {
                 'pos_start': self.pos_start,
@@ -6813,7 +6795,7 @@ object_methods = {
     'items': Object.items,
     'get': Object.get,
     'pretty': Object.pretty,
-    '__@properties__': Object.__methods__,
+    '__@methods__': Object.__methods__,
 }
 
 class BaseFunction(Value):
@@ -7998,7 +7980,8 @@ class Function(BaseFunction):
         #print(Klass.properties)
         # if '__@init__' in Klass.properties:
         #     args = [Klass] + new_args
-        args = [Klass] + new_args
+        if len(self.arg_names) > 0:
+            args = [Klass] + new_args
         # if len(args) > 0:
         #     args = [Klass] + args
         # if len(self.arg_names) == 1 and len(args) == 0:
@@ -8744,32 +8727,6 @@ class Class(BaseClass):
             other_class = f"{{{', '.join([f'{k}: {v}' for k, v in other.properties.items()])}}}"
             return _new_class == other_class
         return False
-
-
-    def merge(self, other):
-        if isinstance(other, Dict) or isinstance(other, Object):
-            for key, value in other.properties.items():
-                if key.startswith("__"):
-                    continue
-                else:
-                    self.properties[key] = value
-            return Dict(self.properties), None
-        elif isinstance(other, Class):
-            for key, value in other.properties.items():
-                if key.startswith("__"):
-                    continue
-                else:
-                    self.properties[key] = value
-            return Dict(self.properties), None
-        else:
-            error = {
-                'pos_start': self.pos_start,
-                'pos_end': self.pos_end,
-                'message': f"can't merge '{TypeOf(self.value).getType()}' with '{TypeOf(other.value).getType()}'",
-                'context': self.context,
-                'exit': False
-            }
-            return None, self.illegal_operation_typerror(error, other)
 
 
     def copy(self):
@@ -9897,14 +9854,7 @@ def BuiltInFunction_Len(args, node, context, keyword_args=None):
             raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, len() requires 1 argument", 'context': context, 'exit': False})
 
         value = args[0]
-        if isinstance(value, Number):
-            raise Al_RuntimeError({
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'message': f"type '{TypeOf(value).getType()}' is not supported",
-                'context': context,
-                'exit': False
-            })
+        
         if isinstance(value, List):
             return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
         if isinstance(value, String):
@@ -9995,7 +9945,7 @@ def BuiltInFunction_InputInt(args, node, context,keyword_args=None):
                 })
     res = RuntimeResult()
     if len(args) > 1:
-        raise Al_RuntimeError({
+        raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but inputInt() takes 0 or 1 argument(s)",
@@ -10056,7 +10006,7 @@ def BuiltInFunction_InputFloat(args, node, context,keyword_args=None):
                 })
     res = RuntimeResult()
     if len(args) > 1:
-        raise Al_RuntimeError({
+        raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"{len(args)} arguments given, but inputFloat() takes 0 or 1 argument(s)",
@@ -10341,7 +10291,7 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None):
     end = 0
     step = 0
     if len(args) > 3:
-        raise Al_RuntimeError({
+        raise Al_ArgumentError({
             'pos_start': node.pos_start,
             'pos_end': node.pos_end,
             'message': f"{len(args)} arguments given, but range() takes 1 or 3 arguments",
@@ -10388,7 +10338,7 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None):
                 'exit': False
             })
     if step == 0:
-        raise Al_RuntimeError({
+        raise Al_ValueError({
             'pos_start': node.pos_start,
             'pos_end': node.pos_end,
             'message': f"step cannot be 0",
@@ -10397,7 +10347,7 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None):
         })
     if step > 0:
         if start > end:
-            raise Al_RuntimeError({
+            raise Al_ValueError({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f"start cannot be greater than end",
@@ -10406,7 +10356,7 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None):
             })
     elif step < 0:
         if start < end:
-            raise Al_RuntimeError({
+            raise Al_ValueError({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f"start cannot be less than end",
@@ -10993,7 +10943,7 @@ def BuiltInFunction_hasprop(args, node, context,keyword_args=None):
         })
 
     elif len(args) == 1:
-        raise Al_RuntimeError({
+        raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
             'message': f"hasprop() takes 2 arguments",
@@ -12018,7 +11968,7 @@ def BuiltInClass_Exception(args, node, context, type, name=None):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but Exception takes 1 or 2 arguments",
@@ -12026,7 +11976,10 @@ def BuiltInClass_Exception(args, node, context, type, name=None):
                 'exit': False
             })
     else:
-        return BuiltInClass.Exception
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("Exception", Dict({'name': String(args[0].value), 'message': String(args[1].value)}).properties))
 
 
 def BuiltInClass_RuntimeError(args, node, context, type):
@@ -12060,7 +12013,7 @@ def BuiltInClass_RuntimeError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but RuntimeError takes 1 or 2 arguments",
@@ -12072,7 +12025,7 @@ def BuiltInClass_RuntimeError(args, node, context, type):
         if len(args) == 1 and isinstance(args[0], String):
             return res.success(BuiltInClass("RuntimeError", Dict({'name': String("RuntimeError"), 'message': String(args[0].value)})))
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            return res.success(BuiltInClass("RuntimeError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+            return res.success(BuiltInClass("RuntimeError", Dict({'name': String(args[0].value), 'message': String(args[1].value)}).properties))
 
 
 def BuiltInClass_NameError(args, node, context, type):
@@ -12332,7 +12285,7 @@ def BuiltInClass_PropertyError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but PropertyError takes 1 or 2 arguments",
@@ -12378,7 +12331,7 @@ def BuiltInClass_KeyError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but KeyError takes 1 or 2 arguments",
@@ -12424,7 +12377,7 @@ def BuiltInClass_ZeroDivisionError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but ZeroDivisionError takes 1 or 2 arguments",
@@ -12470,7 +12423,7 @@ def BuiltInClass_LookupError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but LookupError takes 1 or 2 arguments",
@@ -12516,7 +12469,7 @@ def BuiltInClass_UnicodeDecodeError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but UnicodeDecodeError takes 1 or 2 arguments",
@@ -12562,7 +12515,7 @@ def BuiltInClass_ImportError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but ImportError takes 1 or 2 arguments",
@@ -12608,7 +12561,7 @@ def BuiltInClass_ModuleNotFoundError(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but ModuleNotFoundError takes 1 or 2 arguments",
@@ -12654,7 +12607,7 @@ def BuiltInClass_KeyboardInterrupt(args, node, context, type):
                 'exit': False
             })
         else:
-            raise Al_RuntimeError({
+            raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
                 'message': f"{len(args)} arguments given, but KeyboardInterrupt takes 1 or 2 arguments",
@@ -13290,7 +13243,11 @@ class Interpreter:
                     var_name = var_name + element.value
                 elif type(element).__name__ == 'VarAccessNode':
                     var_name = var_name + element.id.value
-        value = res.register(self.visit(node.value_node, context))
+        
+        if node.value_node is not None:
+            value = res.register(self.visit(node.value_node, context))
+        else:
+            value = NoneType().setContext(context).setPosition(node.pos_start, node.pos_end)
 
 
         if node.variable_keyword_token == "module":
@@ -13496,9 +13453,91 @@ class Interpreter:
                             for i in range(len(var_name)):
                                 context.symbolTable.set(
                                     var_name[i].name.value, elements[i])
+            elif isinstance(value, String):
+                if len(var_name) != len(value.value):
+                    has_star = False
+                    var = []
+                    var_names = [name.name.value for name in var_name]
+                    for name in var_names:
+                        if is_varags(name):
+                            has_star = True
+                            break
+                    values = [v for v in value.value]
+                    for v in var_name:
+                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
+                            raise Al_ValueError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"Cannot pair '{TypeOf(value).getType()}' with '{TypeOf(v).getType()}'",
+                                'context': context,
+                                'exit': False
+                            })
+                        var.append(v.name.value)
 
+                        if has_star:
+                            star_names = [name for name in var_names if is_varags(name) == True]
+                            non_star_names = [name for name in var_names if is_varags(name) == False]
+                            starags, nonstarargs = vna_algorithm(var_names, values)
+                            for star_name in star_names:
+                                name = make_varargs(star_name)
+                                context.symbolTable.set(name, List(starags))
+                            for i in range(len(non_star_names)):
+                                try:
+                                    context.symbolTable.set(non_star_names[i], nonstarargs[i])
+                                except:
+                                    raise Al_ValueError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        else:
+                            raise Al_ValueError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"expected {len(var_name)} values, unable to pair {len(value.value)} value(s)",
+                                'context': context,
+                                'exit': False
+                            })
+                else:
+                    has_star = False
+                    elements = []
+                    var = []
+                    var_names = [name.name.value for name in var_name]
+                    values = [v for v in value.value]
+                    for elem in [v for v in value.value]:
+                        elements.append(elem)
+                    for name in var_names:
+                        if is_varags(name):
+                            has_star = True
+                            break
+                    for v in var_name:
+                        var.append(v.name.value)
+                        if has_star:
+                            star_names = [name for name in var_names if is_varags(name) == True]
+                            non_star_names = [name for name in var_names if is_varags(name) == False]
+                            starags, nonstarargs = vna_algorithm(var_names, values)
+                            for star_name in star_names:
+                                name = make_varargs(star_name)
+                                context.symbolTable.set(name, List(starags))
+                            for i in range(len(non_star_names)):
+                                try:
+                                    context.symbolTable.set(non_star_names[i], nonstarargs[i])
+                                except:
+                                    raise Al_ValueError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        else:
+                            for i in range(len(var_name)):
+                                context.symbolTable.set(
+                                    var_name[i].name.value, elements[i])      
             else:
-                raise Al_RuntimeError({
+                raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
                     'message': f"Cannot pair '{TypeOf(value).getType()}' with '{TypeOf(var_name).getType()}'",
@@ -13555,8 +13594,7 @@ class Interpreter:
                         value = value
                 if value is None:
                     if var_name == "@":
-                        raise Al_RuntimeError({
-                            'name': "RuntimeError",
+                        raise Al_NameError({
                             'pos_start': node.pos_start,
                             'pos_end': node.pos_end,
                             'message': f"Expected '@' to be followed by an identifier",
@@ -13583,8 +13621,7 @@ class Interpreter:
                     return res.success(value)
             else:
                 if var_name == "@":
-                    raise Al_RuntimeError({
-                        'name': "RuntimeError",
+                    raise Al_NameError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'message': f"Expected '@' to be followed by an identifier",
@@ -14371,6 +14408,9 @@ class Interpreter:
                             args.append(res.register(
                                 self.visit(arg, context)))
                             if res.should_return(): return res
+                        if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
+                            error["message"] = f"'{object_key.node_to_call.value}' is not callable"
+                            raise Al_NameError(error)
                         if isinstance(value, Function):
                             return_value = res.register(value.run(keyword_args_list,args, object_name))
                         else:
@@ -14439,12 +14479,7 @@ class Interpreter:
                     
             elif type(object_key).__name__ == "Token":
                 if object_key.value in object_methods:
-                    if object_key.value == "length":
-                        value = len(object_name.properties)
-                        return res.success(Number(value))
-                    else:
-                        value = f"<{str(object_key.value)}()>, [ built-in object method ]"
-                        return res.success(String(value))
+                    return res.success(object_methods[object_key.value](object_name, None, None, var_name))
                 if hasattr(object_name, "properties"):
                     if object_key.value in object_name.properties:
                         value = object_name.properties[object_key.value]
@@ -14692,7 +14727,9 @@ class Interpreter:
                         args_node = object_key.args_nodes
                         keyword_args_list = object_key.keyword_args_list
                         args = []
-
+                        if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
+                            error["message"] = f"'{object_key.node_to_call.value}' is not callable"
+                            raise Al_NameError(error)
                         for arg in args_node:
                             args.append(res.register(
                                 self.visit(arg, context)))
@@ -14737,12 +14774,18 @@ class Interpreter:
             if type(object_key).__name__ == "Token":
                 if  object_key.value in builtin_class_methods:
                         return res.success(builtin_class_methods[object_key.value](object_name, None,None,None))
+                if hasattr(object_name.properties, 'properties'):
+                    if object_key.value in object_name.properties.properties:
+                        value = object_name.properties.properties[object_key.value]
+                        return res.success(value)
+                    else:
+                        error["message"] = f"'{object_name.name}' object has no property '{object_key.value}'"
+                        raise Al_PropertyError(error)
                 if object_key.value in object_name.properties:
                     value = object_name.properties[object_key.value]
                     return res.success(value)
                 else:
-                    error["message"] = String(
-                        f"'{object_name.name}' object has no property {object_key.value}")
+                    error["message"] = f"'{object_name.name}' object has no property '{object_key.value}'"
                     raise Al_PropertyError(error)
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
@@ -14756,6 +14799,27 @@ class Interpreter:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
                         return res.success(builtin_class_methods[method_name](object_name, args, kwargs, var_name))
+                    if hasattr(object_name.properties, 'properties'):
+                        if object_key.node_to_call.value in object_name.properties.properties:
+                            value = object_name.properties.properties[object_key.node_to_call.value]
+                            args_node = object_key.args_nodes
+                            keyword_args_list = object_key.keyword_args_list
+                            args = []
+                            if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
+                                error["message"] = f"'{object_key.node_to_call.value}' is not callable"
+                                raise Al_NameError(error)
+                            for arg in args_node:
+                                args.append(res.register(
+                                    self.visit(arg, context)))
+                                if res.should_return(): return res
+                            return_value = res.register(value.run(keyword_args_list,args, object_name))
+                            if res.should_return():
+                                        return res
+
+                            return res.success(return_value)
+                        else:
+                            error["message"] = f"'{object_name.name}' object has no property '{object_key.node_to_call.value}'"
+                            raise Al_PropertyError(error)
                     if object_key.node_to_call.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.value]
                         args_node = object_key.args_nodes
@@ -15539,12 +15603,18 @@ class Interpreter:
             for element in value.elements:
                 if hasattr(element, 'elements'):
                     new_list += element.elements
+                elif hasattr(element, 'properties'):
+                    keys = list(element.properties.keys())
+                    new_keys = []
+                    for key in keys:
+                        if isinstance(key, str):
+                            new_keys.append(String(key).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        else:
+                            new_keys.append(Number(key).setContext(context).setPosition(node.pos_start, node.pos_end))
+                    new_list += new_keys
                 elif hasattr(element, 'value'):
                     new_list.append(element.value)
-                elif hasattr(element, 'properties'):
-                    new_list.append(element.properties)
-                elif hasattr(element, 'properties'):
-                    new_list.append(element.properties)
+                
                 else:
                     new_list.append(element)
 
@@ -15556,17 +15626,25 @@ class Interpreter:
             new_list = ()
             for element in value.elements:
                 if hasattr(element, 'elements'):
-                    new_list += element.elements
+                    if isinstance(element.elements, tuple):
+                        new_list += element.elements
+                    else:
+                        new_list += list(element.elements)
+                elif hasattr(element, 'properties'):
+                    keys = list(element.properties.keys())
+                    new_keys = []
+                    for key in keys:
+                        if isinstance(key, str):
+                            new_keys.append(String(key).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        else:
+                            new_keys.append(Number(key).setContext(context).setPosition(node.pos_start, node.pos_end))
+                    new_list += tuple(new_keys)
                 elif hasattr(element, 'value'):
                     new_list += (element.value,)
-                elif hasattr(element, 'properties'):
-                    new_list += (element.properties,)
-                elif hasattr(element, 'properties'):
-                    new_list += (element.properties,)
                 else:
                     new_list += (element,)
 
-            context.symbolTable.set(var_name, List(new_list), assign_token)
+            context.symbolTable.set(var_name, Pair(new_list), assign_token)
 
         elif isinstance(value, String):
             new_string = ""
@@ -15939,7 +16017,7 @@ class Interpreter:
         elements = []
         try:
             if type(iterable_node).__name__ == "NoneType":
-                raise Al_RuntimeError({
+                raise Al_TypeError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'context': context,
@@ -16619,7 +16697,7 @@ class Interpreter:
 
                 # if already_defined:
                 #     if isinstance(already_defined, Object):
-                #         raise Al_RuntimeError({
+                #         raise Al_NameError({
                 #             "pos_start": node.pos_start,
                 #             "pos_end": node.pos_end,
                 #             "message": "Object with name '{}' already defined".format(object_name),
@@ -16627,7 +16705,7 @@ class Interpreter:
                 #             "exit": False
                 #         }))
                 #     else:
-                #         raise Al_RuntimeError({
+                #         raise Al_NameError({
                 #             "pos_start": node.pos_start,
                 #             "pos_end": node.pos_end,
                 #             "message": "name '{}' already defined".format(object_name),
@@ -16814,18 +16892,31 @@ class Interpreter:
             'sys_exit': BuiltInFunction_SysExit,
             'sys_version': BuiltInFunction_SysVersion,
             'sys_platform': BuiltInFunction_SysPlatform,
-            'exit': BuiltInFunction_Exit
+            'exit': BuiltInFunction_Exit,
+            'Exception': BuiltInClass_Exception,
+            'RuntimeError': BuiltInClass_RuntimeError,
+            'NameError': BuiltInClass_NameError,
+            'ArgumentError': BuiltInClass_ArgumentError,
+            'TypeError': BuiltInClass_TypeError,
+            'IndexError': BuiltInClass_IndexError,
+            'LookupError': BuiltInClass_LookupError,
+            'UnicodeDecodeError': BuiltInClass_UnicodeDecodeError,
+            'ValueError': BuiltInClass_ValueError,
+            'PropertyError': BuiltInClass_PropertyError,
+            'KeyError': BuiltInClass_KeyError,
+            'ZeroDivisionError': BuiltInClass_ZeroDivisionError,
+            'ImportError': BuiltInClass_ImportError,
+            'ModuleNotFoundError': BuiltInClass_ModuleNotFoundError,
+            'KeyboardInterrupt': BuiltInClass_KeyboardInterrupt,
+            'RecursionError': BuiltInClass_RecursionError,
+            'IOError': BuiltInClass_IOError,
+            'OSError': BuiltInClass_OSError,
+            'FileNotFoundError': BuiltInClass_FileNotFoundError,
+            'PermissionError': BuiltInClass_PermissionError,
+            'NotImplementedError': BuiltInClass_NotImplementedError,
         }
 
-        # if builtin in builtin_variables:
-        #     raise Al_RuntimeError({
-        #         'pos_start': node.pos_start,
-        #         'pos_end': node.pos_end,
-        #         'message': f"'{builtin}' is not callable",
-        #         'context': context,
-        #         'exit': False
-        #     })
-
+        
 
         if name in builtins:
             return builtins[name](args, node, context, keyword_args_list)
@@ -17133,25 +17224,27 @@ code_builtin_notimplementederror = 'class NotImplementedError()\ndef __@init__(s
 #     'NotImplementedError': builtin_exception_notimplementederror
 # }
 # class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context
-# BuiltInClass.Exception = BuiltInClass(builtin_exception.class_name, builtin_exception.class_args, builtin_exception.inherit_class_name, builtin_exception.inherited_from, builtin_exception.methods, builtin_exception.class_fields_modifiers, builtin_exception.context)
-# BuiltInClass.RuntimeError = BuiltInClass(builtin_exception_runtime.class_name, builtin_exception_runtime.class_args, builtin_exception_runtime.inherit_class_name, builtin_exception_runtime.inherited_from, builtin_exception_runtime.methods, builtin_exception_runtime.class_fields_modifiers, builtin_exception_runtime.context)
-# BuiltInClass.NameError = BuiltInClass(builtin_exception_nameerror.class_name, builtin_exception_nameerror.class_args, builtin_exception_nameerror.inherit_class_name, builtin_exception_nameerror.inherited_from, builtin_exception_nameerror.methods, builtin_exception_nameerror.class_fields_modifiers, builtin_exception_nameerror.context)
-# BuiltInClass.ArgumentError = BuiltInClass(builtin_exception_argumenterror.class_name, builtin_exception_argumenterror.class_args, builtin_exception_argumenterror.inherit_class_name, builtin_exception_argumenterror.inherited_from, builtin_exception_argumenterror.methods, builtin_exception_argumenterror.class_fields_modifiers, builtin_exception_argumenterror.context)
-# BuiltInClass.TypeError = BuiltInClass(builtin_exception_typeerror.class_name, builtin_exception_typeerror.class_args, builtin_exception_typeerror.inherit_class_name, builtin_exception_typeerror.inherited_from, builtin_exception_typeerror.methods, builtin_exception_typeerror.class_fields_modifiers, builtin_exception_typeerror.context)
-# BuiltInClass.IndexError = BuiltInClass(builtin_exception_indexerror.class_name, builtin_exception_indexerror.class_args, builtin_exception_indexerror.inherit_class_name, builtin_exception_indexerror.inherited_from, builtin_exception_indexerror.methods, builtin_exception_indexerror.class_fields_modifiers, builtin_exception_indexerror.context)
-# BuiltInClass.ValueError = BuiltInClass(builtin_exception_valueerror.class_name, builtin_exception_valueerror.class_args, builtin_exception_valueerror.inherit_class_name, builtin_exception_valueerror.inherited_from, builtin_exception_valueerror.methods, builtin_exception_valueerror.class_fields_modifiers, builtin_exception_valueerror.context)
-# BuiltInClass.PropertyError = BuiltInClass(builtin_exception_propertyerror.class_name, builtin_exception_propertyerror.class_args, builtin_exception_propertyerror.inherit_class_name, builtin_exception_propertyerror.inherited_from,  builtin_exception_propertyerror.methods, builtin_exception_propertyerror.class_fields_modifiers, builtin_exception_propertyerror.context)
-# BuiltInClass.KeyError = BuiltInClass(builtin_exception_keyerror.class_name, builtin_exception_keyerror.class_args, builtin_exception_keyerror.inherit_class_name, builtin_exception_keyerror.inherited_from, builtin_exception_keyerror.methods, builtin_exception_keyerror.class_fields_modifiers, builtin_exception_keyerror.context)
-# BuiltInClass.ZeroDivisionError = BuiltInClass(builtin_exception_zerodivisionerror.class_name, builtin_exception_zerodivisionerror.class_args, builtin_exception_zerodivisionerror.inherit_class_name, builtin_exception_zerodivisionerror.inherited_from,  builtin_exception_zerodivisionerror.methods, builtin_exception_zerodivisionerror.class_fields_modifiers, builtin_exception_zerodivisionerror.context)
-# BuiltInClass.ImportError = BuiltInClass(builtin_exception_ImportError.class_name, builtin_exception_ImportError.class_args, builtin_exception_ImportError.inherit_class_name, builtin_exception_ImportError.inherited_from, builtin_exception_ImportError.methods, builtin_exception_ImportError.class_fields_modifiers, builtin_exception_ImportError.context)
-# BuiltInClass.ModuleNotFoundError = BuiltInClass(builtin_exception_modulenotfounderror.class_name, builtin_exception_modulenotfounderror.class_args, builtin_exception_modulenotfounderror.inherit_class_name, builtin_exception_modulenotfounderror.inherited_from, builtin_exception_modulenotfounderror.methods, builtin_exception_modulenotfounderror.class_fields_modifiers, builtin_exception_modulenotfounderror.context)
-# BuiltInClass.KeyboardInterrupt = BuiltInClass(builtin_exception_keyboardinterrupt.class_name, builtin_exception_keyboardinterrupt.class_args, builtin_exception_keyboardinterrupt.inherit_class_name, builtin_exception_keyboardinterrupt.inherited_from, builtin_exception_keyboardinterrupt.methods, builtin_exception_keyboardinterrupt.class_fields_modifiers, builtin_exception_keyboardinterrupt.context)
-# BuiltInClass.RecursionError = BuiltInClass(builtin_exception_recursionerror.class_name, builtin_exception_recursionerror.class_args, builtin_exception_recursionerror.inherit_class_name, builtin_exception_recursionerror.inherited_from, builtin_exception_recursionerror.methods, builtin_exception_recursionerror.class_fields_modifiers, builtin_exception_recursionerror.context)
-# BuiltInClass.IOError = BuiltInClass(builtin_exception_ioerror.class_name, builtin_exception_ioerror.class_args, builtin_exception_ioerror.inherit_class_name, builtin_exception_ioerror.inherited_from, builtin_exception_ioerror.methods, builtin_exception_ioerror.class_fields_modifiers, builtin_exception_ioerror.context)
-# BuiltInClass.OSError = BuiltInClass(builtin_exception_oserror.class_name, builtin_exception_oserror.class_args, builtin_exception_oserror.inherit_class_name, builtin_exception_oserror.inherited_from, builtin_exception_oserror.methods, builtin_exception_oserror.class_fields_modifiers, builtin_exception_oserror.context)
-# BuiltInClass.FileNotFoundError = BuiltInClass(builtin_exception_filenotfounderror.class_name, builtin_exception_filenotfounderror.class_args, builtin_exception_filenotfounderror.inherit_class_name, builtin_exception_filenotfounderror.inherited_from, builtin_exception_filenotfounderror.methods, builtin_exception_filenotfounderror.class_fields_modifiers, builtin_exception_filenotfounderror.context)
-# BuiltInClass.PermissionError = BuiltInClass(builtin_exception_permissionerror.class_name, builtin_exception_permissionerror.class_args, builtin_exception_permissionerror.inherit_class_name, builtin_exception_permissionerror.inherited_from, builtin_exception_permissionerror.methods, builtin_exception_permissionerror.class_fields_modifiers, builtin_exception_permissionerror.context)
-# BuiltInClass.NotImplementedError = BuiltInClass(builtin_exception_notimplementederror.class_name, builtin_exception_notimplementederror.class_args, builtin_exception_notimplementederror.inherit_class_name, builtin_exception_notimplementederror.inherited_from, builtin_exception_notimplementederror.methods, builtin_exception_notimplementederror.class_fields_modifiers, builtin_exception_notimplementederror.context)
+BuiltInClass.Exception = BuiltInClass("Exception", {} , None)
+BuiltInClass.RuntimeError = BuiltInClass("RuntimeError", {} , None)
+BuiltInClass.NameError = BuiltInClass("NameError", {} , None)
+BuiltInClass.ArgumentError = BuiltInClass("ArgumentError", {} , None)
+BuiltInClass.TypeError = BuiltInClass("TypeError", {} , None)
+BuiltInClass.IndexError = BuiltInClass("IndexError", {} , None)
+BuiltInClass.ValueError = BuiltInClass("ValueError", {} , None)
+BuiltInClass.PropertyError = BuiltInClass("PropertyError", {} , None)
+BuiltInClass.KeyError = BuiltInClass("KeyError", {} , None)
+BuiltInClass.ZeroDivisionError = BuiltInClass("ZeroDivisionError", {} , None)
+BuiltInClass.LookupError = BuiltInClass("LookupError", {} , None)
+BuiltInClass.UnicodeDecodeError = BuiltInClass("UnicodeDecodeError", {} , None)
+BuiltInClass.ImportError = BuiltInClass("ImportError", {} , None)
+BuiltInClass.ModuleNotFoundError = BuiltInClass("ModuleNotFoundError", {} , None)
+BuiltInClass.KeyboardInterrupt = BuiltInClass("KeyboardInterrupt", {} , None)
+BuiltInClass.RecursionError = BuiltInClass("RecursionError", {} , None)
+BuiltInClass.IOError = BuiltInClass("IOError", {} , None)
+BuiltInClass.OSError = BuiltInClass("OSError", {} , None)
+BuiltInClass.FileNotFoundError = BuiltInClass("FileNotFoundError", {} , None)
+BuiltInClass.PermissionError = BuiltInClass("PermissionError", {} , None)
+BuiltInClass.NotImplementedError = BuiltInClass("NotImplementedError", {} , None)
 
 
 
@@ -17209,27 +17302,27 @@ symbolTable_.set('min', BuiltInFunction.min)
 symbolTable_.set('is_finite', BuiltInFunction.is_finite)
 symbolTable_.set('enumerate', BuiltInFunction.enumerate)
 symbolTable_.set('freeze', BuiltInFunction.freeze)
-# symbolTable_.set('Exception', BuiltInClass.Exception)
-# symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
-# symbolTable_.set('NameError', BuiltInClass.NameError)
-# symbolTable_.set('ArgumentError', BuiltInClass.ArgumentError)
-# symbolTable_.set('TypeError', BuiltInClass.TypeError)
-# symbolTable_.set('IndexError', BuiltInClass.IndexError)
-# symbolTable_.set('LookupError', BuiltInClass.LookupError)
-# symbolTable_.set('UnicodeDecodeError', BuiltInClass.UnicodeDecodeError)
-# symbolTable_.set('ValueError', BuiltInClass.ValueError)
-# symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
-# symbolTable_.set('KeyError', BuiltInClass.KeyError)
-# symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
-# symbolTable_.set('ImportError', BuiltInClass.ImportError)
-# symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
-# symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
-# symbolTable_.set('RecursionError', BuiltInClass.RecursionError)
-# symbolTable_.set('IOError', BuiltInClass.IOError)
-# symbolTable_.set('OSError', BuiltInClass.OSError)
-# symbolTable_.set('FileNotFoundError', BuiltInClass.FileNotFoundError)
-# symbolTable_.set('PermissionError', BuiltInClass.PermissionError)
-# symbolTable_.set('NotImplementedError', BuiltInClass.NotImplementedError)
+symbolTable_.set('Exception', BuiltInClass.Exception)
+symbolTable_.set('RuntimeError', BuiltInClass.RuntimeError)
+symbolTable_.set('NameError', BuiltInClass.NameError)
+symbolTable_.set('ArgumentError', BuiltInClass.ArgumentError)
+symbolTable_.set('TypeError', BuiltInClass.TypeError)
+symbolTable_.set('IndexError', BuiltInClass.IndexError)
+symbolTable_.set('LookupError', BuiltInClass.LookupError)
+symbolTable_.set('UnicodeDecodeError', BuiltInClass.UnicodeDecodeError)
+symbolTable_.set('ValueError', BuiltInClass.ValueError)
+symbolTable_.set('PropertyError', BuiltInClass.PropertyError)
+symbolTable_.set('KeyError', BuiltInClass.KeyError)
+symbolTable_.set('ZeroDivisionError', BuiltInClass.ZeroDivisionError)
+symbolTable_.set('ImportError', BuiltInClass.ImportError)
+symbolTable_.set('ModuleNotFoundError', BuiltInClass.ModuleNotFoundError)
+symbolTable_.set('KeyboardInterrupt', BuiltInClass.KeyboardInterrupt)
+symbolTable_.set('RecursionError', BuiltInClass.RecursionError)
+symbolTable_.set('IOError', BuiltInClass.IOError)
+symbolTable_.set('OSError', BuiltInClass.OSError)
+symbolTable_.set('FileNotFoundError', BuiltInClass.FileNotFoundError)
+symbolTable_.set('PermissionError', BuiltInClass.PermissionError)
+symbolTable_.set('NotImplementedError', BuiltInClass.NotImplementedError)
 
 symbolTable_.set('__@file__', BuiltInClass.File)
 symbolTable_.set('__@std_in_read__', BuiltInFunction.std_in_read)

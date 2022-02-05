@@ -1,27 +1,28 @@
 
 
-let points = [40, 100,1, 5, 25, '2', print]
-def @removefromarray(array, value_to_remove)
-    let index = array.indexOf(value_to_remove)
-    if index != -1:
-        array.removeAt(index)
-    end
-    return array
-end
-print(@removefromarray(points, print))#[40, 100, 1, 5, 25, '2']
-let people = [{
-    name: 'John',
-    age: 30
-}, {
-    name: 'Mike',
-    age: 23
-}, {
-    name: 'Ron',
-    age: 45
-}]
 
-print(@removefromarray(people, {
-    name: 'John',
-    age: 30
-})) #[{name: 'Mike', age: 23}, {name: 'Ron', age: 45}]
 
+
+
+
+
+
+# Unpacking arguments
+# def @sum(*args)
+#     let sum = 0
+#     in args as arg:
+#         sum += arg
+#     end
+#     return sum
+# end
+# print(@sum(1, 2, 3, 4, 5)) #15
+
+# def @sum(*args)
+#     let sum = 0
+#     in args as arg:
+#         sum += arg
+#     end
+#     return sum
+# end
+# let my_array = [1, 2, 3, 4, 5]
+# print(@sum(*my_array)) #15

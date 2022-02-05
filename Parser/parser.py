@@ -375,7 +375,8 @@ class VarAssignNode:
                 self.pos_end = t.pos_end
         else:
             self.pos_start = self.variable_name_token.pos_start
-            self.pos_end = self.value_node.pos_end
+            if self.value_node == None:
+                self.pos_end = self.variable_name_token.pos_end
 
 
 class VarAccessNode:
@@ -1264,8 +1265,8 @@ class Parser:
 
             if self.current_token.type != tokenList.TT_EQ:
                 if variable_keyword_token == "let":
-                    tok = Token(tokenList.TT_KEYWORD, 'none', None, None)
-                    return res.success(VarAssignNode(var_name, tok, variable_keyword_token))
+                    expr = res.register(self.expr())
+                    return res.success(VarAssignNode(var_name, None, variable_keyword_token))
                 else:
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -4305,7 +4306,7 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 start_token = self.current_token
-
+            
             if self.current_token.type == tokenList.TT_MUL:
                 self.skipLines()
                 if res.error:

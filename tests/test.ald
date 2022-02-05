@@ -1087,7 +1087,101 @@ end
 print(@test(/**
     Hello World
 */)) 
+line(95)
+# Unpacking
+let a,b,c = "123"
+print(a,b,c)#1,2,3
+let my_dict = {'one': 1, 'two': 2, 'three': 3}
+let a,b,c = my_dict
+print(a,b,c)#[1,2,3]
+let a,b,c = my_dict.values()
+print(a,b,c)#[1, 2, 3]
+let a,b,c = my_dict.keys()
+print(a,b,c)#['one', 'two', 'three']
+let a,b,c = my_dict.items()
+print(a,b,c)#[('one', 1), ('two', 2), ('three', 3)]
+let a,b,c = [1,2,3]
+print(a,b,c)#1,2,3
+let x,y,z = range(3)
+print(x,y,z)#0,1,2
+let *a,_ = [1,2,3]
+print(a)#[1, 2]
+let a, *b = [1,2,3]
+print(a,b)#1,[2, 3]
+let *a,b = [1,2,3]
+print(a,b)#[1, 2],3
+let *a,b,c = 1,2,3
+print(a,b,c)#[1],2,3
+let *a,b,c,d = 1,2,3
+print(a,b,c,d)#[],1,2,3
+# let *a,b,c,d,e = 1,2,3
+# print(a,b,c,d,e) #raise error
+let gen = in range(10) as x:  2 ^ x
+print(gen)
+let *g,_ = gen
+print(g)
+let ran = range(10)
+print(ran)
+# swapping values between variables
+let a = 100
+let b = 200
+let temp = a
+a = b
+b = temp
+print(a,b)#200,100
+a = 100
+b = 200
+let a,b = b,a
+print(a,b)#200,100
+# collecting multiple values with *
+let seq = [1,2,3,4]
+let first, body, last = seq[0], seq[1:3], seq[-1]
+print(first,body,last)#1,[2, 3],4
+let first, *body, last = seq
+print(first,body,last)#1,[2, 3],4
+let seq = [1,2,3,4,5,6]
+let first, *body, last = seq
+print(first,body,last)#1,[2, 3, 4, 5],6
+let *head, a,b = range(5)
+print(head,a,b)#[0, 1, 2],3,4
+#let *a,*b = range(5) # raise error
+# dropping unneeded values with *
+let a,c, *_ = 1,2,0,0,0,0
+print(a,c,_)#1,2,[0, 0, 0, 0, 0]
 
+# import system as sys
+# let m,mi,mc, *_ = sys.path
+# print(m,mi,mc)
+
+
+# pairs in functions
+def @powers(number)
+    return number, number ^2, number ^3
+end
+let result = @powers(2)
+print(result)#(2,4,8)
+let number, square, cube = @powers(2)
+print(number, square, cube)#2,4,8
+let *_, cube = @powers(2)
+print(cube)#8
+
+line(96)
+# merging iterables with *
+# The original iterable is not modified
+let my_pair = [1,2,3]
+let new_pair = **[0, my_pair, 4]
+print(new_pair)#(0, 1, 2, 3, 4)
+
+let my_list = {1:'22'}
+let new_list = **(0, my_list, 4)
+print(new_list)#[0, 1, 2, 3, 4]
+object Name
+    '2': '33'
+end
+let obj = Name
+let my_dict = {1:'22'}
+let new_dict = my_dict |= obj |= {4:'44'}
+print(new_dict)#{1: '22', 0: 0} # sorted(new_dict) to get sorted dict
 # let n = 0b1010
 # #let m = 0o10
 # #let o = 0x10

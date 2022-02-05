@@ -185,7 +185,7 @@ class Permutaion
             result.extend(perms)
             nums_list.append(n)
         end
-        return result.reverse()
+        return result
     end
 end
 
