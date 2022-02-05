@@ -1,0 +1,2 @@
+let name = 'Kenny'
+print(fm"Hello, %{names}!")

@@ -1,6 +1,6 @@
 # testing the http module
 class Http
-    def @init(self, url, headers, body)
+    def __@init__(self, url, headers, body)
         self.url = url
         self.headers = headers
         self.body = body

@@ -1,7 +1,7 @@
 class Employee
     @employee_db_id = "iobherbndfiuyirre" # @ means static variable and cannot be changed
     url = "http://www.google.com" # url is a instance variable and can be changed
-    def @init(self)
+    def __@init__(self)
         self.name = name
         self.age = age
     end
@@ -25,7 +25,7 @@ println(employee.url)
 
 class Accounts()
     accounts_list = []
-    def @init(self, config)
+    def __@init__(self, config)
     end
     def create_account(self, data)
         self.accounts_list.append(data)
@@ -41,8 +41,8 @@ end
 
 
 class Client()
-    def @init(self, config)
-        if not config.hasproperty("client_id") or not config.hasproperty("client_secret"):
+    def __@init__(self, config)
+        if not config.hasprop("client_id") or not config.hasprop("client_secret"):
             raise KeyError("client_id or client_secret is missing")
         end
         self.client_id = config["client_id"]
@@ -59,7 +59,7 @@ end
 
 
 class Wallet()
-    def @init(self)
+    def __@init__(self)
         self.balance = 0
     end
     def deposit(self, amount)
@@ -81,7 +81,7 @@ end
 
 
 # class BankAccount(Wallet)
-#     def @init(self)
+#     def __@init__(self)
 #         self.balance = 0
 #     end
 #     def get_balance(self)

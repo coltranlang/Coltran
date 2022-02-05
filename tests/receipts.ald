@@ -1,0 +1,43 @@
+
+let receipts = []
+
+def @check_recipts()
+    if len(receipts) == 0:
+        raise Exception("No receipts to check")
+    end
+end
+
+def @get_receipts()
+    return receipts
+end
+
+def @get_receipt(id)
+    if id < 0 or id > len(receipts):
+        raise Exception("Invalid receipt id")
+    end
+    return receipts.find(def (id) -> receipts.id == id)
+end
+
+def @add_receipt(receipt)
+    if not hasprop(receipt, "id"):
+        raise Exception("Receipt id cannot be none")
+    end
+    receipt.id = receipts.length + 1
+    receipts.append(receipt)
+end
+
+def @update_receipt(id, receipt)
+    if id < 0 or id > len(receipts):
+        raise Exception("Invalid receipt id")
+    end
+    receipt.id = id
+    let index = receipts.findIndex(def (receipt) -> receipt.id == id)
+    receipts[index] = receipt
+end
+
+def @delete_receipt(id)
+    @check_recipts()
+    let index = receipts.findIndex(def (receipt) -> receipt.id == id)
+    receipts.pop(index)
+end
+

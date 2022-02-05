@@ -121,3 +121,16 @@ def @countZeros(N)
 end
 println(@countZeros(16))
 
+def @test_func(func)
+    func.__@call__("Kenny")
+    func("Dennis")
+    func.__@call__("Bob")
+    func.__@call__()
+end
+
+def @say_hello(name="John")
+    print(fm"%{name} says hello")
+end
+
+
+@test_func(@say_hello)

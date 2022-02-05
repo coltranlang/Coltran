@@ -201,10 +201,19 @@ class Environment:
 class Module:
     def __init__(self, parent=None):
         self.modules = {}
+        self.paths = {}
         self.parent = parent
 
-    def get(self, key):
+    def get_module(self, key):
         value = self.modules.get(key, None)
+        if value == None and self.parent:
+            value = self.parent.get(key)
+        if value == None:
+            return "none"
+        return value
+    
+    def get_path(self, key):
+        value = self.paths.get(key, None)
         if value == None and self.parent:
             value = self.parent.get(key)
         if value == None:
@@ -213,9 +222,15 @@ class Module:
     
     def is_module_in_members(self, key):
         return key in self.modules
+    
+    def is_path_in_members(self, key):
+        return key in self.paths
 
-    def set(self, key, value):
+    def add_module(self, key, value):
         self.modules[key] = value
+        
+    def add_path(self, key, value):
+        self.paths[key] = value
         
     def __repr__(self):
         output = 'Current modules:\n'
@@ -242,25 +257,23 @@ class SymbolTable:
         self.id = 0
         self.parent = parent
         self.scope = Environment(self.parent)
-        self.exception = Exception(self.scope)
     
     def get_by_value(self, value):
         for key, val in self.symbols.items():
                 return key
         return None
-    
-   
-    def set(self, name, value, type=None):
+      
+    def set(self, name, value, type_=None):
         if not value:
             value = "none"
-        if type:
+        if type_:
             self.symbols[name] = {
                 'value': value,
-                'type': type
+                'type': type_
             }
         else:
             self.symbols[name] = value
-        #print(f"{name} is set to {value}")
+        
     def get(self, name):
         value = self.symbols.get(name, None)
         if value == None and self.parent:
@@ -283,7 +296,7 @@ class SymbolTable:
             if type_:
                 self.symbols[name] = {
                     'value': value, 
-                    'type': type
+                    'type': type_
                 }
             else:
                 self.symbols[name] = value
@@ -319,7 +332,28 @@ class SymbolTable:
         return str(result)
 
 
+class ModuleNameSpace:
+    def __init__(self):
+        self.namespace = {}
+    
+    
+    def set(self, name, value):
+        self.namespace[name] = value
 
+        
+    def get(self, name):
+        value = self.namespace.get(name, None)
+        return value
+        
+   
+    def remove(self, name):
+        del self.namespace[name]
+        
+    def __repr__(self):
+        result = {
+            'namespace': self.namespace,
+        }
+        return str(result)
 
 # hash = HashTable(1000)
 # hash.set("key", "value")
