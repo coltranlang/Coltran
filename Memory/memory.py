@@ -263,13 +263,13 @@ class SymbolTable:
                 return key
         return None
       
-    def set(self, name, value, type=None):
+    def set(self, name, value, type_=None):
         if not value:
             value = "none"
-        if type:
+        if type_:
             self.symbols[name] = {
                 'value': value,
-                'type': type
+                'type': type_
             }
         else:
             self.symbols[name] = value
@@ -296,7 +296,7 @@ class SymbolTable:
             if type_:
                 self.symbols[name] = {
                     'value': value, 
-                    'type': type
+                    'type': type_
                 }
             else:
                 self.symbols[name] = value

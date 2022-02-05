@@ -1,20 +1,20 @@
-# Author: Kehinde A. Akinsanya
-# Date: 01/31/2022
-# Description: Vna algorithm can be used to collect items from a list and return a pair of lists containing a list of items collected and a list of items remaining.
-# Vna takes two lists as arguments and returns a pair of lists.
-# The first list should contain the names of the items to be collected and the second list should contain the items.
-# The name of the remaining items to be collected uses a special syntax '*rest', which indicates that all remaining items should be collected.
-# For example:
-# let names = ['item1', 'item2', '*rest', 'item3']
-# let items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-# Vna(names, items) should return ([1,2,10], [3,4,5,6,7,8,9])
+/**
+* Author: Kehinde A. Akinsanya
+* Date: 01/31/2022
+* Description: Vna algorithm can be used to collect items from a list and return a pair of lists containing a list of items collected and a list of items remaining.
+* Vna takes two lists as arguments and returns a pair of lists.
+* The first list should contain the names of the items to be collected and the second list should contain the items.
+* The name of the remaining items to be collected uses a special syntax '*rest', which indicates that all remaining items should be collected.
+* For example:
+* let names = ['item1', 'item2', '*rest', 'item3']
+* let items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+* @Vna(names, items) should return ([1,2,10], [3,4,5,6,7,8,9])
+* @param {list} names - The names of the items to be collected.
+* @param {list} items - The items to be collected.
+* @return {list} - The items collected and the items remaining.
+*/
 
 
-# /*
-#     @param {array} names - list of names of items to be collected
-#     @param {array} items - list of items to be collected
-#     @return {pair} - pair of lists
-# */
 
 
 # Check if we have a '*rest' name in the list of names

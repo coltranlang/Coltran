@@ -121,6 +121,7 @@ class Program:
 
 
 class Lexer:
+    
     def __init__(self, fileName, fileText, context, position=None, environment=None, module_name=None, fm_string=None):
         self.fileName = fileName
         self.fileText = fileText
@@ -133,6 +134,8 @@ class Lexer:
                             -1, 0, -1, fileName, fileText, "inter_p", self.position, self.module_name, self.fm_string)
         self.current_char = None
         self.error_detected = False
+        self.has_doc = False
+        self.doc = ''
         self.advance()
 
     def advance(self):
@@ -233,6 +236,7 @@ class Lexer:
             return tokens, self.error_detected
         except:
             pass
+  
     def make_number(self):
         num_str = ''
         dot_count = 0
@@ -657,14 +661,23 @@ class Lexer:
         doc_string = ''
         pos_start = self.pos.copy()
         while self.current_char != None:
-            doc_string += self.current_char
+            value = self.current_char
+            doc_string += value
             pos_start = self.pos.copy()
             self.advance()
-            # check if doc string is closed
             if self.current_char == '*':
                 self.advance()
                 if self.current_char == '/':
                     self.advance()
+                    # removed_whitespace = doc_string.lstrip()
+                    # doc_string = removed_whitespace
+                    self.has_doc = True
+                    self.doc = doc_string
+                    # remove whitespace from the start and end of the doc string
+                    # for example:
+                    # /**
+                    #         * This is a doc string
+                    # withouth the whitespace
                     return Token(tokenList.TT_DOC_STRING, doc_string, pos_start, self.pos)
                 else:
                     doc_string += '*'
@@ -676,7 +689,6 @@ class Lexer:
             'exit': False
         })
         
-       
     def make_unicode_char(self):
         unicode_char = ''
         string = ''

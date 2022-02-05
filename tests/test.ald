@@ -1065,22 +1065,28 @@ in seasons as season:
 end
 line(94)
 # Docstring|Multi-line string
-# def @main()
-#     /**
-#      * This is a docstring
-#      * 
-#      * @param {string} name 
-#      * @param {string} [age] 
-#      * @returns {string} 
-#      */
-#     print("Hello", __@doc__)
-# end
-# @main()
-#println(dic_user["name"]) # error
-# def @makeList(item, list=[])
-#     list.append(item)
-#     return list
-# end
+# Docstring must be the first statement in a class definition or a function definition.
+# Because of how Docstring works, you can use it to create a multi-line string.
+# DocString inherits from str, so you can use it in the same way you would use a string.
+# but the test example below is considered a bad practice.
+def @main()
+/**
+* This is a docstring
+* @param {string} name 
+* @param {string} age 
+* @returns {string} 
+*/
+    print("Hello", @main.__@doc__)
+end
+@main()
+def @test(string)
+    return string
+end
+
+# This is considered a bad practice and should be avoided. Docstrings should only be used for documentation purposes.
+print(@test(/**
+    Hello World
+*/)) 
 
 # let n = 0b1010
 # #let m = 0o10

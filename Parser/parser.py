@@ -620,7 +620,7 @@ class AttemptNode:
 
 
 class FunctionNode:
-    def __init__(self, def_name_token, args_name_tokens, body_node, implicit_return, default_values, type=None):
+    def __init__(self, def_name_token, args_name_tokens, body_node, implicit_return, default_values, type=None, doc=None):
         self.def_name_token = def_name_token
         self.id = def_name_token
         self.args_name_tokens = args_name_tokens
@@ -628,6 +628,7 @@ class FunctionNode:
         self.implicit_return = implicit_return
         self.default_values = default_values
         self.type = type
+        self.doc = doc
         if self.def_name_token:
             self.pos_start = self.def_name_token.pos_start
         elif len(self.args_name_tokens) > 0:
@@ -695,12 +696,13 @@ class ModuleObject:
 
 
 class ClassNode:
-    def __init__(self, class_name,inherits_class_name, methods, class_fields_modifiers):
+    def __init__(self, class_name,inherits_class_name, methods, class_fields_modifiers, doc=None):
         self.id = class_name
         self.class_name = class_name
         self.inherits_class_name = inherits_class_name
         self.methods = methods
         self.class_fields_modifiers = class_fields_modifiers
+        self.doc = doc
         self.pos_start = self.class_name.pos_start
         self.pos_end = self.class_name.pos_end
         self.class_object = {
@@ -2548,6 +2550,7 @@ class Parser:
 
     def function_expr(self):
         res = ParseResult()
+        doc_string = None
         self.scope = "function"
         default_values = {}
         default_values_list = []
@@ -2822,7 +2825,9 @@ class Parser:
 
         res.register_advancement()
         self.advance()
-
+        if self.current_token.type == tokenList.TT_DOC_STRING:
+            doc_string = res.register(self.expr())
+        
         body = res.register(self.statements())
         if res.error:
                 return res
@@ -2830,7 +2835,7 @@ class Parser:
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            return res.success(FunctionNode(def_name_token, arg_name_tokens, body, False, default_values_list))
+            return res.success(FunctionNode(def_name_token, arg_name_tokens, body, False, default_values_list, None, doc_string))
         else:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -3106,8 +3111,11 @@ class Parser:
                     'context': self.context,
                     'exit': False
                 }))
-
+                
             if self.current_token.type == tokenList.TT_IDENTIFIER or tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING:
+                if self.current_token.type == tokenList.TT_RBRACE:
+                    self.skipLines()
+                    return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
                 properties.append({
                     'key': self.current_token,
                     'value': [],
@@ -3116,7 +3124,7 @@ class Parser:
                 })
                 keys.append(self.current_token)
                 self.skipLines()
-
+                
                 if self.current_token.type != tokenList.TT_COLON:
                     if self.current_token.type == tokenList.TT_EQ or self.current_token.type == tokenList.TT_EQEQ:
                         return res.failure(self.error['Syntax']({
@@ -3293,13 +3301,14 @@ class Parser:
                         'context': self.context,
                         'exit': False
                     }))
-
+            self.skipLines()
         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
 
     def class_def(self):
         res = ParseResult()
         inherit_class_name = None
         class_name = None
+        doc_string = None
         if self.current_token.matches(tokenList.TT_KEYWORD, 'class'):
             res.register_advancement()
             self.advance()
@@ -3408,11 +3417,12 @@ class Parser:
 
         methods = None
         class_fields_modifiers = None
-
+        if self.current_token.type == tokenList.TT_DOC_STRING:
+            doc_string = res.register(self.expr())
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers))
+            return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers, doc_string))
 
         while self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
@@ -3420,7 +3430,7 @@ class Parser:
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-                return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers))
+                return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers, doc_string))
 
             if self.current_token.type == tokenList.TT_IDENTIFIER:
                 class_fields_modifiers = self.class_fields_modifiers()
@@ -3439,7 +3449,7 @@ class Parser:
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-                return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers))
+                return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers, doc_string))
 
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             class_fields_modifiers = self.class_fields_modifiers()
@@ -3449,11 +3459,11 @@ class Parser:
             if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                 res.register_advancement()
                 self.advance()
-                return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers))
+                return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers, doc_string))
         if self.current_token.matches(tokenList.TT_KEYWORD, "end"):
             res.register_advancement()
             self.advance()
-            return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers))
+            return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers, doc_string))
         if self.current_token.type == tokenList.TT_EOF:
             return res.success(ClassNode(class_name, inherit_class_name, methods, class_fields_modifiers))
 
@@ -3532,6 +3542,7 @@ class Parser:
         res = ParseResult()
         methods = []
         self.scope = "method"
+        doc_string = None
         while self.current_token.matches(tokenList.TT_KEYWORD, "def"):
             default_values = {}
             default_values_list = []
@@ -3770,6 +3781,8 @@ class Parser:
 
             res.register_advancement()
             self.advance()
+            if self.current_token.type == tokenList.TT_DOC_STRING:
+                doc_string = res.register(self.expr())
             body = res.register(self.statements())
             if res.error:
                     return res
@@ -3778,7 +3791,7 @@ class Parser:
                 self.advance()
                 methods.append({
                     'name': method_name,
-                    'value': FunctionNode(method_name, args_list, body, False, default_values_list, "method"),
+                    'value': FunctionNode(method_name, args_list, body, False, default_values_list, "method", doc_string),
                     'args': args_list,
                     'pos_start': method_name.pos_start,
                     'pos_end': body.pos_end
