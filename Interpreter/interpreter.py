@@ -2512,7 +2512,7 @@ class String(Value):
                     })
         if len(args) == 0:
             value = []
-            split_list = self.value.split()
+            split_list = [x for x in self.value]
             for i in split_list:
                 value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
             return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -2520,13 +2520,13 @@ class String(Value):
             if isinstance(args[0], String):
                 if args[0].value == " ":
                     value = []
-                    split_list = self.value.split()
+                    split_list = [x for x in self.value]
                     for i in split_list:
                         value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
                     return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
                 elif args[0].value == "":
                     value = []
-                    split_list = self.value.split()
+                    split_list = [x for x in self.value]
                     for i in split_list:
                         value.append(String(i).setContext(self.context).setPosition(self.pos_start, self.pos_end))
                     return List(value).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -6124,7 +6124,7 @@ class Dict(Value):
     def is_true(self):
         return len(self.properties) > 0
   
-    def length(self,args,kwargs,var_name=None):
+    def length(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return Number(len(self.properties)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
@@ -6136,7 +6136,7 @@ class Dict(Value):
                 'exit': False
             })
 
-    def hasprop(self,args,kwargs,var_name=None):
+    def hasprop(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("hasProp", self.context)
         if len(kwargs) > 0:
@@ -6161,7 +6161,7 @@ class Dict(Value):
                 return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         
-    def keys(self,args,kwargs,var_name=None):
+    def keys(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("keys", self.context)
         if len(kwargs) > 0:
@@ -6184,7 +6184,7 @@ class Dict(Value):
             keys.append(String(key))
         return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         
-    def values(self,args,kwargs,var_name=None):
+    def values(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("values", self.context)
         if len(kwargs) > 0:
@@ -6206,7 +6206,7 @@ class Dict(Value):
             values.append(value)
         return List(values).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         
-    def items(self,args,kwargs,var_name=None):
+    def items(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("items", self.context)
         if len(kwargs) > 0:
@@ -6233,7 +6233,7 @@ class Dict(Value):
             items.append(Pair([key, value]))
         return List(items).setContext(self.context).setPosition(self.pos_start, self.pos_end)
                           
-    def get(self,args,kwargs,var_name=None):
+    def get(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("get", self.context)
         if len(kwargs) > 0:
@@ -6268,7 +6268,7 @@ class Dict(Value):
         else:
             return default
              
-    def set(self,args,kwargs,var_name=None):
+    def set(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("set", self.context)
         if len(kwargs) > 0:
@@ -6317,7 +6317,7 @@ class Dict(Value):
             
         return NoneType().setContext(self.context).setPosition(self.pos_start, self.pos_end)
     
-    def update(self,args,kwargs,var_name=None):
+    def update(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("update", self.context)
         res = RuntimeResult()
@@ -6412,7 +6412,7 @@ class Dict(Value):
         
         return NoneType().setContext(self.context).setPosition(self.pos_start, self.pos_end)
     
-    def delete(self,args,kwargs,var_name=None):
+    def delete(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("delete", self.context)
         if len(kwargs) > 0:
@@ -6440,7 +6440,7 @@ class Dict(Value):
         
         return NoneType().setContext(self.context).setPosition(self.pos_start, self.pos_end)
                 
-    def clear(self,args,kwargs,var_name=None):
+    def clear(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("clear", self.context)
         if len(kwargs) > 0:
@@ -6462,12 +6462,12 @@ class Dict(Value):
         
         return Dict(self.properties).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             
-    def pretty(self,args,kwargs,var_name=None):
+    def pretty(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("pretty", self.context)
         pass   
     
-    def __methods__(self,args,kwargs,var_name=None):
+    def __methods__(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
             keys = [String(key) for key, value in dict_methods.items() if key != '__@methods__']
             return List(keys).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -7561,7 +7561,7 @@ class Function(BaseFunction):
         self.context = context
         self.value = f"<function {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
-    def execute(self, args, keyword_args_list):
+    def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
@@ -7569,6 +7569,9 @@ class Function(BaseFunction):
         keyword_args = {}
         default_values = {}
         new_args = []
+        unpacked = False
+        unpacked_args = []
+        non_unpacked_args = []
         exec_context.symbolTable.set("self", self)
         #new_args = args
         # default values
@@ -7622,7 +7625,64 @@ class Function(BaseFunction):
 
             else:
                 new_args = args
-
+        len_args = len(args)
+        len_arg_names = len(self.arg_names)
+        if has_unpack == True:
+            for arg in args:
+                if is_iterable(arg):
+                    if isinstance(arg, List) or isinstance(arg, Pair):
+                        if len(arg.elements) > len_arg_names or len(arg.elements) < len_arg_names:
+                            raise Al_ArgumentError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"{self.name}() takes {len_arg_names} positional arguments but {len(arg.elements) if len(arg.elements) != 0 else 'none'} {'was' if len(arg.elements) == 1 or len(arg.elements) == 0 else 'were'} given",
+                                'context': self.context,
+                                'exit': False
+                            })
+                        else:
+                            unpacked = True
+                            for i in range(len(arg.elements)):
+                                unpacked_args.append(arg.elements[i])
+                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                        keys = arg.get_keys()
+                        if len(keys) > len_arg_names or len(keys) < len_arg_names:
+                            raise Al_ArgumentError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"{self.name}() takes {len_arg_names} positional arguments but {len(keys) if len(keys) != 0 else 'none'} {'was' if len(keys) == 1 or len(keys) == 0 else 'were'} given",
+                                'context': self.context,
+                                'exit': False
+                            })
+                        else:
+                            unpacked = True
+                            for i in range(len(keys)):
+                                if isinstance(keys[i], str):
+                                    unpacked_args.append(String(keys[i]).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+                                if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                    unpacked_args.append(Number(keys[i]).setContext(
+                                        self.context).setPosition(self.pos_start, self.pos_end))
+                    elif isinstance(arg, String):
+                        values = [x for x in arg.value]
+                        if len(values) > len_arg_names or len(values) < len_arg_names:
+                            raise Al_ArgumentError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"{self.name}() takes {len_arg_names} positional arguments but {len(values) if len(values) != 0 else 'none'} {'was' if len(values) == 1 or len(values) == 0 else 'were'} given",
+                                'context': self.context,
+                                'exit': False
+                            })
+                        else:
+                            unpacked = True
+                            for i in range(len(values)):
+                                unpacked_args.append(String(values[i]).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+                else:
+                    raise Al_TypeError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                        'context': self.context,
+                        'exit': False
+                    })
         # if len(self.default_values) > 0:
         #     for default_value in self.default_values:
         #         name = default_value['name']
@@ -7640,9 +7700,11 @@ class Function(BaseFunction):
         #new_args = args + new_args
         # if keyword_args_list != None and len(keyword_args_list) > 0:
         #     args = new_args
-        self.check_args(args, keyword_args)
+        if unpacked == True:
+            args = unpacked_args 
+        
+        self.check_args(args, keyword_args, has_unpack)
         self.populate_args(keyword_args, args, exec_context)
-
         if res.should_return(): return res
 
         value = res.register(interpreter.visit(self.body_node, exec_context))
@@ -7673,18 +7735,19 @@ class Function(BaseFunction):
 
         return missing_args_name
 
-    def check_args(self, args,keyword_args):
+    def check_args(self, args,keyword_args, has_unpack):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
         default_values = {}
         len_args = len(args)
         len_arg_names = len(self.arg_names)
-        # if len_args == 0:
-        #     len_args = "none"
+        new_args = []        
+         
         was_or_were = "was" if len_args == 1 or len_args == 0 or len_args == "none" else "were"
         len_expected = len(self.arg_names)
         new_args_names = self.arg_names
+
         if len(self.default_values) > 0:
             for default_value in self.default_values:
                 name = default_value['name']
@@ -7799,7 +7862,8 @@ class Function(BaseFunction):
                 if not has_var_args:
                     exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() requires {len_expected} positional {'argument'  if len(missing_args) == 1 else 'arguments'}{missing_args_name}"
                     raise Al_ArgumentError(exception_details)
-
+        
+       
         return res.success(None)
 
     def populate_args(self, keyword_args, args, exec_context):
@@ -7814,6 +7878,7 @@ class Function(BaseFunction):
         new_args_names = self.arg_names
         new_args = args[1:]
         has_star = False
+        
         for i in range(len(self.arg_names)):
             if is_varags(self.arg_names[i]):
                 has_star = True
@@ -7846,7 +7911,7 @@ class Function(BaseFunction):
                 arg_value.setContext(exec_context)
                 exec_context.symbolTable.set(arg_name, arg_value)
 
-
+        
 
         if len(self.default_values) > 0:
             for default_value in self.default_values:
@@ -7888,7 +7953,7 @@ class Function(BaseFunction):
                     })
 
     # only class Function calls this method
-    def run(self, keyword_args_list, args, Klass, context=None, is_Init=None):
+    def run(self, keyword_args_list, args, Klass, context=None, is_Init=None, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
@@ -7896,7 +7961,10 @@ class Function(BaseFunction):
         default_values = {}
         new_args = []
         new_args = args
-        # default values
+        unpacked = False
+        len_args = len(args)
+        len_arg_names = len(self.arg_names)
+        unpacked_args = []
         if self.default_values != None:
             if len(self.default_values) > 0:
                 for default_value in self.default_values:
@@ -7904,7 +7972,7 @@ class Function(BaseFunction):
                     value = res.register(interpreter.visit(
                         default_value['value'], exec_context))
                     default_values[name] = value
-
+       
 
         if keyword_args_list != None:
             if len(keyword_args_list) > 0:
@@ -7959,7 +8027,62 @@ class Function(BaseFunction):
                     #             args_index = len_old_args - 1
             else:
                 new_args = args
-
+        if has_unpack == True:
+            for arg in args:
+                if is_iterable(arg):
+                    if isinstance(arg, List) or isinstance(arg, Pair):
+                        if len(arg.elements) > len_arg_names - 1 or len(arg.elements) < len_arg_names - 1:
+                            raise Al_ArgumentError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"{self.name}() takes {len_arg_names - 1} positional arguments but {len(arg.elements) if len(arg.elements) != 0 else 'none'} {'was' if len(arg.elements) == 1 or len(arg.elements) == 0 else 'were'} given",
+                                'context': self.context,
+                                'exit': False
+                            })
+                        else:
+                            unpacked = True
+                            for i in range(len(arg.elements)):
+                                unpacked_args.append(arg.elements[i])
+                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                        keys = arg.get_keys()
+                        if len(keys) > len_arg_names - 1 or len(keys) < len_arg_names - 1:
+                            raise Al_ArgumentError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"{self.name}() takes {len_arg_names - 1} positional arguments but {len(keys) if len(keys) != 0 else 'none'} {'was' if len(keys) == 1 or len(keys) == 0 else 'were'} given",
+                                'context': self.context,
+                                'exit': False
+                            })
+                        else:
+                            unpacked = True
+                            for i in range(len(keys)):
+                                if isinstance(keys[i], str):
+                                    unpacked_args.append(String(keys[i]).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+                                if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                    unpacked_args.append(Number(keys[i]).setContext(
+                                        self.context).setPosition(self.pos_start, self.pos_end))
+                    elif isinstance(arg, String):
+                        values = [x for x in arg.value]
+                        if len(values) > len_arg_names - 1 or len(values) < len_arg_names - 1:
+                            raise Al_ArgumentError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"{self.name}() takes {len_arg_names - 1} positional arguments but {len(values) if len(values) != 0 else 'none'} {'was' if len(values) == 1 or len(values) == 0 else 'were'} given",
+                                'context': self.context,
+                                'exit': False
+                            })
+                        else:
+                            unpacked = True
+                            for i in range(len(values)):
+                                unpacked_args.append(String(values[i]).setContext(self.context).setPosition(self.pos_start, self.pos_end))
+                else:
+                    raise Al_TypeError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                        'context': self.context,
+                        'exit': False
+                    })
         # if len(self.default_values) > 0:
         #     for default_value in self.default_values:
         #         name = default_value['name']
@@ -7980,8 +8103,13 @@ class Function(BaseFunction):
         #print(Klass.properties)
         # if '__@init__' in Klass.properties:
         #     args = [Klass] + new_args
-        if len(self.arg_names) > 0:
-            args = [Klass] + new_args
+        
+        if unpacked == True:
+            if len(self.arg_names) > 0:
+                args = [Klass] + unpacked_args
+        else:
+            if len(self.arg_names) > 0:
+                args = [Klass] + new_args
         # if len(args) > 0:
         #     args = [Klass] + args
         # if len(self.arg_names) == 1 and len(args) == 0:
@@ -8591,7 +8719,7 @@ class Class(BaseClass):
         self.class_args = args
 
     
-    def execute(self, args, keyword_args_list):
+    def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
         new_context = self.generate_new_context()
@@ -8626,10 +8754,10 @@ class Class(BaseClass):
                         method_args = method_args[1:]
                         class_args = method_args
                 
-                    
+                 
 
             if method_ != None:
-                value = res.register(method_.run(keyword_args_list,args, self, new_context))
+                value = res.register(method_.run(keyword_args_list,args, self, new_context, True, has_unpack))
                 if not isinstance(value, NoneType):
                     raise Al_TypeError({
                         'pos_start': self.pos_start,
@@ -8638,7 +8766,6 @@ class Class(BaseClass):
                         'context': self.context,
                         'exit': False
                     })
-        
         self.check_args(class_args, args, default_values)
         self.populate_args(keyword_args,class_args, args, default_values, self.context)
 
@@ -8865,7 +8992,7 @@ class BuiltInClass(BaseClass):
         }
 
 
-    def execute(self, args, keyword_args_list):
+    def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
         exec_context = self.generate_new_context()
@@ -9047,7 +9174,7 @@ class BuiltInClass(BaseClass):
         })
 
 
-    def execute_File(self, exec_context, keyword_args, args):
+    def execute_File(self, exec_context, keyword_args, args, has_unpack=False):
         res = RuntimeResult()
         file = exec_context.symbolTable.get("file")
         mode = exec_context.symbolTable.get("mode")
@@ -9128,7 +9255,7 @@ class BuiltInClass(BaseClass):
 
     execute_File.arg_names = ["file", "mode"]
 
-    def execute_str(self, exec_context, keyword_args, args):
+    def execute_str(self, exec_context, keyword_args, args, has_unpack=False):
         object = exec_context.symbolTable.get("object")
         res = RuntimeResult()
         if object == None:
@@ -9145,7 +9272,7 @@ class BuiltInClass(BaseClass):
     execute_str.arg_names = ["object"]
     
       
-    def execute_float(self, exec_context, keyword_args, args):
+    def execute_float(self, exec_context, keyword_args, args, has_unpack=False):
         object = exec_context.symbolTable.get("object")
         res = RuntimeResult()
             
@@ -9175,7 +9302,7 @@ class BuiltInClass(BaseClass):
     execute_float.arg_names = ['object']
         
     
-    def execute_chr(self, exec_context, keyword_args, args):
+    def execute_chr(self, exec_context, keyword_args, args, has_unpack=False):
         object = exec_context.symbolTable.get("object")
         res = RuntimeResult()
         
@@ -9197,7 +9324,7 @@ class BuiltInClass(BaseClass):
     execute_chr.arg_names = ['object']
        
     
-    def execute_ord(self, exec_context, keyword_args, args):
+    def execute_ord(self, exec_context, keyword_args, args, has_unpack=False):
         object = exec_context.symbolTable.get("object")
         res = RuntimeResult()
         
@@ -9220,7 +9347,7 @@ class BuiltInClass(BaseClass):
     
     execute_ord.arg_names = ['object']
     
-    def execute_bool(self, exec_context, keyword_args, args):
+    def execute_bool(self, exec_context, keyword_args, args, has_unpack=False):
         object = exec_context.symbolTable.get("object")
         res = RuntimeResult()
         if object == None:
@@ -9247,7 +9374,7 @@ class BuiltInClass(BaseClass):
     execute_bool.arg_names = ['object']
     
     
-    def execute_list(self, exec_context, keyword_args, args):
+    def execute_list(self, exec_context, keyword_args, args, has_unpack=False):
         object = exec_context.symbolTable.get("object")
         res = RuntimeResult()
         if object == None:
@@ -9296,7 +9423,7 @@ class BuiltInClass(BaseClass):
     execute_list.arg_names = ['object']
     
     
-    def execute_pair(self, exec_context, keyword_args, args):
+    def execute_pair(self, exec_context, keyword_args, args, has_unpack=False):
         object = exec_context.symbolTable.get("object")
         res = RuntimeResult()
         if object == None:
@@ -9340,7 +9467,7 @@ class BuiltInClass(BaseClass):
     execute_pair.arg_names = ['object']
     
     
-    def execute_dict(self, exec_context, keyword_args, args):
+    def execute_dict(self, exec_context, keyword_args, args, has_unpack=False):
         object = exec_context.symbolTable.get("object")
         res = RuntimeResult()
         if keyword_args is None or len(keyword_args) == 0:
@@ -9681,7 +9808,7 @@ def handle_end(end, type_, node, context):
     return result
 
 
-def BuiltInFunction_Print(args, node, context,keyword_args=None):
+def BuiltInFunction_Print(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     interpreter = Interpreter()
     values = []
@@ -9759,7 +9886,7 @@ def BuiltInFunction_Print(args, node, context,keyword_args=None):
     return res.success(NoneType().setContext(context).setPosition(node.pos_start, node.pos_end))
 
 
-def BuiltInFunction_PrintLn(args, node, context,keyword_args=None):
+def BuiltInFunction_PrintLn(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     interpreter = Interpreter()
     values = []
@@ -9837,7 +9964,7 @@ def BuiltInFunction_PrintLn(args, node, context,keyword_args=None):
     return res.success(NoneType().setContext(context).setPosition(node.pos_start, node.pos_end))
 
 
-def BuiltInFunction_Len(args, node, context, keyword_args=None):
+def BuiltInFunction_Len(args, node, context, keyword_args=None, has_unpack=False):
         res = RuntimeResult()
         if keyword_args != None and len(keyword_args) > 0:
             for key in keyword_args:
@@ -9875,7 +10002,7 @@ def BuiltInFunction_Len(args, node, context, keyword_args=None):
             })
 
 
-def BuiltInFunction_Input(args, node, context,keyword_args=None):
+def BuiltInFunction_Input(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -9931,7 +10058,7 @@ def BuiltInFunction_Input(args, node, context,keyword_args=None):
             })
 
 
-def BuiltInFunction_InputInt(args, node, context,keyword_args=None):
+def BuiltInFunction_InputInt(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -9992,7 +10119,7 @@ def BuiltInFunction_InputInt(args, node, context,keyword_args=None):
             })
 
 
-def BuiltInFunction_InputFloat(args, node, context,keyword_args=None):
+def BuiltInFunction_InputFloat(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10053,7 +10180,7 @@ def BuiltInFunction_InputFloat(args, node, context,keyword_args=None):
             })
 
 
-def BuiltInFunction_InputBool(args, node, context,keyword_args=None):
+def BuiltInFunction_InputBool(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10105,7 +10232,7 @@ def BuiltInFunction_InputBool(args, node, context,keyword_args=None):
             })
 
 
-def BuiltInFunction_Append(args, node,context, keyword_args=None):
+def BuiltInFunction_Append(args, node,context, keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10135,7 +10262,7 @@ def BuiltInFunction_Append(args, node,context, keyword_args=None):
         })
 
 
-def BuiltInFunction_Pop(args, node, context, keyword_args=None):
+def BuiltInFunction_Pop(args, node, context, keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10183,7 +10310,7 @@ def BuiltInFunction_Pop(args, node, context, keyword_args=None):
         })
 
 
-def BuiltInFunction_Extend(args, node, context,keyword_args=None):
+def BuiltInFunction_Extend(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10222,7 +10349,7 @@ def BuiltInFunction_Extend(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_Remove(args, node, context, keyword_args=None):
+def BuiltInFunction_Remove(args, node, context, keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10274,7 +10401,7 @@ def Range(start, end, step):
     return List([Number(i) for i in range(start, end, step)])
 
 
-def BuiltInFunction_Range(args, node, context,keyword_args=None):
+def BuiltInFunction_Range(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10369,13 +10496,13 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None):
     
 
 
-def BuiltInFunction_Zip(args, node, context,keyword_args=None):
+def BuiltInFunction_Zip(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     # zip takes any number of iterables as arguments and returns a list of tuples, where the i-th tuple contains the i-th element from each of the argument sequences or iterables.
     # zip can accept multiple iterables, but the resulting list is truncated to the length of the shortest input iterable.
 
 
-def BuiltInFunction_Max(args, node, context,keyword_args=None):
+def BuiltInFunction_Max(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10409,7 +10536,7 @@ def BuiltInFunction_Max(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_Min(args, node, context,keyword_args=None):
+def BuiltInFunction_Min(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10443,7 +10570,7 @@ def BuiltInFunction_Min(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_is_finite(args, node, context,keyword_args=None):
+def BuiltInFunction_is_finite(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10481,7 +10608,7 @@ def BuiltInFunction_is_finite(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_Sorted(args, node, context,keyword_args=None):
+def BuiltInFunction_Sorted(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     interpreter = Interpreter()
     key = None
@@ -10691,7 +10818,7 @@ def BuiltInFunction_Sorted(args, node, context,keyword_args=None):
         return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context)) 
 
 
-def BuiltInFunction_Substr(args, node, context,keyword_args=None):
+def BuiltInFunction_Substr(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10736,7 +10863,7 @@ def BuiltInFunction_Substr(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_Reverse(args, node, context,keyword_args=None):
+def BuiltInFunction_Reverse(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10778,7 +10905,7 @@ def BuiltInFunction_Reverse(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_Format(args, node, context,keyword_args=None):
+def BuiltInFunction_Format(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10796,7 +10923,7 @@ def BuiltInFunction_Format(args, node, context,keyword_args=None):
     matches = regex.match(string)
 
 
-def BuiltInFunction_Typeof(args, node, context,keyword_args=None):
+def BuiltInFunction_Typeof(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10861,7 +10988,7 @@ def  getInstance(type1, type2):
     return False
 
 
-def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
+def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10919,7 +11046,7 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None):
         return res.success(Boolean(getInstance(args[0], args[1])).setPosition(node.pos_start, node.pos_end).setContext(context))
 
 
-def BuiltInFunction_hasprop(args, node, context,keyword_args=None):
+def BuiltInFunction_hasprop(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -10976,7 +11103,7 @@ def BuiltInFunction_hasprop(args, node, context,keyword_args=None):
         return res.success(Boolean(value).setPosition(node.pos_start, node.pos_end).setContext(context))
 
 
-def BuiltInFunction_Line(args, node, context,keyword_args=None):
+def BuiltInFunction_Line(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -11022,7 +11149,7 @@ def BuiltInFunction_Line(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_Clear(args, node, context,keyword_args=None):
+def BuiltInFunction_Clear(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -11048,7 +11175,7 @@ def BuiltInFunction_Clear(args, node, context,keyword_args=None):
         return res.success(None)
 
 
-def BuiltInFunction_Delay(args, node, context,keyword_args=None):
+def BuiltInFunction_Delay(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -11083,7 +11210,7 @@ def BuiltInFunction_Delay(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_Require(args, node, context,keyword_args=None):
+def BuiltInFunction_Require(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -11163,7 +11290,7 @@ def BuiltInFunction_Require(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_Enumerate(args, node, context,keyword_args=None):
+def BuiltInFunction_Enumerate(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     interpreter = Interpreter()
     valid_keywords_args = ["start"]
@@ -11384,7 +11511,7 @@ def BuiltInFunction_Enumerate(args, node, context,keyword_args=None):
             })
    
    
-def BuiltInFunction_Freeze(args, node, context, keyword_args=None):
+def BuiltInFunction_Freeze(args, node, context, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     interpreter = Interpreter()
     if len(args) != 0:
@@ -11657,7 +11784,7 @@ def handle_std_in(node, context):
     print("std_input")
 
 
-def BuiltInFunction_Exit(args, node, context,keyword_args=None):
+def BuiltInFunction_Exit(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -11703,7 +11830,7 @@ def BuiltInFunction_Exit(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_Random(args, node, context,keyword_args=None):
+def BuiltInFunction_Random(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
             name = key['name']
@@ -11718,7 +11845,7 @@ def BuiltInFunction_Random(args, node, context,keyword_args=None):
     print(args)
 
 
-def BuiltInFunction_StdInRead(args, node, context,keyword_args=None):
+def BuiltInFunction_StdInRead(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
@@ -11763,7 +11890,7 @@ def BuiltInFunction_StdInRead(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_StdInReadLine(args, node, context,keyword_args=None):
+def BuiltInFunction_StdInReadLine(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
@@ -11808,7 +11935,7 @@ def BuiltInFunction_StdInReadLine(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_StdInReadLines(args, node, context,keyword_args=None):
+def BuiltInFunction_StdInReadLines(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
@@ -11854,7 +11981,7 @@ def BuiltInFunction_StdInReadLines(args, node, context,keyword_args=None):
         })
 
 
-def BuiltInFunction_StdOutWrite(args, node, context,keyword_args=None):
+def BuiltInFunction_StdOutWrite(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
@@ -11900,31 +12027,31 @@ def BuiltInFunction_StdOutWrite(args, node, context,keyword_args=None):
             })
 
 
-def BuiltInFunction_StdOutWriteLines(args, node, context,keyword_args=None):
+def BuiltInFunction_StdOutWriteLines(args, node, context,keyword_args=None, has_unpack=False):
     pass
 
 
-def BuiltInFunction_SysPath(args, node, context,keyword_args=None):
+def BuiltInFunction_SysPath(args, node, context,keyword_args=None, has_unpack=False):
     pass
 
 
-def BuiltInFunction_SysArgv(args, node, context,keyword_args=None):
+def BuiltInFunction_SysArgv(args, node, context,keyword_args=None, has_unpack=False):
     pass
 
 
-def BuiltInFunction_SysExit(args, node, context,keyword_args=None):
+def BuiltInFunction_SysExit(args, node, context,keyword_args=None, has_unpack=False):
     pass
 
 
-def BuiltInFunction_SysVersion(args, node, context,keyword_args=None):
+def BuiltInFunction_SysVersion(args, node, context,keyword_args=None, has_unpack=False):
     pass
 
 
-def BuiltInFunction_SysPlatform(args, node, context,keyword_args=None):
+def BuiltInFunction_SysPlatform(args, node, context,keyword_args=None, has_unpack=False):
     pass
 
 
-def BuiltInFunction_SysExec(args, node, context,keyword_args=None):
+def BuiltInFunction_SysExec(args, node, context,keyword_args=None, has_unpack=False):
     pass
 
 builtin_variables = {
@@ -12944,7 +13071,7 @@ def BuiltInClass_SystemExit(args, node, context, type):
             return res.success(BuiltInClass("SystemExit", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_Int(args, node, context, keyword_args=None):
+def BuiltInClass_Int(args, node, context, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     interpreter = Interpreter()
     base = 10
@@ -13573,6 +13700,7 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
+        
         if type(value) is dict:
             try:
                 value = value['value']
@@ -14403,6 +14531,7 @@ class Interpreter:
                         value = object_name.properties[object_key.node_to_call.value]
                         args_node = object_key.args_nodes
                         keyword_args_list = object_key.keyword_args_list
+                        has_unpack = object_key.has_unpack
                         args = []
                         for arg in args_node:
                             args.append(res.register(
@@ -14412,7 +14541,7 @@ class Interpreter:
                             error["message"] = f"'{object_key.node_to_call.value}' is not callable"
                             raise Al_NameError(error)
                         if isinstance(value, Function):
-                            return_value = res.register(value.run(keyword_args_list,args, object_name))
+                            return_value = res.register(value.run(keyword_args_list,args, object_name, has_unpack=has_unpack))
                         else:
                             return_value = res.register(value.execute(args, keyword_args_list))
                         if res.should_return(): return res
@@ -14422,12 +14551,13 @@ class Interpreter:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        return res.success(class_methods[method_name](object_name, args, kwargs, var_name))
+                        return res.success(class_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         self.error_detected = True
                         error["message"] = String(f"'{object_name.name}' object has no method '{object_key.node_to_call.value}'")
@@ -14453,6 +14583,7 @@ class Interpreter:
                         else:
                             args_node = object_key.args_nodes
                             keyword_args_list = object_key.keyword_args_list
+                            has_unpack = object_key.has_unpack
                             args = []
 
                             for arg in args_node:
@@ -14460,18 +14591,19 @@ class Interpreter:
                                     self.visit(arg, context)))
                                 if res.should_return(): return res
 
-                            return_value = res.register(value.execute(args,keyword_args_list))
+                            return_value = res.register(value.execute(args,keyword_args_list, has_unpack))
                             return res.success(return_value)
                     elif object_key.node_to_call.value in object_methods:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        return res.success(object_methods[method_name](object_name, args, kwargs, var_name))
+                        return res.success(object_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'{node.name.id.value}' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
@@ -14507,20 +14639,23 @@ class Interpreter:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack  = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
-                            args.append(res.register( self.visit(arg, context)))
+                            args.append(res.register(self.visit(arg, context)))
                             if res.should_return(): return res
-                        return res.success(dict_methods[method_name](object_name, args, kwargs, var_name))
+                        return res.success(dict_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     elif object_key.node_to_call.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.value]
+
                         if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                             error["message"] = f"'{object_key.node_to_call.value}' is not callable"
                             raise Al_NameError(error)
                         else:
                             args_node = object_key.args_nodes
                             keyword_args_list = object_key.keyword_args_list
+                            has_unpack  = object_key.has_unpack
                             args = []
 
                             for arg in args_node:
@@ -14530,7 +14665,7 @@ class Interpreter:
                                     return res
 
                             return_value = res.register(
-                                value.execute(args,keyword_args_list))
+                                value.execute(args,keyword_args_list, has_unpack))
                             
                             if res.should_return():
                                 return res
@@ -14587,12 +14722,13 @@ class Interpreter:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack  = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        return res.success(list_methods[method_name](object_name, args, kwargs, var_name))
+                        return res.success(list_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'list' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
@@ -14611,12 +14747,13 @@ class Interpreter:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack  = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        return res.success(pair_methods[method_name](object_name, args, kwargs, var_name))
+                        return res.success(pair_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'pair' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
@@ -14635,12 +14772,13 @@ class Interpreter:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack  = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        return res.success(string_methods[method_name](object_name, args, kwargs, var_name))
+                        return res.success(string_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'string' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
@@ -14665,12 +14803,13 @@ class Interpreter:
                     method_name = object_key.node_to_call.value
                     args = []
                     kwargs = object_key.keyword_args_list
+                    has_unpack  = object_key.has_unpack
                     if kwargs == None:
                         kwargs = []
                     for arg in object_key.args_nodes:
                         args.append(res.register( self.visit(arg, context)))
                         if res.should_return(): return res
-                    return res.success(number_methods[method_name](object_name, args, kwargs))
+                    return res.success(number_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' object has no property {object_key.node_to_call.value}"
                     raise Al_PropertyError(error)
@@ -14689,12 +14828,13 @@ class Interpreter:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack  = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        return res.success(bytes_methods[method_name](object_name, args, kwargs))
+                        return res.success(bytes_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'bytes' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
@@ -14726,6 +14866,7 @@ class Interpreter:
                         value = object_name.properties[object_key.node_to_call.value]
                         args_node = object_key.args_nodes
                         keyword_args_list = object_key.keyword_args_list
+                        has_unpack = object_key.has_unpack
                         args = []
                         if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                             error["message"] = f"'{object_key.node_to_call.value}' is not callable"
@@ -14736,7 +14877,7 @@ class Interpreter:
                             if res.should_return(): return res
                         _type = object_name.type
                         if _type == "method":
-                            return_value = res.register(value.run(keyword_args_list,args, object_name))
+                            return_value = res.register(value.run(keyword_args_list,args, object_name,has_unpack=has_unpack))
                         else:
                             return_value = res.register(value.execute(args,keyword_args_list))
                         if res.should_return():
@@ -14760,12 +14901,13 @@ class Interpreter:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack  = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        return res.success(builtin_function_methods[method_name](object_name, args, kwargs, var_name))
+                        return res.success(builtin_function_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'{object_name.name}' object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
@@ -14804,6 +14946,7 @@ class Interpreter:
                             value = object_name.properties.properties[object_key.node_to_call.value]
                             args_node = object_key.args_nodes
                             keyword_args_list = object_key.keyword_args_list
+                            has_unpack = object_key.has_unpack
                             args = []
                             if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                                 error["message"] = f"'{object_key.node_to_call.value}' is not callable"
@@ -14812,7 +14955,7 @@ class Interpreter:
                                 args.append(res.register(
                                     self.visit(arg, context)))
                                 if res.should_return(): return res
-                            return_value = res.register(value.run(keyword_args_list,args, object_name))
+                            return_value = res.register(value.run(keyword_args_list,args, object_name,has_unpack=has_unpack))
                             if res.should_return():
                                         return res
 
@@ -14824,13 +14967,16 @@ class Interpreter:
                         value = object_name.properties[object_key.node_to_call.value]
                         args_node = object_key.args_nodes
                         keyword_args_list = object_key.keyword_args_list
+                        has_unpack = object_key.has_unpack
                         args = []
-
+                        if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
+                            error["message"] = f"'{object_key.node_to_call.value}' is not callable"
+                            raise Al_NameError(error)
                         for arg in args_node:
                             args.append(res.register(
                                 self.visit(arg, context)))
                             if res.should_return(): return res
-                        return_value = res.register(value.run(keyword_args_list,args, object_name))
+                        return_value = res.register(value.run(keyword_args_list,args, object_name,has_unpack=has_unpack))
                         if res.should_return():
                                     return res
 
@@ -14867,12 +15013,13 @@ class Interpreter:
                         else:
                             args_node = object_key.args_nodes
                             keyword_args_list = object_key.keyword_args_list
+                            has_unpack = object_key.has_unpack
                             args = []
                             for arg in args_node:
                                 args.append(res.register(
                                     self.visit(arg, context)))
                                 if res.should_return(): return res
-                            return_value = res.register(value.execute(args,keyword_args_list))
+                            return_value = res.register(value.execute(args,keyword_args_list,has_unpack))
 
                             if res.should_return():
                                     return res
@@ -14881,12 +15028,13 @@ class Interpreter:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
-                        return res.success(module_methods[method_name](object_name, args, kwargs))
+                        return res.success(module_methods[method_name](object_name, args, kwargs,has_unpack=has_unpack))
                     else:
                         error["message"] = f"{node.name.id.value} object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
@@ -15613,7 +15761,7 @@ class Interpreter:
                             new_keys.append(Number(key).setContext(context).setPosition(node.pos_start, node.pos_end))
                     new_list += new_keys
                 elif hasattr(element, 'value'):
-                    new_list.append(element.value)
+                    new_list.append(element)
                 
                 else:
                     new_list.append(element)
@@ -15623,13 +15771,10 @@ class Interpreter:
             return res.success(None)
 
         elif isinstance(value, Pair):
-            new_list = ()
+            new_list = []
             for element in value.elements:
                 if hasattr(element, 'elements'):
-                    if isinstance(element.elements, tuple):
-                        new_list += element.elements
-                    else:
-                        new_list += list(element.elements)
+                    new_list += element.elements
                 elif hasattr(element, 'properties'):
                     keys = list(element.properties.keys())
                     new_keys = []
@@ -15638,21 +15783,28 @@ class Interpreter:
                             new_keys.append(String(key).setContext(context).setPosition(node.pos_start, node.pos_end))
                         else:
                             new_keys.append(Number(key).setContext(context).setPosition(node.pos_start, node.pos_end))
-                    new_list += tuple(new_keys)
+                    new_list += new_keys
                 elif hasattr(element, 'value'):
-                    new_list += (element.value,)
+                    new_list.append(element)
                 else:
-                    new_list += (element,)
-
+                    new_list.append(element)
             context.symbolTable.set(var_name, Pair(new_list), assign_token)
 
         elif isinstance(value, String):
-            new_string = ""
+            new_string = []
             for element in value.value:
-                new_string += element
-            context.symbolTable.set(var_name, String(new_string), assign_token)
+                new_string.append(String(element).setContext(context).setPosition(node.pos_start, node.pos_end))
+            context.symbolTable.set(var_name, List(new_string), assign_token)
+        else:
+            raise Al_TypeError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"unsupported operand type(s) for **: '{TypeOf(value).getType()}' and '{TypeOf(_type).getType()}'",
+                'context': context,
+                'exit': False
+            })
 
-
+   
     def visit_ImportNode(self, node, context):
         res = RuntimeResult()
         value = ""
@@ -16824,6 +16976,7 @@ class Interpreter:
         res = RuntimeResult()
         args = []
         keyword_args_list = node.keyword_args_list
+        has_unpack  = node.has_unpack
         value_to_call = res.register(self.visit(
             node.node_to_call, context)) if node.node_to_call else None
         if res.should_return():
@@ -16919,10 +17072,10 @@ class Interpreter:
         
 
         if name in builtins:
-            return builtins[name](args, node, context, keyword_args_list)
+            return builtins[name](args, node, context, keyword_args_list,has_unpack)
 
 
-        return_value = res.register(value_to_call.execute(args, keyword_args_list))
+        return_value = res.register(value_to_call.execute(args, keyword_args_list, has_unpack))
 
         if res.should_return():
             return res
@@ -17158,72 +17311,6 @@ BuiltInClass.bool = BuiltInClass("bool", {})
 BuiltInClass.list = BuiltInClass("list", {})
 BuiltInClass.pair = BuiltInClass("pair", {})
 BuiltInClass.dict = BuiltInClass("dict", {})
-#code for the built-in class exceptions
-#'class Exception(message)\nend\nclass RuntimeError()~Exception\nend'
-code_builtin_exception = 'class Exception()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_runtime = 'class RuntimeError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_nameerror = 'class NameError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_argumenterror = 'class ArgumentError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_typeerror = 'class TypeError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_indexerror = 'class IndexError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_valueerror = 'class ValueError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_propertyerror = 'class PropertyError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_keyerror = 'class KeyError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_zerodivisionerror = 'class ZeroDivisionError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_ImportError = 'class ImportError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_modulenotfounderror = 'class ModuleNotFoundError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_keyboardinterrupt = 'class KeyboardInterrupt()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_recursionerror = 'class RecursionError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_ioerror = 'class IOError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_oserror = 'class OSError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_filenotfounderror = 'class FileNotFoundError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_permissionerror = 'class PermissionError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-code_builtin_notimplementederror = 'class NotImplementedError()\ndef __@init__(self,message)\n\tself.message = message\nend\nend'
-
-
-
-# builtin_exception = Program.createBuiltIn("Exception", code_builtin_exception).elements[0]
-# builtin_exception_runtime = Program.createBuiltIn("RuntimeError", code_builtin_runtime).elements[0]
-# builtin_exception_nameerror = Program.createBuiltIn("NameError", code_builtin_nameerror).elements[0]
-# builtin_exception_argumenterror = Program.createBuiltIn("ArgumentError", code_builtin_argumenterror).elements[0]
-# builtin_exception_typeerror = Program.createBuiltIn("TypeError", code_builtin_typeerror).elements[0]
-# builtin_exception_indexerror = Program.createBuiltIn("IndexError", code_builtin_indexerror).elements[0]
-# builtin_exception_valueerror = Program.createBuiltIn("ValueError", code_builtin_valueerror).elements[0]
-# builtin_exception_propertyerror = Program.createBuiltIn("PropertyError", code_builtin_propertyerror).elements[0]
-# builtin_exception_keyerror = Program.createBuiltIn("KeyError", code_builtin_keyerror).elements[0]
-# builtin_exception_zerodivisionerror = Program.createBuiltIn("ZeroDivisionError", code_builtin_zerodivisionerror).elements[0]
-# builtin_exception_ImportError = Program.createBuiltIn("ImportError", code_builtin_ImportError).elements[0]
-# builtin_exception_modulenotfounderror = Program.createBuiltIn("ModuleNotFoundError", code_builtin_modulenotfounderror).elements[0]
-# builtin_exception_keyboardinterrupt = Program.createBuiltIn("KeyboardInterrupt", code_builtin_keyboardinterrupt).elements[0]
-# builtin_exception_recursionerror = Program.createBuiltIn("RecursionError", code_builtin_recursionerror).elements[0]
-# builtin_exception_ioerror = Program.createBuiltIn("IOError", code_builtin_ioerror).elements[0]
-# builtin_exception_oserror = Program.createBuiltIn("OSError", code_builtin_ioerror).elements[0]
-# builtin_exception_filenotfounderror = Program.createBuiltIn("FileNotFoundError", code_builtin_filenotfounderror).elements[0]
-# builtin_exception_permissionerror = Program.createBuiltIn("PermissionError", code_builtin_permissionerror).elements[0]
-# builtin_exception_notimplementederror = Program.createBuiltIn("NotImplementedError", code_builtin_notimplementederror).elements[0]
-
-# exceptions_ = {
-#     'Exception': builtin_exception,
-#     'RuntimeError': builtin_exception_runtime,
-#     'NameError': builtin_exception_nameerror,
-#     'ArgumentError': builtin_exception_argumenterror,
-#     'TypeError': builtin_exception_typeerror,
-#     'IndexError': builtin_exception_indexerror,
-#     'ValueError': builtin_exception_valueerror,
-#     'PropertyError': builtin_exception_propertyerror,
-#     'KeyError': builtin_exception_keyerror,
-#     'ZeroDivisionError': builtin_exception_zerodivisionerror,
-#     'ImportError': builtin_exception_ImportError,
-#     'ModuleNotFoundError': builtin_exception_modulenotfounderror,
-#     'KeyboardInterrupt': builtin_exception_keyboardinterrupt,
-#     'RecursionError': builtin_exception_recursionerror,
-#     'IOError': builtin_exception_ioerror,
-#     'OSError': builtin_exception_oserror,
-#     'FileNotFoundError': builtin_exception_filenotfounderror,
-#     'PermissionError': builtin_exception_permissionerror,
-#     'NotImplementedError': builtin_exception_notimplementederror
-# }
-# class_name, class_args, inherit_class_name, inherited_from, methods, class_fields_modifiers, context
 BuiltInClass.Exception = BuiltInClass("Exception", {} , None)
 BuiltInClass.RuntimeError = BuiltInClass("RuntimeError", {} , None)
 BuiltInClass.NameError = BuiltInClass("NameError", {} , None)

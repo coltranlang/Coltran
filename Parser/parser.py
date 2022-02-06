@@ -716,11 +716,12 @@ class ClassNode:
 
 
 class CallNode:
-    def __init__(self, node_to_call, args_nodes, keyword_args_list=None):
+    def __init__(self, node_to_call, args_nodes, keyword_args_list=None, has_unpack=None):
         self.id = node_to_call
         self.node_to_call = node_to_call
         self.args_nodes = args_nodes
         self.keyword_args_list = keyword_args_list
+        self.has_unpack = has_unpack
         self.pos_start = self.node_to_call.pos_start
         self.pos_end = self.node_to_call.pos_end
 
@@ -1510,6 +1511,19 @@ class Parser:
         arg_nodes = []
         keyword_args = {}
         keyword_args_list = []
+        has_unpack = False
+        if self.current_token.type == tokenList.TT_MUL:
+            self.skipLines()
+            has_unpack = True
+            # else:
+            #     self.error_detected = True
+            #     return res.failure(self.error['Syntax']({
+            #         'pos_start': self.current_token.pos_start,
+            #         'pos_end': self.current_token.pos_end,
+            #         'message': "expected an expression after '*'",
+            #         'context': self.context,
+            #         'exit': False
+            #     }))
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             keyword_args = {
                 'name': self.current_token.value,
@@ -1591,7 +1605,15 @@ class Parser:
 
         while self.current_token.type == tokenList.TT_COMMA:
             self.skipLines()
-
+            if has_unpack == True:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "no arguments after '*'",
+                    'context': self.context,
+                    'exit': False
+                }))
             if self.current_token.type == tokenList.TT_IDENTIFIER:
                 keyword_args = {
                     'name': self.current_token.value,
@@ -1684,20 +1706,21 @@ class Parser:
             }))
 
         self.skipLines()
-        return arg_nodes, keyword_args_list
+        return arg_nodes, keyword_args_list, has_unpack
 
     def finish_call(self, atom):
         res = ParseResult()
         arg_nodes = []
         keyword_args = {}
         keyword_args_list = []
+        has_unpack = False
         if self.current_token.type == tokenList.TT_LPAREN:
             self.skipLines()
             if self.current_token.type == tokenList.TT_RPAREN:
                 self.skipLines()
 
             else:
-                arg_nodes, keyword_args_list = self.make_call()
+                arg_nodes, keyword_args_list, has_unpack = self.make_call()
 
 
         for i in range(len(arg_nodes)):
@@ -1733,7 +1756,7 @@ class Parser:
             }))
 
         #print(f"arg_nodes: {arg_nodes}", f"keyword_args_list: {keyword_args_list}")
-        return res.success(CallNode(atom, arg_nodes, keyword_args_list))
+        return res.success(CallNode(atom, arg_nodes, keyword_args_list, has_unpack))
 
     def atom(self):
         res = ParseResult()
@@ -1900,7 +1923,7 @@ class Parser:
         name = self.current_token
         self.skipLines()
         arg_nodes = []
-
+        has_unpack = False
         if self.current_token.type == tokenList.TT_LPAREN:
             res.register_advancement()
             self.advance()
@@ -1910,9 +1933,9 @@ class Parser:
                 call_node = res.success(CallNode(name, arg_nodes))
                 name = res.register(call_node)
             else:
-                arg_nodes, keyword_args_list = self.make_call()
+                arg_nodes, keyword_args_list, has_unpack = self.make_call()
                 call_node = res.success(
-                        CallNode(name, arg_nodes, keyword_args_list))
+                        CallNode(name, arg_nodes, keyword_args_list, has_unpack))
                 name = res.register(call_node)
 
         if self.current_token.type == tokenList.TT_PLUS_PLUS:
@@ -2569,7 +2592,6 @@ class Parser:
 
         res.register_advancement()
         self.advance()
-
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             def_name_token = self.current_token
             if def_name_token.value[0] != '@':
@@ -2616,6 +2638,7 @@ class Parser:
         res.register_advancement()
         self.advance()
         arg_name_tokens = []
+
         if self.current_token.type == tokenList.TT_IDENTIFIER or self.current_token.type == tokenList.TT_MUL:
             arg_name_tokens.append(self.current_token)
             if self.current_token.type == tokenList.TT_MUL:
@@ -4112,15 +4135,7 @@ class Parser:
         self.advance()
         start_token = self.current_token
         dict_values = []
-        if self.current_token.type == tokenList.TT_LBRACE:
-            self.error_detected = True
-            return res.failure(self.error['Syntax']({
-                'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "cannot use spread operator on type 'dict' or 'object'",
-                        'context': self.context,
-                'exit': False
-            }))
+        
 
         expr = res.register(self.expr())
         if res.error:

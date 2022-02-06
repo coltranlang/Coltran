@@ -1,3 +1,15 @@
+# Reference to the class is passed to each methods of a class as the first argument, regardless if the class is called or not.
+# For example, if we have a class called "Dog", and we have a function called "bark", then the first argument of bark will be "Dog" the class itself.
+# Example:
+# class Dog
+#   def bark(self)
+#     print("Woof!")
+#   end
+# end
+# dog = Dog()
+# dog.bark() # prints "Woof!"
+# Dog.bark(dog) # prints "Woof!" # even though the Dog class is not called, it is still passed as the first argument.
+
 class Employee
     @employee_db_id = "iobherbndfiuyirre" # @ means static variable and cannot be changed
     url = "http://www.google.com" # url is a instance variable and can be changed

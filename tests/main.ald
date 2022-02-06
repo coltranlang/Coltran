@@ -1,28 +1,26 @@
 
+# Unpack arguments
+def @func(arg1, arg2, arg3)
+  print("arg1 =", arg1)
+  print("arg2 =", arg2)
+  print("arg3 =", arg3)
+end
+
+@func(*"123")
+let persons = {
+    name: "John",
+    age: 30,
+    weight: 75,
+    calc: def (x,y) -> x+y
+}
+
+print(persons.calc(*(1,2)))
 
 
+class Test
+    def sum(self, x, y, z)
+        return x + y + z
+    end
+end
 
-
-
-
-
-
-# Unpacking arguments
-# def @sum(*args)
-#     let sum = 0
-#     in args as arg:
-#         sum += arg
-#     end
-#     return sum
-# end
-# print(@sum(1, 2, 3, 4, 5)) #15
-
-# def @sum(*args)
-#     let sum = 0
-#     in args as arg:
-#         sum += arg
-#     end
-#     return sum
-# end
-# let my_array = [1, 2, 3, 4, 5]
-# print(@sum(*my_array)) #15
+print(Test.sum(*[1,2,3]))
