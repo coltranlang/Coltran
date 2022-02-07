@@ -20,3 +20,75 @@ end
 #     continue
 # end
 
+let s_string = "ADOBECODEBANC"
+let t_string = "ABC"
+
+def @find_minimum_window(s, t)
+    if s == "" or t == "":
+        return ""
+    end
+    let countT, window = {}, {}
+
+    in t as c:
+        countT[c] = 1 + countT.get(c, 0)
+    end
+    print(countT)
+    let have, need = 0, len(countT)
+    let res, resLen = [-1, -1], float("infinity")
+    let l = 0
+
+    for r = 0 to len(s):
+        let c = s[r]
+        window[c] = 1 + window.get(c, 0)
+        attempt:
+            if c in countT and window[c] == countT[c]:
+                have += 1
+            end
+        catch Exception:
+            if not c in countT:
+                break
+            end
+        end
+        while have == need:
+            if r - l + 1 < resLen:
+                res = [l, r]
+                resLen = r - l + 1
+            end
+            window[s[l]] -= 1
+            if s[l] in countT and window[s[l]] < countT[s[l]]:
+                have -= 1
+            end
+            l += 1
+        end
+    end
+    let l, r = res
+    if resLen == float("infinity"):
+        return ""
+    end
+    return s[l:r + 1]
+end
+
+print(@find_minimum_window(s_string, t_string))
+# def @find_index(s_string, t_string)
+#     let s_string_len = len(s_string)
+#     let t_string_len = len(t_string)
+#     if s_string_len < t_string_len:
+#         return -1
+#     end
+#     let i = 0
+#     let j = 0
+#     while i < s_string_len:
+#         if s_string[i] == t_string[j]:
+#             j += 1
+#             if j == t_string_len:
+#                 return i - j + 1
+#             end
+#         else:
+#             i = i - j + 1
+#             j = 0
+#         end
+#         i += 1
+#     end
+#     return -1
+# end
+break

@@ -438,11 +438,11 @@ class PropertySetNode:
 
 
 class IndexNode:
-    def __init__(self, name, index, value=None, type_=None):
+    def __init__(self, name, index, value_=None, type_=None):
         self.name = name
         self.id = name
         self.index = index
-        self.value = value
+        self.value_ = value_
         self.type = type_
         self.pos_start = self.name.pos_start
         self.pos_end = self.index.pos_end
@@ -478,7 +478,6 @@ class SpreadNode:
 
     def __repr__(self):
         return f'{self.name}'
-
 
 
 
@@ -1002,6 +1001,7 @@ class Parser:
             return res.success(ContinueNode(pos_start, self.current_token.pos_end.copy()))
 
         if self.current_token.matches(tokenList.TT_KEYWORD, 'break'):
+            print(Parser.scope)
             if hasattr(Parser, 'scope'):
                 if Parser.scope != 'loop':
                     self.error_detected = True
@@ -1261,13 +1261,12 @@ class Parser:
                         new_values = []
                         expr = res.register(self.expr())
                         values.append(expr)
-                        if isinstance(expr, PairNode) or isinstance(expr, ListNode):
-                            for val in expr.elements:
-                                new_values.append(val)
-                                values = new_values
-                        else:
-                            values = [expr]
-
+                        # if isinstance(expr, PairNode) or isinstance(expr, ListNode):
+                        #     for val in expr.elements:
+                        #         new_values.append(val)
+                        #         values = new_values
+                        # else:
+                        #     values = [expr]
                         if self.current_token.type == tokenList.TT_COMMA:
                             while self.current_token.type == tokenList.TT_COMMA:
                                 res.register_advancement()
@@ -1279,8 +1278,9 @@ class Parser:
                                         values.remove(v)
                             values_list = ListNode(
                                     values, comma_token.pos_start, comma_token.pos_end)
-                            if isinstance(expr, DictNode) or isinstance(expr, ObjectNode):
-                                values_list = expr
+                            # if isinstance(expr, DictNode) or isinstance(expr, ObjectNode):
+                            #     values_list = expr
+                            # print(values_list)
                             return res.success(VarAssignNode(identifiers, values_list, variable_keyword_token))
                         else:
                             values = expr
@@ -1519,15 +1519,16 @@ class Parser:
                 atom = res.register(self.increment_or_decrement(atom))
             elif self.current_token.type != None and self.current_token.type in operation_methods:
                 operator = self.current_token
-                if not isinstance(atom, VarAccessNode):
-                    self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "Illegal expression: invalid left hand side",
-                        'context': self.context,
-                        'exit': False
-                    }))
+                # if not isinstance(atom, VarAccessNode):
+                #     print(type(atom))
+                #     self.error_detected = True
+                #     return res.failure(self.error['Syntax']({
+                #         'pos_start': self.current_token.pos_start,
+                #         'pos_end': self.current_token.pos_end,
+                #         'message': "Illegal expression: invalid left hand side",
+                #         'context': self.context,
+                #         'exit': False
+                #     }))
                 res.register_advancement()
                 self.advance()
                 if self.current_token.type == tokenList.TT_IDENTIFIER:
@@ -2230,7 +2231,7 @@ class Parser:
             new_cases, else_case = all_cases
             cases.extend(new_cases)
 
-        Parser.scope = None
+        Parser.finished_loop = True
         return res.success((cases, else_case))
 
     def for_expr(self):
@@ -2347,7 +2348,7 @@ class Parser:
         #             'exit': False
         #         }
         #     ))
-
+       
         return res.success(ForNode(var_name_token, start_value, end_value, step_value, body, False))
 
     def in_expr(self):
@@ -3083,7 +3084,7 @@ class Parser:
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "Unexpected token, expected a newline",
+                        'message': "no comma allowed after property value in object declaration",
                         'context': self.context,
                         'exit': False
                     }))
@@ -4894,6 +4895,8 @@ class Parser:
                                 }
                             ))
                         self.skipLines()
+                        is_loop = True if hasattr(Parser, 'scope') and Parser.scope == 'loop' else False
+                        print(is_loop)
                         statements = res.register(self.statements())
                         catch_statement = {
                             'exception': exception,
@@ -4999,6 +5002,7 @@ class Parser:
         self.skipLines()
         attempt_node = AttemptNode(
                 attempt_statement, catches, finally_statement, pos_start, self.current_token.pos_end)
+        
         return res.success(attempt_node)
 
     def make_path(self, base_):
@@ -5334,7 +5338,7 @@ class Parser:
                 #         'context': self.context,
                 #         'exit': False
                 #     }))
-            except:
+            except Exception as e:
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,

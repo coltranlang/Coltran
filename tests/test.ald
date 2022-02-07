@@ -1178,7 +1178,7 @@ print(new_list)#[0, 1, 2, 3, 4]
 object Name
     '2': '33'
 end
-let obj = Name
+let obj = {5:'55'}
 let my_dict = {1:'22'}
 let new_dict = my_dict |= obj |= {4:'44'}
 print(new_dict)#{1: '22', 0: 0} # sorted(new_dict) to get sorted dict

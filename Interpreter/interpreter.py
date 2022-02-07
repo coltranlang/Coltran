@@ -2213,10 +2213,11 @@ class String(Value):
             try:
                 return self.setTrueorFalse(other.value in self.value).setContext(self.context), None
             except:
-                error['message'] = f"invaid operation on 'in'"
+                error['message'] = f"invalid operation on 'in'"
                 return None, self.illegal_operation_typerror(error, other)
         elif isinstance(other, List) or isinstance(other, Pair):
-            return self.setTrueorFalse(other.value in self.value).setContext(self.context), None
+            error['message'] = f"'in (\"string\")' requires string as left operand, not '{TypeOf(other).getType()}'"
+            return None, self.illegal_operation_typerror(error, other)
         elif isinstance(other, Boolean):
             if other.value == "true":
                 return self.setTrueorFalse(True).setContext(self.context), None
@@ -3884,7 +3885,7 @@ class Bytes(Value):
             try:
                 return self.setTrueorFalse(other.value in self.value).setContext(self.context), None
             except:
-                error['message'] = f"invaid operation on 'in'"
+                error['message'] = f"invalid operation on 'in'"
                 return None, self.illegal_operation_typerror(error, other)
         elif isinstance(other, List) or isinstance(other, Pair):
             return self.setTrueorFalse(other.value in self.value).setContext(self.context), None
@@ -4324,6 +4325,7 @@ class NoneType(Value):
 
     def __repr__(self):
         return f'{self.value}'
+
 
 
 
@@ -6123,7 +6125,7 @@ class Dict(Value):
 
     def has_property(self, property_name):
         return property_name in self.properties
-
+    
     def get_comparison_eq(self, other):
         value = self.isSame(other)
         return self.setTrueorFalse(True if value else False), None
@@ -6131,7 +6133,41 @@ class Dict(Value):
     def get_comparison_ne(self, other):
         value = self.isSame(other)
         return self.setTrueorFalse(False if value else True), None
-
+    
+    def get_comparison_in(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'in' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
+            'context': self.context
+        }
+        if isinstance(other, String) or isinstance(other, Bytes):
+            try:
+                return self.setTrueorFalse(other.value in self.properties), None
+            except:
+                error['message'] = f"invalid operation on 'in'"
+                return None, self.illegal_operation_typerror(error, other)
+        elif isinstance(other, List) or isinstance(other, Pair):
+            error['message'] = f"invalid operation - unhashable type: '{TypeOf(other).getType()}'"
+            return None, self.illegal_operation_typerror(error, other)
+        elif isinstance(other, Boolean):
+            if other.value in self.properties:
+                return self.setTrueorFalse(True), None
+            else:
+                if other.value == "true":
+                    if 1 in self.properties:
+                        return self.setTrueorFalse(True), None
+                if other.value == "false":
+                    if 0 in self.properties:
+                        return self.setTrueorFalse(True), None
+                return self.setTrueorFalse(False), None
+        else:
+            return None, self.illegal_operation_typerror(error, other)
+    
+    def get_comparison_not_in(self, other):
+        value = self.get_comparison_in(other)[0].value
+        return self.setTrueorFalse(True if value == "false" else False), None
+    
     def or_by(self, other):
         return self.setTrueorFalse(self.value or other.value), None
 
@@ -6156,7 +6192,7 @@ class Dict(Value):
 
     def hasprop(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
-            return BuiltInFunction("hasProp", self.context)
+            return BuiltInFunction("hasprop", self.context)
         if len(kwargs) > 0:
             for key in kwargs:
                 name = key['name']
@@ -6175,9 +6211,34 @@ class Dict(Value):
         
         
         for key, value in self.properties.items():
-            if key == args[0].value:
-                return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            if args[0].value == key:
+                return self.setTrueorFalse(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
+    # def haskey(self,args,kwargs,var_name=None, has_unpack=False):
+    #     if args == None:
+    #         return BuiltInFunction("hasKey", self.context)
+        
+    #     if len(kwargs) > 0:
+    #         for key in kwargs:
+    #             name = key['name']
+    #             if name:
+    #                 raise Al_ArgumentError({
+    #                     'pos_start': self.pos_start,
+    #                     'pos_end': self.pos_end,
+    #                     'message': f"haskey() takes no keyword argument",
+    #                     'context': self.context,
+    #                     'exit': False
+    #                 })
+    #     check_args(1, args, f"{len(args)} arguments given, but haskey() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        
+        
+    #     check_type((String,Number), args[0], f"haskey() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+        
+    #     for key, value in self.properties.items():
+    #         if key == args[0].value:
+    #             return Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    #     return Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         
     def keys(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
@@ -6513,6 +6574,7 @@ class Dict(Value):
 dict_methods = {
     'length': Dict.length,
     'hasprop': Dict.hasprop,
+    #'haskey': Dict.haskey,
     'keys': Dict.keys,
     'values': Dict.values,
     'items': Dict.items,
@@ -6608,6 +6670,40 @@ class Object(Value):
         value = self.isSame(other)
         return self.setTrueorFalse(False if value else True), None
 
+    def get_comparison_in(self, other):
+        error = {
+            'pos_start': self.pos_start,
+            'pos_end': self.pos_end,
+            'message': f"'in' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
+            'context': self.context
+        }
+        if isinstance(other, String) or isinstance(other, Bytes):
+            try:
+                return self.setTrueorFalse(other.value in self.properties), None
+            except:
+                error['message'] = f"invalid operation on 'in'"
+                return None, self.illegal_operation_typerror(error, other)
+        elif isinstance(other, List) or isinstance(other, Pair):
+            error['message'] = f"invalid operation - unhashable type: '{TypeOf(other).getType()}'"
+            return None, self.illegal_operation_typerror(error, other)
+        elif isinstance(other, Boolean):
+            if other.value in self.properties:
+                return self.setTrueorFalse(True), None
+            else:
+                if other.value == "true":
+                    if 1 in self.properties:
+                        return self.setTrueorFalse(True), None
+                if other.value == "false":
+                    if 0 in self.properties:
+                        return self.setTrueorFalse(True), None
+                return self.setTrueorFalse(False), None
+        else:
+            return None, self.illegal_operation_typerror(error, other)
+    
+    def get_comparison_not_in(self, other):
+        value = self.get_comparison_in(other)[0].value
+        return self.setTrueorFalse(True if value == "false" else False), None
+    
     def or_by(self, other):
         return self.setTrueorFalse(self.value or other.value), None
 
@@ -6646,9 +6742,9 @@ class Object(Value):
                 'exit': False
             })
 
-    def hasProp(self,args,kwargs,var_name=None, has_unpack=False):
+    def hasprop(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
-            return BuiltInFunction("hasProp", self.context)
+            return BuiltInFunction("hasprop", self.context)
         if len(kwargs) > 0:
             for key in kwargs:
                 name = key['name']
@@ -6656,14 +6752,14 @@ class Object(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"hasProp() takes no keyword argument",
+                        'message': f"hasprop() takes no keyword argument",
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but hasProp() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} arguments given, but hasprop() takes 1 argument", self.pos_start, self.pos_end, self.context)
         
         
-        check_type((String,Number), args[0], f"hasProp() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+        check_type((String,Number), args[0], f"hasprop() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
         
         
         for key, value in self.properties.items():
@@ -6807,7 +6903,7 @@ class Object(Value):
 
 object_methods = {
     'length': Object.length,
-    'hasProp': Object.hasProp,
+    'hasprop': Object.hasprop,
     'keys': Object.keys,
     'values': Object.values,
     'items': Object.items,
@@ -13185,6 +13281,67 @@ def BuiltInClass_Int(args, node, context, keyword_args=None, has_unpack=False):
         'exit': False
     })
 
+''' Python solution '''
+
+def smallestWindow(s, p):
+	n = len(s)
+	if n < len(p):
+		return -1
+	mp = [0]*256
+	
+	# Starting index of ans
+	start = 0
+	
+	# Answer
+	# Length of ans
+	ans = n + 1
+	cnt = 0
+	
+	# creating map
+	for i in p:
+		mp[ord(i)] += 1
+  
+		if mp[ord(i)] == 1:
+			cnt += 1
+			
+	# References of Window	
+	j = 0
+	i = 0
+	
+	# Traversing the window
+	while(j < n):
+	
+	# Calculating
+		mp[ord(s[j])] -= 1
+		if mp[ord(s[j])] == 0:
+			cnt -= 1
+			
+			# Condition matching
+			while cnt == 0:
+				if ans > j - i + 1:
+				
+				# calculating answer.
+					ans = j - i + 1
+					start = i
+					
+				# Sliding I
+				# Calculation for removing I
+				mp[ord(s[i])] += 1
+				if mp[ord(s[i])] > 0:
+					cnt += 1
+				i += 1
+		j += 1
+    
+	if ans > n:
+		return "-1"
+	return s[start:start+ans]
+
+s = "ADOBECODEBANC"
+p = "ABC"
+result = smallestWindow(s, p)
+print("-->Smallest window that contain all character :", result)
+	
+	# This code is contributed by cyclades.
 
 
 types = {
@@ -13428,7 +13585,6 @@ class Interpreter:
                             var_name[i].name.value, value.elements[i])
 
             elif isinstance(value, Object) or isinstance(value, Dict) or isinstance(value, Module):
-
                 if len(var_name) != len(value.properties):
                     has_star = False
                     var = []
@@ -13449,35 +13605,35 @@ class Interpreter:
                             })
                         var.append(v.name.value)
 
-                    if has_star:
-                        star_names = [name for name in var_names if is_varags(name) == True]
-                        non_star_names = [name for name in var_names if is_varags(name) == False]
-                        starags, nonstarargs = vna_algorithm(var_names, values)
-                        for star_name in star_names:
-                            name = make_varargs(star_name)
-                            context.symbolTable.set(name, List(starags))
-                        for i in range(len(non_star_names)):
-                            try:
-                                context.symbolTable.set(non_star_names[i], nonstarargs[i])
-                            except:
-                                raise Al_ValueError({
-                                        'pos_start': node.pos_start,
-                                        'pos_end': node.pos_end,
-                                        'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
-                                        'context': context,
-                                        'exit': False
-                                })
-
-
-
-                    else:
-                        raise Al_ValueError({
-                            'pos_start': node.pos_start,
-                            'pos_end': node.pos_end,
-                            'message': f"expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
-                            'context': context,
-                            'exit': False
-                        })
+                        if has_star:
+                            star_names = [name for name in var_names if is_varags(name) == True]
+                            non_star_names = [name for name in var_names if is_varags(name) == False]
+                            starags, nonstarargs = vna_algorithm(var_names, values)
+                            for star_name in star_names:
+                                name = make_varargs(star_name)
+                                context.symbolTable.set(name, List(starags))
+                            for i in range(len(non_star_names)):
+                                try:
+                                    context.symbolTable.set(non_star_names[i], nonstarargs[i])
+                                except:
+                                    raise Al_ValueError({
+                                            'pos_start': node.pos_start,
+                                            'pos_end': node.pos_end,
+                                            'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
+                                            'context': context,
+                                            'exit': False
+                                    })
+                        else:
+                            properties = [v for v in value.properties.values()]
+                            print(properties)
+                            
+                            raise Al_ValueError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
+                                'context': context,
+                                'exit': False
+                            })
                 else:
                     has_star = False
                     properties = []
@@ -13517,6 +13673,7 @@ class Interpreter:
 
             elif isinstance(value, Pair) or isinstance(value, List):
                 if len(var_name) != len(value.elements):
+                    print(var_name, value.elements)
                     has_star = False
                     var = []
                     var_names = [name.name.value for name in var_name]
@@ -13722,7 +13879,6 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
-        
         if type(value) is dict:
             try:
                 value = value['value']
@@ -13799,11 +13955,20 @@ class Interpreter:
 
     def visit_VarReassignNode(self, node, context):
         res = RuntimeResult()
-        var_name = node.name.value if hasattr(node.name, 'value') else node.name.id.value
+        var_name = ''
+        if type(node.name).__name__ == "Token":
+            var_name = node.name.value
+        elif type(node.name).__name__ == "VarAccessNode":
+            var_name = node.name.name.value
         if hasattr(var_name, 'value'):
             var_name = var_name.value
         elif hasattr(var_name, 'id'):
             var_name = var_name.id.value
+        elif type(node.name).__name__ == "IndexNode":
+            if type(node.name.id).__name__ == "VarAccessNode":
+                var_name = node.name.id.name.value
+            elif type(node.name.id).__name__ == "Token":
+                var_name = node.name.id.value
         operation = node.operation
         value_ = context.symbolTable.get(var_name)
         value = res.register(self.visit(node.value, context))
@@ -13884,11 +14049,13 @@ class Interpreter:
                                     new_list.append(String(key).setPosition(node.pos_start, node.pos_end).setContext(context))
                                 new_value = List(v['value'].elements + new_list)
                                 context.symbolTable.set(var_name, new_value)
+                            
+                            
                             else:
                                 raise Al_TypeError({
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"type '{TypeOf(value).getType()}' is not iterable",
+                                    'message': f"'{TypeOf(value).getType()}' object is not iterable",
                                     'context': context,
                                     'exit': False
                                 })
@@ -15297,10 +15464,11 @@ class Interpreter:
         index_value = res.register(self.visit(node.name, context))
         index  = res.register(self.visit(node.index, context))
         type_ = node.type
-        value_ = res.register(self.visit(node.value, context))
+        value_ = res.register(self.visit(node.value_, context))
         if res.should_return(): return res
         object_type = TypeOf(index_value).getType()
         index_type = TypeOf(index).getType()
+        
         if object_type == "list":
             if index_type == "int":
                 try:
@@ -15393,6 +15561,7 @@ class Interpreter:
                         get_value = index_value.properties[index.value]
                         return res.success(get_value)
                 except KeyError:
+                    #print(index_value.properties, index.value)
                     raise Al_KeyError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
