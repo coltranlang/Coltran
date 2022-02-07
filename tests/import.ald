@@ -1,26 +1,4 @@
-# # MATH
-import math # import math module
-println(math)
-print(math.pi) # print pi
 
-# HTTP
-import http as h
-let url = 'http://localhost:8080/'
-let headers = {
-  'Content-Type': 'application/json'
-}
-let body = {
-  name: 'test',
-  age: 18
-}
-let http = h.new(url, headers, body)
-let http2 = h.new("http://localhost:8083/", {}, {name: 'test', age: 30})
-let http3 = h.new("http://localhost:8085/", {}, {name: 'test', age: 42})
-println(http.get())
-println(http2.get())
-println(http3.post())
-
-# FILE
 import file as f
 let file = f.open('README.md', 'r')
 println(file.read())

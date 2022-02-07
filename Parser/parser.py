@@ -838,6 +838,7 @@ class Parser:
         self.error = Program.error()
         self.error_detected = False
         self.scope = ''
+        self.if_scope = False
         self.advance()
 
     def advance(self):
@@ -874,6 +875,7 @@ class Parser:
                 'context': self.context,
                 'exit': False
             }
+           
             if not res.error and self.current_token.type != tokenList.TT_EOF:
                 tok_detected = self.current_token
                 error['name'] = 'SynaxError'
@@ -967,24 +969,70 @@ class Parser:
             return res.success(ReturnNode(expr, pos_start, self.current_token.pos_end.copy()))
 
         if self.current_token.matches(tokenList.TT_KEYWORD, 'continue'):
-            print(self.scope)
+            if hasattr(Parser, 'scope'):
+                if Parser.scope != 'loop':
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "can only use 'continue' within a loop",
+                        'context': self.context,
+                        'exit': False,
+                    }))
+            else:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "can only use 'continue' within a loop",
+                    'context': self.context,
+                    'exit': False,
+                }))
             res.register_advancement()
             self.advance()
+            if self.current_token.type != tokenList.TT_NEWLINE:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "invalid syntax",
+                    'context': self.context,
+                    'exit': False
+                }))
             return res.success(ContinueNode(pos_start, self.current_token.pos_end.copy()))
 
         if self.current_token.matches(tokenList.TT_KEYWORD, 'break'):
-            
-            # if self.scope != "for" and self.scope != "while" and self.scope != "in":
-            #     self.error_detected = True
-            #     return res.failure(self.error['Syntax']({
-            #         'pos_start': self.current_token.pos_start,
-            #         'pos_end': self.current_token.pos_end,
-            #         'message': "cannot use break outside of loop",
-            #         'context': self.context,
-            #         'exit': False,
-            #     }))
+            if hasattr(Parser, 'scope'):
+                if Parser.scope != 'loop':
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "'break' outside of loop",
+                        'context': self.context,
+                        'exit': False,
+                    }))
+            else:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "'break' outside of loop",
+                    'context': self.context,
+                    'exit': False,
+                }))
             res.register_advancement()
             self.advance()
+            
+            if self.current_token.type != tokenList.TT_NEWLINE:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "invalid syntax",
+                    'context': self.context,
+                    'exit': False
+                }))
             return res.success(BreakNode(self.scope,pos_start, self.current_token.pos_end.copy()))
         expr = res.register(self.expr())
         if res.error:
@@ -1776,7 +1824,7 @@ class Parser:
         elif tok.type == tokenList.TT_IDENTIFIER:
             self.skipLines()
             if self.current_token.type == tokenList.TT_EQ:
-                if self.scope == "if":
+                if self.if_scope == True:
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -1859,61 +1907,52 @@ class Parser:
             if res.error:
                 return res
             return res.success(class_expr)
-
         elif tok.matches(tokenList.TT_KEYWORD, 'match'):
             match_expr = res.register(self.match_expr())
             if res.error:
                 return res
             return res.success(match_expr)
-
         elif tok.matches(tokenList.TT_KEYWORD, 'attempt'):
             attempt_expr = res.register(self.attempt_expr())
             if res.error:
                 return res
             return res.success(attempt_expr)
-
         elif tok.matches(tokenList.TT_KEYWORD, 'raise'):
             raise_expr = res.register(self.raise_expr())
             if res.error:
                 return res
             return res.success(raise_expr)
-
         elif tok.matches(tokenList.TT_KEYWORD, 'fm'):
             string_interp = res.register(self.string_interp())
             if res.error:
                     return res
             return res.success(string_interp)
-
         elif tok.matches(tokenList.TT_KEYWORD, 'bt'):
             byte_expr = res.register(self.byte_expr())
             if res.error:
                     return res
             return res.success(byte_expr)
-
         elif tok.matches(tokenList.TT_KEYWORD, 'del'):
             del_expr = res.register(self.del_expr())
             if res.error:
                 return res
             return res.success(del_expr)
-
         elif tok.matches(tokenList.TT_KEYWORD, 'import'):
             import_expr = res.register(self.import_expr())
             if res.error:
                 return res
             return res.success(import_expr)
-
         elif tok.matches(tokenList.TT_KEYWORD, 'from'):
             from_import_expr = res.register(self.from_import_expr())
             if res.error:
                     return res
-            return res.success(from_import_expr)
-        
+            return res.success(from_import_expr)       
         elif tok.matches(tokenList.TT_KEYWORD, 'freeze'):
             freeze_expr = res.register(self.freeze_expr())
             if res.error:
                     return res
             return res.success(freeze_expr)
-
+         
     def re_assign(self, name,value):
         res = ParseResult()
         return res.success(VarReassignNode(name, value))
@@ -2083,6 +2122,7 @@ class Parser:
 
         if self.current_token.matches(tokenList.TT_KEYWORD, 'elif'):
             all_cases = res.register(self.if_expr_b())
+            
             if res.error:
                 self.error_detected = True
                 return res
@@ -2099,7 +2139,6 @@ class Parser:
         res = ParseResult()
         cases = []
         else_case = None
-
         if not self.current_token.matches(tokenList.TT_KEYWORD, case_name):
             self.error_detected = True
             return res.failure(self.error['Syntax'](
@@ -2113,11 +2152,15 @@ class Parser:
             ))
         res.register_advancement()
         self.advance()
-
-        self.scope = "if"
-
+        
+        
+        is_loop = True if hasattr(Parser, 'scope') and Parser.scope == 'loop' else False
+        self.if_scope = True
+        Parser.scope = "loop" if is_loop else None
         condition = res.register(self.expr())
-        self.scope = ""
+        self.if_scope = False
+        
+        
         if condition == "":
             self.error_detected = True
             return res.failure(self.error['Syntax'](
@@ -2145,7 +2188,6 @@ class Parser:
             ))
         res.register_advancement()
         self.advance()
-
         if self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
@@ -2187,11 +2229,13 @@ class Parser:
                 return res
             new_cases, else_case = all_cases
             cases.extend(new_cases)
+
+        Parser.scope = None
         return res.success((cases, else_case))
 
     def for_expr(self):
         res = ParseResult()
-        self.scope = "for"
+        Parser.scope = "loop"
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'for'):
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -2308,7 +2352,9 @@ class Parser:
 
     def in_expr(self):
         res = ParseResult()
-        self.scope = "in"
+        Parser.scope = "loop"
+            
+            
         iterable_name_token = None
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'in'):
             self.error_detected = True
@@ -2512,13 +2558,14 @@ class Parser:
 
                 return res.success(InNode(iterable_name_token, iterator_keys, body, False))
 
-
+        
         body = res.register(self.statement())
+        
         return res.success(InNode(iterable_name_token, iterator_keys, body, False))
 
     def while_expr(self):
         res = ParseResult()
-        self.scope = "while"
+        Parser.scope = "loop"
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'while'):
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -2575,7 +2622,8 @@ class Parser:
     def function_expr(self):
         res = ParseResult()
         doc_string = None
-        self.scope = "function"
+        #print(Parser.scope)
+        Parser.scope = "function_method"
         default_values = {}
         default_values_list = []
         varargs = False
@@ -3565,7 +3613,7 @@ class Parser:
     def set_methods(self):
         res = ParseResult()
         methods = []
-        self.scope = "method"
+        Parser.scope = "function_method"
         doc_string = None
         while self.current_token.matches(tokenList.TT_KEYWORD, "def"):
             default_values = {}
@@ -3961,7 +4009,6 @@ class Parser:
     def set_cases(self):
         res = ParseResult()
         cases = []
-        self.scope = "case"
         while self.current_token.matches(tokenList.TT_KEYWORD, "case"):
             res.register_advancement()
             self.advance()
@@ -4042,7 +4089,6 @@ class Parser:
     def set_default_case(self):
         res = ParseResult()
         default_case = {}
-        self.scope = "default"
         if self.current_token.matches(tokenList.TT_KEYWORD, "default"):
             res.register_advancement()
             self.advance()
@@ -4089,18 +4135,18 @@ class Parser:
             start_token = self.current_token
             statements = res.register(self.statements())
 
-            if len(statements.elements) > 0:
-                if statements.elements[0] == '':
-                    self.error_detected = True
-                    return res.failure(self.error['Syntax'](
-                        {
-                            'pos_start': start_token.pos_start,
-                            'pos_end': start_token.pos_end,
-                            'message': 'expected an expression',
-                            'context': self.context,
-                            'exit': False
-                        }
-                    ))
+            # if len(statements.elements) > 0:
+            #     if statements.elements[0] == '':
+            #         self.error_detected = True
+            #         return res.failure(self.error['Syntax'](
+            #             {
+            #                 'pos_start': start_token.pos_start,
+            #                 'pos_end': start_token.pos_end,
+            #                 'message': 'expected an expression',
+            #                 'context': self.context,
+            #                 'exit': False
+            #             }
+            #         ))
             if res.error:
                 return res
             default_case = {
@@ -4731,6 +4777,8 @@ class Parser:
 
     def attempt_expr(self):
         res = ParseResult()
+        is_loop = True if hasattr(Parser, 'scope') and Parser.scope == 'loop' else False
+        Parser.scope = "loop" if is_loop else None
         exception = None
         attempt_statement = {}
         catches = []
@@ -4788,7 +4836,7 @@ class Parser:
             self.skipLines()
 
         while self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
-            self.scope = "catch"
+            
             self.skipLines()
             if self.current_token.type == tokenList.TT_IDENTIFIER:
                     exception = {
@@ -4878,7 +4926,7 @@ class Parser:
                 catches.append(catch_statement)
 
         if self.current_token.matches(tokenList.TT_KEYWORD, "finally"):
-            self.scope = "finally"
+            
             self.skipLines()
             if self.current_token.type != tokenList.TT_COLON:
                 self.error_detected = True

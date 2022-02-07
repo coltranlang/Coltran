@@ -1,2 +1,2 @@
 let name = 'Kenny'
-print(fm"Hello, %{names}!")
+print(fm"Hello, %{name}!")

@@ -1,26 +1,22 @@
 
-# Unpack arguments
-def @func(arg1, arg2, arg3)
-  print("arg1 =", arg1)
-  print("arg2 =", arg2)
-  print("arg3 =", arg3)
-end
-
-@func(*"123")
-let persons = {
-    name: "John",
-    age: 30,
-    weight: 75,
-    calc: def (x,y) -> x+y
-}
-
-print(persons.calc(*(1,2)))
+let name = "John"
 
 
-class Test
-    def sum(self, x, y, z)
-        return x + y + z
+def @test_name(name)
+    in [1, 2, 3] as i:
+        if i == 1:
+            continue 
+        elif i == 2:
+            break
+        else:
+            print("Hello World")
+        end
     end
 end
+@test_name(name)
 
-print(Test.sum(*[1,2,3]))
+# for i = 0 to 10:
+#     print(i)
+#     continue
+# end
+

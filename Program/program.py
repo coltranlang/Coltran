@@ -52,7 +52,8 @@ class Al_Program:
             # Generate AST
             parser = Parser(tokens, fileName, context)
             ast = parser.parse()
-            interpreter = Interpreter()
+            scope = Parser.scope if hasattr(Parser, 'scope') else None
+            interpreter = Interpreter(scope)
             parser_error_detected = parser.error_detected
             # ast = parser.parse()
             # interpreter = Interpreter()
