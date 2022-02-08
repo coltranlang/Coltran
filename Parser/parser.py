@@ -480,7 +480,6 @@ class SpreadNode:
         return f'{self.name}'
 
 
-
 class BooleanNode:
     def __init__(self, tok):
         self.tok = tok
@@ -620,7 +619,7 @@ class AttemptNode:
 
 
 class FunctionNode:
-    def __init__(self, def_name_token, args_name_tokens, body_node, implicit_return, default_values, type=None, doc=None):
+    def __init__(self, def_name_token, args_name_tokens, body_node, implicit_return, default_values, type=None, doc=None, type_hints=[]):
         self.def_name_token = def_name_token
         self.id = def_name_token
         self.args_name_tokens = args_name_tokens
@@ -629,6 +628,7 @@ class FunctionNode:
         self.default_values = default_values
         self.type = type
         self.doc = doc
+        self.type_hints = type_hints
         if self.def_name_token:
             self.pos_start = self.def_name_token.pos_start
         elif len(self.args_name_tokens) > 0:
@@ -2634,6 +2634,8 @@ class Parser:
         varargs = False
         varkwargs = False
         varargs_name = None
+        type_hints = []
+        type_hint = {}
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'def'):
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -2712,6 +2714,26 @@ class Parser:
                 'value': ''
             }
             self.skipLines()
+            if self.current_token.type == tokenList.TT_COLON:
+                type_hint = {
+                    arg_name_tokens[0].value: {
+                        'type': '',
+                    }
+                }
+                self.skipLines()
+                if self.current_token.type != tokenList.TT_IDENTIFIER:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "expected a type",
+                        'context': self.context,
+                        'exit': False
+                    }))
+                type_hint[arg_name_tokens[0].value]['type'] = self.current_token.value
+                type_hints.append(type_hint)
+                self.skipLines()
+               
             if self.current_token.type == tokenList.TT_EQ:
                 self.skipLines()
                 default_values['value'] = res.register(self.expr())
@@ -2796,6 +2818,25 @@ class Parser:
                         'exit': False
                     }))
                 # named arguments cannot be followed by a default value
+                if self.current_token.type == tokenList.TT_COLON:
+                    type_hint = {
+                        arg_name_tokens[-1].value: {
+                            'type': '',
+                        }
+                    }
+                    self.skipLines()
+                    if self.current_token.type != tokenList.TT_IDENTIFIER:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "expected a type",
+                            'context': self.context,
+                            'exit': False
+                        }))
+                    type_hint[arg_name_tokens[-1].value]['type'] = self.current_token.value
+                    type_hints.append(type_hint)
+                    self.skipLines()
                 if self.current_token.type == tokenList.TT_EQ:
                     self.skipLines()
                     default_values['value'] = res.register(self.expr())
@@ -2861,7 +2902,8 @@ class Parser:
                     'message': "expected ',' or ')'",
                     'context': self.context,
                     'exit': False
-                }))
+                })) 
+            
         else:
             if self.current_token.type != tokenList.TT_RPAREN:
                 self.error_detected = True
@@ -2873,6 +2915,25 @@ class Parser:
                     'exit': False
                 }))
         self.skipLines()
+        if self.current_token.type == tokenList.TT_COLON:
+            type_hint = {
+                "return_type": {
+                    'type': '',
+                }
+            }
+            self.skipLines()
+            if self.current_token.type != tokenList.TT_IDENTIFIER:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "expected a type",
+                    'context': self.context,
+                    'exit': False
+                }))
+            type_hint['return_type']['type'] = self.current_token.value
+            type_hints.append(type_hint)
+            self.skipLines()
         if self.current_token.type == tokenList.TT_ARROW:
             res.register_advancement()
             self.advance()
@@ -2888,7 +2949,7 @@ class Parser:
             body = res.register(self.expr())
             if res.error:
                     return res
-            return res.success(FunctionNode(def_name_token, arg_name_tokens, body, True, default_values_list))
+            return res.success(FunctionNode(def_name_token, arg_name_tokens, body, True, default_values_list, type_hints=type_hints))
 
         if self.current_token.type != tokenList.TT_NEWLINE:
             self.error_detected = True
@@ -2899,7 +2960,7 @@ class Parser:
                 'context': self.context,
                 'exit': False
             }))
-
+        
         res.register_advancement()
         self.advance()
         if self.current_token.type == tokenList.TT_DOC_STRING:
@@ -2908,11 +2969,11 @@ class Parser:
         body = res.register(self.statements())
         if res.error:
                 return res
-
+        
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            return res.success(FunctionNode(def_name_token, arg_name_tokens, body, False, default_values_list, None, doc_string))
+            return res.success(FunctionNode(def_name_token, arg_name_tokens, body, False, default_values_list, None, doc_string, type_hints=type_hints))
         else:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -3620,6 +3681,8 @@ class Parser:
         methods = []
         Parser.scope = "function_method"
         doc_string = None
+        type_hints = []
+        type_hint = {}
         while self.current_token.matches(tokenList.TT_KEYWORD, "def"):
             default_values = {}
             default_values_list = []
@@ -3672,7 +3735,25 @@ class Parser:
                 }
 
                 self.skipLines()
-
+                if self.current_token.type == tokenList.TT_COLON:
+                    type_hint = {
+                        args_list[0].value: {
+                            'type': '',
+                        }
+                    }
+                    self.skipLines()
+                    if self.current_token.type != tokenList.TT_IDENTIFIER:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "expected a type",
+                            'context': self.context,
+                            'exit': False
+                        }))
+                    type_hint[args_list[0].value]['type'] = self.current_token.value
+                    type_hints.append(type_hint)
+                    self.skipLines()
                 if self.current_token.type == tokenList.TT_EQ:
                     self.skipLines()
                     default_values['value'] = res.register(self.expr())
@@ -3757,6 +3838,25 @@ class Parser:
                             'context': self.context,
                             'exit': False
                         }))
+                    if self.current_token.type == tokenList.TT_COLON:
+                        type_hint = {
+                            args_list[-1].value: {
+                                'type': '',
+                            }
+                        }
+                        self.skipLines()
+                        if self.current_token.type != tokenList.TT_IDENTIFIER:
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "expected a type",
+                                'context': self.context,
+                                'exit': False
+                            }))
+                        type_hint[args_list[-1].value]['type'] = self.current_token.value
+                        type_hints.append(type_hint)
+                        self.skipLines()
                     if self.current_token.type == tokenList.TT_EQ:
                         self.skipLines()
                         default_values['value'] = res.register(self.expr())
@@ -3835,7 +3935,26 @@ class Parser:
                     }))
 
             self.skipLines()
-
+            if self.current_token.type == tokenList.TT_COLON:
+                type_hint = {
+                    "return_type": {
+                        'type': '',
+                    }
+            }
+            self.skipLines()
+            if self.current_token.type != tokenList.TT_IDENTIFIER:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': "expected a type",
+                    'context': self.context,
+                    'exit': False
+                }))
+            type_hint['return_type']['type'] = self.current_token.value
+            type_hints.append(type_hint)
+            self.skipLines()
+            
             if self.current_token.type == tokenList.TT_ARROW:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -3868,7 +3987,7 @@ class Parser:
                 self.advance()
                 methods.append({
                     'name': method_name,
-                    'value': FunctionNode(method_name, args_list, body, False, default_values_list, "method", doc_string),
+                    'value': FunctionNode(method_name, args_list, body, False, default_values_list, "method", doc_string, type_hints=type_hints),
                     'args': args_list,
                     'pos_start': method_name.pos_start,
                     'pos_end': body.pos_end

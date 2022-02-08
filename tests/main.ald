@@ -1,46 +1,52 @@
-let s_string = "ADOBECODEBANC"
-let t_string = "ABC"
-def @find_minimum_window(s,t)
-    if s == "" or t == "":
-        return ""
-    end
+# Minimun Window Substring
 
-    let countT, window = {}, {}
+class Solution
+    def minWindow(self, s: str, t: str): str
+        if s == "" or t == "":
+            return ""
+        end
 
-    in t as c:
-        countT[c] = 1 + countT.get(c,0)
-    end
-     
-    let have, need = 0, len(countT)
-    let res, resLen = [-1, -1], float("infinity")
-    let l, r = 0, 0
+        let countT, window = {}, {}
 
-    for r = 0 to len(s):
-        let c = s[r]
-        window[c] = window.get(c,0) + 1
-        if c in countT:
-            if window[c] == countT[c]:
-                have += 1
+        in t as c:
+            countT[c] = 1 + countT.get(c,0)
+        end
+        
+        let have, need = 0, len(countT)
+        let res, resLen = [-1, -1], float("infinity")
+        let l = 0
+        for r = 0 to len(s):
+            let c = s[r]
+            window[c] = 1+ window.get(c,0)
+            if c in countT:
+                if window[c] == countT[c]:
+                    have += 1
+                end
+            end
+            while have == need:
+                if r - l + 1 < resLen:
+                    res = [l, r]
+                    resLen = r - l + 1
+                end
+                window[s[l]] -= 1
+                if s[l] in countT:
+                    if window[s[l]] < countT[s[l]]:
+                        have -= 1
+                    end
+                end
+                l += 1
             end
         end
-        while have == need:
-            if r - l + 1 < resLen:
-                res = [l, r]
-                resLen = r - l + 1
-            end
-            window[s[l]] -= 1
-            if s[l] in countT and window[s[l]] < countT[s[l]]:
-                have -= 1
-            end
-            l += 1
-        end
+
+        let l, r = res
+        return if resLen != float("infinity"): s[l:r+1] else: "not found"
     end
-    if resLen == float("infinity"):
-        return "can't find"
-    end
-    return s[l:r+1]
 end
-print(@find_minimum_window(s_string, t_string))
-# let l = [1,2]
-# l += (3,4)
-# print(l)
+
+
+let s_string = "ADOBECODEBANC"
+let t_string = "ABC" 
+
+let solution = Solution()
+let result = solution.minWindow(s_string, t_string)
+print(result)
