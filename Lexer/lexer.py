@@ -42,26 +42,21 @@ import re
 #   This file contains the lexer class which is responsible for tokenizing the input file.
 
 
-class Regex:
-        def __init__(self):
-            self.value = None
+class A_SyntaxError(Exception):
+    def __init__(self, error_details):
+        super().__init__()
+        self.name = 'SyntaxError'
+        self.error_details = error_details
+        self.error_details['name'] = self.name
+        self.setError()
 
-        def parse(self, text, pos_start, pos_end):
-            wildcard_token = Token(tokenList.TT_WILDCARD, None, pos_start, pos_end)
-            start_token = Token(tokenList.TT_START, None, pos_start, pos_end)
-            end_token = Token(tokenList.TT_END, None, pos_start, pos_end)
-            comma_token = Token(tokenList.TT_COMMA, None, pos_start, pos_end)
-            arrow_token = Token(tokenList.TT_ARROW, None, pos_start, pos_end)
-            plus_token = Token(tokenList.TT_PLUS, None, pos_start, pos_end)
-            star_token = Token(tokenList.TT_STAR, None, pos_start, pos_end)
-            question_token = Token(tokenList.QUESTION, None, pos_start, pos_end)
-            pipe_token = Token(tokenList.TT_PIPE, None, pos_start, pos_end)
-            
-        def compile(self, pattern):
-            self.pattern = re.compile(pattern)
-            return self
-        def match(self, text):
-            return self.pattern.findall(text)
+    def setError(self):
+        if self.error_details['exit']:
+            Program.printErrorExit(Program.asString(self.error_details))
+        else:
+            Program.printError(Program.asString(self.error_details))
+
+
 class Program:
     def error():
         def IllegalCharacter(options):
@@ -75,19 +70,12 @@ class Program:
                 'message': detail['message'],
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
+                'context': detail['context']
             }
-            if detail['exit']:
-                Program.printErrorExit(Program.asString(isDetail))
-            else:
-                Program.printError(Program.asString(isDetail))
+            raise A_SyntaxError(detail)
 
-        def Runtime(options):
-            error = f'Runtime error {options["originator"]} at line {options["line"]}'
-            Program.printError(error)
         methods = {
-            'IllegalCharacter': IllegalCharacter,
             'Syntax': Syntax,
-            'Runtime': Runtime
         }
         return methods
 
@@ -110,22 +98,44 @@ class Program:
         sys.exit(1)
 
     def asString(detail):
-        result = f'\nFile {detail["pos_start"].fileName}, line {detail["pos_start"].line + 1}'
-        result += '\n\n' +  \
-            stringsWithArrows(
-                detail["pos_start"].fileText, detail["pos_start"], detail["pos_end"])
-        result += f'\n{detail["name"]}: {detail["message"]}'
+        result = Program.generateTraceBack(detail)
+        name = detail['name']
+        message = detail['message']
+        pos_start = detail['pos_start']
+        pos_end = detail['pos_end']
+        fileText = pos_start.fileText
+        result += '' + stringsWithArrows(fileText, pos_start, pos_end)
+        result += f'\n{name}: {message}\n'
         return result
+
+    def generateTraceBack(detail):
+        result = ''
+        pos = detail['pos_start']
+        context = detail['context']
+        while context:
+            result = '' + \
+                f'   File "{pos.fileName}", (at line:{pos.line + 1}, col:{pos.column + 1}) in {context.display_name}\n' + result
+            pos = context.parent_entry_pos
+            context = context.parent
+        return 'Traceback (most recent call last):\n' + result
 
 
 class Lexer:
-    def __init__(self, fileName, fileText, position=None):
+    
+    def __init__(self, fileName, fileText, context, position=None, environment=None, module_name=None, fm_string=None):
         self.fileName = fileName
         self.fileText = fileText
+        self.context = context
         self.position = position
-        self.pos = Position(
-            -1, 0, -1, fileName, fileText, "inter_p", self.position)
+        self.environment = environment
+        self.module_name = module_name
+        self.fm_string = fm_string
+        self.pos = Position(self.environment,
+                            -1, 0, -1, fileName, fileText, "inter_p", self.position, self.module_name, self.fm_string)
         self.current_char = None
+        self.error_detected = False
+        self.has_doc = False
+        self.doc = ''
         self.advance()
 
     def advance(self):
@@ -134,92 +144,99 @@ class Lexer:
 
     def make_tokens(self, token=None):
         tokens = []
-        while self.current_char != None:
-            if self.current_char in ' \t':
-                self.advance()
-            elif self.current_char == '#':
-                self.make_comment()
-            elif self.current_char in '\n':
-                tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos))
-                self.advance()
-            elif self.current_char in tokenList.DIGITS:
-                tokens.append(self.make_number())
-            elif self.current_char in tokenList.LETTERS_SYMBOLS:
-                tokens.append(self.make_identifier())
-            elif self.current_char == '"':
-                tokens.append(self.make_double_string())
-            elif self.current_char == "'":
-                tokens.append(self.make_single_string())
-            elif self.current_char == "`":
-                tokens.append(self.make_backtick_string())
-            elif self.current_char == '+':
-                tokens.append(self.make_plus_or_plus_equal())
-            elif self.current_char == '-':
-                tokens.append(self.make_minus_or_arrow_or_minus_equal())
-            elif self.current_char == '*':
-                tokens.append(self.make_mul_or_mul_equal())
-            elif self.current_char == '/':
-                tokens.append(self.make_div_or_div_equal())
-            elif self.current_char == '%':
-                tokens.append(self.make_mod_or_mod_equal())
-            elif self.current_char == '^':
-                tokens.append(self.make_power_or_power_equal())
-            elif self.current_char == ':':
-                tokens.append(self.make_colon_or_type_assoc())
-            elif self.current_char == '|':
-                tokens.append(self.make_pipe_merge())
-            elif self.current_char == '.':
-                tokens.append(Token(tokenList.TT_DOT, pos_start=self.pos))
-                self.advance()
-            elif self.current_char == '(':
-                tokens.append(Token(tokenList.TT_LPAREN, pos_start=self.pos))
-                self.advance()
-            elif self.current_char == ')':
-                tokens.append(Token(tokenList.TT_RPAREN, pos_start=self.pos))
-                self.advance()
-            elif self.current_char == '[':
-                tokens.append(Token(tokenList.TT_LSQBRACKET, pos_start=self.pos))
-                self.advance()
-            elif self.current_char == ']':
-                tokens.append(Token(tokenList.TT_RSQBRACKET, pos_start=self.pos))
-                self.advance()
-            elif self.current_char == '{':
-                tokens.append(Token(tokenList.TT_LBRACE, pos_start=self.pos))
-                self.advance()
-            elif self.current_char == '}':
-                tokens.append(Token(tokenList.TT_RBRACE, pos_start=self.pos))
-                self.advance()
-            elif self.current_char == '~':
-                tokens.append(Token(tokenList.TT_TILDE, pos_start=self.pos))
-                self.advance()
-            elif self.current_char == '&':
-                tokens.append(self.make_and())
-            elif self.current_char == '!':
-                tok, error = self.make_not_equals()
-                if error:
-                    return [], error
-                tokens.append(tok)
-            elif self.current_char == '=':
-                tokens.append(self.make_equals())
-            elif self.current_char == '<':
-                tokens.append(self.make_less_than())
-            elif self.current_char == '>':
-                tokens.append(self.make_greater_than())
-            elif self.current_char == ',':
-                    tokens.append(Token(tokenList.TT_COMMA, pos_start=self.pos))
+        try:
+            while self.current_char != None:
+                if self.current_char in ' \t':
                     self.advance()
-            else:
-                pos_start = self.pos.copy()
-                char = self.current_char
-                self.advance()
-                return [], Program.error()['IllegalCharacter'](
-                    {
-                        'originator': char,
-                        'pos_start': pos_start
-                    })
-        tokens.append(Token(tokenList.TT_EOF, pos_start=self.pos))
-        return tokens, None
-
+                elif self.current_char == '#':
+                    self.make_comment()
+                elif self.current_char in '\n':
+                    tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos))
+                    self.advance()
+                elif self.current_char in tokenList.DIGITS:
+                    tokens.append(self.make_number())
+                elif self.current_char in tokenList.LETTERS_SYMBOLS:
+                    tokens.append(self.make_identifier())
+                elif self.current_char == '"':
+                    tokens.append(self.make_double_string())
+                elif self.current_char == "'":
+                    tokens.append(self.make_single_string())
+                elif self.current_char == "`":
+                    tokens.append(self.make_backtick_string())
+                elif self.current_char == '+':
+                    tokens.append(self.make_plus_or_plus_equal())
+                elif self.current_char == '-':
+                    tokens.append(self.make_minus_or_arrow_or_minus_equal())
+                elif self.current_char == '*':
+                    tokens.append(self.make_mul_or_mul_equal())
+                elif self.current_char == '/':
+                    tokens.append(self.make_div_or_div_equal())
+                elif self.current_char == '%':
+                    tokens.append(self.make_mod_or_mod_equal())
+                elif self.current_char == '^':
+                    tokens.append(self.make_power_or_power_equal())
+                elif self.current_char == ':':
+                    tokens.append(self.make_colon_or_type_assoc())
+                elif self.current_char == '|':
+                    tokens.append(self.make_pipe_merge())
+                elif self.current_char == '.':
+                    tokens.append(Token(tokenList.TT_DOT, pos_start=self.pos))
+                    self.advance()
+                elif self.current_char == '(':
+                    tokens.append(Token(tokenList.TT_LPAREN, pos_start=self.pos))
+                    self.advance()
+                elif self.current_char == ')':
+                    tokens.append(Token(tokenList.TT_RPAREN, pos_start=self.pos))
+                    self.advance()
+                elif self.current_char == '[':
+                    tokens.append(Token(tokenList.TT_LSQBRACKET, pos_start=self.pos))
+                    self.advance()
+                elif self.current_char == ']':
+                    tokens.append(Token(tokenList.TT_RSQBRACKET, pos_start=self.pos))
+                    self.advance()
+                elif self.current_char == '{':
+                    tokens.append(Token(tokenList.TT_LBRACE, pos_start=self.pos))
+                    self.advance()
+                elif self.current_char == '}':
+                    tokens.append(Token(tokenList.TT_RBRACE, pos_start=self.pos))
+                    self.advance()
+                elif self.current_char == '~':
+                    tokens.append(Token(tokenList.TT_TILDE, pos_start=self.pos))
+                    self.advance()
+                elif self.current_char == '&':
+                    tokens.append(self.make_and())
+                elif self.current_char == '!':
+                    tok, error = self.make_not_equals()
+                    if error:
+                        return [], error
+                    tokens.append(tok)
+                elif self.current_char == '=':
+                    tokens.append(self.make_equals())
+                elif self.current_char == '<':
+                    tokens.append(self.make_less_than())
+                elif self.current_char == '>':
+                    tokens.append(self.make_greater_than())
+                elif self.current_char == ',':
+                        tokens.append(Token(tokenList.TT_COMMA, pos_start=self.pos))
+                        self.advance()
+                else:
+                    pos_start = self.pos.copy()
+                    char = self.current_char
+                    self.advance()
+                    self.error_detected = True
+                    return [], Program.error()['Syntax'](
+                        {
+                            'pos_start': pos_start,
+                            'pos_end': self.pos,
+                            'message': f"Invalid character: '{char}'",
+                            'context': self.context,
+                            'exit': False
+                        })
+            tokens.append(Token(tokenList.TT_EOF, pos_start=self.pos))
+            return tokens, self.error_detected
+        except:
+            pass
+  
     def make_number(self):
         num_str = ''
         dot_count = 0
@@ -253,10 +270,12 @@ class Lexer:
                     # if self.current_char is not a valid binary number
                     if self.current_char not in '01':
                         if self.current_char in tokenList.LETTERS_DIGITS_SYMBOLS:
+                            self.error_detected = True
                             return None, Program.error()['Syntax']({
                             'pos_start': pos_start,
                             'pos_end': self.pos,
                             'message': 'Invalid binary number',
+                            'context': self.context,
                             'exit': False
                         })
                             
@@ -342,6 +361,12 @@ class Lexer:
                 tok_type = tokenList.TT_FLOOR_DIV_EQ
             else:
                 tok_type = tokenList.TT_FLOOR_DIV
+        elif self.current_char == '*':
+            self.advance()
+            if self.current_char == '*':
+                self.advance()
+                tok_type = self.make_doc_string()
+                return tok_type
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
     
     def make_mod_or_mod_equal(self):
@@ -374,17 +399,21 @@ class Lexer:
         #     if identifier.matches(tokenList.TT_KEYWORD, 'in'):
         #         return Token(tokenList.TT_NOT_IN, pos_start=pos_start, pos_end=self.pos), None
         #     else:
+        #         self.error_detected = True
         #         return None, Program.error()['Syntax']({
         #             'pos_start': pos_start,
         #             'pos_end': self.pos,
         #             'message': 'Invalid identifier',
+        #             'context': self.context,
         #             'exit': False
         #         })
         self.advance()
+        self.error_detected = True
         return None, Program.error()['Syntax']({
             'pos_start': pos_start,
             'pos_end': self.pos,
             'message': 'invalid syntax',
+            'context': self.context,
             'exit': False
         })
 
@@ -431,7 +460,6 @@ class Lexer:
 
     def make_double_string(self):
         string = ''
-        string_concat = ''
         character = True
         pos_start = self.pos.copy()
         escape_character = False
@@ -440,8 +468,9 @@ class Lexer:
             '\\': '\\',
             'n': '\n',
             't': '\t',
-            '\es': "\\"
+            '\es': "\\",
         }
+        
         
         while self.current_char != None and (self.current_char != '"' or escape_character):
             if self.current_char == '\\':
@@ -452,21 +481,27 @@ class Lexer:
                     if self.current_char == '"':
                         string += '"'
                     else:
-                        string += self.current_char
-                        # Program.error()['Syntax']({
-                        #     'pos_start': pos_start,
-                        #     'pos_end': self.pos,
-                        #     'message': 'Invalid escape character',
-                        #     'exit': False
-                        # })
+                        if self.current_char == "u":
+                            string += self.make_unicode_char()
+                        else:
+                            self.error_detected = True
+                            return Program.error()['Syntax']({
+                                'pos_start': pos_start,
+                                'pos_end': self.pos,
+                                'message': 'Invalid escape character',
+                                'context': self.context,
+                                'exit': False
+                            })
                     
             else:
                 if character:
                     if self.current_char == '\n':
+                        self.error_detected = True
                         return None, Program.error()['Syntax']({
                             'pos_start': pos_start,
                             'pos_end': self.pos,
                             'message': 'String literal is not closed',
+                            'context': self.context,
                             'exit': False
                         })
                     string += self.current_char
@@ -476,10 +511,12 @@ class Lexer:
             self.advance()
             escape_character = False 
         if self.current_char == None:
+            self.error_detected = True
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': "Expected ' \" ' at (line: {}, column: {})".format(self.pos.line + 1, self.pos.column),
+                'message': "unterminated string literal",
+                'context': self.context,
                 'exit': False
             })
         self.advance()
@@ -493,28 +530,38 @@ class Lexer:
         self.advance()
         escape_characters = {
             'n': '\n',
-            't': '\t'
+            't': '\t',
         }
-
         while self.current_char != None and (self.current_char != "'" or escape_character):
             if self.current_char == '\\':
                 self.advance()
                 if self.current_char in escape_characters:
                     string += escape_characters[self.current_char]
                 else:
-                    character = False
-                    if self.current_char == '"':
-                        string += '"'
+                    if self.current_char == "'":
+                        string += "'"
                     else:
-                        string += self.current_char
+                        if self.current_char == "u":
+                            string += self.make_unicode_char()
+                        else:
+                            self.error_detected = True
+                            return Program.error()['Syntax']({
+                                'pos_start': pos_start,
+                                'pos_end': self.pos,
+                                'message': 'Invalid escape character',
+                                'context': self.context,
+                                'exit': False
+                            })
 
             else:
                 if character:
                     if self.current_char == '\n':
+                        self.error_detected = True
                         return None, Program.error()['Syntax']({
                             'pos_start': pos_start,
                             'pos_end': self.pos,
                             'message': 'String literal is not closed',
+                            'context': self.context,
                             'exit': False
                         })
                     string += self.current_char
@@ -525,10 +572,12 @@ class Lexer:
             escape_character = False 
             
         if self.current_char == None:
+            self.error_detected = True
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': 'Expected " \' " at (line: {}, column: {})'.format(self.pos.line + 1, self.pos.column),
+                'message': "unterminated string literal",
+                'context': self.context,
                 'exit': False
             })
         self.advance()
@@ -544,25 +593,49 @@ class Lexer:
             'n': '\n',
             't': '\t'
         }
-
+        # multiline string
         while self.current_char != None and (self.current_char != '`' or escape_character):
+            while self.current_char in '\n' or self.current_char in '\t':
+                is_newline= self.current_char in '\n'
+                is_tab = self.current_char in '\t'
+                self.advance()
+                if is_newline:
+                    string += '\n'
+                if is_tab:
+                    string += '\t'
+            if self.current_char == '`':
+                self.advance()
+                return Token(tokenList.TT_BACKTICK_STRING, string, pos_start, self.pos)
+            
             if self.current_char == '\\':
                 self.advance()
                 if self.current_char in escape_characters:
                     string += escape_characters[self.current_char]
                 else:
-                    if self.current_char == '"':
-                        string += '"'
+                    if self.current_char == '`':
+                        string += '`'
                     else:
-                        string += self.current_char
+                        if self.current_char == "u":
+                            string += self.make_unicode_char()
+                        else:
+                            self.error_detected = True
+                            return Program.error()['Syntax']({
+                                'pos_start': pos_start,
+                                'pos_end': self.pos,
+                                'message': 'Invalid escape character',
+                                'context': self.context,
+                                'exit': False
+                            })
 
             else:
                 if character:
                     if self.current_char == '\n':
+                        self.error_detected = True
                         return None, Program.error()['Syntax']({
                             'pos_start': pos_start,
                             'pos_end': self.pos,
                             'message': 'String literal is not closed',
+                            'context': self.context,
                             'exit': False
                         })
                     string += self.current_char
@@ -573,15 +646,75 @@ class Lexer:
             escape_character = False 
             
         if self.current_char == None:
+            self.error_detected = True
             return None, Program.error()['Syntax']({
                 'pos_start': pos_start,
                 'pos_end': self.pos,
-                'message': 'Expected " ` " at (line: {}, column: {})'.format(self.pos.line + 1, self.pos.column),
+                'message': "unterminated string literal",
+                'context': self.context,
                 'exit': False
             })
         self.advance()
         return Token(tokenList.TT_BACKTICK_STRING, string, pos_start, self.pos)    
-      
+    
+    def make_doc_string(self):
+        doc_string = ''
+        pos_start = self.pos.copy()
+        while self.current_char != None:
+            value = self.current_char
+            doc_string += value
+            pos_start = self.pos.copy()
+            self.advance()
+            if self.current_char == '*':
+                self.advance()
+                if self.current_char == '/':
+                    self.advance()
+                    # removed_whitespace = doc_string.lstrip()
+                    # doc_string = removed_whitespace
+                    self.has_doc = True
+                    self.doc = doc_string
+                    # remove whitespace from the start and end of the doc string
+                    # for example:
+                    # /**
+                    #         * This is a doc string
+                    # withouth the whitespace
+                    return Token(tokenList.TT_DOC_STRING, doc_string, pos_start, self.pos)
+                else:
+                    doc_string += '*'
+        return None, Program.error()['Syntax']({
+            'pos_start': pos_start,
+            'pos_end': self.pos,
+            'message': "unterminated doc string",
+            'context': self.context,
+            'exit': False
+        })
+        
+    def make_unicode_char(self):
+        unicode_char = ''
+        string = ''
+        pos_start = self.pos.copy()
+        self.advance()
+        unicode_char = self.current_char
+        self.advance()
+        unicode_char += self.current_char
+        self.advance()
+        unicode_char += self.current_char
+        self.advance()
+        unicode_char += self.current_char
+        try:
+            string += chr(int(unicode_char, 16))
+        except Exception as e: 
+            self.error_detected = True
+            line = pos_start.line
+            return Program.error()['Syntax']({
+                'pos_start': self.pos,
+                'pos_end': self.pos,
+                'message': f"(unicode error) 'unicodeescape' can't decode bytes in position {line+1}-{self.pos.column+1}: \\u{unicode_char}",
+                'context': self.context,
+                'exit': False
+            })
+        return string
+    
     def make_colon_or_type_assoc(self):
         pos_start = self.pos.copy()
         self.advance()
@@ -606,9 +739,9 @@ class Lexer:
             self.advance()
 
 
-
 class Position:
-    def __init__(self, index, line, column, fileName, fileText, type=None, position=None):
+    def __init__(self, environment, index, line, column, fileName, fileText, type=None, position=None, module_name=None, fm_string=None):
+        self.environment = environment
         self.index = index
         self.line = line
         self.column = column
@@ -616,6 +749,8 @@ class Position:
         self.fileText = fileText
         self.type = type
         self.position = position
+        self.module_name = module_name
+        self.fm_string = fm_string
         if self.type == "inter_p" and self.position != None:
             self.line = self.position.line
             self.column = self.position.column - [ '\n' for i in range(self.position.column - self.index) ].count('\n') if self.position.column - [ '\n' for i in range(self.position.column - self.index) ].count('\n') == -1 else self.position.column
@@ -625,7 +760,9 @@ class Position:
             'line': self.line,
             'column': self.column,
             'fileName': self.fileName,
-            'fileText': self.fileText
+            'fileText': self.fileText,
+            'module': self.module_name,
+            'fm_string': self.fm_string
         })
 
     def advance(self, current_char=None):
@@ -639,5 +776,5 @@ class Position:
         return self
 
     def copy(self):
-        return Position(self.index, self.line, self.column, self.fileName, self.fileText)
+        return Position(self.environment,self.index, self.line, self.column, self.fileName, self.fileText, self.type, self.position, self.module_name, self.fm_string)
 

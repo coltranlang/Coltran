@@ -58,6 +58,7 @@ TT_DOUBLE_STRING = 'STRING'
 TT_SINGLE_STRING = 'SINGLE_STRING'
 TT_BACKTICK_STRING = 'BACKTICK_STRING'
 TT_RAW_STRING = 'RAW_STRING'
+TT_DOC_STRING = 'DOC_STRING'
 TT_BACKTICK = 'BACKTICK'
 TT_STRING_INTERP = 'STRING_INTERP'
 TT_FORMAT = 'FORMAT'
@@ -195,8 +196,10 @@ KEYWORDS = [
     'continue',
     'break',
     'fm',
+    'bt',
     'raise',
     'del',
+    'freeze',
 ]
 
 TYPES = [

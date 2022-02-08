@@ -1,8 +1,8 @@
-# All modules objects are not stored in the same context as the calling module.
-# This means that the module objects are not in the same context as the calling module, so any property of the module objects are not accessible.
-# The dot notation is used to access the properties of the module objects.
-# Example: import module_name as mn and then mn.module_name
-# Example: from module_name import module_name as mn and then mn.module_name
+
+import file as f
+let file = f.open('README.md', 'r')
+println(file.read())
+
 from customer import Customer
 let customer = Customer('Bob', 18, '20 Main St', '000-000-0000', 'Bob18@gmail.com')
 println(customer.toString())
@@ -10,54 +10,9 @@ customer.add_purchase('pen', 20, 4)
 customer.add_purchase('pencil', 10, 2)
 customer.add_purchase('eraser', 5, 1)
 in customer.purchases as purchase:
-  println(purchase.toString())
+  println(purchase.__@str__())
 end
+println(fm"%{2 + 2}")
 println(customer.total_purchases())
 println(customer.get_total_purchases())
-# MATH
-import math # import math module
-print(math.pi) # print pi
-
-# HTTP
-import http as h
-let url = 'http://localhost:8080/'
-let headers = {
-  'Content-Type': 'application/json'
-}
-let body = {
-  name: 'test',
-  age: 18
-}
-let http = h.new(url, headers, body)
-let http2 = h.new("http://localhost:8083/", {}, {name: 'test', age: 30})
-let http3 = h.new("http://localhost:8085/", {}, {name: 'test', age: 42})
-println(http.get())
-println(http2.get())
-println(http3.post())
-
-# FILE
-import file as f
-let file = f.open('text.txt', 'r')
-println(file.read())
-
-
-# USER module
-# module path as to be defined with current directory
-
-
-#Dynamic import
-def @import(path)
-  let mod = require(path)
-  return mod
-end
-
-
-let add, min, *props = @import('math')
-println(add(1, 2), min(1, 2))
-
-let mod = @import('tests/dynamic_import')
-println(mod.hello('world'))
-
-# System
-import system as sys
-println(sys)
+println(customer)

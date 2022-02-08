@@ -1,24 +1,71 @@
+def @check_arg_type(arg,expected_type)
+    match expected_type:
+        case "string":
+            if not isinstanceof(arg, String):
+                raise TypeError("Expected string, got " + typeof(arg))
+            end
+        end
+        case "number":
+            if not isinstanceof(arg, Number):
+                raise TypeError("Expected number, got " + typeof(arg))
+            end
+        end
+        case "boolean":
+            if not isinstanceof(arg, Boolean):
+                raise TypeError("Expected boolean, got " + typeof(arg))
+            end
+        end
+        case "list":
+            if not isinstanceof(arg, List):
+                raise TypeError("Expected list, got " + typeof(arg))
+            end
+        end
+        case "dict":
+            if not isinstanceof(arg, Object):
+                raise TypeError("Expected dict, got " + typeof(arg))
+            end
+        end
+        case "function":
+            if not isinstanceof(arg, Function):
+                raise TypeError("Expected function, got " + typeof(arg))
+            end
+        end
+        case "object":
+            if not isinstanceof(arg, Object):
+                raise TypeError("Expected object, got " + typeof(arg))
+            end
+        end
+        case "class":
+            if not isinstanceof(arg, Class):
+                raise TypeError("Expected class, got " + typeof(arg))
+            end
+        end
+    end
+end
+
 def @read()
-    let input = __@std_in_read()
+    let input = __@std_in_read__()
     return input
 end
 
 def @readline()
-    let input = __@std_in_readline()
+    let input = __@std_in_readline__()
     return input
 end
 
 def @readlines()
-    let input = __@std_in_readlines()
+    let input = __@std_in_readlines__()
     return input
 end
 
 def @write(output)
-    # __@std_out_write(output)
+    @check_arg_type(output, "string")
+    __@std_out_write__(output)
 end
 
+
 class System
-    def @init(self)
+    def __@init__(self)
         self.argv = []
         self.stdin = {
             read: @read,
@@ -41,4 +88,26 @@ class System
     end
 end
 
-let new = System()
+
+let path = ['.', '../ccdd', '.fg.g', '../ccdd/fg.g']
+let argv = __@sys_argv__()
+
+let version = __@sys_version__()
+let platform = __@sys_platform__()
+
+let stdin = {
+    read: @read,
+    readline: @readline,
+    readlines: @readlines
+}
+
+let stdout = {
+    write: @write,
+}
+
+let stderr = {
+    write: @write,
+}
+
+
+# let env = __@sys_env__()

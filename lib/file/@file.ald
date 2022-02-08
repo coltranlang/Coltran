@@ -52,20 +52,19 @@ end
 def @open(file, mode)
     mode = @handle_mode(mode)
     attempt:
-        return __@file(file=file, mode=mode)
+        return __@file__(file, mode=mode)
     catch FileNotFoundError as e:
         raise FileNotFoundError(fm"No such file or directory: '%{file}'")
     catch PermissionError as e:
         raise PermissionError(fm"Permission denied: '%{file}'")
     catch IOError as e:
         raise IOError(fm"I/O error: '%{e.message}'")
-    catch:
-        raise IOError(fm"I/O error: '%{file}'")
+    
     end
 end
 
 class File
-    def @init(self, name, mode="r")
+    def __@init__(self, name, mode="r")
         self.name = name
         self.mode = mode
         self.closed = false
@@ -106,7 +105,54 @@ end
 
 let open = File
 
-
+def @check_arg_type(arg,expected_type)
+    match expected_type:
+        case "string":
+            if not isinstanceof(arg, str):
+                raise TypeError("Expected string, got " + typeof(arg))
+            end
+        end
+        case "number":
+            if not isinstanceof(arg, int) and not isinstanceof(arg, float):
+                raise TypeError("Expected number, got " + typeof(arg))
+            end
+        end
+        case "boolean":
+            if not isinstanceof(arg, bool):
+                raise TypeError("Expected boolean, got " + typeof(arg))
+            end
+        end
+        case "list":
+            if not isinstanceof(arg, list):
+                raise TypeError("Expected list, got " + typeof(arg))
+            end
+        end
+        case "pair":
+            if not isinstanceof(arg, pair):
+                raise TypeError("Expected list, got " + typeof(arg))
+            end
+        end
+        case "dict":
+            if not isinstanceof(arg, dict):
+                raise TypeError("Expected dict, got " + typeof(arg))
+            end
+        end
+        case "function":
+            if not hasprop(arg, "__@call__"):
+                raise TypeError("Expected function, got " + typeof(arg))
+            end
+        end
+        case "class":
+            if not typeof(arg) == "class":
+                raise TypeError("Expected class, got " + typeof(arg))
+            end
+        end
+    end
+end
+def @write(output)
+    @check_arg_type(output, "string")
+    __@std_out_write(output)
+end
 
 
 
