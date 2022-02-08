@@ -39,7 +39,7 @@ class Solution
         end
 
         let l, r = res
-        return if resLen != float("infinity"): s[l:r+1] else: "not found"
+        return if resLen != float("infinity"): s[l:r+1] else: ""
     end
 end
 
@@ -50,3 +50,4 @@ let t_string = "ABC"
 let solution = Solution()
 let result = solution.minWindow(s_string, t_string)
 print(result)
+

@@ -2328,7 +2328,7 @@ class Parser:
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "expected 'end'",
+                    'message': "invalid syntax",
                     'context': self.context,
                     'exit': False
                 }))
@@ -2447,7 +2447,7 @@ class Parser:
                             return res.failure(self.error['Syntax']({
                                 'pos_start': self.current_token.pos_start,
                                 'pos_end': self.current_token.pos_end,
-                                'message': "expected 'end'",
+                                'message': "invalid syntax",
                                 'context': self.context,
                                 'exit': False
                             }))
@@ -2490,7 +2490,7 @@ class Parser:
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "expected 'end'",
+                        'message': "invalid syntax",
                         'context': self.context,
                         'exit': False
                     }))
@@ -2552,7 +2552,7 @@ class Parser:
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': "expected 'end'",
+                        'message': "invalid syntax",
                         'context': self.context,
                         'exit': False
                     }))
@@ -2609,7 +2609,7 @@ class Parser:
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "expected 'end'",
+                    'message': "invalid syntax",
                     'context': self.context,
                     'exit': False
                 }))
@@ -2923,14 +2923,14 @@ class Parser:
             }
             self.skipLines()
             if self.current_token.type != tokenList.TT_IDENTIFIER:
-                self.error_detected = True
-                return res.failure(self.error['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "expected a type",
-                    'context': self.context,
-                    'exit': False
-                }))
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "expected a type",
+                        'context': self.context,
+                        'exit': False
+                    }))
             type_hint['return_type']['type'] = self.current_token.value
             type_hints.append(type_hint)
             self.skipLines()
@@ -2979,7 +2979,7 @@ class Parser:
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
-                'message': "expected 'end'",
+                'message': "invalid syntax",
                 'context': self.context,
                 'exit': False
             }))
@@ -3609,7 +3609,7 @@ class Parser:
         return res.failure(self.error['Syntax']({
             'pos_start': self.current_token.pos_start,
             'pos_end': self.current_token.pos_end,
-            'message': "expected 'end'",
+            'message': "invalid syntax",
             'context': self.context,
             'exit': False
         }))
@@ -4010,7 +4010,7 @@ class Parser:
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_start,
-                    'message': "expected 'end'",
+                    'message': "invalid syntax",
                     'context': self.context,
                     'exit': False
                 }))

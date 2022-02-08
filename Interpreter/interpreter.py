@@ -322,6 +322,8 @@ class TypeOf:
 
     def getType(self):
         result = ''
+        if self.type == "none":
+            result = "NoneType"
         if self.type == 'str':
             result = 'string'
         elif self.type == 'tuple':
@@ -335,7 +337,10 @@ class TypeOf:
                 result = 'complex'
         else:
             if isinstance(self.type, str) or isinstance(self.type, String):
-                result = 'string'
+                if self.type == "none":
+                    result = "NoneType"
+                else:
+                    result = 'string'
             elif isinstance(self.type, Bytes):
                 result = 'bytes'
             elif isinstance(self.type, tuple) or isinstance(self.type, Pair):
@@ -362,6 +367,7 @@ class TypeOf:
                 result = 'class'
             elif isinstance(self.type, Dict) or isinstance(self.type, dict):
                 result = 'dict'
+            
             else:
                 result = type(self.type).__name__
         return result
@@ -384,14 +390,13 @@ types = {
 type_hint_types = {
     'int': 'int',
     'float': 'float',
-    'complex': 'complex',
-    'chr': 'chr',
     'str': 'str',
     'bool': 'bool',
     'bytes': 'bytes',
     'list': 'list',
     'pair': 'pair',
     'dict': 'dict',
+    'void': 'void',
 }
 
 class Context:
@@ -8326,7 +8331,7 @@ class Function(BaseFunction):
                     raise Al_TypeError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"type hint for '{names[i]}' is not valid, can only be a valid type hint type",
+                        'message': f"type hint for '{names[i]}' is not valid type",
                         'context': self.context,
                         'exit': False
                     })
@@ -8476,24 +8481,48 @@ class Function(BaseFunction):
                if 'return_type' in val:
                    return_type = val['return_type']['type']
             if return_type != None:
-                if isinstance(return_value, String):
-                    if return_type != "str":
+                if return_type in type_hint_types:
+                    if return_type == "void" and not isinstance(return_value, NoneType):
                         raise Al_TypeError({
                             'pos_start': self.pos_start,
                             'pos_end': self.pos_end,
-                            'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value.value).getType()}'",
+                            'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
                             'context': self.context,
                             'exit': False
                         })
-                if isinstance(return_value, Number):
-                    if type(return_value.value).__name__ != "int" and type(return_value.value).__name__ != "float":
+                    if return_type == "str" and not isinstance(return_value, String):
                         raise Al_TypeError({
                             'pos_start': self.pos_start,
                             'pos_end': self.pos_end,
-                            'message': f"{self.name}() should return '{return_type}' but returned '{TypeOf(return_value.value).getType()}'",
+                            'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
                             'context': self.context,
                             'exit': False
                         })
+                    if return_type == "int" and return_type == "float" and not isinstance(return_value, Number):
+                        raise Al_TypeError({
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"{self.name}() should return '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
+                            'context': self.context,
+                            'exit': False
+                        })
+                    if isinstance(return_value, Number):
+                        if return_type == "int" and not isinstance(return_value.value, int) or return_type == "float" and not isinstance(return_value.value, float):
+                            raise Al_TypeError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"{self.name}() should return type '{return_type}' but returned '{TypeOf(return_value).getType()}'",
+                                'context': self.context,
+                                'exit': False
+                            })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"type hint for {self.name}() is not a valid type",
+                        'context': self.context,
+                        'exit': False
+                    })
         return res.success(return_value)
 
     def make_missing_args(self, missing_args, len_args):
@@ -8936,24 +8965,49 @@ class Function(BaseFunction):
                if 'return_type' in val:
                    return_type = val['return_type']['type']
             if return_type != None:
-                if isinstance(return_value, String):
-                    if return_type != "str":
+                if return_type in type_hint_types:
+                    if return_type == "void" and not isinstance(return_value, NoneType):
                         raise Al_TypeError({
                             'pos_start': self.pos_start,
                             'pos_end': self.pos_end,
-                            'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value.value).getType()}'",
+                            'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
                             'context': self.context,
                             'exit': False
                         })
-                if isinstance(return_value, Number):
-                    if type(return_value.value).__name__ != "int" and type(return_value.value).__name__ != "float":
+                    if return_type == "str" and not isinstance(return_value, String):
                         raise Al_TypeError({
                             'pos_start': self.pos_start,
                             'pos_end': self.pos_end,
-                            'message': f"{self.name}() should return '{return_type}' but returned '{TypeOf(return_value.value).getType()}'",
+                            'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
                             'context': self.context,
                             'exit': False
                         })
+                    if return_type == "int" and return_type == "float" and not isinstance(return_value, Number):
+                            raise Al_TypeError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"{self.name}() should return '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
+                                'context': self.context,
+                                'exit': False
+                            })
+                    if  isinstance(return_value, Number):
+                        if  return_type == "int" and not isinstance(return_value.value, int) or return_type == "float" and not isinstance(return_value.value, float):
+                            raise Al_TypeError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"{self.name}() should return type '{return_type}' but returned '{TypeOf(return_value).getType()}'",
+                                'context': self.context,
+                                'exit': False
+                            })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"type hint for {self.name}() is not a valid type",
+                        'context': self.context,
+                        'exit': False
+                    })
+        
         return self.wrap_return_value(return_value)
 
     def wrap_return_value(self, return_value):
@@ -18783,7 +18837,7 @@ class Interpreter:
         if node.node_to_return:
             try:
                 value = res.register(self.visit(node.node_to_return, context))
-                if value is None: value = NoneType.none
+                if value is None: value = NoneType()
                 if res.should_return(): return res
                 return_value = value
             except RecursionError:
@@ -18796,8 +18850,8 @@ class Interpreter:
                         "exit": False
                     })
         else:
-            return_value = NoneType.none
-        if return_value is None:  return_value = NoneType.none
+            return_value = NoneType()
+        if return_value is None:  return_value = NoneType()
         if isinstance(return_value, NoneType):
             return res.noreturn()
         
