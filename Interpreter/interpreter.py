@@ -8470,7 +8470,7 @@ class Function(BaseFunction):
         value = res.register(interpreter.visit(self.body_node, exec_context))
         if res.should_return() and res.func_return_value == None: return res
         return_value = (
-            value if self.implicit_return else None) or res.func_return_value
+            value if self.implicit_return else None) or res.func_return_value or NoneType()
         # if hasattr(return_value, "value"):
         #     if return_value.value == "none":
         #         return_value.value = NoneType.none
@@ -8955,7 +8955,7 @@ class Function(BaseFunction):
 
         if res.should_return() and res.func_return_value == None: return res
         return_value = (
-            value if self.implicit_return else None) or res.func_return_value or NoneType.none
+            value if self.implicit_return else None) or res.func_return_value or NoneType()
         # if hasattr(return_value, "value"):
         #     if return_value.value == "none":
         #         return_value.value = NoneType.none
