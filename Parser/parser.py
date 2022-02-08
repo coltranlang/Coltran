@@ -1519,6 +1519,7 @@ class Parser:
                 atom = res.register(self.increment_or_decrement(atom))
             elif self.current_token.type != None and self.current_token.type in operation_methods:
                 operator = self.current_token
+<<<<<<< HEAD
                 
                 if not isinstance(atom, VarAccessNode):
                     print(type(atom))
@@ -1530,6 +1531,18 @@ class Parser:
                         'context': self.context,
                         'exit': False
                     }))
+=======
+                # if not isinstance(atom, VarAccessNode):
+                #     print(type(atom))
+                #     self.error_detected = True
+                #     return res.failure(self.error['Syntax']({
+                #         'pos_start': self.current_token.pos_start,
+                #         'pos_end': self.current_token.pos_end,
+                #         'message': "Illegal expression: invalid left hand side",
+                #         'context': self.context,
+                #         'exit': False
+                #     }))
+>>>>>>> a2ea01e43dbb337c42ef9f67451008ba678fa137
                 res.register_advancement()
                 self.advance()
                 if self.current_token.type == tokenList.TT_IDENTIFIER:
