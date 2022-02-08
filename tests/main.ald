@@ -1,74 +1,6 @@
-
-let name = "John"
-
-
-def @test_name(name)
-    in [1, 2, 3] as i:
-        if i == 1:
-            continue 
-        elif i == 2:
-            break
-        else:
-            print("Hello World")
-        end
-    end
-end
-@test_name(name)
-
-# for i = 0 to 10:
-#     print(i)
-#     continue
-# end
-
-let s_string = "ADOBECODEBANC"
-let t_string = "ABC"
-
-def @find_minimum_window(s, t)
-    if s == "" or t == "":
-        return ""
-    end
-    let countT, window = {}, {}
-
-    in t as c:
-        countT[c] = 1 + countT.get(c, 0)
-    end
-    print(countT)
-    let have, need = 0, len(countT)
-    let res, resLen = [-1, -1], float("infinity")
-    let l = 0
-
-    for r = 0 to len(s):
-        let c = s[r]
-        window[c] = 1 + window.get(c, 0)
-        attempt:
-            if c in countT and window[c] == countT[c]:
-                have += 1
-            end
-        catch Exception:
-            if not c in countT:
-                break
-            end
-        end
-        while have == need:
-            if r - l + 1 < resLen:
-                res = [l, r]
-                resLen = r - l + 1
-            end
-            window[s[l]] -= 1
-            if s[l] in countT and window[s[l]] < countT[s[l]]:
-                have -= 1
-            end
-            l += 1
-        end
-    end
-    let l, r = res
-    if resLen == float("infinity"):
-        return ""
-    end
-    return s[l:r + 1]
-end
-
-print(@find_minimum_window(s_string, t_string))
+let window = [[], 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+window[0] += (1,2)
+print(window)
 # def @find_index(s_string, t_string)
 #     let s_string_len = len(s_string)
 #     let t_string_len = len(t_string)
@@ -91,4 +23,7 @@ print(@find_minimum_window(s_string, t_string))
 #     end
 #     return -1
 # end
-break
+
+let l = [1,2]
+l += (3,4)
+print(l)

@@ -1622,7 +1622,7 @@ class Value:
             other = self
         if not 'message' in error:
             if hasattr(other, 'value'):
-                errorDetail['message'] = f"Illegal operation for type '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'"
+                errorDetail['message'] = f"Illegal operation for type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'"
                 raise Al_TypeError(errorDetail)
             else:
                 errorDetail['message'] = f"illegal operation"
@@ -1650,7 +1650,7 @@ class Value:
             other = self
         if not 'message' in error:
             if hasattr(other, 'value'):
-                errorDetail['message'] = f'Illegal operation for type {TypeOf(self.value).getType()} and {TypeOf(other.value).getType()}'
+                errorDetail['message'] = f'Illegal operation for type {TypeOf(self).getType()} and {TypeOf(other.value).getType()}'
                 raise Al_IndexError(errorDetail)
             else:
                 errorDetail['message'] = f"illegal operation"
@@ -1705,7 +1705,7 @@ class Number(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start else other.pos_start,
             'pos_end': self.pos_end if self.pos_end else other.pos_end,
-            'message': f"can't add type '{TypeOf(self.value).getType()}' to type '{TypeOf(other.value).getType()}'",
+            'message': f"can't add type '{TypeOf(self).getType()}' to type '{TypeOf(other).getType()}'",
             'context': self.context if self.context else other.context,
             'exit': False
         }
@@ -1736,7 +1736,7 @@ class Number(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start else other.pos_start,
             'pos_end': self.pos_end if self.pos_end else other.pos_end,
-            'message': f"can't subtract type '{TypeOf(self.value).getType()}' from type '{TypeOf(other.value).getType()}'",
+            'message': f"can't subtract type '{TypeOf(self).getType()}' from type '{TypeOf(other).getType()}'",
             'context': self.context if self.context else other.context,
             'exit': False
         }
@@ -1761,7 +1761,7 @@ class Number(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start else other.pos_start,
             'pos_end': self.pos_end if self.pos_end else other.pos_end,
-            'message': f"can't multiply '{TypeOf(self.value).getType()}' with '{TypeOf(other.value).getType()}'",
+            'message': f"can't multiply '{TypeOf(self).getType()}' with '{TypeOf(other).getType()}'",
             'context': self.context if self.context else other.context,
             'exit': False
         }
@@ -1797,7 +1797,7 @@ class Number(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start else other.pos_start,
             'pos_end': self.pos_end if self.pos_end else other.pos_end,
-            'message': f"can't divide type '{TypeOf(self.value).getType()}' by type '{TypeOf(other.value).getType()}'",
+            'message': f"can't divide type '{TypeOf(self).getType()}' by type '{TypeOf(other).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -1840,7 +1840,7 @@ class Number(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start else other.pos_start,
             'pos_end': self.pos_end if self.pos_end else other.pos_end,
-            'message': f"can't divide type '{TypeOf(self.value).getType()}' by type '{TypeOf(other.value).getType()}'",
+            'message': f"can't divide type '{TypeOf(self).getType()}' by type '{TypeOf(other).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -1874,7 +1874,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start if self.pos_start else other.pos_start,
                     'pos_end': self.pos_end if self.pos_end else other.pos_end,
-                    'message': f"can't raise type '{TypeOf(self.value).getType()}' to type '{TypeOf(other.value).getType()}'",
+                    'message': f"can't raise type '{TypeOf(self).getType()}' to type '{TypeOf(other).getType()}'",
                     'context': self.context if self.context else other.context,
                     'exit': False
                 }
@@ -1899,7 +1899,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start if self.pos_start else other.pos_start,
                     'pos_end': self.pos_end if self.pos_end else other.pos_end,
-                    'message': f"can't perform modulo on type '{TypeOf(self.value).getType()}' and type '{TypeOf(other.value).getType()}'",
+                    'message': f"can't perform modulo on type '{TypeOf(self).getType()}' and type '{TypeOf(other).getType()}'",
                     'context': self.context if self.context else other.context,
                     'exit': False
                 }
@@ -1970,7 +1970,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"'>' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'message': f"'>' operator can't be used on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
                     'context': self.context,
                     'exit': False
                 }
@@ -1993,7 +1993,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"'in' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'message': f"'in' operator can't be used on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
                     'context': self.context,
                     'exit': False
                 }
@@ -2022,7 +2022,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"'not in' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'message': f"'not in' operator can't be used on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
                     'context': self.context,
                     'exit': False
                 }
@@ -2037,7 +2037,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"'>>' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'message': f"'>>' operator can't be used on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
                     'context': self.context,
                     'exit': False
                 }
@@ -2053,7 +2053,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"'<<' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'message': f"'<<' operator can't be used on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
                     'context': self.context,
                     'exit': False
                 }
@@ -2069,7 +2069,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"'<=' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'message': f"'<=' operator can't be used on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
                     'context': self.context,
                     'exit': False
                 }
@@ -2084,7 +2084,7 @@ class Number(Value):
         error = {
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
-                    'message': f"'>=' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+                    'message': f"'>=' operator can't be used on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
                     'context': self.context,
                     'exit': False
                 }
@@ -2147,7 +2147,7 @@ class String(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start is not None else other.pos_start, 
             'pos_end': self.pos_end if self.pos_end is not None else other.pos_end,
-            'message': f"can't perform concatenation on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}" if hasattr(other, 'value') and hasattr(self, 'value') else f"can't perform concatenation on type none",
+            'message': f"can't perform concatenation on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}" if hasattr(other, 'value') and hasattr(self, 'value') else f"can't perform concatenation on type none",
             'context': self.context if self.context is not None else other.context,
             'exit': False
         }
@@ -2164,7 +2164,7 @@ class String(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start is not None else other.pos_start,
             'pos_end': self.pos_end if self.pos_end is not None else other.pos_end,
-            'message': f"can't perform multiplication on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'message': f"can't perform multiplication on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
             'context': self.context if self.context is not None else other.context,
             'exit': False
         }
@@ -2202,12 +2202,12 @@ class String(Value):
         return self.setTrueorFalse(setNumber(self.value) >= setNumber(other.value)).setContext(self.context), None
 
     def get_comparison_in(self, other):
-        #print(self, other)
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'in' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
-            'context': self.context
+            'message':  f"'in (\"string\")' requires string as left operand, not '{TypeOf(other).getType()}'",
+            'context': self.context,
+            'exit': False
         }
         if isinstance(other, String) or isinstance(other, Bytes):
             try:
@@ -2218,6 +2218,9 @@ class String(Value):
         elif isinstance(other, List) or isinstance(other, Pair):
             error['message'] = f"'in (\"string\")' requires string as left operand, not '{TypeOf(other).getType()}'"
             return None, self.illegal_operation_typerror(error, other)
+        # elif isinstance(other, Dict):
+        #     print("checking in dict")
+        
         elif isinstance(other, Boolean):
             if other.value == "true":
                 return self.setTrueorFalse(True).setContext(self.context), None
@@ -2234,7 +2237,7 @@ class String(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start is not None else other.pos_start,
             'pos_end': self.pos_end if self.pos_end is not None else other.pos_end,
-            'message': f"can't perform indexing on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'message': f"can't perform indexing on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
             'context': self.context if self.context is not None else other.context,
             'exit': False
         }
@@ -4065,7 +4068,7 @@ class Boolean(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start is not None else other.pos_start,
             'pos_end': self.pos_end if self.pos_end is not None else other.pos_end,
-            'message': f"can't add {TypeOf(self.value).getType()} to {TypeOf(other.value).getType()}",
+            'message': f"can't add {TypeOf(self).getType()} to {TypeOf(other.value).getType()}",
             'context': self.context if self.context is not None else other.context,
             'exit': False
         }
@@ -4149,7 +4152,7 @@ class Boolean(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start is not None else other.pos_start,
             'pos_end': self.pos_end if self.pos_end is not None else other.pos_end,
-            'message': f"can't divide {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
+            'message': f"can't divide {TypeOf(self).getType()} by {TypeOf(other.value).getType()}",
             'context': self.context if self.context is not None else other.context,
             'exit': False
         }
@@ -4173,7 +4176,7 @@ class Boolean(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start is not None else other.pos_start,
             'pos_end': self.pos_end if self.pos_end is not None else other.pos_end, 
-            'message': f"can't perform modulo on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'message': f"can't perform modulo on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
             'context': self.context if self.context is not None else other.context,
             'exit': False
         }
@@ -4188,7 +4191,7 @@ class Boolean(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start is not None else other.pos_start,
             'pos_end': self.pos_end if self.pos_end is not None else other.pos_end,
-            'message': f"can't perform powred on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'message': f"can't perform powred on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
             'context': self.context if self.context is not None else other.context,
             'exit': False
         }
@@ -4209,7 +4212,7 @@ class Boolean(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'<' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'message': f"'<' operator can't be used on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
             'context': self.context,
             'exit': False
         }
@@ -4224,7 +4227,7 @@ class Boolean(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'>' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'message': f"'>' operator can't be used on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
             'context': self.context,
             'exit': False
         }
@@ -4239,7 +4242,7 @@ class Boolean(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'<=' operator can't be used on {TypeOf(self.value).getType()} of type {TypeOf(other.value).getType()}",
+            'message': f"'<=' operator can't be used on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
             'context': self.context,
             'exit': False
         }
@@ -4326,6 +4329,12 @@ class NoneType(Value):
     def __repr__(self):
         return f'{self.value}'
 
+l1 = [1,2,3]
+l2 = []
+if l1 and l2:
+    print("l1 and l2")
+else:
+    print("l1 or l2")
 
 
 
@@ -4423,7 +4432,7 @@ class List(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"can't add '{TypeOf(other.value).getType()}' to '{TypeOf(self.value).getType()}'",
+                'message': f"can't add '{TypeOf(other).getType()}' to '{TypeOf(self).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -4433,7 +4442,7 @@ class List(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't subtract '{TypeOf(other.value).getType()}' from {TypeOf(self.value).getType()}'",
+            'message': f"can't subtract '{TypeOf(other).getType()}' from {TypeOf(self).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -4451,7 +4460,7 @@ class List(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"unsupported operation on 'list' and '{TypeOf(other.value).getType()}'",
+            'message': f"unsupported operation on 'list' and '{TypeOf(other).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -4461,7 +4470,7 @@ class List(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't multiply {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
+            'message': f"can't multiply {TypeOf(self).getType()} by {TypeOf(other.value).getType()}",
             'context': self.context,
             'exit': False
         }
@@ -4488,7 +4497,7 @@ class List(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"'>' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'message': f"'>' not supported between instances of '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -4502,7 +4511,7 @@ class List(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"'>' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'message': f"'>' not supported between instances of '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -4516,7 +4525,7 @@ class List(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"'<=' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'message': f"'<=' not supported between instances of '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -4530,7 +4539,7 @@ class List(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"'>=' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'message': f"'>=' not supported between instances of '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -4558,7 +4567,7 @@ class List(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't get index of {TypeOf(self.value).getType()}",
+            'message': f"can't get index of {TypeOf(self).getType()}",
             'context': self.context,
             'exit': False
         }
@@ -5714,9 +5723,9 @@ list_methods = {
 }
 
 class Pair(Value):
-    def __init__(self, elements=None):
+    def __init__(self, elements):
         super().__init__()
-        self.elements = elements if elements is not None else ()
+        self.elements = elements
         self.value = self.elements
         self.id = self.elements
 
@@ -5733,7 +5742,7 @@ class Pair(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"can't add '{TypeOf(other.value).getType()}' to '{TypeOf(self.value).getType()}'",
+                'message': f"can't add '{TypeOf(other).getType()}' to '{TypeOf(self).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -5757,7 +5766,7 @@ class Pair(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"can't add '{TypeOf(other.value).getType()}' to '{TypeOf(self.value).getType()}'",
+                'message': f"can't add '{TypeOf(other).getType()}' to '{TypeOf(self).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -5767,7 +5776,7 @@ class Pair(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't subtract '{TypeOf(other.value).getType()}' from {TypeOf(self.value).getType()}'",
+            'message': f"can't subtract '{TypeOf(other).getType()}' from {TypeOf(self).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -5785,7 +5794,7 @@ class Pair(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"unsupported operation on 'pair' and '{TypeOf(other.value).getType()}'",
+            'message': f"unsupported operation on 'pair' and '{TypeOf(other).getType()}'",
             'context': self.context,
             'exit': False
         }
@@ -5795,7 +5804,7 @@ class Pair(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't multiply {TypeOf(self.value).getType()} by {TypeOf(other.value).getType()}",
+            'message': f"can't multiply {TypeOf(self).getType()} by {TypeOf(other.value).getType()}",
             'context': self.context,
             'exit': False
         }
@@ -5822,7 +5831,7 @@ class Pair(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"'>' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'message': f"'>' not supported between instances of '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -5836,7 +5845,7 @@ class Pair(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"'>' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'message': f"'>' not supported between instances of '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -5850,7 +5859,7 @@ class Pair(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"'<=' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'message': f"'<=' not supported between instances of '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -5864,7 +5873,7 @@ class Pair(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"'>=' not supported between instances of '{TypeOf(self.value).getType()}' and '{TypeOf(other.value).getType()}'",
+                'message': f"'>=' not supported between instances of '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -5892,7 +5901,7 @@ class Pair(Value):
         error = {
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"can't get index of {TypeOf(self.value).getType()}",
+            'message': f"can't get index of {TypeOf(self).getType()}",
             'context': self.context,
             'exit': False
         }
@@ -6117,7 +6126,7 @@ class Dict(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"can't merge '{TypeOf(self.value).getType()}' with '{TypeOf(other.value).getType()}'",
+                'message': f"can't merge '{TypeOf(self).getType()}' with '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -6162,7 +6171,11 @@ class Dict(Value):
                         return self.setTrueorFalse(True), None
                 return self.setTrueorFalse(False), None
         else:
-            return None, self.illegal_operation_typerror(error, other)
+            try:
+                return self.setTrueorFalse(other.value in self.properties), None
+            except:
+                error['message'] = f"invalid operation on 'in'"
+                return None, self.illegal_operation_typerror(error, other)
     
     def get_comparison_not_in(self, other):
         value = self.get_comparison_in(other)[0].value
@@ -6170,7 +6183,7 @@ class Dict(Value):
     
     def or_by(self, other):
         return self.setTrueorFalse(self.value or other.value), None
-
+  
     def notted(self):
         value = setNumber(self.value)
         return self.setTrueorFalse(not value).setContext(self.context), None
@@ -6724,7 +6737,7 @@ class Object(Value):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"can't merge '{TypeOf(self.value).getType()}' with '{TypeOf(other.value).getType()}'",
+                'message': f"can't merge '{TypeOf(self).getType()}' with '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -9682,7 +9695,7 @@ class BuiltInClass(BaseClass):
             error = {
                 'pos_start': self.pos_start,
                 'pos_end': self.pos_end,
-                'message': f"can't merge '{TypeOf(self.value).getType()}' with '{TypeOf(other.value).getType()}'",
+                'message': f"can't merge '{TypeOf(self).getType()}' with '{TypeOf(other).getType()}'",
                 'context': self.context,
                 'exit': False
             }
@@ -13281,68 +13294,46 @@ def BuiltInClass_Int(args, node, context, keyword_args=None, has_unpack=False):
         'exit': False
     })
 
-''' Python solution '''
+s_string = "ADOBECODEBANC"
+t_string = "ABC"
 
-def smallestWindow(s, p):
-	n = len(s)
-	if n < len(p):
-		return -1
-	mp = [0]*256
-	
-	# Starting index of ans
-	start = 0
-	
-	# Answer
-	# Length of ans
-	ans = n + 1
-	cnt = 0
-	
-	# creating map
-	for i in p:
-		mp[ord(i)] += 1
-  
-		if mp[ord(i)] == 1:
-			cnt += 1
-			
-	# References of Window	
-	j = 0
-	i = 0
-	
-	# Traversing the window
-	while(j < n):
-	
-	# Calculating
-		mp[ord(s[j])] -= 1
-		if mp[ord(s[j])] == 0:
-			cnt -= 1
-			
-			# Condition matching
-			while cnt == 0:
-				if ans > j - i + 1:
-				
-				# calculating answer.
-					ans = j - i + 1
-					start = i
-					
-				# Sliding I
-				# Calculation for removing I
-				mp[ord(s[i])] += 1
-				if mp[ord(s[i])] > 0:
-					cnt += 1
-				i += 1
-		j += 1
+def find_minimum_window(s, t):
+    if s == "" or t == "":
+        return ""
     
-	if ans > n:
-		return "-1"
-	return s[start:start+ans]
+    countT, window = {}, {}
+    
+    for c in t:
+        countT[c] = 1 + countT.get(c, 0)
+    
+    have, need = 0, len(countT)
+    res, resLen = [-1, -1], float("infinity")
+    l = 0
+    for r in range(len(s)):
+        c = s[r]
+        window[c] = 1 + window.get(c, 0)
+        if c in countT:
+            if window[c] == countT[c]:
+                have += 1
+        
+        #print(have,need)
+        while have == need:
+            if r - l + 1 < resLen:
+                res = [l, r]
+                resLen = (r - l + 1)
+            
+            window[s[l]] -= 1
+            if s[l] in countT and window[s[l]] < countT[s[l]]:
+                have -= 1
+            
+            l += 1
+        
+    
+    l, r = res
+    return  s[l:r + 1] if resLen != float("infinity") else ""
 
-s = "ADOBECODEBANC"
-p = "ABC"
-result = smallestWindow(s, p)
-print("-->Smallest window that contain all character :", result)
-	
-	# This code is contributed by cyclades.
 
+find_minimum_window(s_string, t_string)
 
 types = {
         'int': 'int',
@@ -13987,6 +13978,7 @@ class Interpreter:
                     'value': value_,
                     'type': 'let'
                 }
+            
             if type(v) is dict:
                 var_type = v['type']
                 if var_type == "final":
@@ -14008,6 +14000,7 @@ class Interpreter:
                 else:
                     if operation == "add":
                         if isinstance(v['value'], Number) or isinstance(v['value'], Boolean):
+                            
                             if isinstance(value, Number) or isinstance(value, Boolean):
                                 new_value = Number(setNumber(v['value'].value) + setNumber(value.value))
                                 context.symbolTable.set(var_name, new_value, "let")
@@ -14037,6 +14030,13 @@ class Interpreter:
                             if isinstance(value, List):
                                 new_value = List(v['value'].elements + value.elements)
                                 context.symbolTable.set(var_name, new_value)
+                            elif isinstance(value, Pair):
+                                if isinstance(value.elements, tuple):
+                                    new_value = List(v['value'].elements + list(value.elements))
+                                    context.symbolTable.set(var_name, new_value)
+                                else:
+                                    new_value = List(v['value'].elements + [value.elements])
+                                    context.symbolTable.set(var_name, new_value)
                             elif isinstance(value, String):
                                 new_list = []
                                 for char in value.value:
@@ -14049,8 +14049,6 @@ class Interpreter:
                                     new_list.append(String(key).setPosition(node.pos_start, node.pos_end).setContext(context))
                                 new_value = List(v['value'].elements + new_list)
                                 context.symbolTable.set(var_name, new_value)
-                            
-                            
                             else:
                                 raise Al_TypeError({
                                     'pos_start': node.pos_start,
@@ -14661,7 +14659,7 @@ class Interpreter:
                                 })
                     else:
                         context.symbolTable.set(var_name, value, "let")
-
+            
         else:
             raise Al_NameError({
                 'name': String('NameError'),
@@ -15195,7 +15193,7 @@ class Interpreter:
                     if object_key.node_to_call.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.value]
                         if isinstance(value, dict):
-                            value = value['value']
+                            value = value
                         if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                             error["message"] = f"'{object_key.node_to_call.value}' is not callable"
                             raise Al_NameError(error)
@@ -15234,7 +15232,7 @@ class Interpreter:
                 if object_key.value in object_name.properties:
                     value = object_name.properties[object_key.value]
                     if isinstance(value, dict):
-                        return res.success(value['value'])
+                        return res.success(value)
                     else:
                         return res.success(value)
                 if object_key.value in module_methods:
@@ -15468,13 +15466,12 @@ class Interpreter:
         if res.should_return(): return res
         object_type = TypeOf(index_value).getType()
         index_type = TypeOf(index).getType()
-        
+        name = node.name.value if hasattr(node.name, "value") else node.name.id.value
         if object_type == "list":
             if index_type == "int":
                 try:
                     get_value = index_value.elements[index.value]
                     if type_ == "=":
-                        name = node.name.value if hasattr(node.name, "value") else node.name.id.value
                         var_name = context.symbolTable.get(name)
                         if isinstance(var_name,dict):
                             if var_name['type'] == "freeze" or var_name['type'] == "final":
@@ -15486,6 +15483,98 @@ class Interpreter:
                                     'exit': False
                                 })
                         index_value.elements[index.value] = value_
+                    else:
+                        var_name = context.symbolTable.get(name)
+                        var_type = None
+                        if isinstance(var_name,dict):
+                            var_type = var_name['type']
+                        if var_type == "final":
+                                raise Al_NameError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"assignment to read-only property: '{index.value}'",
+                                'context': context,
+                                'exit': False
+                            })
+                        if var_type == "freeze":
+                            raise Al_TypeError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"cannot set '{index.value}' on immutable object",
+                                'context': context,
+                                'exit': False
+                            })
+                        if type_ == "add":
+                            if isinstance(get_value, Number) or isinstance(get_value, Boolean):
+                                if isinstance(value_, Number) or isinstance(value_, Boolean):
+                                    new_value = Number(setNumber(get_value.value) + setNumber(value_.value))
+                                    index_value.elements[index.value] = new_value
+                                else:
+                                    raise Al_TypeError({
+                                        'name': 'TypeError',
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"unsupported '+=' operation for '{TypeOf(get_value).getType()}' and '{TypeOf(value_).getType()}'",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            elif isinstance(get_value, String):
+                                if isinstance(value_, String):
+                                    new_value = String(get_value.value + value_.value)
+                                    index_value.elements[index.value] = new_value
+                                else:
+                                    raise Al_TypeError({
+                                        'name': String('TypeError'),
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"can only concatenate string (not '{TypeOf(value_).getType()}') to string",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            elif isinstance(get_value, List):
+                                if isinstance(value_, List):
+                                    new_value = List(get_value.elements + value_.elements)
+                                    index_value.elements[index.value] = new_value
+                                elif isinstance(value_, Pair):
+                                    if isinstance(value_.elements, tuple):
+                                        new_value = List(get_value.elements + list(value_.elements))
+                                        index_value.elements[index.value] = new_value
+                                    else:
+                                        new_value = List(get_value.elements + [value_.elements])
+                                        index_value.elements[index.value] = new_value
+                                elif isinstance(value_, String):
+                                    new_list = []
+                                    for char in value_.value:
+                                        new_list.append(String(char).setPosition(node.pos_start, node.pos_end).setContext(context))
+                                    new_value = List(get_value.elements + new_list)
+                                    index_value.elements[index.value] = new_value
+                                elif isinstance(value_, Object) or isinstance(value_, Dict):
+                                    new_list = []
+                                    for key, value in value_.properties.items():
+                                        new_list.append(String(key).setPosition(node.pos_start, node.pos_end).setContext(context))
+                                    new_value = List(get_value.elements + new_list)
+                                    index_value.elements[index.value] = new_value
+                                else:
+                                    raise Al_TypeError({
+                                        'name': String('TypeError'),
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"'{TypeOf(value_).getType()}' object is not iterable",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                            elif isinstance(get_value, Pair):
+                                if isinstance(value_, Pair):
+                                    new_value = Pair(get_value.elements + value_.elements)
+                                    index_value.elements[index.value] = new_value
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"can only concatenate pair (not '{TypeOf(value_).getType()}') to pair",
+                                        'context': context,
+                                        'exit': False
+                                    })
                     return res.success(get_value)
                 except IndexError:
                     raise Al_IndexError({
@@ -15561,7 +15650,6 @@ class Interpreter:
                         get_value = index_value.properties[index.value]
                         return res.success(get_value)
                 except KeyError:
-                    #print(index_value.properties, index.value)
                     raise Al_KeyError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
@@ -16165,6 +16253,7 @@ class Interpreter:
             left = res.register(self.visit(node.left_node, context))
             if res.should_return(): return res
             right = res.register(self.visit(node.right_node, context))
+            
             if node.op_tok.type == tokenList.TT_PLUS:
                 result, error = left.added_to(right)
             if node.op_tok.type == tokenList.TT_PLUS_PLUS:
@@ -16247,6 +16336,7 @@ class Interpreter:
 
     def visit_IfNode(self, node, context):
         res = RuntimeResult()
+        self.scope = "if"
         for condition, expr, return_null in node.cases:
             condition_value = res.register(self.visit(condition, context))
             if res.should_return():
@@ -16260,6 +16350,25 @@ class Interpreter:
                     expr_value = res.register(self.visit(expr, context))
                     if res.should_return(): return res
                     return res.success(NoneType().setContext(context).setPosition(node.pos_start, node.pos_end) if return_null else expr_value)
+                
+                
+            # try:
+            #     condition_value = res.register(self.visit(condition, context))
+            #     if res.should_return():
+            #         return res
+            #     if hasattr(condition_value, "value") and condition_value.value == "true":
+            #         expr_value = res.register(self.visit(expr, context))
+            #         if res.should_return(): return res
+            #         return res.success(NoneType().setContext(context).setPosition(node.pos_start, node.pos_end) if return_null else expr_value)
+            #     else:
+            #         if  hasattr(condition_value, 'is_true') and condition_value.is_true():
+            #             expr_value = res.register(self.visit(expr, context))
+            #             if res.should_return(): return res
+            #             return res.success(NoneType().setContext(context).setPosition(node.pos_start, node.pos_end) if return_null else expr_value)
+            # except Exception as e:
+            #     print(e)
+                
+                
         if node.else_case:
             expr, return_null = node.else_case
             else_value = res.register(self.visit(expr, context))
@@ -16355,7 +16464,7 @@ class Interpreter:
 
         iterators = node.iterators
         if type(iterable_node) == dict:
-            iterable_node = iterable_node['value']
+            iterable_node = iterable_node
         value = ""
         elements = []
         try:
@@ -17029,7 +17138,7 @@ class Interpreter:
         properties = {}
         for property in node.properties:
             prop_name = property['name'].value
-            prop_value = res.register(self.visit(property['value'], context))
+            prop_value = res.register(self.visit(property, context))
             properties = {**properties, **{prop_name: prop_value}}
             if res.should_return(): return res
             object_value = Object(object_name, properties).setContext(context).setPosition(node.pos_start, node.pos_end)

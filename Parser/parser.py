@@ -1001,7 +1001,7 @@ class Parser:
             return res.success(ContinueNode(pos_start, self.current_token.pos_end.copy()))
 
         if self.current_token.matches(tokenList.TT_KEYWORD, 'break'):
-            print(Parser.scope)
+            #print(Parser.scope)
             if hasattr(Parser, 'scope'):
                 if Parser.scope != 'loop':
                     self.error_detected = True
@@ -2231,7 +2231,7 @@ class Parser:
             new_cases, else_case = all_cases
             cases.extend(new_cases)
 
-        Parser.finished_loop = True
+        
         return res.success((cases, else_case))
 
     def for_expr(self):
@@ -2334,6 +2334,7 @@ class Parser:
 
             res.register_advancement()
             self.advance()
+            Parser.scope = None
             return res.success(ForNode(var_name_token, start_value, end_value, step_value, body, True))
         body = res.register(self.statement())
         if res.error:
@@ -2495,6 +2496,7 @@ class Parser:
 
                 res.register_advancement()
                 self.advance()
+                Parser.scope = None
                 return res.success(InNode(iterable_name_token, iterator_keys, body, False))
         else:
             expr = res.register(self.expr())
@@ -2612,6 +2614,7 @@ class Parser:
                 }))
             res.register_advancement()
             self.advance()
+            Parser.scope = None
             return res.success(WhileNode(condition, body, True))
 
         body = res.register(self.statement())
@@ -4596,6 +4599,7 @@ class Parser:
 
             if self.current_token.type == tokenList.TT_RSQBRACKET:
                 self.skipLines()
+                
                 if self.current_token.type == tokenList.TT_EQ:
                     res.register_advancement()
                     self.advance()
@@ -4622,6 +4626,41 @@ class Parser:
                             'exit': False
                         }))
                     return res.success(IndexNode(atom, index, value, "="))
+                elif self.current_token.type != None and self.current_token.type in operation_methods:
+                    operator = self.current_token
+                    # if not isinstance(atom, VarAccessNode):
+                    #     print(type(atom))
+                    #     self.error_detected = True
+                    #     return res.failure(self.error['Syntax']({
+                    #         'pos_start': self.current_token.pos_start,
+                    #         'pos_end': self.current_token.pos_end,
+                    #         'message': "Illegal expression: invalid left hand side",
+                    #         'context': self.context,
+                    #         'exit': False
+                    #     }))
+                    res.register_advancement()
+                    self.advance()
+                    value = res.register(self.expr())
+                    if value == "":
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "expected an expression",
+                            'context': self.context,
+                            'exit': False
+                        }))
+                    if res.error: return res
+                    if index == "":
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "expected an expression",
+                            'context': self.context,
+                            'exit': False
+                        }))
+                    return res.success(IndexNode(atom, index, value, operation_methods[operator.type]))
                 return res.success(IndexNode(atom, index))
 
             elif self.current_token.type == tokenList.TT_COLON:
@@ -4835,7 +4874,11 @@ class Parser:
                 ))
         while self.current_token.type == tokenList.TT_NEWLINE:
             self.skipLines()
-
+        is_loop = True if hasattr(Parser, 'scope') and Parser.scope == 'loop' else False
+        
+        # if is_loop == False:
+        #     Parser.scope = "loop"
+        
         while self.current_token.matches(tokenList.TT_KEYWORD, "catch"):
             
             self.skipLines()
@@ -4895,8 +4938,8 @@ class Parser:
                                 }
                             ))
                         self.skipLines()
-                        is_loop = True if hasattr(Parser, 'scope') and Parser.scope == 'loop' else False
-                        print(is_loop)
+                        
+                        
                         statements = res.register(self.statements())
                         catch_statement = {
                             'exception': exception,
