@@ -313,6 +313,7 @@ class DocStringNode:
     def __repr__(self):
         return f'{self.tok}'
 
+
 class ByteStringNode:
     def __init__(self, tok):
         self.name = tok
@@ -352,9 +353,18 @@ class PairNode:
         self.pos_end = pos_end
 
 
-class PipeNode:
-    def __init__(self, elements, pos_start, pos_end):
-        self.elements = elements
+class DictNode:
+    def __init__(self, properties, keys, values, pos_start, pos_end):
+        self.properties = properties
+        self.keys = keys
+        self.values = values
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        
+            
+class SetNode:
+    def __init__(self, sets, pos_start, pos_end):
+        self.sets = sets
         self.pos_start = pos_start
         self.pos_end = pos_end
 
@@ -663,13 +673,7 @@ class ObjectNode:
         }
 
 
-class DictNode:
-    def __init__(self, properties, keys, values, pos_start, pos_end):
-        self.properties = properties
-        self.keys = keys
-        self.values = values
-        self.pos_start = pos_start
-        self.pos_end = pos_end
+
 
 
 class ModuleObject:
@@ -1874,6 +1878,7 @@ class Parser:
             if res.error:
                 return res
             return res.success(dict_expr)
+        
         elif tok.matches(tokenList.TT_KEYWORD, 'if'):
             if_expression = res.register(self.if_expr())
             if res.error:
@@ -3234,79 +3239,75 @@ class Parser:
         self.skipLines()
 
         start_token = self.current_token
-        if self.current_token.type == tokenList.TT_RBRACE:
-            self.skipLines()
-            return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
+        if self.current_token.type == tokenList.TT_LPAREN:
+            self.reverse()
+            sets_ = res.register(self.set_expr())
+            if res.error: return res
+            return res.success(sets_)
         else:
-            while self.current_token.type == tokenList.TT_NEWLINE:
+            if self.current_token.type == tokenList.TT_RBRACE:
                 self.skipLines()
-            if self.current_token.type == tokenList.TT_EOF:
-                self.error_detected = True
-                return res.failure(self.error['Syntax']({
-                    'pos_start': start_token.pos_start,
-                    'pos_end': start_token.pos_end,
-                    'message': "expected ',', '}' or a newline",
-                    'context': self.context,
-                    'exit': False
-                }))
-                
-            if self.current_token.type == tokenList.TT_IDENTIFIER or tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING:
-                if self.current_token.type == tokenList.TT_RBRACE:
+                return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
+            else:
+                while self.current_token.type == tokenList.TT_NEWLINE:
                     self.skipLines()
-                    return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-                properties.append({
-                    'key': self.current_token,
-                    'value': [],
-                    'pos_start': self.current_token.pos_start.copy(),
-                    'pos_end': self.current_token.pos_end.copy()
-                })
-                keys.append(self.current_token)
-                self.skipLines()
-                
-                if self.current_token.type != tokenList.TT_COLON:
-                    if self.current_token.type == tokenList.TT_EQ or self.current_token.type == tokenList.TT_EQEQ:
-                        return res.failure(self.error['Syntax']({
-                            'pos_start': self.current_token.pos_start,
-                            'pos_end': self.current_token.pos_end,
-                            'message': "expression cannot be an assignment",
-                            'context': self.context,
-                            'exit': False
-                            }))
-                    else:
-                        return res.failure(self.error['Syntax']({
-                            'pos_start': self.current_token.pos_start,
-                            'pos_end': self.current_token.pos_end,
-                            'message': "'{' was not closed",
-                            'context': self.context,
-                            'exit': False
-                        }))
-
-                self.skipLines()
-
-                value = res.register(self.expr())
-                if value == '':
+                if self.current_token.type == tokenList.TT_EOF:
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "expected an expression after ':'",
+                        'pos_start': start_token.pos_start,
+                        'pos_end': start_token.pos_end,
+                        'message': "expected ',', '}' or a newline",
                         'context': self.context,
                         'exit': False
                     }))
-                if res.error:
-                        return res
-                properties[-1]['value'] = value
-                values.append(value)
+                    
+                if self.current_token.type == tokenList.TT_IDENTIFIER or tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING:
+                    if self.current_token.type == tokenList.TT_RBRACE:
+                        self.skipLines()
+                        return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
+                    properties.append({
+                        'key': self.current_token,
+                        'value': [],
+                        'pos_start': self.current_token.pos_start.copy(),
+                        'pos_end': self.current_token.pos_end.copy()
+                    })
+                    keys.append(self.current_token)
+                    self.skipLines()
+                    
+                    if self.current_token.type != tokenList.TT_COLON:
+                        if self.current_token.type == tokenList.TT_EQ or self.current_token.type == tokenList.TT_EQEQ:
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "expression cannot be an assignment",
+                                'context': self.context,
+                                'exit': False
+                                }))
+                        else:
+                            return res.failure(self.error['Syntax']({
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': "'{' was not closed",
+                                'context': self.context,
+                                'exit': False
+                            }))
 
-                while self.current_token.type == tokenList.TT_NEWLINE:
                     self.skipLines()
 
-                if self.current_token.type == tokenList.TT_RBRACE:
-                    self.skipLines()
-                    return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-
-                while self.current_token.type == tokenList.TT_COMMA:
-                    self.skipLines()
+                    value = res.register(self.expr())
+                    if value == '':
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "expected an expression after ':'",
+                            'context': self.context,
+                            'exit': False
+                        }))
+                    if res.error:
+                            return res
+                    properties[-1]['value'] = value
+                    values.append(value)
 
                     while self.current_token.type == tokenList.TT_NEWLINE:
                         self.skipLines()
@@ -3315,50 +3316,8 @@ class Parser:
                         self.skipLines()
                         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
 
-                    if self.current_token.type == tokenList.TT_IDENTIFIER or tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING:
-                        properties.append({
-                            'key': self.current_token,
-                            'value': [],
-                            'pos_start': self.current_token.pos_start.copy(),
-                            'pos_end': self.current_token.pos_end.copy()
-                        })
-                        keys.append(self.current_token)
+                    while self.current_token.type == tokenList.TT_COMMA:
                         self.skipLines()
-
-                        if self.current_token.type != tokenList.TT_COLON:
-                            if self.current_token.type == tokenList.TT_EQ or self.current_token.type == tokenList.TT_EQEQ:
-                                return res.failure(self.error['Syntax']({
-                                    'pos_start': self.current_token.pos_start,
-                                    'pos_end': self.current_token.pos_end,
-                                    'message': "expression cannot be an assignment",
-                                    'context': self.context,
-                                    'exit': False
-                                    }))
-                            else:
-                                return res.failure(self.error['Syntax']({
-                                    'pos_start': self.current_token.pos_start,
-                                    'pos_end': self.current_token.pos_end,
-                                    'message': "'{' was not closed",
-                                    'context': self.context,
-                                    'exit': False
-                                }))
-
-                        self.skipLines()
-
-                        value = res.register(self.expr())
-                        if value == '':
-                            self.error_detected = True
-                            return res.failure(self.error['Syntax']({
-                                'pos_start': self.current_token.pos_start,
-                                'pos_end': self.current_token.pos_end,
-                                'message': "expected an expression after ':'",
-                                'context': self.context,
-                                'exit': False
-                            }))
-                        if res.error:
-                                return res
-                        properties[-1]['value'] = value
-                        values.append(value)
 
                         while self.current_token.type == tokenList.TT_NEWLINE:
                             self.skipLines()
@@ -3367,81 +3326,189 @@ class Parser:
                             self.skipLines()
                             return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
 
+                        if self.current_token.type == tokenList.TT_IDENTIFIER or tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING:
+                            properties.append({
+                                'key': self.current_token,
+                                'value': [],
+                                'pos_start': self.current_token.pos_start.copy(),
+                                'pos_end': self.current_token.pos_end.copy()
+                            })
+                            keys.append(self.current_token)
+                            self.skipLines()
 
-                    # while self.current_token.type == tokenList.TT_NEWLINE:
-                    #     self.skipLines()
+                            if self.current_token.type != tokenList.TT_COLON:
+                                if self.current_token.type == tokenList.TT_EQ or self.current_token.type == tokenList.TT_EQEQ:
+                                    return res.failure(self.error['Syntax']({
+                                        'pos_start': self.current_token.pos_start,
+                                        'pos_end': self.current_token.pos_end,
+                                        'message': "expression cannot be an assignment",
+                                        'context': self.context,
+                                        'exit': False
+                                        }))
+                                else:
+                                    return res.failure(self.error['Syntax']({
+                                        'pos_start': self.current_token.pos_start,
+                                        'pos_end': self.current_token.pos_end,
+                                        'message': "'{' was not closed",
+                                        'context': self.context,
+                                        'exit': False
+                                    }))
 
-                    # print(self.current_token, "is the current token")
+                            self.skipLines()
 
-                    # if self.current_token.type == tokenList.TT_EOF:
-                    #     self.error_detected = True
-                    #     return res.failure(self.error['Syntax']({
-                    #         'pos_start': self.current_token.pos_start,
-                    #         'pos_end': self.current_token.pos_end,
-                    #         'message': "expected '}' or a newline",
-                    #         'context': self.context,
-                    #         'exit': False
-                    #     }))
+                            value = res.register(self.expr())
+                            if value == '':
+                                self.error_detected = True
+                                return res.failure(self.error['Syntax']({
+                                    'pos_start': self.current_token.pos_start,
+                                    'pos_end': self.current_token.pos_end,
+                                    'message': "expected an expression after ':'",
+                                    'context': self.context,
+                                    'exit': False
+                                }))
+                            if res.error:
+                                    return res
+                            properties[-1]['value'] = value
+                            values.append(value)
 
-                    # if self.current_token.type == tokenList.TT_IDENTIFIER or tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING:
-                    #     properties.append({
-                    #         'key': self.current_token,
-                    #         'value': [],
-                    #         'pos_start': self.current_token.pos_start.copy(),
-                    #         'pos_end': self.current_token.pos_end.copy()
-                    #     })
-                    #     keys.append(self.current_token)
-                    #     self.skipLines()
-                    #     print(keys,values, self.current_token)
-                    #     if self.current_token.type != tokenList.TT_COLON:
-                    #         return res.failure(self.error['Syntax']({
-                    #             'pos_start': self.current_token.pos_start,
-                    #             'pos_end': self.current_token.pos_end,
-                    #             'message': "expected ':'",
-                    #             'context': self.context,
-                   #              'exit': False
-                    #         }))
-                    #     res.register_advancement()
-                    #     self.advance()
-                    #     value = res.register(self.expr())
-                    #     if res.error: return res
-                    #     properties[-1]['value'] = value
-                    #     values.append(value)
+                            while self.current_token.type == tokenList.TT_NEWLINE:
+                                self.skipLines()
 
-                    #     while self.current_token.type == tokenList.TT_NEWLINE:
-                    #         self.skipLines()
+                            if self.current_token.type == tokenList.TT_RBRACE:
+                                self.skipLines()
+                                return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
 
-                    #     if self.current_token.type == tokenList.TT_RBRACE:
-                    #         self.skipLines()
-                    #         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
 
-                    # else:
-                    #     if self.current_token.type == tokenList.TT_RBRACE:
-                    #         self.skipLines()
-                    #         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-                    #     else:
-                    #         return res.failure(self.error['Syntax']({
-                    #             'pos_start': self.current_token.pos_start,
-                    #             'pos_end': self.current_token.pos_end,
-                    #             'message': "expected '}' or a newline",
-                    #             'context': self.context,
-                    #             'exit': False
-                    #         }))
+                        # while self.current_token.type == tokenList.TT_NEWLINE:
+                        #     self.skipLines()
 
-                if self.current_token.type == tokenList.TT_RBRACE:
-                    self.skipLines()
-                    return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-                else:
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "'expected ',', or '}'",
-                        'context': self.context,
-                        'exit': False
-                    }))
+                        # print(self.current_token, "is the current token")
+
+                        # if self.current_token.type == tokenList.TT_EOF:
+                        #     self.error_detected = True
+                        #     return res.failure(self.error['Syntax']({
+                        #         'pos_start': self.current_token.pos_start,
+                        #         'pos_end': self.current_token.pos_end,
+                        #         'message': "expected '}' or a newline",
+                        #         'context': self.context,
+                        #         'exit': False
+                        #     }))
+
+                        # if self.current_token.type == tokenList.TT_IDENTIFIER or tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING:
+                        #     properties.append({
+                        #         'key': self.current_token,
+                        #         'value': [],
+                        #         'pos_start': self.current_token.pos_start.copy(),
+                        #         'pos_end': self.current_token.pos_end.copy()
+                        #     })
+                        #     keys.append(self.current_token)
+                        #     self.skipLines()
+                        #     print(keys,values, self.current_token)
+                        #     if self.current_token.type != tokenList.TT_COLON:
+                        #         return res.failure(self.error['Syntax']({
+                        #             'pos_start': self.current_token.pos_start,
+                        #             'pos_end': self.current_token.pos_end,
+                        #             'message': "expected ':'",
+                        #             'context': self.context,
+                    #              'exit': False
+                        #         }))
+                        #     res.register_advancement()
+                        #     self.advance()
+                        #     value = res.register(self.expr())
+                        #     if res.error: return res
+                        #     properties[-1]['value'] = value
+                        #     values.append(value)
+
+                        #     while self.current_token.type == tokenList.TT_NEWLINE:
+                        #         self.skipLines()
+
+                        #     if self.current_token.type == tokenList.TT_RBRACE:
+                        #         self.skipLines()
+                        #         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
+
+                        # else:
+                        #     if self.current_token.type == tokenList.TT_RBRACE:
+                        #         self.skipLines()
+                        #         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
+                        #     else:
+                        #         return res.failure(self.error['Syntax']({
+                        #             'pos_start': self.current_token.pos_start,
+                        #             'pos_end': self.current_token.pos_end,
+                        #             'message': "expected '}' or a newline",
+                        #             'context': self.context,
+                        #             'exit': False
+                        #         }))
+
+                    if self.current_token.type == tokenList.TT_RBRACE:
+                        self.skipLines()
+                        return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
+                    else:
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "'expected ',', or '}'",
+                            'context': self.context,
+                            'exit': False
+                        }))
+                self.skipLines()
+            return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
+  
+    def set_expr(self):
+        res = ParseResult()
+        sets = []
+        
+        if self.current_token.type == tokenList.TT_LBRACE:
             self.skipLines()
-        return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
+        
+        if self.current_token.type != tokenList.TT_LPAREN:
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "expected '('",
+                'context': self.context,
+                'exit': False
+            }))
+            
+        self.skipLines()
+        
+        pos_start = self.current_token.pos_start.copy()
+        sets.append(res.register(self.expr()))
+        
+        while self.current_token.type == tokenList.TT_COMMA:
+            self.skipLines()
+            sets.append(res.register(self.expr()))
+        
+        
+        if self.current_token.type != tokenList.TT_RPAREN:
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "expected ')'",
+                'context': self.context,
+                'exit': False
+            }))
+        
+        self.skipLines()
+        
 
+        
+        if self.current_token.type == tokenList.TT_RBRACE:
+            self.skipLines()
+            
+            return res.success(SetNode(sets, pos_start, self.current_token.pos_end.copy()))
+        
+        
+        self.error_detected = True
+        return res.failure(self.error['Syntax']({
+            'pos_start': self.current_token.pos_start,
+            'pos_end': self.current_token.pos_end,
+            'message': "expected '}'",
+            'context': self.context,
+            'exit': False
+        }))
+    
     def class_def(self):
         res = ParseResult()
         inherit_class_name = None
