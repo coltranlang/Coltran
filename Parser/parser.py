@@ -1655,6 +1655,19 @@ class Parser:
             expr = res.register(self.expr())
             if res.error:
                     return res
+            
+            # if has_unpack:
+            #     if not isinstance(expr, ListNode):
+            #         self.error_detected = True
+            #         return res.failure(self.error['Syntax']({
+            #             'pos_start': self.current_token.pos_start,
+            #             'pos_end': self.current_token.pos_end,
+            #             'message': "expected a list after '*'",
+            #             'context': self.context,
+            #             'exit': False
+            #         }))
+            
+            # else:
             arg_nodes.append(expr)
 
         while self.current_token.type == tokenList.TT_COMMA:
@@ -3004,7 +3017,6 @@ class Parser:
 
         res.register_advancement()
         self.advance()
-
         if self.current_token.type != tokenList.TT_IDENTIFIER:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -3130,12 +3142,12 @@ class Parser:
 
                 object_properties.append({
                     'name': obj_name,
-                        'value': obj_value,
-                        'pos_start': obj_name.pos_start,
-                        'pos_end': self.current_token.pos_end
+                    'value': obj_value,
+                    'pos_start': obj_name.pos_start,
+                    'pos_end': self.current_token.pos_end
                 })
 
-
+                
                 #return res.success(ObjectNode(object_name, object_properties))
 
                 if res.error:
@@ -3170,7 +3182,8 @@ class Parser:
 
                 res.register_advancement()
                 self.advance()
-
+                
+                
                 if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
                     res.register_advancement()
                     self.advance()
@@ -3217,6 +3230,8 @@ class Parser:
                     'context': self.context,
                     'exit': False
                 }))
+           
+           
             return res.success(ObjectNode(object_name, object_properties))
 
     def dict_expr(self):
@@ -4007,20 +4022,20 @@ class Parser:
                     "return_type": {
                         'type': '',
                     }
-            }
-            self.skipLines()
-            if self.current_token.type != tokenList.TT_IDENTIFIER:
-                self.error_detected = True
-                return res.failure(self.error['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "expected a type",
-                    'context': self.context,
-                    'exit': False
-                }))
-            type_hint['return_type']['type'] = self.current_token.value
-            type_hints.append(type_hint)
-            self.skipLines()
+                }
+                self.skipLines()
+                if self.current_token.type != tokenList.TT_IDENTIFIER:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "expected a type",
+                        'context': self.context,
+                        'exit': False
+                    }))
+                type_hint['return_type']['type'] = self.current_token.value
+                type_hints.append(type_hint)
+                self.skipLines()
             
             if self.current_token.type == tokenList.TT_ARROW:
                 self.error_detected = True

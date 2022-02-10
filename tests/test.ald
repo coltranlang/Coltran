@@ -130,15 +130,15 @@ end
 object CarInventory
     cars: []
     addCar: def (name, color)
-            object NewCar
-                name: name
-                color: color
-            end
-        append(CarInventory.cars, NewCar)
+        object NewCar
+            name: name
+            color: color
+        end
+        CarInventory.cars.append(NewCar)
     end
     lookupCar: def (index) ->  CarInventory.cars[index]
     lookupCarByName: def (name) -> @filterByname(CarInventory.cars, name)
-    size: def () ->  len(CarInventory.cars) # just assigning the value the size of the cars as len(CarInventory.cars) returns 0 but assigning the value as a def returns the size of the cars
+    size: def () ->  len(CarInventory.cars) # just checking the size of the car inventory will return 0 because the object has not been created yet, so we need to make it a method of the object, so we can call it from the object
 end
 
 let carInventory = CarInventory

@@ -546,7 +546,6 @@ class Program:
         def SyntaxError(detail):
             pass
 
-
         def Parser_SyntaxError(detail):
             if 'name' in detail:
                 if isinstance(detail['name'], String):
@@ -899,6 +898,22 @@ class Program:
             else:
                 Program.printError(Program.asStringTraceBack(isDetail))
 
+        def DeprecationWarning(detail):
+            if 'name' in detail:
+                if isinstance(detail['name'], String):
+                    detail['name'] = detail['name'].value
+            isDetail = {
+                'name': detail['name'] if 'name' in detail else 'DeprecationWarning',
+                'message': detail['message'],
+                'pos_start': detail['pos_start'],
+                'pos_end': detail['pos_end'],
+                'context': detail['context']
+            }
+            if detail['exit']:
+                Program.printErrorExit(Program.asStringTraceBack(isDetail))
+            else:
+                Program.printError(Program.asStringTraceBack(isDetail))
+        
         def SystemExit(detail):
             if 'name' in detail:
                 if isinstance(detail['name'], String):
@@ -954,6 +969,7 @@ class Program:
             'FileNotFoundError': FileNotFoundError,
             'PermissionError': PermissionError,
             'NotImplementedError': NotImplementedError,
+            'DeprecationWarning': DeprecationWarning,
             'SystemExit': SystemExit,
             'Warning': Warning
         }
@@ -1462,6 +1478,14 @@ class Al_NotImplementedError(Al_Exception):
         return f"<NotImplementedError {self.message}>"
 
 
+class Al_DeprecationWarning(Al_Exception):
+    def __init__(self, message):
+        super().__init__("DeprecationWarning", message)
+        
+    def __repr__(self):
+        return f"<DeprecationWarning {self.message}>"
+
+
 class Al_SystemExit(Al_Exception):
     def __init__(self, message):
         super().__init__("SystemExit", message)
@@ -1500,6 +1524,7 @@ builtin_exceptions = {
     'FileNotFoundError': Al_FileNotFoundError,
     'PermissionError': Al_PermissionError,
     'NotImplementedError': Al_NotImplementedError,
+    'DeprecationWarning': Al_DeprecationWarning,
     'SystemExit': Al_SystemExit,
 }
 
@@ -1817,6 +1842,7 @@ class Number(Value):
         self.id = value
         self.value = value
         self.name = value
+        self.val_rep = value
 
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
@@ -2259,6 +2285,7 @@ class String(Value):
         super().__init__()
         self.value = value
         self.id = value
+        self.val_rep = value
 
     def setPosition(self, pos_start=None, pos_end=None):
         self.pos_start = pos_start
@@ -4021,6 +4048,7 @@ class Bytes(Value):
     def __init__(self, value):
         self.value = bytes(str(value), 'utf-8') if isinstance(value, str) else value
         self.representation = 'bt' + f"'{str(self.value.decode('utf-8'))}'"
+        self.val_rep = self.value
         super().__init__()
 
     def get_comparison_eq(self, other):
@@ -4207,6 +4235,7 @@ class Boolean(Value):
         elif value == False or value == "false":
             self.value = "false"
             self.id = "false"
+        self.val_rep = self.value
         self.setPosition(0, 0)
         self.setContext(None)
 
@@ -4441,6 +4470,7 @@ class NoneType(Value):
         if self.value == None or self.value == "none":
             self.value = "none"
         self.id = value
+        self.val_rep = self.value
         self.setPosition(0, 0)
         self.setContext(None)
 
@@ -4494,13 +4524,14 @@ NoneType.none = NoneType("none")
 
 
 class List(Value):
-
+    
     def __init__(self, elements, properties=None):
         super().__init__()
-        self.elements = [element for element in elements]
+        self.elements = elements
         self.value = self.elements
         self.type = type
         self.id = self.elements
+        self.val_rep = self.elements
         self.properties = properties if properties else {}
         self.list_methods = ['length', 'push', 'pop', 'get', 'set', 'remove', 'insert', 'clear', 'contains', 'index_of', 'join', 'reverse', 'sort']
 
@@ -5029,6 +5060,8 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
+        
+        
         check_args((0,1), args, f"{len(args)} arguments given, but pop() takes 0 or 1 argument", self.pos_start, self.pos_end, self.context)
 
 
@@ -5092,63 +5125,52 @@ class List(Value):
 
         # check_type((Number, String), args[0], f"argument 1 for remove() must be of type int or string, not {TypeOf(args[0]).getType()}", self.pos_start, self.pos_end, self.context)
 
-        new_list = []
-        
 
-        # def is_supported_type(elements):
-        #     for element in elements:
-        #         if not isinstance(element, String) and not isinstance(element, Number) and not isinstance(element, Boolean):
-        #             return False
-        #     return True
         value_to_remove = args[0]
         
         
+        elements = []
+        elements_ = []    
+        indices = []
+        
+        
+        for index, element in enumerate(self.elements):
+            indices.append(index)
+        
         for element in self.elements:
-            if hasattr(element, 'value'):
-                if element.value == value_to_remove.value:
-                    continue
-            elif hasattr(element, 'elements'):
-                if element.elements == value_to_remove.elements:
-                    continue
-            elif hasattr(element, 'properties'):
-                if element.properties == value_to_remove.properties:
-                    continue
-            elif hasattr(element, 'sets'):
-                if element.sets == value_to_remove.sets:
-                    continue
-            elif hasattr(element, 'name'):
-                if element.name == value_to_remove.name:
-                    continue
-            new_list.append(element)
-            
-            
-        self.elements = new_list
-        print(self.elements, var_name)
-            # elif hasattr(element, 'elements'):
-            #     vals.append(element.elements)
-            # elif hasattr(element, 'properties'):
-            #     vals.append(element.properties)
-            # elif hasattr(element, 'name'):
-            #     vals.append(element.name)
+            elements.append(element.val_rep)
+            elements_.append(element)
         
+        index = 0  
         
-        # if is_supported_type(self.elements):
-        #     value_to_remove = args[0].value
-        #     for element in self.elements:
-        #         if element.value != value_to_remove:
-        #             new_list.append(element)
-        # else:
-        #     for i in range(len(self.elements)):
-        #         for j in range(len(self.elements)):
-        #             if type(self.elements[i]).__name__ != type(self.elements[j]).__name__:
-        #                 raise Al_TypeError({
-        #                     'pos_start': self.pos_start,
-        #                     'pos_end': self.pos_end,
-        #                     'message': f"'>' not supported between instances of '{TypeOf(self.elements[j]).getType()}' and '{TypeOf(self.elements[i]).getType()}'",
-        #                     'context': self.context,
-        #                     'exit': False
-        #                 })
-
+        value_to_remove = value_to_remove.val_rep
+        #print(value_to_remove in elements)
+        if value_to_remove in elements:
+            for i in range(len(elements)):
+                if elements[i] == value_to_remove:
+                    self.elements.pop(indices[i])
+        else:
+            found = False
+            for i in range(len(elements)):
+                if isinstance(elements_[i], List) or isinstance(elements_[i], Pair):
+                        if isinstance(args[0], List) or isinstance(value_to_remove, Pair):
+                            if elements_[i].isSame(args[0]):
+                                found = True
+                                try:
+                                    self.elements.pop(self.elements.index(elements_[i]))
+                                except:
+                                    pass
+                            
+                            
+            if found== False:
+                raise Al_ValueError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"'{value_to_remove}' is not in list",
+                    'context': self.context,
+                    'exit': False
+                })
+        
         return NoneType().setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
     def insert(self, args, kwargs, var_name=None, has_unpack=False):
@@ -5812,7 +5834,7 @@ class List(Value):
         check_type(int, index, f"expected an integer, but got (type '{TypeOf(index).getType()}')", self.pos_start, self.pos_end, self.context)
         if index <= len(self.elements):
             self.elements.pop(index)
-            return List(self.elements).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return NoneType().setContext(self.context).setPosition(self.pos_start, self.pos_end)
         else:
             raise Al_IndexError({
                 'pos_start': self.pos_start,
@@ -6031,6 +6053,17 @@ class List(Value):
         if args == None:
             return BuiltInFunction("copy", self.context)
 
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"copy() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
 
         check_args(0, args, f"{len(args)} arguments given, but copy() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
 
@@ -6141,7 +6174,9 @@ class Pair(Value):
         self.elements = elements
         self.value = self.elements
         self.id = self.elements
-
+        self.val_rep = self.elements
+        
+        
     def added_to(self, other):
         if isinstance(other, Pair):
             return Pair(self.elements + other.elements), None
@@ -6499,7 +6534,7 @@ class Set(Value):
     def __init__(self, sets):
         self.sets = sets
         self.value = self.sets
-        
+        self.val_rep = self.sets
         
     def add(self, args, kwargs, var_name=None, has_unpack=False):
         if args == None:
@@ -6544,53 +6579,101 @@ class Set(Value):
                     
         check_args(1, args, f"{len(args)} arguments given, but remove() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
         
-        vals = []
-        for value in self.sets:
-            if isinstance(value, Number):
-                vals.append(value.value)
-            elif isinstance(value, String):
-                vals.append(value.value)
-            elif isinstance(value, Boolean):
-                vals.append(value.value)
-            elif isinstance(value, NoneType):
-                vals.append(value.value)
-            elif isinstance(value, List) or isinstance(value, Pair):
-                vals.append(value.elements)
-            elif isinstance(value, Dict):
-                vals.append(value.properties)
-            elif isinstance(value, Set):
-                vals.append(value.sets)
-                
-                
-        # if isinstance(args[0], Number):
-        #     if args[0].value in vals:
-        #         print(args[0].value, value)
-        #         self.sets.remove(args[0].value)
-        #     else:
-        #         raise Al_KeyError({
-        #             'pos_start': self.pos_start,
-        #             'pos_end': self.pos_end,
-        #             'message': f"{args[0]}",
-        #             'context': self.context,
-        #             'exit': False
-        #         })
-                
-        # elif isinstance(args[0], String):
-        #     if args[0].value in vals:
-        #         print(args[0].value, value)
-        #         self.sets.remove(value)
-        #     else:
-        #         raise Al_KeyError({
-        #             'pos_start': self.pos_start,
-        #             'pos_end': self.pos_end,
-        #             'message': f"{args[0]}",
-        #             'context': self.context,
-        #             'exit': False
-        #         })
         
+        value_to_remove = args[0]
+        
+        
+        elements = []
+        elements_ = []    
+        indices = []
+        
+        
+        for index, element in enumerate(self.sets):
+            indices.append(index)
+        
+        for element in self.sets:
+            elements.append(element.val_rep)
+            elements_.append(element)
+        
+        index = 0  
+        
+        value_to_remove = value_to_remove.val_rep
+        #print(value_to_remove in elements)
+        if value_to_remove in elements:
+            for i in range(len(elements)):
+                if elements[i] == value_to_remove:
+                    self.sets.pop(indices[i])
+        else:
+            found = False
+            for i in range(len(elements)):
+                if isinstance(elements_[i], List) or isinstance(elements_[i], Pair):
+                        if isinstance(args[0], List) or isinstance(value_to_remove, Pair):
+                            if elements_[i].isSame(args[0]):
+                                found = True
+                                try:
+                                    self.sets.pop(self.sets.index(elements_[i]))
+                                except:
+                                    pass
+                            
+                            
+            if found == False:
+                raise Al_ValueError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"'{value_to_remove}' is not in list",
+                    'context': self.context,
+                    'exit': False
+                })
         
         return NoneType().setContext(self.context).setPosition(self.pos_start, self.pos_end)
+         
+    def clear(self, args, kwargs, var_name=None, has_unpack=False):
+        if args == None:
+            return BuiltInFunction("clear", self.context)
+        
+        
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"clear() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
 
+        check_args(0, args, f"{len(args)} arguments given, but clear() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        
+        
+        self.sets.clear()
+
+        return NoneType().setContext(self.context).setPosition(self.pos_start, self.pos_end)
+              
+    def Copy(self, args, kwargs, var_name=None, has_unpack=False):
+        if args == None:
+            return BuiltInFunction("copy", self.context)
+
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"copy() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+
+        check_args(0, args, f"{len(args)} arguments given, but copy() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+
+        old_list = []
+        for element in self.sets:
+            old_list.append(element)
+        return Set(old_list).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+    
     def copy(self):
         copy = Set(self.sets)
         copy.setContext(self.context)
@@ -6607,6 +6690,8 @@ class Set(Value):
 set_methods = {
     'add': Set.add,
     'remove': Set.remove,
+    'clear': Set.clear,
+    'copy': Set.Copy,
 }
 
 
@@ -6615,7 +6700,7 @@ class Dict(Value):
         super().__init__()
         self.properties = properties
         self.value = self.properties
-        self.context = context
+        self.val_rep = self.properties
 
     def get_length(self):
         return len(self.properties)
@@ -7402,7 +7487,8 @@ class Object(Value):
         self.value = self.properties
         self.get_property = self.get_property
         self.representation = f"<object {self.name}>"
-
+        self.val_rep = self.properties
+        
     def set_property(self, key, value):
         self.properties[key] = value
         return self
@@ -8485,6 +8571,7 @@ class Function(BaseFunction):
         self.implicit_return = implicit_return
         self.default_values = default_values
         self.properties = properties
+        self.val_rep = self.name
         self.type = type
         self.doc = doc
         self.context = context
@@ -8631,6 +8718,7 @@ class Function(BaseFunction):
                         'context': self.context,
                         'exit': False
                     })
+        
         # if len(self.default_values) > 0:
         #     for default_value in self.default_values:
         #         name = default_value['name']
@@ -9542,8 +9630,9 @@ class BuiltInFunction(BaseFunction):
         self.doc = doc
         self.context = context
         self.properties = properties
+        self.val_rep = self.name
         self.representation = f"<{str(self.name)}()>, [ built-in function_method ]"
-
+        
 
     def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
@@ -9765,6 +9854,7 @@ class Class(BaseClass):
         self.id = class_name
         self.class_name = class_name
         self.class_args = class_args
+        self.arg_names = self.class_args
         self.inherit_class_name = inherit_class_name
         self.inherited_from = inherited_from
         self.properties = properties
@@ -9772,6 +9862,7 @@ class Class(BaseClass):
         self.doc = doc
         self.context = context
         self.body_node = None
+        self.val_rep = self.class_name
         self.str__ = self.value
         args = []
         for arg in self.class_args:
@@ -9992,6 +10083,7 @@ class BuiltInClass(BaseClass):
         self.doc = doc
         self.value = f"<class {str(self.name)}>"
         self.representation = self.value
+        self.val_rep = self.name
         self.ACCEPTED_KEYWORD_ARGS_CLASS = {
             'File': {
                 'args': 2,
@@ -10672,6 +10764,7 @@ class Module(Value):
         self.value = self.properties
         self.type_ = type_
         self.doc = doc
+        self.val_rep = self.name
         self.get_property = self.get_property
         self.representation =f"<module {self.name}>"
 
@@ -10874,6 +10967,41 @@ def BuiltInFunction_Print(args, node, context,keyword_args=None, has_unpack=Fals
     interpreter = Interpreter(None)
     values = []
     v = ''
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     for arg in args:
         value = str(arg)
         if isinstance(arg, String):
@@ -10952,6 +11080,40 @@ def BuiltInFunction_PrintLn(args, node, context,keyword_args=None, has_unpack=Fa
     interpreter = Interpreter(None)
     values = []
     v = ''
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+        
     for arg in args:
         value = str(arg)
         if isinstance(arg, String):
@@ -11026,41 +11188,76 @@ def BuiltInFunction_PrintLn(args, node, context,keyword_args=None, has_unpack=Fa
 
 
 def BuiltInFunction_Len(args, node, context, keyword_args=None, has_unpack=False):
-        res = RuntimeResult()
-        if keyword_args != None and len(keyword_args) > 0:
-            for key in keyword_args:
-                name = key['name']
-                if name:
-                    raise Al_ArgumentError({
-                        'pos_start': node.pos_start,
-                        'pos_end': node.pos_end,
-                        'message': f"len() takes no keyword argument",
-                        'context': context,
-                        'exit': False
-                    })
-        if len(args) > 1:
-            raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, len() requires 1 argument", 'context': context, 'exit': False})
+    res = RuntimeResult()
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"len() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
+    if len(args) > 1:
+        raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, len() requires 1 argument", 'context': context, 'exit': False})
 
-        value = args[0]
+    value = args[0]
 
-        if isinstance(value, List):
-            return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        if isinstance(value, String):
-            return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        if isinstance(value, Pair):
-            return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        if isinstance(value, Object):
-            return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        if isinstance(value, Dict):
-            return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
-        else:
-            raise Al_TypeError({
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'message': f"type '{TypeOf(value).getType()}' has no len()",
-                'context': context,
-                'exit': False
-            })
+    if isinstance(value, List):
+        return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    if isinstance(value, String):
+        return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    if isinstance(value, Pair):
+        return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    if isinstance(value, Object):
+        return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    if isinstance(value, Dict):
+        return res.success(Number(len(value.value)).setPosition(node.pos_start, node.pos_end).setContext(context))
+    else:
+        raise Al_TypeError({
+            'pos_start': node.pos_start,
+            'pos_end': node.pos_end,
+            'message': f"type '{TypeOf(value).getType()}' has no len()",
+            'context': context,
+            'exit': False
+        })
 
 
 def BuiltInFunction_Input(args, node, context,keyword_args=None, has_unpack=False):
@@ -11076,6 +11273,42 @@ def BuiltInFunction_Input(args, node, context,keyword_args=None, has_unpack=Fals
                     'exit': False
                 })
     res = RuntimeResult()
+   
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
+   
     if len(args) > 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -11131,7 +11364,44 @@ def BuiltInFunction_InputInt(args, node, context,keyword_args=None, has_unpack=F
                     'context': context,
                     'exit': False
                 })
+    
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
+    
     if len(args) > 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -11192,7 +11462,43 @@ def BuiltInFunction_InputFloat(args, node, context,keyword_args=None, has_unpack
                     'context': context,
                     'exit': False
                 })
+    
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) > 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -11254,6 +11560,41 @@ def BuiltInFunction_InputBool(args, node, context,keyword_args=None, has_unpack=
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) > 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -11306,6 +11647,42 @@ def BuiltInFunction_Append(args, node,context, keyword_args=None, has_unpack=Fal
                     'exit': False
                 })
     res = RuntimeResult()
+   
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
+   
     if len(args) > 2 or len(args) < 2:
         raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, append() requires 2 arguments", 'context': context, 'exit': False})
     list_ = args[0]
@@ -11336,6 +11713,41 @@ def BuiltInFunction_Pop(args, node, context, keyword_args=None, has_unpack=False
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) > 2 or len(args) < 2:
         raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, pop() requires 2 arguments", 'context': context, 'exit': False})
     list_ = args[0]
@@ -11384,6 +11796,41 @@ def BuiltInFunction_Extend(args, node, context,keyword_args=None, has_unpack=Fal
                     'exit': False
                 })
     res = RuntimeResult()
+   
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
     if len(args) > 2 or len(args) < 2:
         raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, extend() requires 2 arguments", 'context': context, 'exit': False})
     list_ = args[0]
@@ -11423,6 +11870,41 @@ def BuiltInFunction_Remove(args, node, context, keyword_args=None, has_unpack=Fa
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) > 2 or len(args) < 2:
         raise Al_ArgumentError({'pos_start': node.pos_start, 'pos_end': node.pos_end, 'message': f"{len(args)} arguments passed, remove() requires 2 arguments", 'context': context, 'exit': False})
     list_ = args[0]
@@ -11478,6 +11960,41 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None, has_unpack=Fals
     start = 0
     end = 0
     step = 0
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) > 3:
         raise Al_ArgumentError({
             'pos_start': node.pos_start,
@@ -11559,6 +12076,39 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None, has_unpack=Fals
 
 def BuiltInFunction_Zip(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
     # zip takes any number of iterables as arguments and returns a list of tuples, where the i-th tuple contains the i-th element from each of the argument sequences or iterables.
     # zip can accept multiple iterables, but the resulting list is truncated to the length of the shortest input iterable.
 
@@ -11576,6 +12126,41 @@ def BuiltInFunction_Max(args, node, context,keyword_args=None, has_unpack=False)
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -11610,6 +12195,42 @@ def BuiltInFunction_Min(args, node, context,keyword_args=None, has_unpack=False)
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
+    
     if len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -11644,6 +12265,41 @@ def BuiltInFunction_is_finite(args, node, context,keyword_args=None, has_unpack=
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) != 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -11653,7 +12309,7 @@ def BuiltInFunction_is_finite(args, node, context,keyword_args=None, has_unpack=
             'exit': False
         })
 
-
+    
     if isinstance(args[0], Number):
         # custom implementation of is_finite()
         def is_finite(num):
@@ -11716,6 +12372,41 @@ def BuiltInFunction_Sorted(args, node, context,keyword_args=None, has_unpack=Fal
                         'exit': False
                     })
     res = RuntimeResult()
+
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+
 
     if len(args) > 2 or len(args) < 1:
             raise Al_ArgumentError({
@@ -11879,93 +12570,6 @@ def BuiltInFunction_Sorted(args, node, context,keyword_args=None, has_unpack=Fal
         return res.success(List(new_list).setPosition(node.pos_start, node.pos_end).setContext(context))
 
 
-def BuiltInFunction_Substr(args, node, context,keyword_args=None, has_unpack=False):
-    if keyword_args != None and len(keyword_args) > 0:
-        for key in keyword_args:
-            name = key['name']
-            if name:
-                raise Al_ArgumentError({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"substr() takes no keyword argument",
-                    'context': context,
-                    'exit': False
-                })
-    res = RuntimeResult()
-    if len(args) > 3:
-        raise Al_ArgumentError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but substr() takes 3 arguments",
-            "context": context,
-            'exit': False
-        })
-
-    elif len(args) == 2:
-        if isinstance(args[0], String) and isinstance(args[1], Number):
-            start = args[1].value
-            end = len(args[0].value)
-            return res.success(String(getsubstr(args[0].value, start, end)).setPosition(node.pos_start, node.pos_end).setContext(context))
-
-
-    elif len(args) == 3:
-        if isinstance(args[0], String) and isinstance(args[1], Number) and isinstance(args[2], Number):
-            start = args[1].value
-            length = args[2].value
-            return res.success(String(getsubstr(args[0].value, start, start + length)).setPosition(node.pos_start, node.pos_end).setContext(context))
-
-    else:
-        raise Al_TypeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
-            "context": context,
-            'exit': False
-        })
-
-
-def BuiltInFunction_Reverse(args, node, context,keyword_args=None, has_unpack=False):
-    if keyword_args != None and len(keyword_args) > 0:
-        for key in keyword_args:
-            name = key['name']
-            if name:
-                raise Al_ArgumentError({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': f"reverse() takes no keyword argument",
-                    'context': context,
-                    'exit': False
-                })
-    res = RuntimeResult()
-    if len(args) > 1:
-        raise Al_ArgumentError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but reverse() takes 1 argument",
-            "context": context,
-            'exit': False
-        })
-
-    if isinstance(args[0], List):
-        new_elements = []
-        elements = args[0].elements
-        for element in elements:
-            if hasattr(element, 'value'):
-                new_elements.append(element.value)
-            else:
-                new_elements.append(element)
-        new_elements.reverse()
-        return res.success(List(new_elements).setPosition(node.pos_start, node.pos_end).setContext(context))
-    else:
-        raise Al_TypeError({
-            "pos_start": node.pos_start,
-            "pos_end": node.pos_end,
-            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
-            "context": context,
-            'exit': False
-        })
-
-
 def BuiltInFunction_Format(args, node, context,keyword_args=None, has_unpack=False):
     if keyword_args != None and len(keyword_args) > 0:
         for key in keyword_args:
@@ -11978,6 +12582,41 @@ def BuiltInFunction_Format(args, node, context,keyword_args=None, has_unpack=Fal
                     'context': context,
                     'exit': False
                 })
+   
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
     string = args[0].value
     values_list = args[1].value
     regex = Regex().compile('{(.*?)}')
@@ -11997,6 +12636,41 @@ def BuiltInFunction_Typeof(args, node, context,keyword_args=None, has_unpack=Fal
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) > 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -12065,6 +12739,41 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None, has_unpa
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 1 or len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -12124,6 +12833,40 @@ def BuiltInFunction_hasprop(args, node, context,keyword_args=None, has_unpack=Fa
                 })
     res = RuntimeResult()
 
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+
     if len(args) == 0:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -12180,6 +12923,40 @@ def BuiltInFunction_Line(args, node, context,keyword_args=None, has_unpack=False
                     'exit': False
                 })
     res = RuntimeResult()
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+        
     if len(args) == 0:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -12226,6 +13003,41 @@ def BuiltInFunction_Clear(args, node, context,keyword_args=None, has_unpack=Fals
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) > 0:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -12252,6 +13064,41 @@ def BuiltInFunction_Delay(args, node, context,keyword_args=None, has_unpack=Fals
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0 or len(args) > 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -12294,6 +13141,43 @@ def BuiltInFunction_Require(args, node, context,keyword_args=None, has_unpack=Fa
                 "context": context,
                 "exit": False
             }
+    
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
+    
     if len(args) == 0 or len(args) > 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -12360,6 +13244,42 @@ def BuiltInFunction_Enumerate(args, node, context,keyword_args=None, has_unpack=
     valid_keywords_args = ["start"]
     keyword_args_names = []
     keywords = {}
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
+    
     if len(args) == 0:
         raise Al_ArgumentError({
             'pos_start': node.pos_start,
@@ -12578,6 +13498,42 @@ def BuiltInFunction_Enumerate(args, node, context,keyword_args=None, has_unpack=
 def BuiltInFunction_Freeze(args, node, context, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     interpreter = Interpreter(None)
+   
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
+   
     if len(args) != 0:
         raise Al_ArgumentError({
             'pos_start': node.pos_start,
@@ -12861,6 +13817,41 @@ def BuiltInFunction_Exit(args, node, context,keyword_args=None, has_unpack=False
                     'exit': False
                 })
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0:
         sys.exit(0)
     elif len(args) > 1:
@@ -12906,7 +13897,40 @@ def BuiltInFunction_Random(args, node, context,keyword_args=None, has_unpack=Fal
                     'context': context,
                     'exit': False
                 })
-    print(args)
+    res = RuntimeResult()
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
 
 
 def BuiltInFunction_StdInRead(args, node, context,keyword_args=None, has_unpack=False):
@@ -12921,6 +13945,41 @@ def BuiltInFunction_StdInRead(args, node, context,keyword_args=None, has_unpack=
                 'context': context,
                 'exit': False
             })
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0:
         content = ''
         res = RuntimeResult()
@@ -12966,6 +14025,41 @@ def BuiltInFunction_StdInReadLine(args, node, context,keyword_args=None, has_unp
                 'context': context,
                 'exit': False
             })
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0:
         content = ''
         res = RuntimeResult()
@@ -13012,6 +14106,40 @@ def BuiltInFunction_StdInReadLines(args, node, context,keyword_args=None, has_un
                 'exit': False
             })
 
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0:
         content = ''
         res = RuntimeResult()
@@ -13058,6 +14186,40 @@ def BuiltInFunction_StdOutWrite(args, node, context,keyword_args=None, has_unpac
                 'exit': False
             })
 
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 1:
         if isinstance(args[0], String):
             content = args[0].value
@@ -13092,31 +14254,257 @@ def BuiltInFunction_StdOutWrite(args, node, context,keyword_args=None, has_unpac
 
 
 def BuiltInFunction_StdOutWriteLines(args, node, context,keyword_args=None, has_unpack=False):
-    pass
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
 
 
 def BuiltInFunction_SysPath(args, node, context,keyword_args=None, has_unpack=False):
-    pass
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
 
 
 def BuiltInFunction_SysArgv(args, node, context,keyword_args=None, has_unpack=False):
-    pass
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
 
 
 def BuiltInFunction_SysExit(args, node, context,keyword_args=None, has_unpack=False):
-    pass
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
 
 
 def BuiltInFunction_SysVersion(args, node, context,keyword_args=None, has_unpack=False):
-    pass
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(
+                            context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
 
 
 def BuiltInFunction_SysPlatform(args, node, context,keyword_args=None, has_unpack=False):
-    pass
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
 
 
 def BuiltInFunction_SysExec(args, node, context,keyword_args=None, has_unpack=False):
-    pass
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
 
 builtin_variables = {
     'Math': {
@@ -13127,9 +14515,41 @@ builtin_variables = {
 
 
 
-def BuiltInClass_Exception(args, node, context, type, name=None):
+def BuiltInClass_Exception(args, node, context, type, keyword_args=None, has_unpack=False ):
     res = RuntimeResult()
-
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError('Exception',{
             'name': 'Exception',
@@ -13173,8 +14593,41 @@ def BuiltInClass_Exception(args, node, context, type, name=None):
             return res.success(BuiltInClass("Exception", Dict({'name': String(args[0].value), 'message': String(args[1].value)}).properties))
 
 
-def BuiltInClass_RuntimeError(args, node, context, type):
+def BuiltInClass_RuntimeError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'RuntimeError',
@@ -13219,8 +14672,41 @@ def BuiltInClass_RuntimeError(args, node, context, type):
             return res.success(BuiltInClass("RuntimeError", Dict({'name': String(args[0].value), 'message': String(args[1].value)}).properties))
 
 
-def BuiltInClass_NameError(args, node, context, type):
+def BuiltInClass_NameError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -13264,8 +14750,41 @@ def BuiltInClass_NameError(args, node, context, type):
             return res.success(BuiltInClass("NameError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_ArgumentError(args, node, context, type):
+def BuiltInClass_ArgumentError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -13309,8 +14828,41 @@ def BuiltInClass_ArgumentError(args, node, context, type):
             return res.success(BuiltInClass("ArgumentError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_TypeError(args, node, context, type):
+def BuiltInClass_TypeError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'TypeError',
@@ -13355,8 +14907,41 @@ def BuiltInClass_TypeError(args, node, context, type):
             return res.success(BuiltInClass("TypeError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_IndexError(args, node, context, type):
+def BuiltInClass_IndexError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -13400,8 +14985,43 @@ def BuiltInClass_IndexError(args, node, context, type):
             return res.success(BuiltInClass("IndexError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_ValueError(args, node, context, type):
+def BuiltInClass_ValueError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
@@ -13445,8 +15065,43 @@ def BuiltInClass_ValueError(args, node, context, type):
             return res.success(BuiltInClass("ValueError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_PropertyError(args, node, context, type):
+def BuiltInClass_PropertyError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'PropertyError',
@@ -13491,8 +15146,43 @@ def BuiltInClass_PropertyError(args, node, context, type):
             return res.success(BuiltInClass("PropertyError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_KeyError(args, node, context, type):
+def BuiltInClass_KeyError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+   
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'KeyError',
@@ -13537,8 +15227,43 @@ def BuiltInClass_KeyError(args, node, context, type):
             return res.success(BuiltInClass("KeyError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_ZeroDivisionError(args, node, context, type):
+def BuiltInClass_ZeroDivisionError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+   
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'ZeroDivisionError',
@@ -13583,8 +15308,44 @@ def BuiltInClass_ZeroDivisionError(args, node, context, type):
             return res.success(BuiltInClass("ZeroDivisionError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_LookupError(args, node, context, type):
+def BuiltInClass_LookupError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'LookupError',
@@ -13629,8 +15390,43 @@ def BuiltInClass_LookupError(args, node, context, type):
             return res.success(BuiltInClass("LookupError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_UnicodeDecodeError(args, node, context, type):
+def BuiltInClass_UnicodeDecodeError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'UnicodeDecodeError',
@@ -13675,8 +15471,43 @@ def BuiltInClass_UnicodeDecodeError(args, node, context, type):
             return res.success(BuiltInClass("UnicodeDecodeError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_ImportError(args, node, context, type):
+def BuiltInClass_ImportError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+   
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'ImportError',
@@ -13721,8 +15552,44 @@ def BuiltInClass_ImportError(args, node, context, type):
             return res.success(BuiltInClass("ImportError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_ModuleNotFoundError(args, node, context, type):
+def BuiltInClass_ModuleNotFoundError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'ModuleNotFoundError',
@@ -13767,8 +15634,43 @@ def BuiltInClass_ModuleNotFoundError(args, node, context, type):
             return res.success(BuiltInClass("ModuleNotFoundError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_KeyboardInterrupt(args, node, context, type):
+def BuiltInClass_KeyboardInterrupt(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'KeyboardInterrupt',
@@ -13813,8 +15715,43 @@ def BuiltInClass_KeyboardInterrupt(args, node, context, type):
             return res.success(BuiltInClass("KeyboardInterrupt", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_RecursionError(args, node, context, type):
+def BuiltInClass_RecursionError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'RecursionError',
@@ -13859,8 +15796,43 @@ def BuiltInClass_RecursionError(args, node, context, type):
             return res.success(BuiltInClass("RecursionError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_IOError(args, node, context, type):
+def BuiltInClass_IOError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+   
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'IOError',
@@ -13905,8 +15877,43 @@ def BuiltInClass_IOError(args, node, context, type):
             return res.success(BuiltInClass("IOError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_OSError(args, node, context, type):
+def BuiltInClass_OSError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+   
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+   
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'OSError',
@@ -13951,8 +15958,43 @@ def BuiltInClass_OSError(args, node, context, type):
             return res.success(BuiltInClass("OSError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_FileNotFoundError(args, node, context, type):
+def BuiltInClass_FileNotFoundError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'FileNotFoundError',
@@ -13997,8 +16039,43 @@ def BuiltInClass_FileNotFoundError(args, node, context, type):
             return res.success(BuiltInClass("FileNotFoundError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_PermissionError(args, node, context, type):
+def BuiltInClass_PermissionError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'PermissionError',
@@ -14043,8 +16120,43 @@ def BuiltInClass_PermissionError(args, node, context, type):
             return res.success(BuiltInClass("PermissionError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_NotImplementedError(args, node, context, type):
+def BuiltInClass_NotImplementedError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'NotImplementedError',
@@ -14089,8 +16201,44 @@ def BuiltInClass_NotImplementedError(args, node, context, type):
             return res.success(BuiltInClass("NotImplementedError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
-def BuiltInClass_SystemExit(args, node, context, type):
+def BuiltInClass_SystemExit(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
+    
     if len(args) == 0 or len(args) > 2:
         raise Al_ArgumentError({
             'name': 'SystemExit',
@@ -14140,6 +16288,7 @@ def BuiltInClass_Int(args, node, context, keyword_args=None, has_unpack=False):
     interpreter = Interpreter(None)
     base = 10
     keywords = {}
+    
     if keyword_args != None and len(keyword_args) > 0:
         for keyword_arg in keyword_args:
             name = keyword_arg['name']
@@ -14165,6 +16314,42 @@ def BuiltInClass_Int(args, node, context, keyword_args=None, has_unpack=False):
                     'exit': False
                 })
             base = value.value
+
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+
+
 
     if len(args) == 0:
         return res.success(Number(0))
@@ -16380,7 +18565,7 @@ class Interpreter:
                             if res.should_return(): return res
                         if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                             error["message"] = f"'{object_key.node_to_call.value}' is not callable"
-                            raise Al_NameError(error)
+                            raise Al_TypeError(error)
                         if isinstance(value, Function):
                             return_value = res.register(value.run(keyword_args_list,args, object_name, has_unpack=has_unpack))
                         else:
@@ -16420,7 +18605,7 @@ class Interpreter:
                         value = object_name.properties[object_key.node_to_call.value]
                         if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                             error["message"] = f"'{object_key.node_to_call.value}' object is not callable"
-                            raise Al_NameError(error)
+                            raise Al_TypeError(error)
                         else:
                             args_node = object_key.args_nodes
                             keyword_args_list = object_key.keyword_args_list
@@ -16492,7 +18677,7 @@ class Interpreter:
 
                         if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                             error["message"] = f"'{object_key.node_to_call.value}' is not callable"
-                            raise Al_NameError(error)
+                            raise Al_TypeError(error)
                         else:
                             args_node = object_key.args_nodes
                             keyword_args_list = object_key.keyword_args_list
@@ -16569,6 +18754,39 @@ class Interpreter:
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
+                        unpacked = False
+                        unpacked_args = []
+                        if has_unpack == True:
+                            for arg in args:
+                                if is_iterable(arg):
+                                    if isinstance(arg, List) or isinstance(arg, Pair):
+                                        unpacked = True
+                                        for i in range(len(arg.elements)):
+                                            unpacked_args.append(arg.elements[i])
+                                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                                        keys = arg.get_keys()
+                                        unpacked = True
+                                        for i in range(len(keys)):
+                                            if isinstance(keys[i], str):
+                                                unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                            if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                                unpacked_args.append(Number(keys[i]).setContext(
+                                                    context).setPosition(node.pos_start, node.pos_end))
+                                    elif isinstance(arg, String):
+                                        values = [x for x in arg.value]
+                                        unpacked = True
+                                        for i in range(len(values)):
+                                            unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        if unpacked == True:
+                            args = unpacked_args
                         return res.success(list_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'list' object has no property '{object_key.node_to_call.value}'"
@@ -16594,6 +18812,39 @@ class Interpreter:
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
+                        unpacked = False
+                        unpacked_args = []
+                        if has_unpack == True:
+                            for arg in args:
+                                if is_iterable(arg):
+                                    if isinstance(arg, List) or isinstance(arg, Pair):
+                                        unpacked = True
+                                        for i in range(len(arg.elements)):
+                                            unpacked_args.append(arg.elements[i])
+                                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                                        keys = arg.get_keys()
+                                        unpacked = True
+                                        for i in range(len(keys)):
+                                            if isinstance(keys[i], str):
+                                                unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                            if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                                unpacked_args.append(Number(keys[i]).setContext(
+                                                    context).setPosition(node.pos_start, node.pos_end))
+                                    elif isinstance(arg, String):
+                                        values = [x for x in arg.value]
+                                        unpacked = True
+                                        for i in range(len(values)):
+                                            unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        if unpacked == True:
+                            args = unpacked_args
                         return res.success(pair_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'pair' object has no property '{object_key.node_to_call.value}'"
@@ -16619,6 +18870,39 @@ class Interpreter:
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
+                        unpacked = False
+                        unpacked_args = []
+                        if has_unpack == True:
+                            for arg in args:
+                                if is_iterable(arg):
+                                    if isinstance(arg, List) or isinstance(arg, Pair):
+                                        unpacked = True
+                                        for i in range(len(arg.elements)):
+                                            unpacked_args.append(arg.elements[i])
+                                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                                        keys = arg.get_keys()
+                                        unpacked = True
+                                        for i in range(len(keys)):
+                                            if isinstance(keys[i], str):
+                                                unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                            if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                                unpacked_args.append(Number(keys[i]).setContext(
+                                                    context).setPosition(node.pos_start, node.pos_end))
+                                    elif isinstance(arg, String):
+                                        values = [x for x in arg.value]
+                                        unpacked = True
+                                        for i in range(len(values)):
+                                            unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        if unpacked == True:
+                            args = unpacked_args
                         return res.success(set_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'set' object has no property '{object_key.node_to_call.value}'"
@@ -16644,6 +18928,39 @@ class Interpreter:
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
+                        unpacked = False
+                        unpacked_args = []
+                        if has_unpack == True:
+                            for arg in args:
+                                if is_iterable(arg):
+                                    if isinstance(arg, List) or isinstance(arg, Pair):
+                                        unpacked = True
+                                        for i in range(len(arg.elements)):
+                                            unpacked_args.append(arg.elements[i])
+                                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                                        keys = arg.get_keys()
+                                        unpacked = True
+                                        for i in range(len(keys)):
+                                            if isinstance(keys[i], str):
+                                                unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                            if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                                unpacked_args.append(Number(keys[i]).setContext(
+                                                    context).setPosition(node.pos_start, node.pos_end))
+                                    elif isinstance(arg, String):
+                                        values = [x for x in arg.value]
+                                        unpacked = True
+                                        for i in range(len(values)):
+                                            unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        if unpacked == True:
+                            args = unpacked_args
                         return res.success(string_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'string' object has no property '{object_key.node_to_call.value}'"
@@ -16675,6 +18992,39 @@ class Interpreter:
                     for arg in object_key.args_nodes:
                         args.append(res.register( self.visit(arg, context)))
                         if res.should_return(): return res
+                    unpacked = False
+                    unpacked_args = []
+                    if has_unpack == True:
+                        for arg in args:
+                            if is_iterable(arg):
+                                if isinstance(arg, List) or isinstance(arg, Pair):
+                                    unpacked = True
+                                    for i in range(len(arg.elements)):
+                                        unpacked_args.append(arg.elements[i])
+                                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                                    keys = arg.get_keys()
+                                    unpacked = True
+                                    for i in range(len(keys)):
+                                        if isinstance(keys[i], str):
+                                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                            unpacked_args.append(Number(keys[i]).setContext(
+                                                context).setPosition(node.pos_start, node.pos_end))
+                                elif isinstance(arg, String):
+                                    values = [x for x in arg.value]
+                                    unpacked = True
+                                    for i in range(len(values)):
+                                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                            else:
+                                raise Al_TypeError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                    'context': context,
+                                    'exit': False
+                                })
+                    if unpacked == True:
+                        args = unpacked_args
                     return res.success(number_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                 else:
                     error["message"] = f"'{TypeOf(object_name.value).getType()}' object has no property {object_key.node_to_call.value}"
@@ -16700,6 +19050,39 @@ class Interpreter:
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
+                        unpacked = False
+                        unpacked_args = []
+                        if has_unpack == True:
+                            for arg in args:
+                                if is_iterable(arg):
+                                    if isinstance(arg, List) or isinstance(arg, Pair):
+                                        unpacked = True
+                                        for i in range(len(arg.elements)):
+                                            unpacked_args.append(arg.elements[i])
+                                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                                        keys = arg.get_keys()
+                                        unpacked = True
+                                        for i in range(len(keys)):
+                                            if isinstance(keys[i], str):
+                                                unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                            if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                                unpacked_args.append(Number(keys[i]).setContext(
+                                                    context).setPosition(node.pos_start, node.pos_end))
+                                    elif isinstance(arg, String):
+                                        values = [x for x in arg.value]
+                                        unpacked = True
+                                        for i in range(len(values)):
+                                            unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        if unpacked == True:
+                            args = unpacked_args
                         return res.success(bytes_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'bytes' object has no property '{object_key.node_to_call.value}'"
@@ -16722,11 +19105,48 @@ class Interpreter:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack  = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
+                        unpacked = False
+                        unpacked_args = []
+                        if has_unpack == True:
+                            for arg in args:
+                                if is_iterable(arg):
+                                    if isinstance(arg, List) or isinstance(arg, Pair):
+                                        unpacked = True
+                                        for i in range(len(arg.elements)):
+                                            unpacked_args.append(
+                                                arg.elements[i])
+                                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                                        keys = arg.get_keys()
+                                        unpacked = True
+                                        for i in range(len(keys)):
+                                            if isinstance(keys[i], str):
+                                                unpacked_args.append(String(keys[i]).setContext(
+                                                    context).setPosition(node.pos_start, node.pos_end))
+                                            if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                                unpacked_args.append(Number(keys[i]).setContext(
+                                                    context).setPosition(node.pos_start, node.pos_end))
+                                    elif isinstance(arg, String):
+                                        values = [x for x in arg.value]
+                                        unpacked = True
+                                        for i in range(len(values)):
+                                            unpacked_args.append(String(values[i]).setContext(
+                                                context).setPosition(node.pos_start, node.pos_end))
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        if unpacked == True:
+                            args = unpacked_args
                         return res.success(function_methods[method_name](object_name, args, kwargs, var_name))
                     if object_key.node_to_call.value in object_name.properties:
                         value = object_name.properties[object_key.node_to_call.value]
@@ -16736,7 +19156,7 @@ class Interpreter:
                         args = []
                         if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                             error["message"] = f"'{object_key.node_to_call.value}' is not callable"
-                            raise Al_NameError(error)
+                            raise Al_TypeError(error)
                         for arg in args_node:
                             args.append(res.register(
                                 self.visit(arg, context)))
@@ -16773,6 +19193,39 @@ class Interpreter:
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
+                        unpacked = False
+                        unpacked_args = []
+                        if has_unpack == True:
+                            for arg in args:
+                                if is_iterable(arg):
+                                    if isinstance(arg, List) or isinstance(arg, Pair):
+                                        unpacked = True
+                                        for i in range(len(arg.elements)):
+                                            unpacked_args.append(arg.elements[i])
+                                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                                        keys = arg.get_keys()
+                                        unpacked = True
+                                        for i in range(len(keys)):
+                                            if isinstance(keys[i], str):
+                                                unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                            if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                                unpacked_args.append(Number(keys[i]).setContext(
+                                                    context).setPosition(node.pos_start, node.pos_end))
+                                    elif isinstance(arg, String):
+                                        values = [x for x in arg.value]
+                                        unpacked = True
+                                        for i in range(len(values)):
+                                            unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        if unpacked == True:
+                            args = unpacked_args
                         return res.success(builtin_function_methods[method_name](object_name, args, kwargs, var_name, has_unpack))
                     else:
                         error["message"] = f"'{object_name.name}' object has no property '{object_key.node_to_call.value}'"
@@ -16801,11 +19254,45 @@ class Interpreter:
                         method_name = object_key.node_to_call.value
                         args = []
                         kwargs = object_key.keyword_args_list
+                        has_unpack  = object_key.has_unpack
                         if kwargs == None:
                             kwargs = []
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
+                        unpacked = False
+                        unpacked_args = []
+                        if has_unpack == True:
+                            for arg in args:
+                                if is_iterable(arg):
+                                    if isinstance(arg, List) or isinstance(arg, Pair):
+                                        unpacked = True
+                                        for i in range(len(arg.elements)):
+                                            unpacked_args.append(arg.elements[i])
+                                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                                        keys = arg.get_keys()
+                                        unpacked = True
+                                        for i in range(len(keys)):
+                                            if isinstance(keys[i], str):
+                                                unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                            if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                                unpacked_args.append(Number(keys[i]).setContext(
+                                                    context).setPosition(node.pos_start, node.pos_end))
+                                    elif isinstance(arg, String):
+                                        values = [x for x in arg.value]
+                                        unpacked = True
+                                        for i in range(len(values)):
+                                            unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        if unpacked == True:
+                            args = unpacked_args
                         return res.success(builtin_class_methods[method_name](object_name, args, kwargs, var_name))
                     if hasattr(object_name.properties, 'properties'):
                         if object_key.node_to_call.value in object_name.properties.properties:
@@ -16837,7 +19324,7 @@ class Interpreter:
                         args = []
                         if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                             error["message"] = f"'{object_key.node_to_call.value}' is not callable"
-                            raise Al_NameError(error)
+                            raise Al_TypeError(error)
                         for arg in args_node:
                             args.append(res.register(
                                 self.visit(arg, context)))
@@ -16875,7 +19362,7 @@ class Interpreter:
                             value = value
                         if not isinstance(value, Class) and not isinstance(value, Function) and not isinstance(value, BuiltInFunction) and not isinstance(value, BuiltInClass):
                             error["message"] = f"'{object_key.node_to_call.value}' is not callable"
-                            raise Al_NameError(error)
+                            raise Al_TypeError(error)
                         else:
                             args_node = object_key.args_nodes
                             keyword_args_list = object_key.keyword_args_list
@@ -16900,12 +19387,43 @@ class Interpreter:
                         for arg in object_key.args_nodes:
                             args.append(res.register( self.visit(arg, context)))
                             if res.should_return(): return res
+                        unpacked = False
+                        unpacked_args = []
+                        if has_unpack == True:
+                            for arg in args:
+                                if is_iterable(arg):
+                                    if isinstance(arg, List) or isinstance(arg, Pair):
+                                        unpacked = True
+                                        for i in range(len(arg.elements)):
+                                            unpacked_args.append(arg.elements[i])
+                                    elif isinstance(arg, Dict) or isinstance(arg, Object):
+                                        keys = arg.get_keys()
+                                        unpacked = True
+                                        for i in range(len(keys)):
+                                            if isinstance(keys[i], str):
+                                                unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                            if isinstance(keys[i], int) or isinstance(keys[i], float):
+                                                unpacked_args.append(Number(keys[i]).setContext(
+                                                    context).setPosition(node.pos_start, node.pos_end))
+                                    elif isinstance(arg, String):
+                                        values = [x for x in arg.value]
+                                        unpacked = True
+                                        for i in range(len(values)):
+                                            unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                                else:
+                                    raise Al_TypeError({
+                                        'pos_start': node.pos_start,
+                                        'pos_end': node.pos_end,
+                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'context': context,
+                                        'exit': False
+                                    })
+                        if unpacked == True:
+                            args = unpacked_args
                         return res.success(module_methods[method_name](object_name, args, kwargs,has_unpack=has_unpack))
                     else:
                         error["message"] = f"{node.name.id.value} object has no property '{object_key.node_to_call.value}'"
                         raise Al_PropertyError(error)
-
-
 
             elif type(object_key).__name__ == "Token":
                 if object_key.value in object_name.properties:
@@ -17128,11 +19646,14 @@ class Interpreter:
                 else:
                     error["message"] = f"'{TypeOf(object_name).getType()}' object has no property '{property.value}'"
                     raise Al_PropertyError(error)
+                
+        elif isinstance(object_name, Set):
+            error["message"] = f"cannot set '{property.value}' property of immutable type 'set'"
+            raise Al_PropertyError(error)
 
         else:
             if type(property).__name__ == "Token":
-                error['name'] = String("TypeError")
-                error["message"] = f"type '{TypeOf(object_name).getType()}' object has no property '{property.value}'"
+                error["message"] = f"'{TypeOf(object_name).getType()}' object has no property '{property.value}'"
                 raise Al_TypeError(error)
 
 
@@ -18783,40 +21304,17 @@ class Interpreter:
         properties = {}
         for property in node.properties:
             prop_name = property['name'].value
-            prop_value = res.register(self.visit(property, context))
+            prop_value = res.register(self.visit(property['value'], context))
             properties = {**properties, **{prop_name: prop_value}}
+            print(properties)
             if res.should_return(): return res
             object_value = Object(object_name, properties).setContext(context).setPosition(node.pos_start, node.pos_end)
             if isinstance(prop_value, NoneType):
                 object_value = Object(object_name, {}).setContext(
                     context).setPosition(node.pos_start, node.pos_end)
-                # already_defined = context.symbolTable.get(object_name)
-
-                # if already_defined:
-                #     if isinstance(already_defined, Object):
-                #         raise Al_NameError({
-                #             "pos_start": node.pos_start,
-                #             "pos_end": node.pos_end,
-                #             "message": "Object with name '{}' already defined".format(object_name),
-                #             "context": context,
-                #             "exit": False
-                #         }))
-                #     else:
-                #         raise Al_NameError({
-                #             "pos_start": node.pos_start,
-                #             "pos_end": node.pos_end,
-                #             "message": "name '{}' already defined".format(object_name),
-                #             "context": context,
-                #             "exit": False
-                #         }))
-                context.symbolTable.set(object_name, object_value)
-            else:
-                if node.other != None:
-                    if node.other['name'] == "module":
-                        as_name = node.other["as_name"]
-                        if as_name != None:
-                            properties["__name"] = String(as_name.value).setContext(context).setPosition(node.pos_start, node.pos_end)
-                context.symbolTable.set_object(object_name, object_value)
+                
+        context.symbolTable.set(object_name, object_value)
+            
         return res.success(object_value)
 
 
@@ -18915,7 +21413,7 @@ class Interpreter:
             node.pos_start, node.pos_end) if hasattr(value_to_call, 'copy') else value_to_call
 
         if not isinstance(value_to_call, Function) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInFunction) and not isinstance(value_to_call, BuiltInClass):
-            raise Al_NameError({
+            raise Al_TypeError({
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'message': f"'{node.node_to_call.name.value}' is not callable" if hasattr(node.node_to_call, 'name') and hasattr(node.node_to_call.name, 'value') else f"type '{TypeOf(value_to_call).getType()}' is not callable",
@@ -18934,6 +21432,10 @@ class Interpreter:
                     args = [x for x in args if x != None]
 
         name = value_to_call.name
+        
+        
+        
+        
         builtins = {
             'print': BuiltInFunction_Print,
             'println': BuiltInFunction_PrintLn,
