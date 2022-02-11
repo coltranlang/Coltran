@@ -8714,7 +8714,7 @@ class Function(BaseFunction):
                     raise Al_TypeError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                         'context': self.context,
                         'exit': False
                     })
@@ -9180,7 +9180,7 @@ class Function(BaseFunction):
                     raise Al_TypeError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                         'context': self.context,
                         'exit': False
                     })
@@ -10150,7 +10150,6 @@ class BuiltInClass(BaseClass):
         interpreter = Interpreter(None)
         exec_context = self.generate_new_context()
         keyword_args = {}
-        print(self.name, "df")
         if keyword_args_list != None and len(keyword_args_list) > 0:
             for keyword_arg in keyword_args_list:
                 name = keyword_arg['name']
@@ -10995,7 +10994,7 @@ def BuiltInFunction_Print(args, node, context,keyword_args=None, has_unpack=Fals
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11107,7 +11106,7 @@ def BuiltInFunction_PrintLn(args, node, context,keyword_args=None, has_unpack=Fa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11228,7 +11227,7 @@ def BuiltInFunction_Len(args, node, context, keyword_args=None, has_unpack=False
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11301,7 +11300,7 @@ def BuiltInFunction_Input(args, node, context,keyword_args=None, has_unpack=Fals
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11394,7 +11393,7 @@ def BuiltInFunction_InputInt(args, node, context,keyword_args=None, has_unpack=F
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11492,7 +11491,7 @@ def BuiltInFunction_InputFloat(args, node, context,keyword_args=None, has_unpack
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11588,7 +11587,7 @@ def BuiltInFunction_InputBool(args, node, context,keyword_args=None, has_unpack=
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11675,7 +11674,7 @@ def BuiltInFunction_Append(args, node,context, keyword_args=None, has_unpack=Fal
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11741,7 +11740,7 @@ def BuiltInFunction_Pop(args, node, context, keyword_args=None, has_unpack=False
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11824,7 +11823,7 @@ def BuiltInFunction_Extend(args, node, context,keyword_args=None, has_unpack=Fal
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11898,7 +11897,7 @@ def BuiltInFunction_Remove(args, node, context, keyword_args=None, has_unpack=Fa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -11988,7 +11987,7 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None, has_unpack=Fals
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -12102,7 +12101,7 @@ def BuiltInFunction_Zip(args, node, context,keyword_args=None, has_unpack=False)
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -12153,7 +12152,7 @@ def BuiltInFunction_Max(args, node, context,keyword_args=None, has_unpack=False)
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -12222,7 +12221,7 @@ def BuiltInFunction_Min(args, node, context,keyword_args=None, has_unpack=False)
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -12292,7 +12291,7 @@ def BuiltInFunction_is_finite(args, node, context,keyword_args=None, has_unpack=
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -12399,7 +12398,7 @@ def BuiltInFunction_Sorted(args, node, context,keyword_args=None, has_unpack=Fal
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -12609,7 +12608,7 @@ def BuiltInFunction_Format(args, node, context,keyword_args=None, has_unpack=Fal
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -12663,7 +12662,7 @@ def BuiltInFunction_Typeof(args, node, context,keyword_args=None, has_unpack=Fal
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -12766,7 +12765,7 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None, has_unpa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -12859,7 +12858,7 @@ def BuiltInFunction_hasprop(args, node, context,keyword_args=None, has_unpack=Fa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -12949,7 +12948,7 @@ def BuiltInFunction_Line(args, node, context,keyword_args=None, has_unpack=False
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -13030,7 +13029,7 @@ def BuiltInFunction_Clear(args, node, context,keyword_args=None, has_unpack=Fals
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -13091,7 +13090,7 @@ def BuiltInFunction_Delay(args, node, context,keyword_args=None, has_unpack=Fals
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -13169,7 +13168,7 @@ def BuiltInFunction_Require(args, node, context,keyword_args=None, has_unpack=Fa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -13271,7 +13270,7 @@ def BuiltInFunction_Enumerate(args, node, context,keyword_args=None, has_unpack=
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -13525,7 +13524,7 @@ def BuiltInFunction_Freeze(args, node, context, keyword_args=None, has_unpack=Fa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -13844,7 +13843,7 @@ def BuiltInFunction_Exit(args, node, context,keyword_args=None, has_unpack=False
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -13924,7 +13923,7 @@ def BuiltInFunction_Random(args, node, context,keyword_args=None, has_unpack=Fal
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -13972,7 +13971,7 @@ def BuiltInFunction_StdInRead(args, node, context,keyword_args=None, has_unpack=
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14052,7 +14051,7 @@ def BuiltInFunction_StdInReadLine(args, node, context,keyword_args=None, has_unp
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14132,7 +14131,7 @@ def BuiltInFunction_StdInReadLines(args, node, context,keyword_args=None, has_un
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14212,7 +14211,7 @@ def BuiltInFunction_StdOutWrite(args, node, context,keyword_args=None, has_unpac
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14280,7 +14279,7 @@ def BuiltInFunction_StdOutWriteLines(args, node, context,keyword_args=None, has_
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14316,7 +14315,7 @@ def BuiltInFunction_SysPath(args, node, context,keyword_args=None, has_unpack=Fa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14352,7 +14351,7 @@ def BuiltInFunction_SysArgv(args, node, context,keyword_args=None, has_unpack=Fa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14388,7 +14387,7 @@ def BuiltInFunction_SysExit(args, node, context,keyword_args=None, has_unpack=Fa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14426,7 +14425,7 @@ def BuiltInFunction_SysVersion(args, node, context,keyword_args=None, has_unpack
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14462,7 +14461,7 @@ def BuiltInFunction_SysPlatform(args, node, context,keyword_args=None, has_unpac
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14498,7 +14497,7 @@ def BuiltInFunction_SysExec(args, node, context,keyword_args=None, has_unpack=Fa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14554,7 +14553,7 @@ def BuiltInClass_Exception(args, node, context, type, keyword_args=None, has_unp
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14671,7 +14670,7 @@ def BuiltInClass_RuntimeError(args, node, context, type, keyword_args=None, has_
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14789,7 +14788,7 @@ def BuiltInClass_NameError(args, node, context, type, keyword_args=None, has_unp
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -14906,7 +14905,7 @@ def BuiltInClass_ArgumentError(args, node, context, type, keyword_args=None, has
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -15023,7 +15022,7 @@ def BuiltInClass_TypeError(args, node, context, type, keyword_args=None, has_unp
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -15149,7 +15148,7 @@ def BuiltInClass_IndexError(args, node, context, type, keyword_args=None, has_un
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -15267,7 +15266,7 @@ def BuiltInClass_ValueError(args, node, context, type, keyword_args=None, has_un
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -15386,7 +15385,7 @@ def BuiltInClass_PropertyError(args, node, context, type, keyword_args=None, has
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -15506,7 +15505,7 @@ def BuiltInClass_KeyError(args, node, context, type, keyword_args=None, has_unpa
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -15626,7 +15625,7 @@ def BuiltInClass_ZeroDivisionError(args, node, context, type, keyword_args=None,
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -15746,7 +15745,7 @@ def BuiltInClass_LookupError(args, node, context, type, keyword_args=None, has_u
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -15867,7 +15866,7 @@ def BuiltInClass_UnicodeDecodeError(args, node, context, type, keyword_args=None
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -15987,7 +15986,7 @@ def BuiltInClass_ImportError(args, node, context, type, keyword_args=None, has_u
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -16107,7 +16106,7 @@ def BuiltInClass_ModuleNotFoundError(args, node, context, type, keyword_args=Non
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -16227,7 +16226,7 @@ def BuiltInClass_KeyboardInterrupt(args, node, context, type, keyword_args=None,
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -16347,7 +16346,7 @@ def BuiltInClass_RecursionError(args, node, context, type, keyword_args=None, ha
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -16467,7 +16466,7 @@ def BuiltInClass_IOError(args, node, context, type, keyword_args=None, has_unpac
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -16587,7 +16586,7 @@ def BuiltInClass_OSError(args, node, context, type, keyword_args=None, has_unpac
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -16707,7 +16706,7 @@ def BuiltInClass_FileNotFoundError(args, node, context, type, keyword_args=None,
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -16827,7 +16826,7 @@ def BuiltInClass_PermissionError(args, node, context, type, keyword_args=None, h
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -16947,7 +16946,7 @@ def BuiltInClass_NotImplementedError(args, node, context, type, keyword_args=Non
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -17067,7 +17066,7 @@ def BuiltInClass_DeprecationWarning(args, node, context, type, keyword_args=None
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -17187,7 +17186,7 @@ def BuiltInClass_SystemExit(args, node, context, type, keyword_args=None, has_un
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -17326,7 +17325,7 @@ def BuiltInClass_Int(args, node, context, keyword_args=None, has_unpack=False):
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
-                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                     'context': context,
                     'exit': False
                 })
@@ -19765,7 +19764,7 @@ class Interpreter:
                                     raise Al_TypeError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                                         'context': context,
                                         'exit': False
                                     })
@@ -19823,7 +19822,7 @@ class Interpreter:
                                     raise Al_TypeError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                                         'context': context,
                                         'exit': False
                                     })
@@ -19881,7 +19880,7 @@ class Interpreter:
                                     raise Al_TypeError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                                         'context': context,
                                         'exit': False
                                     })
@@ -19939,7 +19938,7 @@ class Interpreter:
                                     raise Al_TypeError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                                         'context': context,
                                         'exit': False
                                     })
@@ -20003,7 +20002,7 @@ class Interpreter:
                                 raise Al_TypeError({
                                     'pos_start': node.pos_start,
                                     'pos_end': node.pos_end,
-                                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                                     'context': context,
                                     'exit': False
                                 })
@@ -20061,7 +20060,7 @@ class Interpreter:
                                     raise Al_TypeError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                                         'context': context,
                                         'exit': False
                                     })
@@ -20125,7 +20124,7 @@ class Interpreter:
                                     raise Al_TypeError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                                         'context': context,
                                         'exit': False
                                     })
@@ -20204,7 +20203,7 @@ class Interpreter:
                                     raise Al_TypeError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                                         'context': context,
                                         'exit': False
                                     })
@@ -20271,7 +20270,7 @@ class Interpreter:
                                     raise Al_TypeError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                                         'context': context,
                                         'exit': False
                                     })
@@ -20398,7 +20397,7 @@ class Interpreter:
                                     raise Al_TypeError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                                        'message': f"'{TypeOf(arg).getType()}' object is not iterable",
                                         'context': context,
                                         'exit': False
                                     })
