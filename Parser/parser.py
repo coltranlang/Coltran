@@ -1677,7 +1677,7 @@ class Parser:
                 return res.failure(self.error['Syntax']({
                     'pos_start': self.current_token.pos_start,
                     'pos_end': self.current_token.pos_end,
-                    'message': "no arguments after '*'",
+                    'message': "only one argument is allowed after '*' unpack",
                     'context': self.context,
                     'exit': False
                 }))

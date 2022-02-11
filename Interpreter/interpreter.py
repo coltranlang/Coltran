@@ -1309,7 +1309,7 @@ class Al_Exception(Exception):
         self.properties = Dict(properties)
 
     def __repr__(self):
-        return f"<Exception {self.name}: {self.message}>"
+        return f"<Exception {self.message}>"
 
 
 class Al_SyntaxError(Exception):
@@ -1323,7 +1323,7 @@ class Al_ZeroDivisionError(Al_Exception):
         super().__init__("ZeroDivisionError", message)
 
     def __repr__(self):
-        return f"<ZeroDivisionError {self.name}: {self.message}>"
+        return f"<ZeroDivisionError {self.message}>"
 
 
 class Al_RuntimeError(Al_Exception):
@@ -10150,7 +10150,7 @@ class BuiltInClass(BaseClass):
         interpreter = Interpreter(None)
         exec_context = self.generate_new_context()
         keyword_args = {}
-
+        print(self.name, "df")
         if keyword_args_list != None and len(keyword_args_list) > 0:
             for keyword_arg in keyword_args_list:
                 name = keyword_arg['name']
@@ -12073,7 +12073,6 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None, has_unpack=Fals
     return res.success(Range(start, end, step).setPosition(node.pos_start, node.pos_end).setContext(context))
 
 
-
 def BuiltInFunction_Zip(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     unpacked = False
@@ -13099,7 +13098,7 @@ def BuiltInFunction_Delay(args, node, context,keyword_args=None, has_unpack=Fals
     if unpacked == True:
         args = unpacked_args
     
-    if len(args) == 0 or len(args) > 1:
+    if len(args) > 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -13178,7 +13177,7 @@ def BuiltInFunction_Require(args, node, context,keyword_args=None, has_unpack=Fa
         args = unpacked_args
     
     
-    if len(args) == 0 or len(args) > 1:
+    if len(args) > 1:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
@@ -14519,6 +14518,17 @@ def BuiltInClass_Exception(args, node, context, type, keyword_args=None, has_unp
     res = RuntimeResult()
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"Exception() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -14550,53 +14560,92 @@ def BuiltInClass_Exception(args, node, context, type, keyword_args=None, has_unp
                 })
     if unpacked == True:
         args = unpacked_args
-    if len(args) == 0 or len(args) > 2:
-        raise Al_ArgumentError('Exception',{
+    if len(args) > 2:
+        raise Al_ArgumentError({
             'name': 'Exception',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'Exception' takes 1 or 2 arguments",
+            'message': f"Exception() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_Exception('Exception',{
-                'name': name if name else 'Exception',
-                'message': args[0].value,
+                'name': 'Exception',
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_Exception('Exception',{
-                'name': name if name else 'Exception',
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but Exception takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_Exception('Exception',{
+                    'name': 'Exception',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_Exception('Exception',{
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('Exception').setContext(context).setPosition(node.pos_start, node.pos_end).value,
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })      
     else:
         if len(args) == 1 and isinstance(args[0], String):
             return res.success(BuiltInClass("Exception", Dict({'name': String("Exception"), 'message': String(args[0].value)})))
         elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
             return res.success(BuiltInClass("Exception", Dict({'name': String(args[0].value), 'message': String(args[1].value)}).properties))
-
+        
 
 def BuiltInClass_RuntimeError(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"RuntimeError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -14628,42 +14677,70 @@ def BuiltInClass_RuntimeError(args, node, context, type, keyword_args=None, has_
                 })
     if unpacked == True:
         args = unpacked_args
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'RuntimeError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'RuntimeError' takes 1 or 2 arguments",
+            'message': f"RuntimeError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_RuntimeError({
                 'name': 'RuntimeError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_RuntimeError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String("RuntimeError"),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but RuntimeError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1: 
+            if isinstance(args[0], String):
+                raise Al_RuntimeError({
+                    'name': 'RuntimeError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_RuntimeError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('RuntimeError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -14676,6 +14753,17 @@ def BuiltInClass_NameError(args, node, context, type, keyword_args=None, has_unp
     res = RuntimeResult()
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"NameError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -14707,41 +14795,69 @@ def BuiltInClass_NameError(args, node, context, type, keyword_args=None, has_unp
                 })
     if unpacked == True:
         args = unpacked_args
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'NameError' takes 1 or 2 arguments",
+            'message': f"NameError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_NameError({
                 'name': 'NameError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_NameError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('NameError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but NameError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_NameError({
+                    'name': 'NameError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_NameError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('NameError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })       
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -14754,6 +14870,17 @@ def BuiltInClass_ArgumentError(args, node, context, type, keyword_args=None, has
     res = RuntimeResult()
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"ArgumentError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -14785,41 +14912,69 @@ def BuiltInClass_ArgumentError(args, node, context, type, keyword_args=None, has
                 })
     if unpacked == True:
         args = unpacked_args
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'ArgumentError' takes 1 or 2 arguments",
+            'message': f"ArgumentError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_ArgumentError({
                 'name': 'ArgumentError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_ArgumentError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ArgumentError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but ArgumentError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_ArgumentError({
+                    'name': 'ArgumentError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_ArgumentError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ArgumentError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -14832,6 +14987,17 @@ def BuiltInClass_TypeError(args, node, context, type, keyword_args=None, has_unp
     res = RuntimeResult()
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"TypeError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -14863,39 +15029,75 @@ def BuiltInClass_TypeError(args, node, context, type, keyword_args=None, has_unp
                 })
     if unpacked == True:
         args = unpacked_args
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'TypeError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'TypeError' takes 1 or 2 arguments",
+            'message': f"TypeError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_TypeError({
                 'name': 'TypeError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_TypeError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('TypeError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
+        if len(args) == 1: 
+            if isinstance(args[0], String):
+                raise Al_TypeError({
+                    'name': 'TypeError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_TypeError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('TypeError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
         else:
-            raise Al_ArgumentError({
+            raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but TypeError takes 1 or 2 arguments",
+                'message': f"argument 1 must be of type 'string'",
                 "context": context,
                 'exit': False
             })
@@ -14911,6 +15113,17 @@ def BuiltInClass_IndexError(args, node, context, type, keyword_args=None, has_un
     res = RuntimeResult()
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"IndexError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -14942,41 +15155,69 @@ def BuiltInClass_IndexError(args, node, context, type, keyword_args=None, has_un
                 })
     if unpacked == True:
         args = unpacked_args
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'IndexError' takes 1 or 2 arguments",
+            'message': f"IndexError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_IndexError({
                 'name': 'IndexError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_IndexError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('IndexError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but IndexError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1: 
+            if isinstance(args[0], String):
+                raise Al_IndexError({
+                    'name': 'IndexError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_IndexError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('IndexError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -14990,6 +15231,17 @@ def BuiltInClass_ValueError(args, node, context, type, keyword_args=None, has_un
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"ValueError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15022,41 +15274,69 @@ def BuiltInClass_ValueError(args, node, context, type, keyword_args=None, has_un
     if unpacked == True:
         args = unpacked_args
     
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'ValueError' takes 1 or 2 arguments",
+            'message': f"ValueError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_ValueError({
                 'name': 'ValueError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_ValueError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ValueError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but ValueError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_ValueError({
+                    'name': 'ValueError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_ValueError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ValueError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15070,6 +15350,17 @@ def BuiltInClass_PropertyError(args, node, context, type, keyword_args=None, has
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"PropertyError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15102,42 +15393,70 @@ def BuiltInClass_PropertyError(args, node, context, type, keyword_args=None, has
     if unpacked == True:
         args = unpacked_args
     
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'PropertyError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'PropertyError' takes 1 or 2 arguments",
+            'message': f"PropertyError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_PropertyError({
                 'name': 'PropertyError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_PropertyError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('PropertyError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but PropertyError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1: 
+            if isinstance(args[0], String):
+                raise Al_PropertyError({
+                    'name': 'PropertyError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_PropertyError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('PropertyError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15151,6 +15470,17 @@ def BuiltInClass_KeyError(args, node, context, type, keyword_args=None, has_unpa
    
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"KeyError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15183,42 +15513,70 @@ def BuiltInClass_KeyError(args, node, context, type, keyword_args=None, has_unpa
     if unpacked == True:
         args = unpacked_args
    
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'KeyError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'KeyError' takes 1 or 2 arguments",
+            'message': f"KeyError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_KeyError({
                 'name': 'KeyError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_KeyError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('KeyError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but KeyError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_KeyError({
+                    'name': 'KeyError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_KeyError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('KeyError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15232,6 +15590,17 @@ def BuiltInClass_ZeroDivisionError(args, node, context, type, keyword_args=None,
    
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"ZeroDivisionError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15264,42 +15633,70 @@ def BuiltInClass_ZeroDivisionError(args, node, context, type, keyword_args=None,
     if unpacked == True:
         args = unpacked_args
    
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'ZeroDivisionError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'ZeroDivisionError' takes 1 or 2 arguments",
+            'message': f"ZeroDivisionError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_ZeroDivisionError({
                 'name': 'ZeroDivisionError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_ZeroDivisionError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ZeroDivisionError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but ZeroDivisionError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_ZeroDivisionError({
+                    'name': 'ZeroDivisionError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_ZeroDivisionError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ZeroDivisionError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15313,6 +15710,17 @@ def BuiltInClass_LookupError(args, node, context, type, keyword_args=None, has_u
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"LookupError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15346,42 +15754,70 @@ def BuiltInClass_LookupError(args, node, context, type, keyword_args=None, has_u
         args = unpacked_args
     
     
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'LookupError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'LookupError' takes 1 or 2 arguments",
+            'message': f"LookupError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_LookupError({
                 'name': 'LookupError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_UnicodeDecodeError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('LookupError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but LookupError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_LookupError({
+                    'name': 'LookupError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_LookupError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('LookupError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15395,6 +15831,17 @@ def BuiltInClass_UnicodeDecodeError(args, node, context, type, keyword_args=None
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"UnicodeDecodeError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15427,42 +15874,70 @@ def BuiltInClass_UnicodeDecodeError(args, node, context, type, keyword_args=None
     if unpacked == True:
         args = unpacked_args
    
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'UnicodeDecodeError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'UnicodeDecodeError' takes 1 or 2 arguments",
+            'message': f"UnicodeDecodeError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_UnicodeDecodeError({
                 'name': 'UnicodeDecodeError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_UnicodeDecodeError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('UnicodeDecodeError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but UnicodeDecodeError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_UnicodeDecodeError({
+                    'name': 'UnicodeDecodeError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_UnicodeDecodeError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('UnicodeDecodeError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15476,6 +15951,17 @@ def BuiltInClass_ImportError(args, node, context, type, keyword_args=None, has_u
    
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"ImportError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15508,42 +15994,70 @@ def BuiltInClass_ImportError(args, node, context, type, keyword_args=None, has_u
     if unpacked == True:
         args = unpacked_args
    
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'ImportError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'ImportError' takes 1 or 2 arguments",
+            'message': f"ImportError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_ImportError({
                 'name': 'ImportError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_ImportError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ImportError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but ImportError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_ImportError({
+                    'name': 'ImportError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_ImportError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ImportError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15557,6 +16071,17 @@ def BuiltInClass_ModuleNotFoundError(args, node, context, type, keyword_args=Non
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"ModuleNotFoundError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15589,43 +16114,70 @@ def BuiltInClass_ModuleNotFoundError(args, node, context, type, keyword_args=Non
     if unpacked == True:
         args = unpacked_args
     
-    
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'ModuleNotFoundError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'ModuleNotFoundError' takes 1 or 2 arguments",
+            'message': f"ModuleNotFoundError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_ModuleNotFoundError({
                 'name': 'ModuleNotFoundError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_ModuleNotFoundError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ModuleNotFoundError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but ModuleNotFoundError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_ModuleNotFoundError({
+                    'name': 'ModuleNotFoundError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_ModuleNotFoundError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('ModuleNotFoundError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15639,6 +16191,17 @@ def BuiltInClass_KeyboardInterrupt(args, node, context, type, keyword_args=None,
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"KeyboardInterrupt() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15671,42 +16234,70 @@ def BuiltInClass_KeyboardInterrupt(args, node, context, type, keyword_args=None,
     if unpacked == True:
         args = unpacked_args
     
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'KeyboardInterrupt',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'KeyboardInterrupt' takes 1 or 2 arguments",
+            'message': f"KeyboardInterrupt() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_KeyboardInterrupt({
                 'name': 'KeyboardInterrupt',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_KeyboardInterrupt({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('KeyboardInterrupt'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but KeyboardInterrupt takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_KeyboardInterrupt({
+                    'name': 'KeyboardInterrupt',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_KeyboardInterrupt({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('KeyboardInterrupt'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15720,6 +16311,17 @@ def BuiltInClass_RecursionError(args, node, context, type, keyword_args=None, ha
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"RecursionError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15752,42 +16354,70 @@ def BuiltInClass_RecursionError(args, node, context, type, keyword_args=None, ha
     if unpacked == True:
         args = unpacked_args
     
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'RecursionError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'RecursionError' takes 1 or 2 arguments",
+            'message': f"RecursionError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_RecursionError({
                 'name': 'RecursionError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_RecursionError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('RecursionError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but RecursionError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_RecursionError({
+                    'name': 'RecursionError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_RecursionError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('RecursionError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15801,6 +16431,17 @@ def BuiltInClass_IOError(args, node, context, type, keyword_args=None, has_unpac
    
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"IOError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15833,42 +16474,70 @@ def BuiltInClass_IOError(args, node, context, type, keyword_args=None, has_unpac
     if unpacked == True:
         args = unpacked_args
    
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'IOError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'IOError' takes 1 or 2 arguments",
+            'message': f"IOError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_IOError({
                 'name': 'IOError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_IOError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('IOError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but IOError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_IOError({
+                    'name': 'IOError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_IOError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('IOError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15882,6 +16551,17 @@ def BuiltInClass_OSError(args, node, context, type, keyword_args=None, has_unpac
    
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"OSError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15914,42 +16594,70 @@ def BuiltInClass_OSError(args, node, context, type, keyword_args=None, has_unpac
     if unpacked == True:
         args = unpacked_args
    
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'OSError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'OSError' takes 1 or 2 arguments",
+            'message': f"OSError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_OSError({
                 'name': 'OSError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_OSError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('OSError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but OSError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_OSError({
+                    'name': 'OSError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_OSError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('OSError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -15963,6 +16671,17 @@ def BuiltInClass_FileNotFoundError(args, node, context, type, keyword_args=None,
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"FileNotFoundError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -15995,42 +16714,70 @@ def BuiltInClass_FileNotFoundError(args, node, context, type, keyword_args=None,
     if unpacked == True:
         args = unpacked_args
     
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'FileNotFoundError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'FileNotFoundError' takes 1 or 2 arguments",
+            'message': f"FileNotFoundError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_FileNotFoundError({
                 'name': 'FileNotFoundError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_FileNotFoundError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('FileNotFoundError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but FileNotFoundError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_FileNotFoundError({
+                    'name': 'FileNotFoundError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_FileNotFoundError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('FileNotFoundError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -16044,6 +16791,17 @@ def BuiltInClass_PermissionError(args, node, context, type, keyword_args=None, h
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"PermissionError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -16076,42 +16834,70 @@ def BuiltInClass_PermissionError(args, node, context, type, keyword_args=None, h
     if unpacked == True:
         args = unpacked_args
     
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'PermissionError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'PermissionError' takes 1 or 2 arguments",
+            'message': f"PermissionError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_PermissionError({
                 'name': 'PermissionError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_PermissionError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('PermissionError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but PermissionError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_PermissionError({
+                    'name': 'PermissionError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_PermissionError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('PermissionError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -16125,6 +16911,17 @@ def BuiltInClass_NotImplementedError(args, node, context, type, keyword_args=Non
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"NotImplementedError() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -16157,42 +16954,70 @@ def BuiltInClass_NotImplementedError(args, node, context, type, keyword_args=Non
     if unpacked == True:
         args = unpacked_args
     
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'NotImplementedError',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'NotImplementedError' takes 1 or 2 arguments",
+            'message': f"NotImplementedError() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_NotImplementedError({
                 'name': 'NotImplementedError',
-                'message': args[0].value,
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_NotImplementedError({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('NotImplementedError'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but NotImplementedError takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_NotImplementedError({
+                    'name': 'NotImplementedError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_NotImplementedError({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('NotImplementedError'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -16201,11 +17026,142 @@ def BuiltInClass_NotImplementedError(args, node, context, type, keyword_args=Non
             return res.success(BuiltInClass("NotImplementedError", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
 
 
+def BuiltInClass_DeprecationWarning(args, node, context, type, keyword_args=None, has_unpack=False):
+    res = RuntimeResult()
+    
+    unpacked = False
+    unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"DeprecationWarning() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()} object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+    
+    if len(args) > 2:
+        raise Al_ArgumentError({
+            'name': 'DeprecationWarning',
+            "pos_start": node.pos_start,
+            "pos_end": node.pos_end,
+            'message': f"DeprecationWarning() takes 1 or 2 arguments",
+            "context": context,
+            'exit': False
+        })
+    if type == "raise":
+        if len(args) == 0:
+            raise Al_DeprecationWarning({
+                'name': 'DeprecationWarning',
+                'message': '',
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'context': context,
+                'exit': False
+            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_DeprecationWarning({
+                    'name': 'NotImplementedError',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_DeprecationWarning({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('DeprecationWarning'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+    else:
+        # return exception object
+        if len(args) == 1 and isinstance(args[0], String):
+            return res.success(BuiltInClass("DeprecationWarning", Dict({'name': String("DeprecationWarning"), 'message': String(args[0].value)})))
+        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
+            return res.success(BuiltInClass("DeprecationWarning", Dict({'name': String(args[0].value), 'message': String(args[1].value)})))
+
+
 def BuiltInClass_SystemExit(args, node, context, type, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     
     unpacked = False
     unpacked_args = []
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            name = key['name']
+            if name:
+                raise Al_ArgumentError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"SystemExit() takes no keyword argument",
+                    'context': context,
+                    'exit': False
+                })
     if has_unpack == True:
         for arg in args:
             if is_iterable(arg):
@@ -16239,42 +17195,70 @@ def BuiltInClass_SystemExit(args, node, context, type, keyword_args=None, has_un
         args = unpacked_args
     
     
-    if len(args) == 0 or len(args) > 2:
+    if len(args) > 2:
         raise Al_ArgumentError({
             'name': 'SystemExit',
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"'SystemExit' takes 1 or 2 arguments",
+            'message': f"SystemExit() takes 1 or 2 arguments",
             "context": context,
             'exit': False
         })
     if type == "raise":
-        if len(args) == 1 and isinstance(args[0], String):
+        if len(args) == 0:
             raise Al_SystemExit({
-                'name': 'SystemExit',
-                'message': args[0].value,
+                'name': '',
+                'message': '',
                 'pos_start': node.pos_start,
                 'pos_end': node.pos_end,
                 'context': context,
                 'exit': False
             })
-        elif len(args) == 2 and isinstance(args[0], String) and isinstance(args[1], String):
-            raise Al_SystemExit({
-                'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('SystemExit'),
-                'message': args[1].value,
-                'pos_start': node.pos_start,
-                'pos_end': node.pos_end,
-                'context': context,
-                'exit': False
-            })
-        else:
-            raise Al_ArgumentError({
-                "pos_start": node.pos_start,
-                "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but SystemExit takes 1 or 2 arguments",
-                "context": context,
-                'exit': False
-            })
+        if len(args) == 1:
+            if isinstance(args[0], String):
+                raise Al_SystemExit({
+                    'name': 'SystemExit',
+                    'message': args[0].value,
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'context': context,
+                    'exit': False
+                })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
+        elif len(args) == 2:
+            if isinstance(args[0], String):
+                if isinstance(args[1], String):
+                    raise Al_SystemExit({
+                        'name': args[0].value if hasattr(args[0], 'value') and args[0].value else String('SystemExit'),
+                        'message': args[1].value,
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'context': context,
+                        'exit': False
+                    })
+                else:
+                    raise Al_TypeError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"argument 2 must be of type 'string', not '{TypeOf(args[1]).getType()}'",
+                        'context': context,
+                        'exit': False
+                    })
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"argument 1 must be of type 'string', not '{TypeOf(args[0]).getType()}'",
+                    'context': context,
+                    'exit': False
+                })
     else:
         # return exception object
         if len(args) == 1 and isinstance(args[0], String):
@@ -21076,10 +22060,11 @@ class Interpreter:
         if type(node.expression).__name__ != "CallNode":
             exception = res.register(self.visit(node.expression, context))
             if res.should_return(): return res
-            if type(exception).__name__ == "BuiltInClass" and exception.name in builtin_exceptions:
-                args = [exception.properties["message"]]
-
+            if exception.name in builtin_exceptions:
+                args = []
+                    
                 if  exception.name in builtin_exceptions:
+                    args = [String('').setContext(context).setPosition(node.pos_start, node.pos_end)]
                     attr = builtin_exceptions[exception.name].__name__
                     attr_name = attr.split("Al_")[1]
                     exception = f'BuiltInClass_{attr_name}'
@@ -21160,6 +22145,8 @@ class Interpreter:
                 else:
                     args_nodes = node.expression.args_nodes
                     args = []
+                    keyword_args_list = node.expression.keyword_args_list
+                    has_unpack  = node.expression.has_unpack
                     for arg_node in args_nodes:
                         args.append(res.register(self.visit(arg_node, context)))
                         if res.should_return(): return res
@@ -21168,7 +22155,7 @@ class Interpreter:
                         attr_name = attr.split("Al_")[1]
                         exception = f'BuiltInClass_{attr_name}'
                         if exception in globals():
-                            return globals()[exception](args, node, context, "raise")
+                            return globals()[exception](args, node, context, "raise", keyword_args_list, has_unpack)
 
 
     def visit_AttemptNode(self, node, context):
@@ -21455,8 +22442,6 @@ class Interpreter:
             'remove': BuiltInFunction_Remove,
             'is_finite': BuiltInFunction_is_finite,
             'sorted': BuiltInFunction_Sorted,
-            'substr': BuiltInFunction_Substr,
-            'reverse': BuiltInFunction_Reverse,
             # 'Binary': BuiltInFunction_Binary,
             'line': BuiltInFunction_Line,
             'clear': BuiltInFunction_Clear,
@@ -21478,6 +22463,9 @@ class Interpreter:
             'sys_version': BuiltInFunction_SysVersion,
             'sys_platform': BuiltInFunction_SysPlatform,
             'exit': BuiltInFunction_Exit,
+        }
+
+        exceptions = {
             'Exception': BuiltInClass_Exception,
             'RuntimeError': BuiltInClass_RuntimeError,
             'NameError': BuiltInClass_NameError,
@@ -21501,16 +22489,15 @@ class Interpreter:
             'NotImplementedError': BuiltInClass_NotImplementedError,
         }
 
-
-
         if name in builtins:
             return builtins[name](args, node, context, keyword_args_list,has_unpack)
 
+        elif name in exceptions:
+            return exceptions[name](args, node, context, '', keyword_args_list,has_unpack)
 
         return_value = res.register(value_to_call.execute(args, keyword_args_list, has_unpack))
 
-        if res.should_return():
-            return res
+        if res.should_return(): return res
         return_value = return_value.copy().setPosition(
             node.pos_start, node.pos_end).setContext(context) if hasattr(return_value, 'copy') else return_value
         # if isinstance(return_value, NoneType):
@@ -21765,6 +22752,7 @@ BuiltInClass.OSError = BuiltInClass("OSError", {} , None)
 BuiltInClass.FileNotFoundError = BuiltInClass("FileNotFoundError", {} , None)
 BuiltInClass.PermissionError = BuiltInClass("PermissionError", {} , None)
 BuiltInClass.NotImplementedError = BuiltInClass("NotImplementedError", {} , None)
+BuiltInClass.DeprecationWarning = BuiltInClass("DeprecationWarning", {}, None)
 
 
 
@@ -21843,7 +22831,7 @@ symbolTable_.set('OSError', BuiltInClass.OSError)
 symbolTable_.set('FileNotFoundError', BuiltInClass.FileNotFoundError)
 symbolTable_.set('PermissionError', BuiltInClass.PermissionError)
 symbolTable_.set('NotImplementedError', BuiltInClass.NotImplementedError)
-
+symbolTable_.set('DeprecationWarning', BuiltInClass.DeprecationWarning)
 symbolTable_.set('__@file__', BuiltInClass.File)
 symbolTable_.set('__@std_in_read__', BuiltInFunction.std_in_read)
 symbolTable_.set('__@std_in_readline__', BuiltInFunction.std_in_readline)
