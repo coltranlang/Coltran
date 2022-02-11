@@ -17096,7 +17096,7 @@ def BuiltInClass_DeprecationWarning(args, node, context, type, keyword_args=None
         if len(args) == 1:
             if isinstance(args[0], String):
                 raise Al_DeprecationWarning({
-                    'name': 'NotImplementedError',
+                    'name': 'DeprecationWarning',
                     'message': args[0].value,
                     'pos_start': node.pos_start,
                     'pos_end': node.pos_end,
@@ -22487,6 +22487,8 @@ class Interpreter:
             'FileNotFoundError': BuiltInClass_FileNotFoundError,
             'PermissionError': BuiltInClass_PermissionError,
             'NotImplementedError': BuiltInClass_NotImplementedError,
+            'DeprecationWarning': BuiltInClass_DeprecationWarning,
+            'SystemExit': BuiltInClass_SystemExit,
         }
 
         if name in builtins:
@@ -22753,7 +22755,7 @@ BuiltInClass.FileNotFoundError = BuiltInClass("FileNotFoundError", {} , None)
 BuiltInClass.PermissionError = BuiltInClass("PermissionError", {} , None)
 BuiltInClass.NotImplementedError = BuiltInClass("NotImplementedError", {} , None)
 BuiltInClass.DeprecationWarning = BuiltInClass("DeprecationWarning", {}, None)
-
+BuiltInClass.SystemExit = BuiltInClass("SystemExit", {}, None)
 
 
 Types.int = Types("int")
@@ -22832,6 +22834,7 @@ symbolTable_.set('FileNotFoundError', BuiltInClass.FileNotFoundError)
 symbolTable_.set('PermissionError', BuiltInClass.PermissionError)
 symbolTable_.set('NotImplementedError', BuiltInClass.NotImplementedError)
 symbolTable_.set('DeprecationWarning', BuiltInClass.DeprecationWarning)
+symbolTable_.set('SystemExit', BuiltInClass.SystemExit)
 symbolTable_.set('__@file__', BuiltInClass.File)
 symbolTable_.set('__@std_in_read__', BuiltInFunction.std_in_read)
 symbolTable_.set('__@std_in_readline__', BuiltInFunction.std_in_readline)
