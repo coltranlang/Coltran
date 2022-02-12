@@ -117,36 +117,6 @@ def @check_arg_type(arg,expected_type)
                 raise TypeError("Expected number, got " + typeof(arg))
             end
         end
-        case "boolean":
-            if not isinstanceof(arg, bool):
-                raise TypeError("Expected boolean, got " + typeof(arg))
-            end
-        end
-        case "list":
-            if not isinstanceof(arg, list):
-                raise TypeError("Expected list, got " + typeof(arg))
-            end
-        end
-        case "pair":
-            if not isinstanceof(arg, pair):
-                raise TypeError("Expected list, got " + typeof(arg))
-            end
-        end
-        case "dict":
-            if not isinstanceof(arg, dict):
-                raise TypeError("Expected dict, got " + typeof(arg))
-            end
-        end
-        case "function":
-            if not hasprop(arg, "__@call__"):
-                raise TypeError("Expected function, got " + typeof(arg))
-            end
-        end
-        case "class":
-            if not typeof(arg) == "class":
-                raise TypeError("Expected class, got " + typeof(arg))
-            end
-        end
     end
 end
 def @write(output)

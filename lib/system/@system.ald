@@ -63,7 +63,10 @@ def @write(output)
     __@std_out_write__(output)
 end
 
-
+def @exit(code)
+    @check_arg_type(code, "number")
+    #__@exit__(code)
+end
 class System
     def __@init__(self)
         self.argv = []
@@ -109,5 +112,6 @@ let stderr = {
     write: @write,
 }
 
+let exit = @exit
 
 # let env = __@sys_env__()

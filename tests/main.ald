@@ -1,61 +1,7 @@
-# Minimun Window Substring
 
-class Solution
-    def minWindow(self, s: str, t: str): str
-        if s == "" or t == "":
-            return ""
-        end
-
-        let countT, window = {}, {}
-
-        in t as c:
-            countT[c] = 1 + countT.get(c,0)
-        end
-        
-        let have, need = 0, len(countT)
-        let res, resLen = [-1, -1], float("infinity")
-        let l = 0
-        for r = 0 to len(s):
-            let c = s[r]
-            window[c] = 1+ window.get(c,0)
-            if c in countT:
-                if window[c] == countT[c]:
-                    have += 1
-                end
-            end
-            while have == need:
-                if r - l + 1 < resLen:
-                    res = [l, r]
-                    resLen = r - l + 1
-                end
-                window[s[l]] -= 1
-                if s[l] in countT:
-                    if window[s[l]] < countT[s[l]]:
-                        have -= 1
-                    end
-                end
-                l += 1
-            end
-        end
-
-        let l, r = res
-        return if resLen != float("infinity"): s[l:r+1] else: ""
-    end
+let x = {a: 'A', b: 'B', c: 'C', d: 'D'}
+if 'd' in x or 'e' in x:
+    print("d and e are in x")
+elif 'd' in x or 'e' in x:
+    print("d or e are in x")
 end
-
-
-let s_string = "ADOBECODEBANC"
-let t_string = "ABC" 
-
-let solution = Solution()
-let result = solution.minWindow(s_string, t_string)
-print(result)
-
-# Set
-
-let set = {(1,2,"apple", true,3,1,5, [1,2,3,4,5])}
-let set2 = set.copy()
-set.remove(*[1])
-set.clear()
-print(set)
-print(*{()})

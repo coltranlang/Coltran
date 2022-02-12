@@ -4437,12 +4437,14 @@ class Boolean(Value):
         else:
             return None, self.illegal_operation(error, other)
 
+    
+    
     def and_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
 
     def or_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-
+    
     def notted(self):
         value = setNumber(self.value)
         return self.setTrueorFalse(not value).setContext(self.context), None
@@ -21448,7 +21450,7 @@ class Interpreter:
                 result, error = left.and_by(right)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
                 result, error = left.or_by(right)
-
+                
             if error:
                 raise Al_RuntimeError({
                     'pos_start': node.pos_start,
@@ -21484,9 +21486,9 @@ class Interpreter:
 
     def visit_IfNode(self, node, context):
         res = RuntimeResult()
-        self.scope = "if"
         for condition, expr, return_null in node.cases:
             condition_value = res.register(self.visit(condition, context))
+            print(condition_value, expr, return_null)
             if res.should_return():
                 return res
             if hasattr(condition_value, "value") and condition_value.value == "true":
