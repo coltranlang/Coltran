@@ -1005,7 +1005,6 @@ class Parser:
             return res.success(ContinueNode(pos_start, self.current_token.pos_end.copy()))
 
         if self.current_token.matches(tokenList.TT_KEYWORD, 'break'):
-            #print(Parser.scope)
             if hasattr(Parser, 'scope'):
                 if Parser.scope != 'loop':
                     self.error_detected = True
@@ -1284,7 +1283,6 @@ class Parser:
                                     values, comma_token.pos_start, comma_token.pos_end)
                             # if isinstance(expr, DictNode) or isinstance(expr, ObjectNode):
                             #     values_list = expr
-                            # print(values_list)
                             return res.success(VarAssignNode(identifiers, values_list, variable_keyword_token))
                         else:
                             values = expr
@@ -1372,7 +1370,7 @@ class Parser:
                 return res.success(VarAssignNode(var_name, expr, variable_keyword_token))
             
         node = res.register(self.binaryOperation(
-            self.comp_expr, ((tokenList.TT_KEYWORD, 'and'), (tokenList.TT_KEYWORD, 'or'), (tokenList.TT_KEYWORD, 'in'), (tokenList.TT_KEYWORD, 'notin'))))
+            self.logical_expr, ((tokenList.TT_KEYWORD, 'and'), (tokenList.TT_KEYWORD, 'or'), (tokenList.TT_KEYWORD, 'in'))))
         if res.error:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -1385,19 +1383,18 @@ class Parser:
         
         return res.success(node)
 
-    def comp_expr(self):
+    def logical_expr(self):
         res = ParseResult()
         if self.current_token.matches(tokenList.TT_KEYWORD, 'not'):
             op_tok = self.current_token
             res.register_advancement()
             self.advance()
-            node = res.register(self.comp_expr())
+            node = res.register(self.logical_expr())
             if res.error:
                 return res
             return res.success(UnaryOpNode(op_tok, node))
         node = res.register(self.binaryOperation(
-            self.arith_expr, (tokenList.TT_EQEQ, tokenList.TT_NEQ, tokenList.TT_LT, tokenList.TT_GT, tokenList.TT_RSHIFT, tokenList.TT_LSHIFT, tokenList.TT_LTE, tokenList.TT_GTE, tokenList.TT_AND)))
-
+            self.arith_expr, (tokenList.TT_EQEQ, tokenList.TT_NEQ, tokenList.TT_LT, tokenList.TT_GT, tokenList.TT_RSHIFT, tokenList.TT_LSHIFT, tokenList.TT_LTE, tokenList.TT_GTE, tokenList.TT_AND, tokenList.TT_OR)))
         if res.error:
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -1525,7 +1522,6 @@ class Parser:
                 operator = self.current_token
                 
                 if not isinstance(atom, VarAccessNode):
-                    print(type(atom))
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -1822,7 +1818,6 @@ class Parser:
                 'exit': False
             }))
 
-        #print(f"arg_nodes: {arg_nodes}", f"keyword_args_list: {keyword_args_list}")
         return res.success(CallNode(atom, arg_nodes, keyword_args_list, has_unpack))
 
     def atom(self):
@@ -2645,7 +2640,6 @@ class Parser:
     def function_expr(self):
         res = ParseResult()
         doc_string = None
-        #print(Parser.scope)
         Parser.scope = "function_method"
         default_values = {}
         default_values_list = []
@@ -3392,67 +3386,6 @@ class Parser:
                             if self.current_token.type == tokenList.TT_RBRACE:
                                 self.skipLines()
                                 return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-
-
-                        # while self.current_token.type == tokenList.TT_NEWLINE:
-                        #     self.skipLines()
-
-                        # print(self.current_token, "is the current token")
-
-                        # if self.current_token.type == tokenList.TT_EOF:
-                        #     self.error_detected = True
-                        #     return res.failure(self.error['Syntax']({
-                        #         'pos_start': self.current_token.pos_start,
-                        #         'pos_end': self.current_token.pos_end,
-                        #         'message': "expected '}' or a newline",
-                        #         'context': self.context,
-                        #         'exit': False
-                        #     }))
-
-                        # if self.current_token.type == tokenList.TT_IDENTIFIER or tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING:
-                        #     properties.append({
-                        #         'key': self.current_token,
-                        #         'value': [],
-                        #         'pos_start': self.current_token.pos_start.copy(),
-                        #         'pos_end': self.current_token.pos_end.copy()
-                        #     })
-                        #     keys.append(self.current_token)
-                        #     self.skipLines()
-                        #     print(keys,values, self.current_token)
-                        #     if self.current_token.type != tokenList.TT_COLON:
-                        #         return res.failure(self.error['Syntax']({
-                        #             'pos_start': self.current_token.pos_start,
-                        #             'pos_end': self.current_token.pos_end,
-                        #             'message': "expected ':'",
-                        #             'context': self.context,
-                    #              'exit': False
-                        #         }))
-                        #     res.register_advancement()
-                        #     self.advance()
-                        #     value = res.register(self.expr())
-                        #     if res.error: return res
-                        #     properties[-1]['value'] = value
-                        #     values.append(value)
-
-                        #     while self.current_token.type == tokenList.TT_NEWLINE:
-                        #         self.skipLines()
-
-                        #     if self.current_token.type == tokenList.TT_RBRACE:
-                        #         self.skipLines()
-                        #         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-
-                        # else:
-                        #     if self.current_token.type == tokenList.TT_RBRACE:
-                        #         self.skipLines()
-                        #         return res.success(DictNode(properties, keys, values, pos_start, self.current_token.pos_end.copy()))
-                        #     else:
-                        #         return res.failure(self.error['Syntax']({
-                        #             'pos_start': self.current_token.pos_start,
-                        #             'pos_end': self.current_token.pos_end,
-                        #             'message': "expected '}' or a newline",
-                        #             'context': self.context,
-                        #             'exit': False
-                        #         }))
 
                     if self.current_token.type == tokenList.TT_RBRACE:
                         self.skipLines()
@@ -4831,7 +4764,6 @@ class Parser:
                 elif self.current_token.type != None and self.current_token.type in operation_methods:
                     operator = self.current_token
                     # if not isinstance(atom, VarAccessNode):
-                    #     print(type(atom))
                     #     self.error_detected = True
                     #     return res.failure(self.error['Syntax']({
                     #         'pos_start': self.current_token.pos_start,
@@ -5195,18 +5127,7 @@ class Parser:
                 'pos_end': statements.pos_end
             }
 
-        # else:
-        #     print("no finally", self.current_token)
-        #     self.error_detected = True
-        #     return res.failure(self.error['Syntax'](
-        #         {
-        #             'pos_start': start_token.pos_start,
-        #             'pos_end': start_token.pos_end,
-        #             'message': 'attempt statement must have a catch or finally clause',
-        #             'context': self.context,
-        #             'exit': False
-        #         }
-        #     ))
+        
 
         while self.current_token.type == tokenList.TT_NEWLINE:
             self.skipLines()
@@ -5570,7 +5491,12 @@ class Parser:
             op_tok = self.current_token
             res.register_advancement()
             self.advance()
-            right = res.register(func_2())
+            if op_tok.matches(tokenList.TT_KEYWORD, 'or'):
+                right = res.register(self.expr())
+            elif op_tok.matches(tokenList.TT_KEYWORD, 'and'):
+                right = res.register(self.expr())
+            else:
+                right = res.register(func_2())
             if res.error:
                 return res
             try:
@@ -5593,222 +5519,3 @@ class Parser:
                 }))
 
         return res.success(left)
-
-
-
-
-
-
-li = [1, 2,3,4,5,6,7,8,9,10]
-# print(li[])
-
-# pa = (1,2,3,4,5,6,7,8,9,10)
-# print(pa[:2:1])
-# di = {'name1':'james', 'name2':'bond'}
-# print(di['name1'])
-# def getname(name):
-#     return di[name]
-# print(getname('name1'))
-# name = 'james'
-# print(name[::-1])
-
-LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-SYMBOLS = '@_'
-num = 123
-num2 = 123.456
-LETTERS_SYMBOLS = LETTERS + SYMBOLS
-
-
-# class Test:
-#     def test(a, b):
-#         return a + b
-
-# test.go = 1
-# # print all test attributes
-# print(test)
-# num = 1
-# for i in range(10):
-#     num = num + i
-#     print(f"num = {num}")
-# hello = 'hello'
-# world = 'world'
-# li += "hello"
-# print(li * 2)
-# a = 20
-# b = 30
-# a = b
-# print(a)
-# num = 16
-# # fizzbuzz
-# for i in range(num):
-#     print(i)
-# a = 20
-# b = 30
-# c = a+1
-# d = b+1
-# e = a-1
-# f = int("40")
-# def setnum():
-#     return 2
-
-# a += setnum() + 1 # expecting to 23
-# b -= setnum() - 1 # expecting to 29
-# c /= setnum() / 2 # expecting to 21.0
-# d *= setnum() * 2 # expecting to 120
-# e %= setnum() % 3 # expecting to 1
-# print(f"a = {a}, b = {b}, c = {c}, d = {d}, e = {e}")
-# count = 0
-# for i in range(1, 10):
-#     for j in range(1, 10):
-#         for k in range(1, 10):
-#             if i != j and i != k and j != k:
-#                 count += 1
-#                 print(f"{i} * {j} * {k} = {i*j*k}")
-# print(count)
-# r = 'name'
-# li = [1,2,]
-# d = {2:1, 3:2, 4:3}
-# li2 = [4,5,6]
-# new_li = [*li, *li2, 7, 8, 9]
-# print(hasattr(d, "2"))
-# num1 = 0
-# class Test:
-#     pass
-# def greet(name):
-#     pass
-# try:
-#     print(greet())
-# except NameError as e:
-#     print(f"Error: {e}")
-# except Exception as e:
-#     print(f"Exception: {e}")
-# except TypeError as TypeError:
-#     print(f"TypeError: {TypeError}")
-# finally:
-#     print("Finally")
-# name = "Kenny"
-# def greet(name):
-#     return f"Hello, {name}"
-
-# pair = ("a", "e", "i", "o", "u", 'e')
-# list = [1,2,3,4,5,6,7,8,9,10]
-# dict = {'name': 'Kenny', 'age': 23, 'hobby': 'Playing soccer'}
-# strn = "Hello, World!"
-# class Employee:
-#     def create(self,name):
-#         return f"Hello, {name}"
-# data = {}
-# if data or {}:
-#     print("data is empty")
-# else:
-#     print("data is not empty")
-
-# print(f"'not' operator on true: %{not(True)}")  # false
-# print(f"'not' operator on false: %{not(False)}") # true
-# print(f"'not' operator on none: %{not(None)}")  # true
-# print(f"'not' operator on int: %{not(1)}")     # false
-# print(f"'not' operator on float: %{not(1.0)}") # false
-# print(f"'not' operator on string: %{not('')}") # true
-# print(f"'not' operator on list: %{not([])}")  # false
-# print(f"'not' operator on pair: %{not(pair)}") # false
-# print(f"'not' operator on dict: %{not(dict)}") # false
-# print(f"'not' operator on class: %{not(Employee)}") # false
-# print(f"'not' operator on function: %{not(greet)}") # false
-# print(f"'not' operator on builtin_function: %{not(print)}") # false
-# print(f"'not' operator on builtin_class: %{not(Exception)}") # false
-# print(f"'not' operator on builtin_method: %{not(strn.upper)}") # false
-# print(f"'not' operator on builtin_type: %{not(strn)}") # false
-# print(f"'not' operator on none: %{not(None)}") # false
-# l = [1,2,3,4,5,6,7,8,9,10]
-# l += {'name': 'Kenny'}
-# print(l)
-# num = 2
-# num **= 0
-# print("num is: %d" % num)
-# x = range(1,10)
-# # for i in x:
-# #     print(i)
-
-# employee = Employee()
-# print(employee)
-
-class Animal:
-    animals = []
-
-    def __init__(self, name):
-        self.name = name
-
-    def eat(self):
-        print(f"{self.name} is eating")
-
-    def set_animals(self):
-        self.animals.append(self.name)
-
-    def get_animals(self):
-        return self.animals
-
-
-animal = Animal("Dog")
-animal2 = Animal("Cat")
-animal3 = Animal("Bird")
-animal.set_animals()
-animal2.set_animals()
-animal3.set_animals()
-#print(animal.get_animals())
-#print(dict(key="name", value="Bob", age=23))
-
-
-def greet(name, age, email=None, hobby=None, verified=False, test=""):
-    print("SENDING EMAIL")
-    print(f"Hello, %{name}, you are %{age} years old and your email is %{email}, and your hobby is %{hobby}, and you are %{verified} and your test is %{test}")
-
-
-#greet("Bob",age=25)
-
-
-def greet(*names, message="Hello",):
-    for name in names:
-        print(f"{message}, {name}")
-
-#greet()
-
-
-class Person:
-    def __init__(self, *args):
-        self.name = args[0]
-        self.age = args[1]
-
-person = Person("Bob", 23)
-
-
-def join_sep(*args, sep=","):
-    nums = ''
-    for arg in args:
-        nums += str(arg) + sep
-    return nums
-#print(join_sep('-',1,2,3,4,5))
-
-li = [1, 2,3,]
-*args, a,b = li
-#print( args, "is args")
-
-# d = {'name': 'John', 'age': 21, 'hobby': 'Playing soccer'}
-# *args,a,b,c = d
-# print(a,b,c, args, "is args dict")
-
-#print(1,2,3, sep="-", end="\n")
-# class A:
-#     def __init__(self, name):
-#         self.name = name
-
-#     def Test(self, *args,greeting, name):
-#         print(args,greeting, name)
-
-#     def toString(self):
-#         return f"Class %{self.name}"
-
-# a = A("Bob")
-# a.Test("Hello", "World", greeting="Hi", name="Bob")
-
-# d = dict()
-# print(d)

@@ -1182,6 +1182,16 @@ let obj = {5:'55'}
 let my_dict = {1:'22'}
 let new_dict = my_dict |= obj |= {4:'44'}
 print(new_dict)#{1: '22', 0: 0} # sorted(new_dict) to get sorted dict
+
+line(97)
+# Set
+let set = {(1,2,"apple", true,3,1,5, [1,2,3,4,5])}
+let set2 = set.copy()
+set.remove(*[1])
+set.clear()
+print(set)
+
+
 # let n = 0b1010
 # #let m = 0o10
 # #let o = 0x10

@@ -2377,8 +2377,7 @@ class String(Value):
         elif isinstance(other, List) or isinstance(other, Pair):
             error['message'] = f"'in (\"string\")' requires string as left operand, not '{TypeOf(other).getType()}'"
             return None, self.illegal_operation_typerror(error, other)
-        # elif isinstance(other, Dict):
-        #     print("checking in dict")
+        
 
         elif isinstance(other, Boolean):
             if other.value == "true":
@@ -3674,7 +3673,7 @@ class String(Value):
         if args == None:
             return BuiltInFunction("format", self.context)
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         new_args = []
         string = self.value
         keywords = {}
@@ -3836,7 +3835,7 @@ class String(Value):
         if args == None:
             return BuiltInFunction("encode", self.context)
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         keywords = {}
         valid_kwargs = ['encoding', 'errors']
         encoding_index = 0
@@ -3946,7 +3945,6 @@ class String(Value):
                 string = self.value.encode(encoding, error)
                 return Bytes(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
             except Exception as e:
-                print(e)
                 raise Al_UnicodeDecodeError({
                     'pos_start': self.pos_start,
                     'pos_end': self.pos_end,
@@ -3991,6 +3989,8 @@ class DocString(String):
 
     def __str__(self):
         return f"{self.value}"
+
+
 
 
 string_methods = {
@@ -4088,7 +4088,7 @@ class Bytes(Value):
         if args == None:
             return BuiltInFunction("decode", self.context)
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         keywords = {}
         valid_kwargs = ['encoding', 'errors']
         encoding_index = 0
@@ -4436,8 +4436,6 @@ class Boolean(Value):
             return Boolean(setNumber(self.value) <= setNumber(other.value)).setContext(self.context), None
         else:
             return None, self.illegal_operation(error, other)
-
-    
     
     def and_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
@@ -5146,7 +5144,6 @@ class List(Value):
         index = 0  
         
         value_to_remove = value_to_remove.val_rep
-        #print(value_to_remove in elements)
         if value_to_remove in elements:
             for i in range(len(elements)):
                 if elements[i] == value_to_remove:
@@ -5713,7 +5710,6 @@ class List(Value):
         #                 compare_value = res.register(compare_func.execute([self.elements[i], self.elements[j]], kwargs))
         #                 if res.error: return res
         #                 if res.should_return(): return res
-        #         print(compare_value)
         #     except Al_TypeError as e:
         #         raise e
 
@@ -6027,7 +6023,6 @@ class List(Value):
             for element in self.elements:
                 new_res = res.register(func.execute([element], kwargs))
                 if res.should_return(): return res
-                print(new_res)
 
     def every(self, args, kwargs, var_name=None, has_unpack=False):
         if args == None:
@@ -6050,7 +6045,111 @@ class List(Value):
             'context': self.context,
             'exit': False
         })
+   
+    def set_pretty(self, indent=0):
+        
+        left_bracket = '[\n'
+        right_bracket = '\n' + ' ' * indent + ']'
+        end_bracket = '\n]'
+        # if len(self.elements) > 0:
+        #     right_bracket = '\n],\n'
+        string = left_bracket
+        
+        if indent == 0:
+            for element in self.elements:
+                if isinstance(element, Dict) or isinstance(element, Object):
+                    string += element.set_pretty().value
+                else:
+                    string += str(element) + ', ' + '\n'
+            
+            if len(self.elements) > 0:
+                string = string[:-2]
+            string += right_bracket
 
+
+        else:
+            indent_string = ' ' * indent + ' '
+            for element in self.elements:
+                if isinstance(element, Dict) or isinstance(element, Object):
+                    string += element.set_pretty(indent).value
+                else:
+                    string += indent_string + str(element) + ', ' + '\n'
+                
+            if len(self.elements) > 0:
+                string = string[:-2]
+            string += end_bracket
+
+        return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+          
+    def pretty_print(self,args,kwargs,var_name=None, has_unpack=False):
+        res = RuntimeResult()
+        interpreter = Interpreter()
+        
+        indent = 0
+        
+        
+        valid_indent_levels = [0,1,2,3,4]
+        
+        
+        if args == None:
+            return BuiltInFunction("pretty_print", self.context)
+        
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name == 'indent':
+                    if len(args) != 0:
+                        raise Al_ArgumentError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"pretty_print() got multiple values for argument 'indent'",
+                                'context': self.context,
+                                'exit': False
+                            })
+                    value = res.register(interpreter.visit(key['value'], self.context))
+                    check_type(Number, value, f"pretty_print() argument 'indent' must be of type number, not '{TypeOf(value).getType()}'", self.pos_start, self.pos_end, self.context)
+                    
+                    check_type(int, value.value, f"pretty_print() argument 'indent' must be of type int, not '{TypeOf(value.value).getType()}'", self.pos_start, self.pos_end, self.context)
+                
+                    if value.value not in valid_indent_levels:
+                        raise Al_ArgumentError({
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"{value.value} is not a valid indent level",
+                            'context': self.context,
+                            'exit': False
+                        })
+                    
+                    indent = value.value
+                else:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"pretty_print() got an unexpected keyword argument '{name}'",
+                        'context': self.context,
+                        'exit': False
+                    }) 
+        check_args((0,1), args, f"{len(args)} arguments given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        
+        if len(args) == 1:
+            check_type(Number, args[0], f"pretty_print() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+            if isinstance(args[0], Number):
+                
+                check_type(int, args[0].value, f"pretty_print() argument 1 must be of type int, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+                
+            if args[0].value in valid_indent_levels:
+                indent = args[0].value
+            else:
+                raise Al_ArgumentError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"{args[0].value} is not a valid indent level",
+                    'context': self.context,
+                    'exit': False
+                })
+        
+        return self.set_pretty(indent)
+     
     def Copy(self, args, kwargs, var_name=None, has_unpack=False):
         if args == None:
             return BuiltInFunction("copy", self.context)
@@ -6164,6 +6263,7 @@ list_methods = {
     'some': List.some,
     'every': List.every,
     'each': List.each,
+    'pretty_print': List.pretty_print,
     'is_number': List.is_number,
     'is_string': List.is_string,
     '__@str__': List.__string__,
@@ -6600,7 +6700,6 @@ class Set(Value):
         index = 0  
         
         value_to_remove = value_to_remove.val_rep
-        #print(value_to_remove in elements)
         if value_to_remove in elements:
             for i in range(len(elements)):
                 if elements[i] == value_to_remove:
@@ -7058,7 +7157,6 @@ class Dict(Value):
                 'exit': False
             })
 
-
     def or_by(self, other):
         return self.setTrueorFalse(self.value or other.value), None
 
@@ -7291,7 +7389,7 @@ class Dict(Value):
         if args == None:
             return BuiltInFunction("update", self.context)
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
 
 
         check_args((0,2), args, f"{len(args)} arguments given, but update() expects 1 argument", self.pos_start, self.pos_end, self.context)
@@ -7432,10 +7530,104 @@ class Dict(Value):
 
         return Dict(self.properties).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
-    def pretty(self,args,kwargs,var_name=None, has_unpack=False):
+    def set_pretty(self, indent=0):
+        
+        left_braces = '{\n'
+        right_braces = ',\n}'
+        if len(self.properties) > 0:
+            right_braces = '\n},\n'
+            
+        string = left_braces
+        
+        if indent == 0:
+            for key, value in self.properties.items(): 
+                string += ' ' + str(key) + ': ' + str(value) + ', ' + '\n'
+            
+            string = string[:-3]
+            string += right_braces
+
+        else:
+            indent_string = ' ' * indent
+            for key, value in self.properties.items():
+                if isinstance(value, List):
+                    string += indent_string + str(key) + ': ' + value.set_pretty(indent).value + ', ' + '\n'
+                
+                else:
+                    string += indent_string + str(key) + ': ' + str(value) + ', ' + '\n'
+
+            string = string[:-3]
+            string += '\n' + indent_string + right_braces
+            
+        return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+          
+    def pretty_print(self,args,kwargs,var_name=None, has_unpack=False):
+        res = RuntimeResult()
+        interpreter = Interpreter()
+        
+        indent = 0
+        
+        
+        valid_indent_levels = [0,1,2,3,4]
+        
+        
         if args == None:
-            return BuiltInFunction("pretty", self.context)
-        pass
+            return BuiltInFunction("pretty_print", self.context)
+        
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name == 'indent':
+                    if len(args) != 0:
+                        raise Al_ArgumentError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"pretty_print() got multiple values for argument 'indent'",
+                                'context': self.context,
+                                'exit': False
+                            })
+                    value = res.register(interpreter.visit(key['value'], self.context))
+                    check_type(Number, value, f"pretty_print() argument 'indent' must be of type number, not '{TypeOf(value).getType()}'", self.pos_start, self.pos_end, self.context)
+                    
+                    check_type(int, value.value, f"pretty_print() argument 'indent' must be of type int, not '{TypeOf(value.value).getType()}'", self.pos_start, self.pos_end, self.context)
+                
+                    if value.value not in valid_indent_levels:
+                        raise Al_ArgumentError({
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"{value.value} is not a valid indent level",
+                            'context': self.context,
+                            'exit': False
+                        })
+                    
+                    indent = value.value
+                else:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"pretty_print() got an unexpected keyword argument '{name}'",
+                        'context': self.context,
+                        'exit': False
+                    }) 
+        check_args((0,1), args, f"{len(args)} arguments given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        
+        if len(args) == 1:
+            check_type(Number, args[0], f"pretty_print() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+            if isinstance(args[0], Number):
+                
+                check_type(int, args[0].value, f"pretty_print() argument 1 must be of type int, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+                
+            if args[0].value in valid_indent_levels:
+                indent = args[0].value
+            else:
+                raise Al_ArgumentError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"{args[0].value} is not a valid indent level",
+                    'context': self.context,
+                    'exit': False
+                })
+        
+        return self.set_pretty(indent)
 
     def __methods__(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
@@ -7474,7 +7666,7 @@ dict_methods = {
     'update': Dict.update,
     'delete': Dict.delete,
     'clear': Dict.clear,
-    'pretty': Dict.pretty,
+    'pretty_print': Dict.pretty_print,
     '__@methods__': Dict.__methods__,
 }
 
@@ -7770,10 +7962,99 @@ class Object(Value):
         else:
             return default
 
-    def pretty(self,args,kwargs,var_name=None, has_unpack=False):
+    def set_pretty(self, indent=0):
+        
+        left_braces = '{\n'
+        right_braces = '\n}'
+        
+        string = left_braces
+        
+        if indent == 0:
+            for key, value in self.properties.items(): 
+                string += ' ' + str(key) + ': ' + str(value) + ', ' + '\n'
+            
+            string = string[:-3]
+            string += right_braces
+
+        else:
+            indent = 4
+            indent_string = ' ' * indent
+            for key, value in self.properties.items():
+                string += indent_string + str(key) + ': ' + str(value) + ', ' + '\n'
+
+            string = string[:-3]
+            string += '\n' + indent_string + right_braces
+            
+        return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+          
+    def pretty_print(self,args,kwargs,var_name=None, has_unpack=False):
+        res = RuntimeResult()
+        interpreter = Interpreter()
+        
+        indent = 0
+        
+        
+        valid_indent_levels = [0,4]
+        
+        
         if args == None:
-            return BuiltInFunction("pretty", self.context)
-        pass
+            return BuiltInFunction("pretty_print", self.context)
+        
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name == 'indent':
+                    if len(args) != 0:
+                        raise Al_ArgumentError({
+                                'pos_start': self.pos_start,
+                                'pos_end': self.pos_end,
+                                'message': f"pretty_print() got multiple values for argument 'indent'",
+                                'context': self.context,
+                                'exit': False
+                            })
+                    value = res.register(interpreter.visit(key['value'], self.context))
+                    check_type(Number, value, f"pretty_print() argument 'indent' must be of type number, not '{TypeOf(value).getType()}'", self.pos_start, self.pos_end, self.context)
+                    
+                    check_type(int, value.value, f"pretty_print() argument 'indent' must be of type int, not '{TypeOf(value.value).getType()}'", self.pos_start, self.pos_end, self.context)
+                
+                    if value.value not in valid_indent_levels:
+                        raise Al_ArgumentError({
+                            'pos_start': self.pos_start,
+                            'pos_end': self.pos_end,
+                            'message': f"{value.value} is not a valid indent level",
+                            'context': self.context,
+                            'exit': False
+                        })
+                    
+                    indent = value.value
+                else:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"pretty_print() got an unexpected keyword argument '{name}'",
+                        'context': self.context,
+                        'exit': False
+                    }) 
+        check_args((0,1), args, f"{len(args)} arguments given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        
+        if len(args) == 1:
+            check_type(Number, args[0], f"pretty_print() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+            if isinstance(args[0], Number):
+                
+                check_type(int, args[0].value, f"pretty_print() argument 1 must be of type int, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+                
+            if args[0].value in valid_indent_levels:
+                indent = args[0].value
+            else:
+                raise Al_ArgumentError({
+                    'pos_start': self.pos_start,
+                    'pos_end': self.pos_end,
+                    'message': f"{args[0].value} is not a valid indent level",
+                    'context': self.context,
+                    'exit': False
+                })
+        
+        return self.set_pretty(indent)
 
     def __methods__(self,args,kwargs,var_name=None, has_unpack=False):
         if args == None:
@@ -7808,7 +8089,7 @@ object_methods = {
     'values': Object.values,
     'items': Object.items,
     'get': Object.get,
-    'pretty': Object.pretty,
+    'pretty_print': Object.pretty_print,
     '__@methods__': Object.__methods__,
 }
 
@@ -7844,7 +8125,7 @@ class BaseFunction(Value):
 
     def check_args(self, args):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         exec_context = self.generate_new_context()
         default_values = {}
         len_args = len(args)
@@ -7954,7 +8235,7 @@ class BaseFunction(Value):
 
     def populate_args(self, keyword_args, args, exec_context):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         default_values = {}
         len_expected = len(self.arg_names)
         has_var_args = False
@@ -8031,7 +8312,6 @@ class BaseFunction(Value):
                           # get position of key in keyword_args
                           key_pos = self.arg_names.index(key)
                            # check if key pos exists in args
-                           # print(args_index_default, key_pos, "kk")
                            # if key_pos in range(len(args) - 1)  and key_pos != args_index_default:
                            #         raise Al_ValueError({
                            #             'pos_start': self.pos_start,
@@ -8042,7 +8322,6 @@ class BaseFunction(Value):
                            #         })
                            # key_index = self.arg_names.index(key)
                            # new_arg_index = self.arg_names.index(key)
-                           # print(key_pos,key_index, args_index,new_arg_index,args, key)
                            # if key_index == args_index:
                            #     raise Al_ValueError({
                            #         'pos_start': self.pos_start,
@@ -8358,7 +8637,7 @@ class BaseClass(Value):
 
     def check_args(self, constructor_args, args, default_values_list):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         exec_context = self.generate_new_context()
         # remove self from constructor_args
         default_values = {}
@@ -8474,7 +8753,7 @@ class BaseClass(Value):
 
     def populate_args(self, keyword_args, constructor_args, args, default_values_list,exec_context):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         default_values = {}
         len_expected = len(constructor_args)
         len_args = len(args)
@@ -8582,7 +8861,7 @@ class Function(BaseFunction):
 
     def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         exec_context = self.generate_new_context()
         self.args = args
         keyword_args = {}
@@ -8646,7 +8925,7 @@ class Function(BaseFunction):
                                     })
                         else:
                             pass
-                            #print("varags", self.arg_names[i])
+                            
 
                     # len_old_args = len(args) - len(keyword_args)
                     # if len(args) > 0:
@@ -8729,7 +9008,6 @@ class Function(BaseFunction):
 
         #     # default values
         #     # if len(default_values) > 0:
-        #     #     print(default_values, len(args), len(self.arg_names))
         #     #     # check if key in keyword_args
         #     #     if len(ke)
 
@@ -8758,49 +9036,49 @@ class Function(BaseFunction):
             for val in self.type_hints:
                if 'return_type' in val:
                    return_type = val['return_type']['type']
-            if return_type != None:
-                if return_type in type_hint_types:
-                    if return_type == "void" and not isinstance(return_value, NoneType):
-                        raise Al_TypeError({
-                            'pos_start': self.pos_start,
-                            'pos_end': self.pos_end,
-                            'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
-                            'context': self.context,
-                            'exit': False
-                        })
-                    if return_type == "str" and not isinstance(return_value, String):
-                        raise Al_TypeError({
-                            'pos_start': self.pos_start,
-                            'pos_end': self.pos_end,
-                            'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
-                            'context': self.context,
-                            'exit': False
-                        })
-                    if return_type == "int" and return_type == "float" and not isinstance(return_value, Number):
-                        raise Al_TypeError({
-                            'pos_start': self.pos_start,
-                            'pos_end': self.pos_end,
-                            'message': f"{self.name}() should return '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
-                            'context': self.context,
-                            'exit': False
-                        })
-                    if isinstance(return_value, Number):
-                        if return_type == "int" and not isinstance(return_value.value, int) or return_type == "float" and not isinstance(return_value.value, float):
-                            raise Al_TypeError({
-                                'pos_start': self.pos_start,
-                                'pos_end': self.pos_end,
-                                'message': f"{self.name}() should return type '{return_type}' but returned '{TypeOf(return_value).getType()}'",
-                                'context': self.context,
-                                'exit': False
-                            })
-                else:
-                    raise Al_TypeError({
-                        'pos_start': self.pos_start,
-                        'pos_end': self.pos_end,
-                        'message': f"type hint for {self.name}() is not a valid type",
-                        'context': self.context,
-                        'exit': False
-                    })
+            # if return_type != None:
+            #     if return_type in type_hint_types:
+            #         if return_type == "void" and not isinstance(return_value, NoneType):
+            #             raise Al_TypeError({
+            #                 'pos_start': self.pos_start,
+            #                 'pos_end': self.pos_end,
+            #                 'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
+            #                 'context': self.context,
+            #                 'exit': False
+            #             })
+            #         if return_type == "str" and not isinstance(return_value, String):
+            #             raise Al_TypeError({
+            #                 'pos_start': self.pos_start,
+            #                 'pos_end': self.pos_end,
+            #                 'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
+            #                 'context': self.context,
+            #                 'exit': False
+            #             })
+            #         if return_type == "int" and return_type == "float" and not isinstance(return_value, Number):
+            #             raise Al_TypeError({
+            #                 'pos_start': self.pos_start,
+            #                 'pos_end': self.pos_end,
+            #                 'message': f"{self.name}() should return '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
+            #                 'context': self.context,
+            #                 'exit': False
+            #             })
+            #         if isinstance(return_value, Number):
+            #             if return_type == "int" and not isinstance(return_value.value, int) or return_type == "float" and not isinstance(return_value.value, float):
+            #                 raise Al_TypeError({
+            #                     'pos_start': self.pos_start,
+            #                     'pos_end': self.pos_end,
+            #                     'message': f"{self.name}() should return type '{return_type}' but returned '{TypeOf(return_value).getType()}'",
+            #                     'context': self.context,
+            #                     'exit': False
+            #                 })
+            #     else:
+            #         raise Al_TypeError({
+            #             'pos_start': self.pos_start,
+            #             'pos_end': self.pos_end,
+            #             'message': f"type hint for {self.name}() is not a valid type",
+            #             'context': self.context,
+            #             'exit': False
+            #         })
         return res.success(return_value)
 
     def make_missing_args(self, missing_args, len_args):
@@ -8822,7 +9100,7 @@ class Function(BaseFunction):
 
     def check_args(self, args,keyword_args, has_unpack):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         exec_context = self.generate_new_context()
         default_values = {}
         len_args = len(args)
@@ -8931,7 +9209,7 @@ class Function(BaseFunction):
                         #             if first_positional_arg == 0:
                         #                 start_index = self.arg_names.index(self.arg_names[i]) + 1
                         #                 var_args = args[start_index:len_args]
-                        #                 print(var_args)
+                        
                         exception_details['message'] = f"{self.name if self.name != 'none' else 'anonymous'}() expected {len_expected} positional arguments"
                         raise Al_ArgumentError(exception_details)
 
@@ -8953,7 +9231,7 @@ class Function(BaseFunction):
 
     def populate_args(self, keyword_args, args, exec_context):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         default_values = {}
         len_expected = len(self.arg_names)
         len_args = len(args)
@@ -8971,8 +9249,6 @@ class Function(BaseFunction):
             star_names = [name for name in self.arg_names if is_varags(name) == True]
             non_star_names = [name for name in self.arg_names if is_varags(name) == False]
             starags, nonstarargs = vna_algorithm(self.arg_names, args)
-            #print(star_names, non_star_names)
-            #print(starags, nonstarargs, "args: ", args)
             for star_name in star_names:
                 name = make_varargs(star_name)
                 exec_context.symbolTable.set(name, List(starags))
@@ -9040,7 +9316,7 @@ class Function(BaseFunction):
     # only class Function calls this method
     def run(self, keyword_args_list, args, Klass, context=None, is_Init=None, has_unpack=False):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         exec_context = self.generate_new_context()
         keyword_args = {}
         default_values = {}
@@ -9108,7 +9384,7 @@ class Function(BaseFunction):
                             #                 if len(keyword_args) > 0:
                             #                     for i in range(len(self.arg_names)):
                             #                         if self.arg_names[i] == key:
-                            #                             print(self.arg_names[i], key)
+                            #                             pass
                             #                 raise Al_ValueError({
                             #                     'pos_start': self.pos_start,
                             #                     'pos_end': self.pos_end,
@@ -9194,7 +9470,6 @@ class Function(BaseFunction):
 
         #     # default values
         #     # if len(default_values) > 0:
-        #     #     print(default_values, len(args), len(self.arg_names))
         #     #     # check if key in keyword_args
         #     #     if len(ke)
 
@@ -9203,7 +9478,6 @@ class Function(BaseFunction):
 
         # if keyword_args_list != None and len(keyword_args_list) > 0:
         #     args = new_args
-        #print(Klass.properties)
         # if '__@init__' in Klass.properties:
         #     args = [Klass] + new_args
 
@@ -9222,7 +9496,6 @@ class Function(BaseFunction):
         # if len(args) == 0:
         #     args = [Klass]
 
-        #print(self.name,self.arg_names, args)
         self.args = args
         res.register(self.run_check_and_populate_args(keyword_args, args, exec_context, Klass))
 
@@ -9242,49 +9515,72 @@ class Function(BaseFunction):
             for val in self.type_hints:
                if 'return_type' in val:
                    return_type = val['return_type']['type']
-            if return_type != None:
-                if return_type in type_hint_types:
-                    if return_type == "void" and not isinstance(return_value, NoneType):
-                        raise Al_TypeError({
-                            'pos_start': self.pos_start,
-                            'pos_end': self.pos_end,
-                            'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
-                            'context': self.context,
-                            'exit': False
-                        })
-                    if return_type == "str" and not isinstance(return_value, String):
-                        raise Al_TypeError({
-                            'pos_start': self.pos_start,
-                            'pos_end': self.pos_end,
-                            'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
-                            'context': self.context,
-                            'exit': False
-                        })
-                    if return_type == "int" and return_type == "float" and not isinstance(return_value, Number):
-                            raise Al_TypeError({
-                                'pos_start': self.pos_start,
-                                'pos_end': self.pos_end,
-                                'message': f"{self.name}() should return '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
-                                'context': self.context,
-                                'exit': False
-                            })
-                    if  isinstance(return_value, Number):
-                        if  return_type == "int" and not isinstance(return_value.value, int) or return_type == "float" and not isinstance(return_value.value, float):
-                            raise Al_TypeError({
-                                'pos_start': self.pos_start,
-                                'pos_end': self.pos_end,
-                                'message': f"{self.name}() should return type '{return_type}' but returned '{TypeOf(return_value).getType()}'",
-                                'context': self.context,
-                                'exit': False
-                            })
-                else:
-                    raise Al_TypeError({
-                        'pos_start': self.pos_start,
-                        'pos_end': self.pos_end,
-                        'message': f"type hint for {self.name}() is not a valid type",
-                        'context': self.context,
-                        'exit': False
-                    })
+            # if return_type != None:
+            #     if return_type in type_hint_types:
+            #         if return_type == "void" and not isinstance(return_value, NoneType):
+            #             raise Al_TypeError({
+            #                 'pos_start': self.pos_start,
+            #                 'pos_end': self.pos_end,
+            #                 'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
+            #                 'context': self.context,
+            #                 'exit': False
+            #             })
+            #         # if return_type == "str" and not isinstance(return_value, String):
+            #         #     raise Al_TypeError({
+            #         #         'pos_start': self.pos_start,
+            #         #         'pos_end': self.pos_end,
+            #         #         'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
+            #         #         'context': self.context,
+            #         #         'exit': False
+            #         #     })
+                    
+            #         if isinstance(return_value, String):
+            #             print(return_type)
+            #             if not return_type == "str":
+            #                 raise Al_TypeError({
+            #                     'pos_start': self.pos_start,
+            #                     'pos_end': self.pos_end,
+            #                     'message': f"{self.name}() should return type '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
+            #                     'context': self.context,
+            #                     'exit': False
+            #                 })
+                    
+            #         # if return_type == "int" and return_type == "float" and not isinstance(return_value, Number):
+            #         #         raise Al_TypeError({
+            #         #             'pos_start': self.pos_start,
+            #         #             'pos_end': self.pos_end,
+            #         #             'message': f"{self.name}() should return '{return_type}' but returned type '{TypeOf(return_value).getType()}'",
+            #         #             'context': self.context,
+            #         #             'exit': False
+            #         #         })
+            #         elif  isinstance(return_value, Number):
+            #             if  return_type == "int" and not isinstance(return_value.value, int) or return_type == "float" and not isinstance(return_value.value, float):
+            #                 raise Al_TypeError({
+            #                     'pos_start': self.pos_start,
+            #                     'pos_end': self.pos_end,
+            #                     'message': f"{self.name}() should return type '{return_type}' but returned '{TypeOf(return_value).getType()}'",
+            #                     'context': self.context,
+            #                     'exit': False
+            #                 })
+                            
+            #         elif isinstance(return_value, Boolean):
+            #             if return_type != "bool":
+            #                 raise Al_TypeError({
+            #                     'pos_start': self.pos_start,
+            #                     'pos_end': self.pos_end,
+            #                     'message': f"{self.name}() should return type '{return_type}' but returned '{TypeOf(return_value).getType()}'",
+            #                     'context': self.context,
+            #                     'exit': False
+            #                 })
+                            
+            #     else:
+            #         raise Al_TypeError({
+            #             'pos_start': self.pos_start,
+            #             'pos_end': self.pos_end,
+            #             'message': f"type hint for {self.name}() is not a valid type",
+            #             'context': self.context,
+            #             'exit': False
+            #         })
 
         return self.wrap_return_value(return_value)
 
@@ -9301,7 +9597,7 @@ class Function(BaseFunction):
 
     def run_check_args(self, args, klass_,keyword_args):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         class_name = klass_.name if self.name == "__@init__" else self.name
         exec_context = self.generate_new_context()
         default_values = {}
@@ -9397,7 +9693,6 @@ class Function(BaseFunction):
                 len_arg_names = len(new_args_names)
                 for i in range(len_arg_names):
                     new_args_names_ = [arg for arg in new_args_names if is_varags(arg) == False]
-                    #print(new_args_names_,args)
                     if is_varags(new_args_names[i]):
                         if len(keyword_args) > 0:
                             for key, value in keyword_args.items():
@@ -9455,7 +9750,7 @@ class Function(BaseFunction):
 
     def run_populate_args(self, klass_, keyword_args, args, exec_context):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         class_name = klass_.name if self.name == "__@init__" else self.name
         default_values = {}
         len_expected = len(self.arg_names)
@@ -9639,7 +9934,7 @@ class BuiltInFunction(BaseFunction):
     def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
         exec_context = self.generate_new_context()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         keyword_args = {}
 
         new_args = []
@@ -9712,7 +10007,6 @@ class BuiltInFunction(BaseFunction):
 
                 keyword_args_names.append(name)
             len_keyword_args = len(keyword_args_names)
-            #print(keyword_args_names, len_keyword_args, len_expected, len_args)
 
             if len_keyword_args > len_expected:
                 exception_details['message'] = f"{self.name}() requires {len_expected} positional {'argument'  if len_expected <= 1 else 'arguments'} but {len_keyword_args} {'was' if len_keyword_args <= 1 else 'were'} given"
@@ -9873,7 +10167,7 @@ class Class(BaseClass):
 
     def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         new_context = self.generate_new_context()
         class_args = []
         new_args = []
@@ -9937,13 +10231,11 @@ class Class(BaseClass):
                 #     if key not in self.properties:
                 #         self.inherit_class_name.properties[key] = value
                 # while self.inherit_class_name != None:
-                #     print("inherit_class_name", self.inherit_class_name, self.class_name)
+                #   pass
                 # class_args = self.inherit_class_name.class_args + class_args
                 # since the inherited class is not a executed yet, we need to set each inherited class parameter to args
                 # for i in range(len(self.inherit_class_name.class_args)):
                 #     self.inherit_class_name.properties[self.inherit_class_name.class_args[i]] = args[i]
-
-                # print(self.properties,"==",self.inherit_class_name.properties)
         # return a new class instancex
         #new_args = args + new_args
         # create new class instance
@@ -10149,7 +10441,7 @@ class BuiltInClass(BaseClass):
 
     def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
-        interpreter = Interpreter(None)
+        interpreter = Interpreter()
         exec_context = self.generate_new_context()
         keyword_args = {}
         if keyword_args_list != None and len(keyword_args_list) > 0:
@@ -10965,7 +11257,7 @@ def handle_end(end, type_, node, context):
 
 def BuiltInFunction_Print(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
-    interpreter = Interpreter(None)
+    interpreter = Interpreter()
     values = []
     v = ''
     
@@ -11078,7 +11370,7 @@ def BuiltInFunction_Print(args, node, context,keyword_args=None, has_unpack=Fals
 
 def BuiltInFunction_PrintLn(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
-    interpreter = Interpreter(None)
+    interpreter = Interpreter()
     values = []
     v = ''
     unpacked = False
@@ -11143,7 +11435,7 @@ def BuiltInFunction_PrintLn(args, node, context,keyword_args=None, has_unpack=Fa
                     'context': context,
                     'exit': False
                 })
-        # todo: check if keyword args are used at the same time e.g if sep, end and file are being used then we need to handle them e.g print(1,2,3,sep="-",end="\n", file=sys.stdout) the result will be 1-2-3 with a new line at the end of the line and the output will be printed to the stdout
+       
         if len(keyword_args_names) > 0:
             if "@sep" in keyword_args_names and "@end" in keyword_args_names and "@file" in keyword_args_names:
                 pass
@@ -12327,7 +12619,7 @@ def BuiltInFunction_is_finite(args, node, context,keyword_args=None, has_unpack=
 
 def BuiltInFunction_Sorted(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
-    interpreter = Interpreter(None)
+    interpreter = Interpreter()
     key = None
     reverse = False
     if keyword_args != None and len(keyword_args) > 0:
@@ -13240,7 +13532,7 @@ def BuiltInFunction_Require(args, node, context,keyword_args=None, has_unpack=Fa
 
 def BuiltInFunction_Enumerate(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
-    interpreter = Interpreter(None)
+    interpreter = Interpreter()
     valid_keywords_args = ["start"]
     keyword_args_names = []
     keywords = {}
@@ -13497,7 +13789,7 @@ def BuiltInFunction_Enumerate(args, node, context,keyword_args=None, has_unpack=
 
 def BuiltInFunction_Freeze(args, node, context, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
-    interpreter = Interpreter(None)
+    interpreter = Interpreter()
    
     unpacked = False
     unpacked_args = []
@@ -13573,7 +13865,6 @@ def BuiltInFunction_Freeze(args, node, context, keyword_args=None, has_unpack=Fa
 
     for name, value in keywords.items():
         var_name = context.symbolTable.get(name)
-        print(var_name)
 
 
 def handle_file_open(file_name, mode, node, context):
@@ -17270,7 +17561,7 @@ def BuiltInClass_SystemExit(args, node, context, type, keyword_args=None, has_un
 
 def BuiltInClass_Int(args, node, context, keyword_args=None, has_unpack=False):
     res = RuntimeResult()
-    interpreter = Interpreter(None)
+    interpreter = Interpreter()
     base = 10
     keywords = {}
     
@@ -17442,10 +17733,8 @@ class Types(Value):
 
 class Interpreter:
 
-    def __init__(self, scope):
+    def __init__(self):
         self.error_detected = False
-        self.environment = None
-        self.scope = scope
 
 
     def visit(self, node, context):
@@ -17732,7 +18021,6 @@ class Interpreter:
                                     })
                         else:
                             properties = [v for v in value.properties.values()]
-                            print(properties)
 
                             raise Al_ValueError({
                                 'pos_start': node.pos_start,
@@ -17780,7 +18068,6 @@ class Interpreter:
 
             elif isinstance(value, Pair) or isinstance(value, List):
                 if len(var_name) != len(value.elements):
-                    print(var_name, value.elements)
                     has_star = False
                     var = []
                     var_names = [name.name.value for name in var_name]
@@ -21450,7 +21737,6 @@ class Interpreter:
                 result, error = left.and_by(right)
             elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
                 result, error = left.or_by(right)
-                
             if error:
                 raise Al_RuntimeError({
                     'pos_start': node.pos_start,
@@ -21463,7 +21749,7 @@ class Interpreter:
                 return res.success(result.setPosition(node.pos_start, node.pos_end))
         except KeyboardInterrupt:
             pass
-
+            
 
     def visit_UnaryOpNode(self, node, context):
         res = RuntimeResult()
@@ -21488,7 +21774,6 @@ class Interpreter:
         res = RuntimeResult()
         for condition, expr, return_null in node.cases:
             condition_value = res.register(self.visit(condition, context))
-            print(condition_value, expr, return_null)
             if res.should_return():
                 return res
             if hasattr(condition_value, "value") and condition_value.value == "true":
@@ -21502,21 +21787,6 @@ class Interpreter:
                     return res.success(NoneType().setContext(context).setPosition(node.pos_start, node.pos_end) if return_null else expr_value)
 
 
-            # try:
-            #     condition_value = res.register(self.visit(condition, context))
-            #     if res.should_return():
-            #         return res
-            #     if hasattr(condition_value, "value") and condition_value.value == "true":
-            #         expr_value = res.register(self.visit(expr, context))
-            #         if res.should_return(): return res
-            #         return res.success(NoneType().setContext(context).setPosition(node.pos_start, node.pos_end) if return_null else expr_value)
-            #     else:
-            #         if  hasattr(condition_value, 'is_true') and condition_value.is_true():
-            #             expr_value = res.register(self.visit(expr, context))
-            #             if res.should_return(): return res
-            #             return res.success(NoneType().setContext(context).setPosition(node.pos_start, node.pos_end) if return_null else expr_value)
-            # except Exception as e:
-            #     print(e)
 
 
         if node.else_case:
@@ -22294,7 +22564,6 @@ class Interpreter:
             prop_name = property['name'].value
             prop_value = res.register(self.visit(property['value'], context))
             properties = {**properties, **{prop_name: prop_value}}
-            print(properties)
             if res.should_return(): return res
             object_value = Object(object_name, properties).setContext(context).setPosition(node.pos_start, node.pos_end)
             if isinstance(prop_value, NoneType):

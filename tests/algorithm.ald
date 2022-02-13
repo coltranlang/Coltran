@@ -24,7 +24,7 @@ println(num)
 line(2)
 # Bubble Sort
 def @checkList(arr)
-    if  not arr and arr.is_empty():
+    if not arr and arr.is_empty():
         return false
     end
     return true

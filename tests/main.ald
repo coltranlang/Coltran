@@ -1,7 +1,0 @@
-
-let x = {a: 'A', b: 'B', c: 'C', d: 'D'}
-if 'd' in x or 'e' in x:
-    print("d and e are in x")
-elif 'd' in x or 'e' in x:
-    print("d or e are in x")
-end
