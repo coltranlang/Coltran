@@ -5481,8 +5481,8 @@ class Parser:
             self.advance()
             if op_tok.matches(tokenList.TT_KEYWORD, 'or'):
                 right = res.register(self.expr())
-            elif op_tok.matches(tokenList.TT_KEYWORD, 'and'):
-                right = res.register(self.expr())
+            # elif op_tok.matches(tokenList.TT_KEYWORD, 'and'):
+            #     right = res.register(self.expr())
             elif op_tok.matches(tokenList.TT_KEYWORD, 'not'):
                 if self.current_token.matches(tokenList.TT_KEYWORD, 'in'):
                     self.skipLines()

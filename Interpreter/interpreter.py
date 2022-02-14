@@ -2443,7 +2443,6 @@ class String(Value):
             else:
                 return self.setTrueorFalse(False).setContext(self.context), None
         else:
-            print(other, type(other))
             return None, self.illegal_operation_typerror(error, other)
 
     def get_comparison_not_in(self, other):
@@ -4557,6 +4556,7 @@ class Boolean(Value):
         return f'{self.value}'
 
 
+
 class NoneType(Value):
     def __init__(self, value=None):
         super().__init__()
@@ -4584,7 +4584,7 @@ class NoneType(Value):
         return self.setTrueorFalse(other.value != "none"), None
 
     def and_by(self, other):
-        return self.setTrueorFalse(other.value == "none"), None
+        return self, None
 
     def or_by(self, other):
         return self.setTrueorFalse(other.value != "none"), None
@@ -18091,6 +18091,7 @@ class Types(Value):
         return f"<class {self.name}>"
 
 
+
 class Interpreter:
 
     def __init__(self):
@@ -22013,76 +22014,76 @@ class Interpreter:
 
     def visit_BinOpNode(self, node, context):
         res = RuntimeResult()
-        try:
-            left = res.register(self.visit(node.left_node, context))
-            if res.should_return(): return res
-            right = res.register(self.visit(node.right_node, context))
-            if node.op_tok.type == tokenList.TT_PLUS:
-                result, error = left.added_to(right)
-            if node.op_tok.type == tokenList.TT_PLUS_PLUS:
-                result, error = left.increment()
-            elif node.op_tok.type == tokenList.TT_MINUS:
-                result, error = left.subtracted_by(right)
-            elif node.op_tok.type == tokenList.TT_MINUS_MINUS:
-                result, error = left.decrement()
-            elif node.op_tok.type == tokenList.TT_MUL:
-                result, error = left.multiplied_by(right)
-            elif node.op_tok.type == tokenList.TT_DIV:
-                result, error = left.divided_by(right)
-            elif node.op_tok.type == tokenList.TT_FLOOR_DIV:
-                result, error = left.floordivided_by(right)
-            elif node.op_tok.type == tokenList.TT_POWER:
-                result, error = left.powred_by(right)
-            elif node.op_tok.type == tokenList.TT_MOD:
-                result, error = left.modulo(right)
-            elif node.op_tok.type == tokenList.TT_EQEQ:
-                result, error = left.get_comparison_eq(right)
-            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'is'):
-                result, error = left.get_comparison_eq(right)
-            elif node.op_tok.type == tokenList.TT_NEQ:
-                result, error = left.get_comparison_ne(right)
-            elif node.op_tok.type == tokenList.TT_LT:
-                result, error = left.get_comparison_lt(right)
-            elif node.op_tok.type == tokenList.TT_GT:
-                result, error = left.get_comparison_gt(right)
-            elif node.op_tok.type == tokenList.TT_RSHIFT:
-                result, error = left.get_comparison_rshift(right)
-            elif node.op_tok.type == tokenList.TT_LSHIFT:
-                result, error = left.get_comparison_lshift(right)
-            elif node.op_tok.type == tokenList.TT_LTE:
-                result, error = left.get_comparison_lte(right)
-            elif node.op_tok.type == tokenList.TT_GTE:
-                result, error = left.get_comparison_gte(right)
-            elif node.op_tok.type == tokenList.TT_MERGE:
-                result, error = left.merge(right)
-            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'in'):
-                result, error = right.get_comparison_in(left)
-            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
-                if isinstance(left, Boolean):
-                    if left.value == 'false':
-                        result, error = Boolean(True).setContext(context).setPosition(node.pos_start, node.pos_end), None
-                    else:
-                        result, error = Boolean(False).setContext(context).setPosition(node.pos_start, node.pos_end), None
+        # try:
+        left = res.register(self.visit(node.left_node, context))
+        if res.should_return(): return res
+        right = res.register(self.visit(node.right_node, context))
+        if node.op_tok.type == tokenList.TT_PLUS:
+            result, error = left.added_to(right)
+        if node.op_tok.type == tokenList.TT_PLUS_PLUS:
+            result, error = left.increment()
+        elif node.op_tok.type == tokenList.TT_MINUS:
+            result, error = left.subtracted_by(right)
+        elif node.op_tok.type == tokenList.TT_MINUS_MINUS:
+            result, error = left.decrement()
+        elif node.op_tok.type == tokenList.TT_MUL:
+            result, error = left.multiplied_by(right)
+        elif node.op_tok.type == tokenList.TT_DIV:
+            result, error = left.divided_by(right)
+        elif node.op_tok.type == tokenList.TT_FLOOR_DIV:
+            result, error = left.floordivided_by(right)
+        elif node.op_tok.type == tokenList.TT_POWER:
+            result, error = left.powred_by(right)
+        elif node.op_tok.type == tokenList.TT_MOD:
+            result, error = left.modulo(right)
+        elif node.op_tok.type == tokenList.TT_EQEQ:
+            result, error = left.get_comparison_eq(right)
+        elif node.op_tok.matches(tokenList.TT_KEYWORD, 'is'):
+            result, error = left.get_comparison_eq(right)
+        elif node.op_tok.type == tokenList.TT_NEQ:
+            result, error = left.get_comparison_ne(right)
+        elif node.op_tok.type == tokenList.TT_LT:
+            result, error = left.get_comparison_lt(right)
+        elif node.op_tok.type == tokenList.TT_GT:
+            result, error = left.get_comparison_gt(right)
+        elif node.op_tok.type == tokenList.TT_RSHIFT:
+            result, error = left.get_comparison_rshift(right)
+        elif node.op_tok.type == tokenList.TT_LSHIFT:
+            result, error = left.get_comparison_lshift(right)
+        elif node.op_tok.type == tokenList.TT_LTE:
+            result, error = left.get_comparison_lte(right)
+        elif node.op_tok.type == tokenList.TT_GTE:
+            result, error = left.get_comparison_gte(right)
+        elif node.op_tok.type == tokenList.TT_MERGE:
+            result, error = left.merge(right)
+        elif node.op_tok.matches(tokenList.TT_KEYWORD, 'in'):
+            result, error = right.get_comparison_in(left)
+        elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
+            if isinstance(left, Boolean):
+                if left.value == 'false':
+                    result, error = Boolean(True).setContext(context).setPosition(node.pos_start, node.pos_end), None
                 else:
-                    result, error = left.notted()
-            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'notin'):
-                result, error = right.get_comparison_not_in(left)
-            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'and'):
-                result, error = left.and_by(right)
-            elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
-                result, error = left.or_by(right)
-            if error:
-                raise Al_RuntimeError({
-                    'pos_start': node.pos_start,
-                    'pos_end': node.pos_end,
-                    'message': error,
-                    'context': context,
-                    'exit': False
-                })
+                    result, error = Boolean(False).setContext(context).setPosition(node.pos_start, node.pos_end), None
             else:
-                return res.success(result.setPosition(node.pos_start, node.pos_end))
-        except KeyboardInterrupt:
-            pass
+                result, error = left.notted()
+        elif node.op_tok.matches(tokenList.TT_KEYWORD, 'notin'):
+            result, error = right.get_comparison_not_in(left)
+        elif node.op_tok.matches(tokenList.TT_KEYWORD, 'and'):
+            result, error = left.and_by(right)
+        elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
+            result, error = left.or_by(right)
+        if error:
+            raise Al_RuntimeError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': error,
+                'context': context,
+                'exit': False
+            })
+        else:
+            return res.success(result)
+        # except:
+        #     pass
             
 
     def visit_UnaryOpNode(self, node, context):
@@ -22309,17 +22310,27 @@ class Interpreter:
                 for i in range(end_value):
                     if len(iterators) == 1:
                         if type(iterators[0]).__name__ == "VarAccessNode":
-                            context.symbolTable.set(iterators[0].id.value, iterable_node.elements[i])
-                            value = res.register(self.visit(node.body_node, context))
-                            elements.append(value)
-                            if res.should_return() and res.loop_continue == False and res.loop_break == False:
-                                return res
+                            try:
+                                context.symbolTable.set(iterators[0].id.value, iterable_node.elements[i])
+                                value = res.register(self.visit(node.body_node, context))
+                                elements.append(value)
+                                if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                                    return res
 
-                            if res.loop_continue:
-                                continue
+                                if res.loop_continue:
+                                    continue
 
-                            if res.loop_break:
-                                break
+                                if res.loop_break:
+                                    break
+                            except IndexError:
+                                raise Al_IndexError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'context': context,
+                                    'message': f"list index out of range",
+                                    'exit': False
+                                })
+                                
                         else:
                             raise Al_TypeError({
                                 'pos_start': node.pos_start,
@@ -22427,17 +22438,26 @@ class Interpreter:
                 for i in range(end_value):
                     if len(iterators) == 1:
                         if type(iterators[0]).__name__ == "VarAccessNode":
-                            context.symbolTable.set(iterators[0].id.value, iterable_node.elements[i])
-                            value = res.register(self.visit(node.body_node, context))
-                            elements.append(value)
-                            if res.should_return() and res.loop_continue == False and res.loop_break == False:
-                                return res
+                            try:
+                                context.symbolTable.set(iterators[0].id.value, iterable_node.elements[i])
+                                value = res.register(self.visit(node.body_node, context))
+                                elements.append(value)
+                                if res.should_return() and res.loop_continue == False and res.loop_break == False:
+                                    return res
 
-                            if res.loop_continue:
-                                continue
+                                if res.loop_continue:
+                                    continue
 
-                            if res.loop_break:
-                                break
+                                if res.loop_break:
+                                    break
+                            except IndexError:
+                                raise Al_IndexError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'context': context,
+                                    'message': f"pair index out of range",
+                                    'exit': False
+                                })
                         else:
                             raise Al_TypeError({
                                 'pos_start': node.pos_start,
@@ -22599,10 +22619,16 @@ class Interpreter:
         try:
             while True:
                 condition = res.register(self.visit(node.condition_node, context))
+                
                 if res.should_return():
                     return res
                 is_true = True if hasattr(condition, "value") and condition.value == "true" else False
-                
+                if isinstance(condition, Number):
+                    if condition.value == 1:
+                        is_true = True
+                    elif condition.value == 0:
+                        is_true = False
+                    
                 if not is_true:
                     break
                 value = res.register(self.visit(node.body_node, context))

@@ -173,9 +173,13 @@ class Lexer
     def makeIdentifier(self)
         let identifier_str = ''
         let pos_start = self.pos.copy()
-        while self.currentChar != none and self.currentChar in tokenList.LETTERS_DIGITS_SYMBOLS:
-            identifier_str += self.currentChar
-            self.advance()
+        while self.currentChar != none:
+            if self.currentChar in tokenList.LETTERS_DIGITS_SYMBOLS:
+                identifier_str += self.currentChar
+                self.advance()
+            else:
+                break
+            end
         end
         if identifier_str in tokenList.KEYWORDS:
             let token_type = tokenList.KEYWORD
@@ -223,3 +227,4 @@ end
 # end
 
 # @runFile("testlang.ald")
+#print(none in "Hello world")
