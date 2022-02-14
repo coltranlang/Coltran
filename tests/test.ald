@@ -101,7 +101,7 @@ println(@add(1, 2))
 
 # test for class type
 class Car
-    def @init(self, name, color)
+    def __@init__(self, name, color)
         self.name = name
         self.color = color
     end
@@ -130,15 +130,15 @@ end
 object CarInventory
     cars: []
     addCar: def (name, color)
-            object NewCar
-                name: name
-                color: color
-            end
-        append(CarInventory.cars, NewCar)
+        object NewCar
+            name: name
+            color: color
+        end
+        CarInventory.cars.append(NewCar)
     end
     lookupCar: def (index) ->  CarInventory.cars[index]
     lookupCarByName: def (name) -> @filterByname(CarInventory.cars, name)
-    size: def () ->  len(CarInventory.cars) # just assigning the value the size of the cars as len(CarInventory.cars) returns 0 but assigning the value as a def returns the size of the cars
+    size: def () ->  len(CarInventory.cars) # just checking the size of the car inventory will return 0 because the object has not been created yet, so we need to make it a method of the object, so we can call it from the object
 end
 
 let carInventory = CarInventory
@@ -204,6 +204,7 @@ end
 in str_user as (key):
     println(fm`(String) Key: %{key}`) # string object does not have value so we can only get the key
 end
+
 
 
 let numlist = [1, 2, 3, 4, 5]
@@ -386,7 +387,7 @@ end
 @test.call = def () -> println("I was just called")
 @test.call()
 class Person()
-    def @init(self, fname, lname)
+    def __@init__(self, fname, lname)
         self.firstName = fname
         self.lastName = lname
     end
@@ -923,7 +924,7 @@ object ObDic
     type: "object"
 end
 class Dic
-    def @init(self, name, age, email, hobby, verfied)
+    def __@init__(self, name, age, email, hobby, verfied)
         self.name = "ken"
     end
 end
@@ -997,11 +998,11 @@ line(87)
 # rest args
 let li = [1,2,3,4,5,6,7,8,9,10,11,12,13]
 let a,*args,b,c = li
-println(a,b,c, args, "is args list")
+print(a,b,c, args, "is args list", @sep='-')
 
 let d = {'name': 'John', 'age': 21, 'hobby': 'Playing soccer'}
 let (a, *args,b,c) = d
-println(a,b,c, args, "is args dict")
+println(a,b,c, args, "is args dict", @sep='-')
 
 line(88)
 # class 
@@ -1026,11 +1027,178 @@ end
 
 @main()
 @main(code="Hello", file="test.alden")
-#println(dic_user["name"]) # error
-# def @makeList(item, list=[])
-#     list.append(item)
-#     return list
-# end
+# test for fm-string
+let person = {
+    name: "Bob",
+    age: 20,
+    weight: "200",
+}
+line(90)
+println(fm'Hello %{person.name}') # Hello Bob
+# to escape the % sign
+println(fm'Hello %%{person.name}, escape %') # Hello %Bob, escape %
+# to escape the {}
+println(fm'Hello %{{person.name}}, escape {}') # Hello {Bob}, escape {}
+# to escape the % sign and {}
+println(fm'Hello %%{{person.name}}, escape %%{{""}}') # Hello %{Bob}, escape %{}
+line(91)
+# enumerate
+let seasons = ["Spring", "Summer", "Autumn", "Winter"]
+in enumerate(seasons, start=1) as (count, season):
+    print(count, season) # Enumerate is a built-in function that returns an a dictionary-like object that contains the index and value of each item in the iterable.   
+end
+line(92)
+# without enumerate
+let count = 1
+in seasons as season:
+    print(count, season)
+    count += 1
+end
+line(93)
+# pairs
+let seasons = ["Spring", "Summer", "Autumn", "Winter"]
+let count = 1
+in seasons as season:
+    let result = count, season # pairs are created with a comma
+    let result2 = (count, season) # creating pairs with parentheses
+    print(result, result2) # (1, Spring), (1, Spring) ... same result
+    count += 1
+end
+line(94)
+# Docstring|Multi-line string
+# Docstring must be the first statement in a class definition or a function definition.
+# Because of how Docstring works, you can use it to create a multi-line string.
+# DocString inherits from str, so you can use it in the same way you would use a string.
+# but the test example below is considered a bad practice.
+def @main()
+/**
+* This is a docstring
+* @param {string} name 
+* @param {string} age 
+* @returns {string} 
+*/
+    print("Hello", @main.__@doc__)
+end
+@main()
+def @test(string)
+    return string
+end
+
+# This is considered a bad practice and should be avoided. Docstrings should only be used for documentation purposes.
+print(@test(/**
+    Hello World
+*/)) 
+line(95)
+# Unpacking
+let a,b,c = "123"
+print(a,b,c)#1,2,3
+let my_dict = {'one': 1, 'two': 2, 'three': 3}
+let a,b,c = my_dict
+print(a,b,c)#[1,2,3]
+let a,b,c = my_dict.values()
+print(a,b,c)#[1, 2, 3]
+let a,b,c = my_dict.keys()
+print(a,b,c)#['one', 'two', 'three']
+let a,b,c = my_dict.items()
+print(a,b,c)#[('one', 1), ('two', 2), ('three', 3)]
+let a,b,c = [1,2,3]
+print(a,b,c)#1,2,3
+let x,y,z = range(3)
+print(x,y,z)#0,1,2
+let *a,_ = [1,2,3]
+print(a)#[1, 2]
+let a, *b = [1,2,3]
+print(a,b)#1,[2, 3]
+let *a,b = [1,2,3]
+print(a,b)#[1, 2],3
+let *a,b,c = 1,2,3
+print(a,b,c)#[1],2,3
+let *a,b,c,d = 1,2,3
+print(a,b,c,d)#[],1,2,3
+# let *a,b,c,d,e = 1,2,3
+# print(a,b,c,d,e) #raise error
+let gen = in range(10) as x:  2 ^ x
+print(gen)
+let *g,_ = gen
+print(g)
+let ran = range(10)
+print(ran)
+# swapping values between variables
+let a = 100
+let b = 200
+let temp = a
+a = b
+b = temp
+print(a,b)#200,100
+a = 100
+b = 200
+let a,b = b,a
+print(a,b)#200,100
+# collecting multiple values with *
+let seq = [1,2,3,4]
+let first, body, last = seq[0], seq[1:3], seq[-1]
+print(first,body,last)#1,[2, 3],4
+let first, *body, last = seq
+print(first,body,last)#1,[2, 3],4
+let seq = [1,2,3,4,5,6]
+let first, *body, last = seq
+print(first,body,last)#1,[2, 3, 4, 5],6
+let *head, a,b = range(5)
+print(head,a,b)#[0, 1, 2],3,4
+#let *a,*b = range(5) # raise error
+# dropping unneeded values with *
+let a,c, *_ = 1,2,0,0,0,0
+print(a,c,_)#1,2,[0, 0, 0, 0, 0]
+
+# import system as sys
+# let m,mi,mc, *_ = sys.path
+# print(m,mi,mc)
+
+
+# pairs in functions
+def @powers(number)
+    return number, number ^2, number ^3
+end
+let result = @powers(2)
+print(result)#(2,4,8)
+let number, square, cube = @powers(2)
+print(number, square, cube)#2,4,8
+let *_, cube = @powers(2)
+print(cube)#8
+
+line(96)
+# merging iterables with *
+# The original iterable is not modified
+let my_pair = [1,2,3]
+let new_pair = **[0, my_pair, 4]
+print(new_pair)#(0, 1, 2, 3, 4)
+
+let my_list = {1:'22'}
+let new_list = **(0, my_list, 4)
+print(new_list)#[0, 1, 2, 3, 4]
+object Name
+    '2': '33'
+end
+let obj = {5:'55'}
+let my_dict = {1:'22'}
+let new_dict = my_dict |= obj |= {4:'44'}
+print(new_dict)#{1: '22', 0: 0} # sorted(new_dict) to get sorted dict
+
+line(97)
+# Set
+let set = {(1,2,"apple", true,3,1,5, [1,2,3,4,5])}
+let set2 = set.copy()
+set.remove(*[1])
+set.clear()
+print(set)
+
+line(98)
+# remove vs removeAll in list
+let list1 = [1,2,3,4,2]
+let list2 = [1,2,3,4,2]
+list1.remove(2) # remove the first 2
+list2.removeAll(2) # remove all 2
+print(list1, list2)#[1, 3, 4, 2], [1, 3, 4]
 
 # let n = 0b1010
 # #let m = 0o10

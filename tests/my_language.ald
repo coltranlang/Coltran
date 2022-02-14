@@ -67,14 +67,14 @@ class Program
         }
         return methods
     end
-    def printError(error)
+    def printError(self,error)
         println(error)
     end
 end
 
 
 class Position
-    def @init(self, index, line, column, fileName, fileText, type=none, position=none)
+    def __@init__(self, index, line, column, fileName, fileText, type=none, position=none)
         self.index = index
         self.line = line
         self.column = column
@@ -113,7 +113,7 @@ end
 
 
 class Token
-    def @init(self, type_, value=none, pos_start=none, pos_end=none)
+    def __@init__(self, type_, value=none, pos_start=none, pos_end=none)
         self.type = type_
         self.value = value
         # if pos_start and pos_start.hasproperty('copy'):
@@ -134,7 +134,7 @@ class Token
 end
 
 class Lexer
-    def @init(self, fileName, fileText, position=none)
+    def __@init__(self, fileName, fileText, position=none)
         self.fileName = fileName
         self.fileText = fileText
         self.position = position
@@ -144,7 +144,7 @@ class Lexer
     end
     def advance(self)
         self.pos.advance(self.currentChar)
-        self.currentChar = if self.pos.index < len(self.fileText):  self.fileText[self.pos.index] else: none
+        self.currentChar = if self.pos.index < len(self.fileText): self.fileText[self.pos.index] else: none
     end
     def makeTokens(self, token=none)
         let tokens = []

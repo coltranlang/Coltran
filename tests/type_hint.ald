@@ -1,0 +1,21 @@
+let name: str = "John"
+print(name)
+
+let person: dict = {
+    name: "John",
+    age: 25
+}
+print(person)
+
+def @calc(x: int, y: int): int
+    return x + y
+end
+print(@calc(1, 2))
+
+print(__@types__)
+
+# If a function is going to return none, it should be declared as void
+def @no_return(): void
+    print("Hello")
+end
+@no_return()

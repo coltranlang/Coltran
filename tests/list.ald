@@ -1,0 +1,64 @@
+let arr = [1,2,3,4,5,6,7,8,9,10]
+print(arr)
+let arr_map = arr.map(def(x) -> x * 2)
+print(arr_map) # [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+let arr_filter = arr.filter(def(x) -> x % 2 == 0)
+print(arr_filter) # [2, 4, 6, 8, 10]
+let arr_reduce = arr.reduce(def(x, y) -> x + y)
+print(arr_reduce) # 55
+let arr_reduce_2 = arr.reduce(def(x, y) -> x + y, 100)
+print(arr_reduce_2) # 155
+def @reducer(total, current_value, current_index)
+    return total + current_value + current_index
+end
+let arr_reduce_3 = arr.reduce(@reducer)
+print(arr_reduce_3) # 100
+def @reducer_2(total, current_value, current_index, arr)
+    return total + current_value + current_index + arr.length
+end
+let arr_reduce_4 = arr.reduce(@reducer_2)
+print(arr_reduce_4) # 300
+
+let fruits = ["apple", "banana", "cherry"]
+let sizes = ["small", "medium", "large"]
+
+
+
+
+for i=0 to fruits.length:
+    for j=0 to sizes.length:
+        print(sizes[j], fruits[i])
+    end
+end
+# The 'in' loop provides a better way to iterate over an array and is more readable than the for loop.
+# They both produce the same result: ["red apple", "red banana", "red cherry", "big apple", "big banana", "big cherry", "small apple", "small banana", "small cherry"]
+
+in fruits as fruit:
+    in sizes as size:
+        print(size, fruit)
+    end
+end
+
+# list copy
+
+let old_list = [1,2,3]
+let new_list = old_list
+
+new_list.append(4)
+print('New list:', new_list) #[1, 2, 3, 4]
+print('Old list:', old_list) #[1, 2, 3, 4]
+
+let my_list = ['a', 'b', 'c']
+let new_list = my_list.copy()
+
+my_list.append('d')
+print('New list:', new_list) #['a', 'b', 'c']
+print('My list:', my_list) #['a', 'b', 'c', 'd']
+my_list.append('e')
+print('New list:', new_list) #['a', 'b', 'c']
+print('My list:', my_list) #['a', 'b', 'c', 'd', 'e']
+
+# extend
+let my_list = [1, 2, 3, 4, 5]
+my_list.extend([6, 7, 8])
+print(my_list) #[1, 2, 3, 4, 5, 6, 7, 8]
