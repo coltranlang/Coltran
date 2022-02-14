@@ -124,7 +124,7 @@ def @filterByname(arr, name)
             return arr[i]
         end
     end
-    return fm`Car %{name} not found`
+    return f`Car %{name} not found`
 end
 # test for array index
 object CarInventory
@@ -188,21 +188,21 @@ let str_user = "John"
 
 line(19)
 in User as (key,value):
-    #println(fm`Key: %{key[0]}, Value: %{key[1]}`) # getting key and value from People object by just using the key 
-    println(fm`(Object) Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
+    #println(f`Key: %{key[0]}, Value: %{key[1]}`) # getting key and value from People object by just using the key 
+    println(f`(Object) Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
 end
 in dict_user as (key,value):
-    #println(fm`Key: %{key[0]}, Value: %{key[1]}`) # getting key and value from People object by just using the key 
-    println(fm`(Dict) Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
+    #println(f`Key: %{key[0]}, Value: %{key[1]}`) # getting key and value from People object by just using the key 
+    println(f`(Dict) Key: %{key}, Value: %{value}`) # getting key and value from People object by using the key and value
 end
 in list_user as (key):
-    println(fm`(List) Key: %{key}`) # list object does not have value so we can only get the key
+    println(f`(List) Key: %{key}`) # list object does not have value so we can only get the key
 end
 in pair_user as (key):
-    println(fm`(Pair) Key: %{key}`) # pair object does not have value so we can only get the key
+    println(f`(Pair) Key: %{key}`) # pair object does not have value so we can only get the key
 end
 in str_user as (key):
-    println(fm`(String) Key: %{key}`) # string object does not have value so we can only get the key
+    println(f`(String) Key: %{key}`) # string object does not have value so we can only get the key
 end
 
 
@@ -213,16 +213,16 @@ let names = ["John", "Paul", "George", "Ringo"]
 line(20)
 in names as (name) :
     if name == "John" :
-        println(fm`Hi %{name}`)
+        println(f`Hi %{name}`)
     end
-    println(fm`%{name}`)
+    println(f`%{name}`)
 end
 
 # test for rest operator
 let students = ["John", "Paul", "George", "Ringo"]
 let (first, *rest) = students
 line(21)
-println(fm`First: %{first}, Rest: %{rest}`)
+println(f`First: %{first}, Rest: %{rest}`)
 
 # string methods test
 let empty_string = ""
@@ -255,10 +255,10 @@ println(" is ".join(StringObject))
 line(30)
 let st = "Hi {name}!, You have {count} messages."
 println(st.replace("{name}", "John").replace("{count}", "5"))
-println(fm"%{_str} is %{_str.length} characters long")
+println(f"%{_str} is %{_str.length} characters long")
 let name = "John Doe"
 let n = name.split()
-println(fm"First name: %{n[0]}, Last name: %{n[1]}")
+println(f"First name: %{n[0]}, Last name: %{n[1]}")
 let value = []
 in n as (name) :
     value.append(name)
@@ -378,11 +378,11 @@ let food = " rice  beans chicken"
 let l = [1,2,3]
 let x = food.strip().join(in l as i: str(i))
 line(41)
-println(fm"I love %{x}")
+println(f"I love %{x}")
 
 # asssign property to def
 def @test(a, b)
-    println(fm"a = %{a} b = %{b}")
+    println(f"a = %{a} b = %{b}")
 end
 @test.call = def () -> println("I was just called")
 @test.call()
@@ -392,11 +392,11 @@ class Person()
         self.lastName = lname
     end
     def getName(self)
-        println(fm"My name is %{self.firstName}")
+        println(f"My name is %{self.firstName}")
     end
 end
 def @getFullName(self)
-    println(fm"My full name is %{self.firstName} %{self.lastName}")
+    println(f"My full name is %{self.firstName} %{self.lastName}")
 end
 let person = Person("David", "Michael")
 # set getFullName as the def of person
@@ -427,11 +427,11 @@ let pair = (1,2,3)
 list += [4,5,6]
 pair += (4,5,6)
 line(45)
-println(fm"a = %{a} b = %{b} list = %{list} pair = %{pair}") 
+println(f"a = %{a} b = %{b} list = %{list} pair = %{pair}") 
 let num = 1
 for i = 0 to 10:
     num += i
-    println(fm"num = %{num}")
+    println(f"num = %{num}")
 end
 
 # subtraction assignment operator
@@ -448,8 +448,8 @@ let pair = (1,2,3)
 #list -= [4,5,6] # expected result is error
 #pair -= (4,5,6) # expected result is error
 line(46)
-println(fm"d = %{d}")
-println(fm"a = %{a} b = %{b} list = %{list} pair = %{pair}")
+println(f"d = %{d}")
+println(f"a = %{a} b = %{b} list = %{list} pair = %{pair}")
 
 # multiplication assignment operator
 let a = 20
@@ -465,9 +465,9 @@ let pair = (1,2,3)
 list *= 2 # expected result is error
 pair *= 2 # expected result is error
 line(47)
-println(fm"num1 = %{num1}")
-println(fm"e = %{e}")
-println(fm"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
+println(f"num1 = %{num1}")
+println(f"e = %{e}")
+println(f"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
 
 # division assignment operator
 let a = 20
@@ -485,8 +485,8 @@ let pair = (1,2,3)
 #list /= [4,5,6] # expected result is error
 #pair /= (4,5,6) # expected result is error
 line(48)
-println(fm"f = %{f}")
-println(fm"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
+println(f"f = %{f}")
+println(f"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
 
 # modulus assignment operator
 let a = 20
@@ -504,15 +504,15 @@ let pair = (1,2,3)
 #list %= [4,5,6] # expected result is error
 #pair %= (4,5,6) # expected result is error
 line(49)
-println(fm"g = %{g}")
-println(fm"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
+println(f"g = %{g}")
+println(f"a = %{a} b = %{b} hello_world = %{hello_world} list = %{list} pair = %{pair}")
 
 # floor division assignment operator
 let num1 = 15
 let num2 = 2
 num1 //= num2
 line(50)
-println(fm"num1 = %{num1}")
+println(f"num1 = %{num1}")
 
 # equality operator
 let list = [1,2,3,4]
@@ -520,17 +520,17 @@ let pair = (1,2,3,4)
 list += [5]
 pair += (5)
 line(51)
-println(fm"true or false1: %{list == [1,2,3,4,5]}") # true
-println(fm"true or false2: %{pair == (1,2,3,4,5)}") # true
-println(fm"true or false3: %{list == pair}") # false
-println(fm"true or false4: %{pair == list}") # false
-println(fm"true or false5: %{list < [1,2,3,4,5]}") # false
-println(fm"true or false6: %{pair < (1,2,3,4,5)}") # false
-println(fm"true or false7: %{list <= [1,2,3,4,5]}") # true
-println(fm"true or false8: %{pair <= (1,2,3,4,5)}") # true
-println(fm"true or false9: %{[1,2,3,4,5,6] > list}") # true
-println(fm"true or false10: %{(1,2,3,4,5,6) > pair}") # true
-println(fm"For List: %{list}, For Pair: %{pair}") # For List: [1, 2, 3, 4, 5], For Pair: (1, 2, 3, 4, 5)
+println(f"true or false1: %{list == [1,2,3,4,5]}") # true
+println(f"true or false2: %{pair == (1,2,3,4,5)}") # true
+println(f"true or false3: %{list == pair}") # false
+println(f"true or false4: %{pair == list}") # false
+println(f"true or false5: %{list < [1,2,3,4,5]}") # false
+println(f"true or false6: %{pair < (1,2,3,4,5)}") # false
+println(f"true or false7: %{list <= [1,2,3,4,5]}") # true
+println(f"true or false8: %{pair <= (1,2,3,4,5)}") # true
+println(f"true or false9: %{[1,2,3,4,5,6] > list}") # true
+println(f"true or false10: %{(1,2,3,4,5,6) > pair}") # true
+println(f"For List: %{list}, For Pair: %{pair}") # For List: [1, 2, 3, 4, 5], For Pair: (1, 2, 3, 4, 5)
 
 
 line(52)
@@ -554,7 +554,7 @@ c /= @setnum() / 2 # expecting to 21.0
 d *= @setnum() * 2 # expecting to 124
 e %= @setnum() % 3 # expecting to 1
 line(53)
-println(fm"a = %{a}, b = %{b}, c = %{c}, d = %{d}, e = %{e}")
+println(f"a = %{a}, b = %{b}, c = %{c}, d = %{d}, e = %{e}")
 let hello = "Hello"
 let world = "World"
 hello += " " + world
@@ -571,7 +571,7 @@ for i = 0 to 10:
     end
 end
 line(54)
-println(fm"Count = %{count}") 
+println(f"Count = %{count}") 
 
 let number = 0
 let sum = 0
@@ -581,7 +581,7 @@ while number <= 50:
     number += 1
 end
 line(55)
-println(fm"Sum = %{sum}") # Sum = 1275
+println(f"Sum = %{sum}") # Sum = 1275
 
 
 let david = def () -> "david"
@@ -679,7 +679,7 @@ end
 object TestObject
     name: "Bob"    
 end
-println(fm"TestObject.name: %{TestObject}")
+println(f"TestObject.name: %{TestObject}")
 # match TestObject -> Object
 line(61)
 match TestObject:
@@ -1009,7 +1009,7 @@ line(88)
 class Program
     def error()
         def @ModuleError(message)
-            println(fm"ModuleError: %{message}")
+            println(f"ModuleError: %{message}")
         end
         let methods = {
             'ModuleError': @ModuleError
@@ -1022,25 +1022,25 @@ Program().error()['ModuleError']("cannot find module 'os'")
 line(89)
 # default values with print keyword arguments
 def @main(file=none, code=none)
-    print(fm"File: %{file}", fm"Code: %{code}",@sep='\n')
+    print(f"File: %{file}", f"Code: %{code}",@sep='\n')
 end
 
 @main()
 @main(code="Hello", file="test.alden")
-# test for fm-string
+# test for f-string
 let person = {
     name: "Bob",
     age: 20,
     weight: "200",
 }
 line(90)
-println(fm'Hello %{person.name}') # Hello Bob
+println(f'Hello %{person.name}') # Hello Bob
 # to escape the % sign
-println(fm'Hello %%{person.name}, escape %') # Hello %Bob, escape %
+println(f'Hello %%{person.name}, escape %') # Hello %Bob, escape %
 # to escape the {}
-println(fm'Hello %{{person.name}}, escape {}') # Hello {Bob}, escape {}
+println(f'Hello %{{person.name}}, escape {}') # Hello {Bob}, escape {}
 # to escape the % sign and {}
-println(fm'Hello %%{{person.name}}, escape %%{{""}}') # Hello %{Bob}, escape %{}
+println(f'Hello %%{{person.name}}, escape %%{{""}}') # Hello %{Bob}, escape %{}
 line(91)
 # enumerate
 let seasons = ["Spring", "Summer", "Autumn", "Winter"]
@@ -1192,7 +1192,6 @@ set.remove(*[1])
 set.clear()
 print(set)
 
-<<<<<<< HEAD
 line(98)
 # remove vs removeAll in list
 let list1 = [1,2,3,4,2]
@@ -1200,8 +1199,6 @@ let list2 = [1,2,3,4,2]
 list1.remove(2) # remove the first 2
 list2.removeAll(2) # remove all 2
 print(list1, list2)#[1, 3, 4, 2], [1, 3, 4]
-=======
->>>>>>> 66a378dfc16656f6702061e915b2f91588ea3477
 
 # let n = 0b1010
 # #let m = 0o10

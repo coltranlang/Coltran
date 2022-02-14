@@ -673,7 +673,6 @@ class ObjectNode:
         }
 
 
-
 class ModuleObject:
     def __init__(self, object_name, properties, other):
         self.object_name = object_name
@@ -1821,6 +1820,14 @@ class Parser:
             res.register_advancement()
             self.advance()
             return res.success(StringNode(tok))
+        elif tok.type == tokenList.TT_F_STRING:
+            f_string_expr = res.register(self.f_string_expr())
+            if res.error: return res
+            return res.success(f_string_expr)
+        elif tok.type == tokenList.TT_BYTE_STRING:
+            byte_string_expr = res.register(self.byte_string_expr())
+            if res.error: return res
+            return res.success(byte_string_expr)
         elif tok.type == tokenList.TT_DOC_STRING:
             res.register_advancement()
             self.advance()
@@ -1927,11 +1934,6 @@ class Parser:
             if res.error:
                 return res
             return res.success(raise_expr)
-        elif tok.matches(tokenList.TT_KEYWORD, 'fm'):
-            string_interp = res.register(self.string_interp())
-            if res.error:
-                    return res
-            return res.success(string_interp)
         elif tok.matches(tokenList.TT_KEYWORD, 'bt'):
             byte_expr = res.register(self.byte_expr())
             if res.error:
@@ -4618,53 +4620,45 @@ class Parser:
                 }))
         return res.success(PairNode(elements, pos_start, self.current_token.pos_end.copy()))
 
-    def string_interp(self):
+    def f_string_expr(self):
         res = ParseResult()
         pos_start = self.current_token.pos_start.copy()
         inter_pv = None
-        if self.current_token.matches(tokenList.TT_KEYWORD, 'fm'):
-            res.register_advancement()
-            self.advance()
-            string_to_interp = self.current_token.value
-            while self.current_token.type == tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING or tokenList.TT_BACKTICK:
-                value = self.current_token.value
-                string_repr = self.current_token
-                regex = Regex().compile('%{(.*?)}')
-                if value.count('{') != value.count('}'):
-                    self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "fm-string: unmatched '{'" if value.count('{') > value.count('}') else "fm-string: unmatched '}'",
-                        'context': self.context,
-                        'exit': False
-                    }))
-                regex2 = Regex().compile('%%{{(.*?)}}')
-                if regex2.match(value):
-                    value = regex2.sub('%{\\1}', value)
-                if value.find('{{') != -1:
-                    value = value.replace('{{', '{').replace('}}', '}')
-                interp_values = regex.match(value)
-                if interp_values:
-                    inter_pv = interp_values
-                    expr = res.register(self.expr())
-                    interpolated_string = self.make_string_expr(
-                        inter_pv, pos_start, string_repr)
-                    return res.success(StringInterpNode(expr,  interpolated_string, string_to_interp, pos_start, self.current_token.pos_end.copy(), inter_pv))
-                else:
-                    expr = res.register(self.expr())
-                    return res.success(StringInterpNode(expr, value, string_to_interp, pos_start, self.current_token.pos_end.copy()))
-            else:
-                return res.failure(self.error['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': "expected a string",
-                    'context': self.context,
-                    'exit': False
-                }))
+        
+        f_string = self.current_token
+        string_to_interp = self.current_token.value
+        value = self.current_token.value
+        string_repr = self.current_token
+        regex = Regex().compile('%{(.*?)}')
+        if value.count('{') != value.count('}'):
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'message': "fm-string: unmatched '{'" if value.count('{') > value.count('}') else "fm-string: unmatched '}'",
+                'context': self.context,
+                'exit': False
+            }))
+        regex2 = Regex().compile('%%{{(.*?)}}')
+        if regex2.match(value):
+            value = regex2.sub('%{\\1}', value)
+        if value.find('{{') != -1:
+            value = value.replace('{{', '{').replace('}}', '}')
+        interp_values = regex.match(value)
+        if interp_values:
+            inter_pv = interp_values
+            interpolated_string = self.make_f_string_expr(
+                inter_pv, pos_start, string_repr)
+            self.skipLines()
+            return res.success(StringInterpNode(f_string,  interpolated_string, string_to_interp, pos_start, self.current_token.pos_end.copy(), inter_pv))
+        else:
+            self.skipLines()
+            return res.success(StringNode(f_string))
+       
+        
         return res.success(StringNode(self.current_token))
 
-    def make_string_expr(self, inter_pv, position, string_repr):
+    def make_f_string_expr(self, inter_pv, position, string_repr):
         interpolated = []
         for el in inter_pv:
             if el == '':
@@ -4689,24 +4683,13 @@ class Parser:
                 self.string_expr = interpolated
         return self.string_expr
 
-    def byte_expr(self):
+    def byte_string_expr(self):
         res = ParseResult()
         pos_start = self.current_token.pos_start.copy()
+        byte_string = self.current_token
         self.skipLines()
-        if self.current_token.type == tokenList.TT_DOUBLE_STRING or tokenList.TT_SINGLE_STRING or tokenList.TT_BACKTICK:
-            byte_string = self.current_token
-            self.skipLines()
-            return res.success(ByteStringNode(byte_string))
-        else:
-            self.error_detected = True
-            return res.failure(self.error['Syntax']({
-                'pos_start': self.current_token.pos_start,
-                'pos_end': self.current_token.pos_end,
-                'message': "expected a string",
-                'context': self.context,
-                'exit': False
-            }))
-
+        return res.success(ByteStringNode(byte_string))
+       
     def index_get(self, atom):
         res = ParseResult()
         index = 0

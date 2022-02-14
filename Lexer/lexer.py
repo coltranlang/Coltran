@@ -153,6 +153,10 @@ class Lexer:
                 elif self.current_char in '\n':
                     tokens.append(Token(tokenList.TT_NEWLINE, pos_start=self.pos))
                     self.advance()
+                elif self.current_char == 'f':
+                    tokens.append(self.make_f_string())
+                elif self.current_char == 'b':
+                    tokens.append(self.make_byte_string())
                 elif self.current_char in tokenList.DIGITS:
                     tokens.append(self.make_number())
                 elif self.current_char in tokenList.LETTERS_SYMBOLS:
@@ -286,8 +290,13 @@ class Lexer:
         else:
             return Token(tokenList.TT_FLOAT, float(num_str), pos_start, self.pos)
         
-    def make_identifier(self):
-        identifier_str = ''
+    def make_identifier(self, make_f_string=False, make_byte_string=False):
+        if make_f_string:
+            identifier_str = 'f'
+        elif make_byte_string:
+            identifier_str = 'b'
+        else:
+            identifier_str = ''
         pos_start = self.pos.copy()
         while self.current_char != None and self.current_char in tokenList.LETTERS_DIGITS_SYMBOLS:
             identifier_str += self.current_char
@@ -458,7 +467,7 @@ class Lexer:
         self.advance()
         return Token(tok_type, pos_start=pos_start, pos_end=self.pos)
 
-    def make_double_string(self):
+    def make_double_string(self, make=False):
         string = ''
         character = True
         pos_start = self.pos.copy()
@@ -468,7 +477,7 @@ class Lexer:
             '\\': '\\',
             'n': '\n',
             't': '\t',
-            '\es': "\\",
+            'r': '\r',
         }
         
         
@@ -520,17 +529,21 @@ class Lexer:
                 'exit': False
             })
         self.advance()
+        if make == True:
+            return string
         return Token(tokenList.TT_DOUBLE_STRING, string, pos_start, self.pos)
    
-    def make_single_string(self):
+    def make_single_string(self, make=False):
         string = ''
         character = True
         pos_start = self.pos.copy()
         escape_character = False
         self.advance()
         escape_characters = {
+            '\\': '\\',
             'n': '\n',
             't': '\t',
+            'r': '\r',
         }
         while self.current_char != None and (self.current_char != "'" or escape_character):
             if self.current_char == '\\':
@@ -581,17 +594,21 @@ class Lexer:
                 'exit': False
             })
         self.advance()
+        if make == True:
+            return string
         return Token(tokenList.TT_SINGLE_STRING, string, pos_start, self.pos)
 
-    def make_backtick_string(self):
+    def make_backtick_string(self, make=False):
         string = ''
         character = True
         pos_start = self.pos.copy()
         escape_character = False
         self.advance()
         escape_characters = {
+            '\\': '\\',
             'n': '\n',
-            't': '\t'
+            't': '\t',
+            'r': '\r',
         }
         # multiline string
         while self.current_char != None and (self.current_char != '`' or escape_character):
@@ -655,6 +672,8 @@ class Lexer:
                 'exit': False
             })
         self.advance()
+        if make == True:
+            return string
         return Token(tokenList.TT_BACKTICK_STRING, string, pos_start, self.pos)    
     
     def make_doc_string(self):
@@ -685,6 +704,64 @@ class Lexer:
             'pos_start': pos_start,
             'pos_end': self.pos,
             'message': "unterminated doc string",
+            'context': self.context,
+            'exit': False
+        })
+     
+    def make_f_string(self):
+        f_string = ''
+        identifier = ''
+        pos_start = self.pos.copy()
+        self.advance()
+        strings_type = ["'", '"', '`']
+        while self.current_char != None and self.current_char in strings_type:
+            if self.current_char == "'":
+                f_string += self.make_single_string(make=True)
+                return Token(tokenList.TT_F_STRING, f_string, pos_start, self.pos)
+            elif self.current_char == '"':
+                f_string += self.make_double_string(make=True)
+                return Token(tokenList.TT_F_STRING, f_string, pos_start, self.pos)
+            elif self.current_char == '`':
+                f_string += self.make_backtick_string(make=True)
+                return Token(tokenList.TT_F_STRING, f_string, pos_start, self.pos)
+        else:
+            identifier = self.make_identifier(make_f_string=True)
+            return identifier
+                
+        self.error_detected = True
+        return None, Program.error()['Syntax']({
+            'pos_start': pos_start,
+            'pos_end': self.pos,
+            'message': "unterminated f string",
+            'context': self.context,
+            'exit': False
+        })
+        
+    def make_byte_string(self):
+        byte_string = ''
+        identifier = ''
+        pos_start = self.pos.copy()
+        self.advance()
+        strings_type = ["'", '"', '`']
+        while self.current_char != None and self.current_char in strings_type:
+            if self.current_char == "'":
+                byte_string += self.make_single_string(make=True)
+                return Token(tokenList.TT_BYTE_STRING, byte_string, pos_start, self.pos)
+            elif self.current_char == '"':
+                byte_string += self.make_double_string(make=True)
+                return Token(tokenList.TT_BYTE_STRING, byte_string, pos_start, self.pos)
+            elif self.current_char == '`':
+                byte_string += self.make_backtick_string(make=True)
+                return Token(tokenList.TT_BYTE_STRING, byte_string, pos_start, self.pos)
+        else:
+            identifier = self.make_identifier(make_byte_string=True)
+            return identifier
+                
+        self.error_detected = True
+        return None, Program.error()['Syntax']({
+            'pos_start': pos_start,
+            'pos_end': self.pos,
+            'message': "unterminated f string",
             'context': self.context,
             'exit': False
         })

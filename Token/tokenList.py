@@ -60,9 +60,8 @@ TT_SINGLE_STRING = 'SINGLE_STRING'
 TT_BACKTICK_STRING = 'BACKTICK_STRING'
 TT_RAW_STRING = 'RAW_STRING'
 TT_DOC_STRING = 'DOC_STRING'
-TT_BACKTICK = 'BACKTICK'
-TT_STRING_INTERP = 'STRING_INTERP'
-TT_FORMAT = 'FORMAT'
+TT_F_STRING = 'F_STRING'
+TT_BYTE_STRING = 'BYTE_STRING'
 TT_LBRACE = 'LBRACE'
 TT_RBRACE = 'RBRACE'
 TT_LSQBRACKET = 'LSQBRACKET'
@@ -121,7 +120,6 @@ NOT_ALLOWED_OBJECTS_KEYS = [
     'return',
     'continue',
     'break',
-    'fm',
     'raise'
 ]
 
@@ -193,8 +191,6 @@ KEYWORDS = [
     'return',
     'continue',
     'break',
-    'fm',
-    'bt',
     'raise',
     'del',
     'freeze',
@@ -247,7 +243,6 @@ RETURN= 'return'
 CONTINUE= 'continue'
 BREAK= 'break'
 RAISE= 'raise'
-FM= 'fm'
 PRINT= 'print'
 PRINTLN= 'println'
 

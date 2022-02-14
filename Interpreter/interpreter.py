@@ -2366,7 +2366,7 @@ class String(Value):
         error = {
             'pos_start': self.pos_start if self.pos_start is not None else other.pos_start,
             'pos_end': self.pos_end if self.pos_end is not None else other.pos_end,
-            'message': f"can't perform concatenation on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}" if hasattr(other, 'value') and hasattr(self, 'value') else f"can't perform concatenation on type none",
+            'message': f"can't concat {TypeOf(other).getType()} to {TypeOf(self.value).getType()}" if hasattr(other, 'value') and hasattr(self, 'value') else f"can't perform concatenation on type none",
             'context': self.context if self.context is not None else other.context,
             'exit': False
         }
@@ -2377,13 +2377,13 @@ class String(Value):
             return String(setNumber(str(self.value)) + setNumber(str(other.value))).setContext(self.context), None
         else:
             self.has_error = True
-            return "none", self.illegal_operation_typerror(error, other)
+            return None, self.illegal_operation_typerror(error, other)
 
     def multiplied_by(self, other):
         error = {
             'pos_start': self.pos_start if self.pos_start is not None else other.pos_start,
             'pos_end': self.pos_end if self.pos_end is not None else other.pos_end,
-            'message': f"can't perform multiplication on {TypeOf(self).getType()} of type {TypeOf(other.value).getType()}",
+            'message': f"can't multiply {TypeOf(other).getType()} with {TypeOf(self.value).getType()}" if hasattr(other, 'value') and hasattr(self, 'value') else f"can't perform multiplication on type none",
             'context': self.context if self.context is not None else other.context,
             'exit': False
         }
@@ -4051,7 +4051,6 @@ class DocString(String):
 
 
 
-
 string_methods = {
     'upperCase': String.upperCase, # DONE
     'lowerCase': String.lowerCase, # DONE
@@ -4103,13 +4102,49 @@ string_methods = {
 }
 
 
+
 class Bytes(Value):
+   
     def __init__(self, value):
         self.value = bytes(str(value), 'utf-8') if isinstance(value, str) else value
-        self.representation = 'bt' + f"'{str(self.value.decode('utf-8'))}'"
+        self.representation = 'b' + f"'{str(self.value.decode('utf-8'))}'"
         self.val_rep = self.value
         super().__init__()
-
+        
+        
+    def added_to(self, other):
+        error = {
+            'pos_start': self.pos_start if self.pos_start is not None else other.pos_start,
+            'pos_end': self.pos_end if self.pos_end is not None else other.pos_end,
+            'message': f"can't concat {TypeOf(other).getType()} to {TypeOf(self.value).getType()}" if hasattr(other, 'value') and hasattr(self, 'value') else f"can't perform concatenation on type none",
+            'context': self.context if self.context is not None else other.context,
+            'exit': False
+        }
+        if isinstance(other, Bytes):
+            return Bytes(self.value + other.value).setPosition(self.pos_start, self.pos_end), None
+        elif isinstance(other, String):
+            return Bytes(self.value + other.value.encode('utf-8')).setPosition(self.pos_start, self.pos_end), None
+        else:
+            self.has_error = True
+            return None, self.illegal_operation_typerror(error, other)
+         
+    def multiplied_by(self, other):
+        error = {
+            'pos_start': self.pos_start if self.pos_start is not None else other.pos_start,
+            'pos_end': self.pos_end if self.pos_end is not None else other.pos_end,
+            'message': f"can't multiply {TypeOf(other).getType()} with {TypeOf(self.value).getType()}" if hasattr(other, 'value') and hasattr(self, 'value') else f"can't perform multiplication on type none",
+            'context': self.context if self.context is not None else other.context,
+            'exit': False
+        }
+        if isinstance(other, Number):
+            return Bytes(self.value * other.value).setPosition(self.pos_start, self.pos_end), None
+        elif isinstance(other, Boolean):
+            if other.value == "true":
+                return Bytes(self.value * 1).setPosition(self.pos_start, self.pos_end), None
+            return Bytes(self.value * 0).setPosition(self.pos_start, self.pos_end), None
+        else:
+            return None, self.illegal_operation(self, error, other)
+    
     def get_comparison_eq(self, other):
         return self.setTrueorFalse(setNumber(self.value) == setNumber(other.value)).setContext(self.context), None
 
@@ -18115,7 +18150,7 @@ class Interpreter:
     def visit_StringInterpNode(self, node, context):
         res = RuntimeResult()
         values_to_replace = node.values_to_replace
-        string_to_interp = res.register(self.visit(node.expr, context)).value
+        string_to_interp = node.expr.value
         inter_pv = node.inter_pv
         value = ""
         try:

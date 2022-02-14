@@ -5,12 +5,12 @@ let id = "123456789"
 line(1)
 # String concatenation and interpolation
 #let description4 = "Hello World " + name + " and I am a " + occupation + " with id " + id
-let description = fm'Hello World, my name is %{name} and I am a %{occupation} with id %{id}'
+let description = f'Hello World, my name is %{name} and I am a %{occupation} with id %{id}'
 let description3 = "Hello World, my name is {0} and I am a {1} with id {2}".format([name, occupation, id])
 println(description) 
 println(description3)
 def @greet(name)
-    return fm`Hello %{name}!`
+    return f`Hello %{name}!`
 end
 println(@greet(name))
 
@@ -93,7 +93,7 @@ print(text)
 let text = "Hello My Name Is Kenny"
 print(text.swapcase()) # hELLO my nAME iS kENNY
 let text = 'Hello'.encode(encoding='utf8', errors='strict')
-print(text) # bt'Hello'
+print(text) # b'Hello'
 text = text.decode(encoding='utf-8', errors='strict')
 print(text) # Hello
 let string_methods = ''.__@methods__

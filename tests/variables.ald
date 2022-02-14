@@ -1,71 +1,71 @@
 line(1)
 # Declare the variable and assign it a value
 let sum = 20
-println(fm"sum = %{sum}") # Prints "sum = 20"
+println(f"sum = %{sum}") # Prints "sum = 20"
 # Reassignment of a variable
 sum = sum + 5
 line(2)
-println(fm"sum = %{sum}") # Prints "sum = 25"
+println(f"sum = %{sum}") # Prints "sum = 25"
 let list = [1,2,3,4,5]
 let v = 3
 # Additional assignment
 line(3)
 v += 37
-println(fm"v = %{v}") # Prints "v = 40"
+println(f"v = %{v}") # Prints "v = 40"
 # Subtraction
 line(4)
 v -= 37
-println(fm"v = %{v}") # Prints "v = 3"
+println(f"v = %{v}") # Prints "v = 3"
 # Multiplication
 line(5)
 v *= 37
-println(fm"v = %{v}")  # Prints "v = 111"
+println(f"v = %{v}")  # Prints "v = 111"
 # Division
 line(6)
 v /= 37
-println(fm"v = %{v}")  # Prints "v = 3.0"
+println(f"v = %{v}")  # Prints "v = 3.0"
 # Floor Division
 line(7)
 let a = 111 # assigning the previous value of v to a , to get the floor division
 a //= 37
-println(fm"the floor division of v = %{a}") # Prints "the floor division of v = 3"
+println(f"the floor division of v = %{a}") # Prints "the floor division of v = 3"
 # Modulo
 line(8)
 v %= 37
-println(fm"v = %{v}")  # Prints "v = 3"
+println(f"v = %{v}")  # Prints "v = 3"
 # Increment
 line(9)
 v++
-println(fm"v = %{v}")  # Prints "v = 4"
+println(f"v = %{v}")  # Prints "v = 4"
 # Decrement
 line(10)
 v--
-println(fm"v = %{v}")  # Prints "v = 3"
+println(f"v = %{v}")  # Prints "v = 3"
 # Multiple assignment with a pair
 line(11)
 let (x, y) = (1, 2)
-println(fm"x = %{x}, y = %{y}") # Prints "x = 1, y = 2"
+println(f"x = %{x}, y = %{y}") # Prints "x = 1, y = 2"
 # Multiple assignment with a list
 line(12)
 let list = [1,2,3]
 let (x, y, z) = list
-println(fm"x = %{x}, y = %{y}, z = %{z}") # Prints "x = 1, y = 2, z = 3"
+println(f"x = %{x}, y = %{y}, z = %{z}") # Prints "x = 1, y = 2, z = 3"
 # Multiple assignment separated by commas
 line(13)
 let name, age = "John", 37
-println(fm"name = %{name}, age = %{age}") # Prints "name = John, age = 37"
+println(f"name = %{name}, age = %{age}") # Prints "name = John, age = 37"
 # Rest of the list
 line(14)
 list = [1,2,3,4,5,6,7,8,9,10]
 let (x, y, *z) = list
-println(fm"x = %{x}, y = %{y}, z = %{z}") # Prints "x = 1, y = 2, z = [3, 4, 5, 6, 7, 8, 9, 10]"
+println(f"x = %{x}, y = %{y}, z = %{z}") # Prints "x = 1, y = 2, z = [3, 4, 5, 6, 7, 8, 9, 10]"
 # Scope
 def @greet(message)
     if message == "hello" :
         let greeting = "Hello"
         println(greeting)
     end
-    println(fm"Greet: '%{greeting}'") # error if message is not "hello"
+    println(f"Greet: '%{greeting}'") # error if message is not "hello"
 end
 line(15)
 @greet("test")

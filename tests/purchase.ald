@@ -9,7 +9,7 @@ let my_new_receipt = {
 }
 
 @add_receipt(my_new_receipt)
-println(fm"Receipts: %{@get_receipts()}", @end='\n')
+println(f"Receipts: %{@get_receipts()}", @end='\n')
 
 
 class Purchase
@@ -32,6 +32,6 @@ class Purchase
         return self.price * self.quantity
     end
     def toString(self)
-        return fm"Purchase: %{self.item} %{self.price} %{self.quantity} %{self.total}"
+        return f"Purchase: %{self.item} %{self.price} %{self.quantity} %{self.total}"
     end
 end

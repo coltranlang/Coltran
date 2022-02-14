@@ -76,7 +76,7 @@ def @function_a()
 end
 
 def @function_b(user) # declare a def named `function_b` with a parameter named `user` .
-    println(fm"Hello %{user}")
+    println(f"Hello %{user}")
 end
 
 

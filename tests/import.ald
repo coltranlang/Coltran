@@ -12,7 +12,7 @@ customer.add_purchase('eraser', 5, 1)
 in customer.purchases as purchase:
   println(purchase.__@str__())
 end
-println(fm"%{2 + 2}")
+println(f"%{2 + 2}")
 println(customer.total_purchases())
 println(customer.get_total_purchases())
 println(customer)

@@ -46,7 +46,6 @@ let tokenList = {
         'return',
         'continue',
         'break',
-        'fm',
         'raise',
         'del',
     ],
@@ -59,7 +58,7 @@ let tokenList = {
 class Program
     def error()
         def @IllegalCharacterError(options)
-            let error= fm"\nFile: %{options.pos_start.fileName} at line %{options.pos_start.line + 1}\n\nSyntaxError: Illegal character unexpected  '%{options.origin}'\n"
+            let error= f"\nFile: %{options.pos_start.fileName} at line %{options.pos_start.line + 1}\n\nSyntaxError: Illegal character unexpected  '%{options.origin}'\n"
             Program.printError(error)
         end
         let methods = {
@@ -129,7 +128,7 @@ class Token
         return self.type == type_ and self.value == value
     end
     def toString(self)
-        return fm'%{self.type}:%{self.value}'
+        return f'%{self.type}:%{self.value}'
     end
 end
 
@@ -191,7 +190,7 @@ let lexer = Lexer("main.ald", "Hello world")
 let tokens, error = lexer.makeTokens()
 in tokens as token:
     println(token.toString())
-end 
+end
 
 # def @repl()
 #     while true:

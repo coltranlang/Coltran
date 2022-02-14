@@ -5,7 +5,7 @@ def @arguementError()
 end
 
 def @keyError()
-    final error_name, error_message = fm"KEY_ERROR", "Missing key, '{0}' is required".format(['name'])
+    final error_name, error_message = f"KEY_ERROR", "Missing key, '{0}' is required".format(['name'])
     let error = KeyError(error_name, error_message)
     raise error
 end
@@ -20,9 +20,9 @@ def @attemptCatch(func)
     attempt:
         func()
     catch Exception as e:
-        println(fm"Exception: %{e}")
+        println(f"Exception: %{e}")
     catch KeyboardInterrupt as e:
-        println(fm"KeyboardInterrupt: %{e}")
+        println(f"KeyboardInterrupt: %{e}")
     catch:
         println("Unknown error")
     end
@@ -39,7 +39,7 @@ end
 attempt:
     println(Test(''))
 catch Exception as e:
-    println(fm"Exception: %{e}")
+    println(f"Exception: %{e}")
 finally:
     println("an error occured")
 end

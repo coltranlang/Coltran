@@ -10,7 +10,7 @@ class Customer
         self.purchases = {}
     end
     def get_info(self)
-        return fm"%{self.name} %{self.age} %{self.address} %{self.phone} %{self.email}"
+        return f"%{self.name} %{self.age} %{self.address} %{self.phone} %{self.email}"
     end
     def get_purchases(self)
         return self.purchases
@@ -31,7 +31,7 @@ class Customer
         return len(self.purchases)
     end
     def toString(self)
-        return fm"Customer: %{self.name} %{self.age} %{self.address} %{self.phone} %{self.email}"
+        return f"Customer: %{self.name} %{self.age} %{self.address} %{self.phone} %{self.email}"
     end
 end
 

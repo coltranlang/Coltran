@@ -3,4 +3,4 @@ println("====================")
 
 let name = "John"
 let age = 30
-let hello = def (name) -> fm"Hello, %{name}!"
+let hello = def (name) -> f"Hello, %{name}!"

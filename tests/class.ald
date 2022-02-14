@@ -25,7 +25,7 @@ class Employee
         return self.@employee_db_id
     end
     def str(self)
-        return fm"Employee(%{self.name}, %{self.age})"
+        return f"Employee(%{self.name}, %{self.age})"
     end
 end
 
@@ -65,7 +65,7 @@ class Client()
         return self.config
     end
     def str(self)
-        return fm"Client ID: %{self.client_id}, Client Secret: %{self.client_secret}"
+        return f"Client ID: %{self.client_id}, Client Secret: %{self.client_secret}"
     end
 end
 
@@ -84,10 +84,10 @@ class Wallet()
         self.balance -= amount
     end
     def get_balance(self)
-        return fm"Your balance is $%{self.balance}"
+        return f"Your balance is $%{self.balance}"
     end
     def str(self)
-        return fm"Wallet balance: $%{self.balance}"
+        return f"Wallet balance: $%{self.balance}"
     end
 end
 
@@ -97,10 +97,10 @@ end
 #         self.balance = 0
 #     end
 #     def get_balance(self)
-#         return fm"Balance: $%{self.balance}"
+#         return f"Balance: $%{self.balance}"
 #     end
 #     def str(self)
-#         return fm"Bank Account: $%{self.balance}"
+#         return f"Bank Account: $%{self.balance}"
 #     end
 # end
 
