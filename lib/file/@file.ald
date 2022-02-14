@@ -58,6 +58,10 @@ def @open(file, mode)
         raise PermissionError(fm"Permission denied: '%{file}'")
     catch IOError as e:
         raise IOError(fm"I/O error: '%{e.message}'")
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 66a378dfc16656f6702061e915b2f91588ea3477
     end
 end
 
