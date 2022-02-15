@@ -1819,7 +1819,6 @@ class Value:
         })
 
     def get_comparison_not_in(self, other):
-        print(self, other, "so")
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
@@ -6638,7 +6637,7 @@ class List(Value):
                 values.append(element)
             return f'[{", ".join([str(x) for x in values])}]'
         except:
-            return '[]'
+            return f'{self.elements}'
 
 
 list_methods = {
@@ -9734,7 +9733,16 @@ class Function(BaseFunction):
         self.populate_args(keyword_args, args, exec_context)
         if res.should_return(): return res
 
-        value = res.register(interpreter.visit(self.body_node, exec_context))
+        try:
+            value = res.register(interpreter.visit(self.body_node, exec_context))
+        except RecursionError:
+            raise Al_RecursionError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"Recursion error",
+                'context': self.context,
+                'exit': False
+            })
         if res.should_return() and res.func_return_value == None: return res
         return_value = (
             value if self.implicit_return else None) or res.func_return_value or NoneType()
@@ -10213,7 +10221,16 @@ class Function(BaseFunction):
         if res.should_return():
             return res
 
-        value = res.register(interpreter.visit(self.body_node, exec_context))
+        try:
+            value = res.register(interpreter.visit(self.body_node, exec_context))
+        except RecursionError:
+            raise Al_RecursionError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"recursion error",
+                'context': self.context,
+                'exit': False
+            })
 
         if res.should_return() and res.func_return_value == None: return res
         return_value = (
@@ -18607,16 +18624,6 @@ def BuiltInClass_Set(args, node, context, keyword_args=None, has_unpack=False):
         })
     
 
-config = {
-    "client_id": "isodnosd6eebecwye53283",
-    "client_secret": '35h9ew8734b34723wewe7te7'
-}
- 
-# check if client_id or client_secret is missing
-if 'client_id' not in config or 'client_secret' not in config:
-    raise KeyError("client_id or client_secret is missing")
-
-print(not []) 
 
 class Types(Value):
     def __init__(self, name):
@@ -22024,7 +22031,7 @@ class Interpreter:
                                 })
                         index_value.value[index.value] = value_
                     return res.success(String(get_value))
-                except IndexError:
+                except IndexError as e:
                     raise Al_IndexError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
@@ -22034,6 +22041,7 @@ class Interpreter:
                     })
                 except AttributeError:
                     pass
+                
             else:
                 raise Al_TypeError({
                     'pos_start': node.pos_start,
@@ -24101,3 +24109,39 @@ types_val =  List(types_var)
 symbolTable_.set('__@types__', types_val)
 symbolTable_.setSymbol()
 
+class Solution:
+    def letterCombinations(self, digits: str):
+        result = []
+        digitToChar = {
+            "2": "abc",
+            "3": "def",
+            "4": "ghi",
+            "5": "jkl",
+            "6": "mno",
+            "7": "pqrs",
+            "8": "tuv",
+            "9": "wxyz"
+        }
+
+        def backtrack(i, curStr):
+            if len(curStr) == len(digits):
+                result.append(curStr)
+                return
+            print(i, digits[i])
+            for c in digitToChar[digits[i]]:
+                backtrack(i + 1, curStr + c)
+            
+        
+
+        if digits:
+            backtrack(0, "")
+        
+
+        return result
+    
+
+
+solution = Solution()
+result = solution.letterCombinations("23")
+print(result) # ["ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"]
+        

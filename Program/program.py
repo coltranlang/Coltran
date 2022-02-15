@@ -86,6 +86,8 @@ class Al_Program:
                         return ""
                 else:
                     return None
+            except RecursionError:
+                return
             except Exception as e:
                 return I_Al_Program.error()[e.name](e.message)
         except Exception as e:
