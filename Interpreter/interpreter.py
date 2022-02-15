@@ -9572,7 +9572,9 @@ class Function(BaseFunction):
     def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
-        exec_context = self.generate_new_context()
+        exec_context = Context(self.name, self.context, self.pos_start)
+        exec_context.symbolTable = SymbolTable(exec_context.parent.symbolTable)
+        
         self.args = args
         keyword_args = {}
         default_values = {}
@@ -10894,6 +10896,7 @@ class Class(BaseClass):
             args.append(arg.value) if hasattr(arg, "value") else args.append(arg)
         self.class_args = args
 
+    
     def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
@@ -19188,6 +19191,8 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
+        if var_name == 'i':
+            print(context.symbolTable)
         if type(value) is dict:
             try:
                 value = value['value']
@@ -23507,7 +23512,7 @@ class Interpreter:
 
     def visit_FunctionNode(self, node, context):
         res = RuntimeResult()
-        def_name = node.def_name_token.value if node.def_name_token else "none"
+        function_name = node.function_name.value if node.function_name else "none"
         body_node = node.body_node
         arg_names = [arg_name.value for arg_name in node.args_name_tokens]
         _properties = {}
@@ -23522,11 +23527,11 @@ class Interpreter:
 
 
 
-        def_value = Function(def_name, body_node, arg_names, node.implicit_return, defualt_values, _properties, _type, doc,  context, type_hints).setContext(
+        def_value = Function(function_name, body_node, arg_names, node.implicit_return, defualt_values, _properties, _type, doc,  context, type_hints).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if node.type != 'method':
-            if node.def_name_token:
-                context.symbolTable.set(def_name, def_value)
+            if node.function_name:
+                context.symbolTable.set(function_name, def_value)
 
 
         return res.success(def_value)
@@ -23629,6 +23634,7 @@ class Interpreter:
                 properties = {**properties, **{method_name: method_value}}
 
         class_value = Class(class_name, class_args,inherits_class_name, inherited_from, properties, doc,context).setContext(context).setPosition(node.pos_start, node.pos_end)
+       
         context.symbolTable.set_object(class_name, class_value)
 
         return res.success(class_value)
@@ -23888,7 +23894,7 @@ class Interpreter:
             'type': 'freeze'
         })
 
-
+ 
 print_doc = DocString("""
 Prints the given value to stdout.
 Opitional arguments:

@@ -550,8 +550,7 @@ class AND_NODE:
         self.pos_start = self.left.pos_start
         self.pos_end = self.right.pos_end
     
-    
-    
+        
 class IfNode:
     def __init__(self, cases, else_case):
         self.cases = cases
@@ -638,9 +637,9 @@ class AttemptNode:
 
 
 class FunctionNode:
-    def __init__(self, def_name_token, args_name_tokens, body_node, implicit_return, default_values, type=None, doc=None, type_hints=[]):
-        self.def_name_token = def_name_token
-        self.id = def_name_token
+    def __init__(self, function_name, args_name_tokens, body_node, implicit_return, default_values, type=None, doc=None, type_hints=[]):
+        self.function_name = function_name
+        self.id = function_name
         self.args_name_tokens = args_name_tokens
         self.body_node = body_node
         self.implicit_return = implicit_return
@@ -648,8 +647,8 @@ class FunctionNode:
         self.type = type
         self.doc = doc
         self.type_hints = type_hints
-        if self.def_name_token:
-            self.pos_start = self.def_name_token.pos_start
+        if self.function_name:
+            self.pos_start = self.function_name.pos_start
         elif len(self.args_name_tokens) > 0:
             self.pos_start = self.args_name_tokens[0].pos_start
         else:
@@ -2652,6 +2651,8 @@ class Parser:
 
     def function_expr(self):
         res = ParseResult()
+        function_name = ''
+        arg_name_tokens = []
         doc_string = None
         Parser.scope = "function_method"
         default_values = {}
@@ -2661,6 +2662,7 @@ class Parser:
         varargs_name = None
         type_hints = []
         type_hint = {}
+        start_token = self.current_token
         if not self.current_token.matches(tokenList.TT_KEYWORD, 'def'):
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
@@ -2673,12 +2675,12 @@ class Parser:
         res.register_advancement()
         self.advance()
         if self.current_token.type == tokenList.TT_IDENTIFIER:
-            def_name_token = self.current_token
-            if def_name_token.value[0] != '@':
+            function_name = self.current_token
+            if function_name.value[0] != '@':
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
-                    'pos_start': def_name_token.pos_start,
-                    'pos_end': def_name_token.pos_end,
+                    'pos_start': function_name.pos_start,
+                    'pos_end': function_name.pos_end,
                     'message': "expected '@' before function name",
                     'context': self.context,
                     'exit': False
@@ -2695,7 +2697,7 @@ class Parser:
                     'exit': False
                 }))
         else:
-            def_name_token = None
+            function_name = None
             def_name = self.current_token.value
             if def_name in tokenList.KEYWORDS:
                 self.error_detected = True
@@ -2717,7 +2719,6 @@ class Parser:
                 }))
         res.register_advancement()
         self.advance()
-        arg_name_tokens = []
 
         if self.current_token.type == tokenList.TT_IDENTIFIER or self.current_token.type == tokenList.TT_MUL:
             arg_name_tokens.append(self.current_token)
@@ -2818,15 +2819,7 @@ class Parser:
                     'name': arg_name_tokens[-1].value,
                     'value': ''
                 }
-                # if len(arg_name_tokens) > 20:
-                #     self.error_detected = True
-                #     return res.failure(self.error['Syntax']({
-                #         'pos_start': self.current_token.pos_start,
-                #         'pos_end': self.current_token.pos_end,
-                #         'message': "Cannot have more than 12 arguments",
-                #         'context': self.context,
-                #         'exit': False
-                #     }))
+                
                 self.skipLines()
                 # only one *args or **kwargs is allowed
                 splats = []
@@ -2974,7 +2967,7 @@ class Parser:
             body = res.register(self.expr())
             if res.error:
                     return res
-            return res.success(FunctionNode(def_name_token, arg_name_tokens, body, True, default_values_list, type_hints=type_hints))
+            return res.success(FunctionNode(function_name, arg_name_tokens, body, True, default_values_list, type_hints=type_hints))
 
         if self.current_token.type != tokenList.TT_NEWLINE:
             self.error_detected = True
@@ -2995,10 +2988,20 @@ class Parser:
         if res.error:
                 return res
         
+        if len(arg_name_tokens) > 255:
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': function_name.pos_start,
+                'pos_end': function_name.pos_end,
+                'message': "maximum number of arguments exceeded: 255",
+                'context': self.context,
+                'exit': False
+            }))
+        
         if self.current_token.matches(tokenList.TT_KEYWORD, 'end'):
             res.register_advancement()
             self.advance()
-            return res.success(FunctionNode(def_name_token, arg_name_tokens, body, False, default_values_list, None, doc_string, type_hints=type_hints))
+            return res.success(FunctionNode(function_name, arg_name_tokens, body, False, default_values_list, None, doc_string, type_hints=type_hints))
         else:
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -3706,6 +3709,8 @@ class Parser:
 
     def set_methods(self):
         res = ParseResult()
+        method_name = ''
+        args_list = []
         methods = []
         Parser.scope = "function_method"
         doc_string = None
@@ -3740,7 +3745,7 @@ class Parser:
                 }))
             res.register_advancement()
             self.advance()
-            args_list = []
+            
             if self.current_token.type == tokenList.TT_IDENTIFIER or self.current_token.type == tokenList.TT_MUL:
                 args_list.append(self.current_token)
                 if self.current_token.type == tokenList.TT_MUL:
@@ -4042,6 +4047,16 @@ class Parser:
                     'context': self.context,
                     'exit': False
                 }))
+        
+        if len(args_list) > 255:
+            self.error_detected = True
+            return res.failure(self.error['Syntax']({
+                'pos_start': method_name.pos_start,
+                'pos_end': method_name.pos_end,
+                'message': "maximum number of arguments exceeded: 255",
+                'context': self.context,
+                'exit': False
+            }))
         self.methods = methods
         # ini_args = []
         # for method in self.methods:

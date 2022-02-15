@@ -303,6 +303,9 @@ class Solution
                 result.append(curStr)
                 return
             end
+            if i >= len(digits):
+                i = len(digits)
+            end
             in digitToChar[digits[i]] as c:
                 @backtrack(i + 1, curStr + c)
             end

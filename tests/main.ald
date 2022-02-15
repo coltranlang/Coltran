@@ -1,0 +1,26 @@
+def @make_counter()
+    let i = 0
+    def @count()
+        i = i + 1
+        print(i)
+    end
+    return @count
+end
+
+let counter = @make_counter()
+# counter()
+# counter()
+
+# class MakeCounter
+#     def __@init__(self)
+#         self.i = 0
+#     end
+#     def count()
+#         self.i += 1
+#         print(self.i)
+#     end
+# end
+
+# let counter = MakeCounter()
+# counter.count()
+# counter.count()
