@@ -33,7 +33,7 @@ end
 def @bubblesort(arr=[])
     # Check if the arr is empty
     if not @checkList(arr):
-        raise Exception(f"Expected list, got '%{typeof(arr)}'")
+        raise Exception(f"Expected list or list is empty")
     else:
         if arr.is_number() or arr.is_string():
             for i = 0 to arr.length:
@@ -218,10 +218,8 @@ class Solution
         for r = 0 to len(s):
             let c = s[r]
             window[c] = 1+ window.get(c,0)
-            if c in countT:
-                if window[c] == countT[c]:
+            if c in countT and window[c] == countT[c] :
                     have += 1
-                end
             end
             while have == need:
                 if r - l + 1 < resLen:
@@ -229,10 +227,8 @@ class Solution
                     resLen = r - l + 1
                 end
                 window[s[l]] -= 1
-                if s[l] in countT:
-                    if window[s[l]] < countT[s[l]]:
+                if s[l] in countT and window[s[l]] < countT[s[l]]:
                         have -= 1
-                    end
                 end
                 l += 1
             end

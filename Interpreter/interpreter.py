@@ -2489,7 +2489,12 @@ class String(Value):
         return self.setTrueorFalse(not value).setContext(self.context), None
 
     def and_by(self, other):
-        return other, None
+        result = self.val_rep and other.val_rep
+        if self.val_rep == result:
+            return self, None
+        else:
+            return other, None
+        
 
     def or_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
@@ -4531,7 +4536,11 @@ class Boolean(Value):
             return None, self.illegal_operation(error, other)
     
     def and_by(self, other):
-        return other, None
+        result = self.val_rep and other.val_rep
+        if self.val_rep == result:
+            return self, None
+        else:
+            return other, None
 
     def or_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
@@ -4584,7 +4593,11 @@ class NoneType(Value):
         return self.setTrueorFalse(other.value != "none"), None
 
     def and_by(self, other):
-        return self, None
+        result = self.val_rep and other.val_rep
+        if self.val_rep == result:
+            return self, None
+        else:
+            return other, None
 
     def or_by(self, other):
         return self.setTrueorFalse(other.value != "none"), None
@@ -5070,11 +5083,27 @@ class List(Value):
         return self.setTrueorFalse(self.value or other.value), None
 
     def and_by(self, other):
-        return self.setTrueorFalse(self.value and other.value), None
+        result = self.val_rep and other.val_rep
+        if isinstance(other, Boolean):
+            result = self.val_rep and True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+        elif self.val_rep == result:
+            result = self
+        else:
+            result = other
+          
+        return result, None
     
     def notted(self):
-        value = setNumber(self.value)
-        return self.setTrueorFalse(not value).setContext(self.context), None
+        val = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        if len(self.elements) == 0:
+            val = Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        return val, None
 
     def get_index(self, other):
         error = {
@@ -6632,8 +6661,10 @@ class Pair(Value):
         return self.setTrueorFalse(self.value and other.value), None
     
     def notted(self):
-        value = setNumber(self.value)
-        return self.setTrueorFalse(not value).setContext(self.context), None
+        val = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        if len(self.elements) == 0:
+            val = Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+        return val, None
 
     def get_index(self, other):
         error = {
@@ -18049,7 +18080,22 @@ def BuiltInClass_Set(args, node, context, keyword_args=None, has_unpack=False):
             'exit': False
         })
     
+def checklist(arr):
+    if not arr and arr == []:
+        return False
+    return True
 
+def test(arr):
+    print(checklist(arr), not checklist(arr), 'ggpy')
+    if not checklist(arr):
+        raise Exception("Expected a list")
+    else:
+        print("No error")
+    
+    
+test([1,2,3])
+    
+    
 
 class Types(Value):
     def __init__(self, name):
@@ -22059,8 +22105,9 @@ class Interpreter:
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'in'):
             result, error = right.get_comparison_in(left)
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
-            if isinstance(left, Boolean):
-                if left.value == 'false':
+            
+            if isinstance(right, Boolean):
+                if right.value == 'false':
                     result, error = Boolean(True).setContext(context).setPosition(node.pos_start, node.pos_end), None
                 else:
                     result, error = Boolean(False).setContext(context).setPosition(node.pos_start, node.pos_end), None
@@ -22068,8 +22115,8 @@ class Interpreter:
                 result, error = left.notted()
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'notin'):
             result, error = right.get_comparison_not_in(left)
-        elif node.op_tok.matches(tokenList.TT_KEYWORD, 'and'):
-            result, error = left.and_by(right)
+        # elif node.op_tok.matches(tokenList.TT_KEYWORD, 'and'):
+        #     result, error = left.and_by(right)
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
             result, error = left.or_by(right)
         if error:
@@ -22100,7 +22147,45 @@ class Interpreter:
         else:
             return res.success(number.setPosition(node.pos_start, node.pos_end))
 
+    
+    def visit_AND_NODE(self, node, context):
+        res = RuntimeResult()
+        left = res.register(self.visit(node.left, context))
+        print(left, " is lef")
+        result = Boolean(False).setContext(
+            context).setPosition(node.pos_start, node.pos_end)
+        if isinstance(left, Boolean):
+            if left.value == "true":
+                right = res.register(self.visit(node.right, context))
+                result, error = left.and_by(right)
+            else:
+                return res.success(result)
+        else:
+            right = res.register(self.visit(node.right, context))
+            result, error = left.and_by(right)
+        #print(result, 'rr')
+        return res.success(result)
+    
+    
+    def visit_AND_NODE(self, node, context):
+        res = RuntimeResult()
+        left = res.register(self.visit(node.left, context))
+        
+        result = Boolean(False).setContext(
+            context).setPosition(node.pos_start, node.pos_end)
+        if isinstance(left, Boolean):
+            if left.value == "true":
+                right = res.register(self.visit(node.right, context))
+                result, error = left.and_by(right)
+            else:
+                return res.success(result)
+        else:
+            right = res.register(self.visit(node.right, context))
+            result, error = left.and_by(right)
+        #print(result, 'rr')
+        return res.success(result)
 
+    
     def visit_IfNode(self, node, context):
         res = RuntimeResult()
         for condition, expr, return_null in node.cases:
@@ -22616,21 +22701,33 @@ class Interpreter:
     def visit_WhileNode(self, node, context):
         res = RuntimeResult()
         elements = []
+        condition = res.register(self.visit(node.condition_node, context))
         try:
             while True:
                 condition = res.register(self.visit(node.condition_node, context))
                 
                 if res.should_return():
                     return res
-                is_true = True if hasattr(condition, "value") and condition.value == "true" else False
-                if isinstance(condition, Number):
+                is_true = False
+                
+                if isinstance(condition, Boolean):
+                    if condition.value == 'true':
+                        is_true = True
+                    elif condition.value == 'false':
+                        is_true = False
+                elif isinstance(condition, Number):
                     if condition.value == 1:
                         is_true = True
                     elif condition.value == 0:
                         is_true = False
+                else:
+                    is_true = condition.val_rep
+                    
+                    
                     
                 if not is_true:
                     break
+                
                 value = res.register(self.visit(node.body_node, context))
                 if res.should_return() and res.loop_continue == False and res.loop_break == False:
                     return res
@@ -23486,5 +23583,10 @@ for key, _ in type_hint_types.items():
 types_val =  List(types_var)
 symbolTable_.set('__@types__', types_val)
 symbolTable_.setSymbol()
+
+
+while (0, 1):
+    print("Hello World")
+    break
 
 

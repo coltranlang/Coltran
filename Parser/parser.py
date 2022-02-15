@@ -543,6 +543,15 @@ class UnaryOpNode:
         return f'({self.op_tok}, {self.node})'
 
 
+class AND_NODE:
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right  
+        self.pos_start = self.left.pos_start
+        self.pos_end = self.right.pos_end
+    
+    
+    
 class IfNode:
     def __init__(self, cases, else_case):
         self.cases = cases
@@ -1882,8 +1891,7 @@ class Parser:
             dict_expr = res.register(self.dict_expr())
             if res.error:
                 return res
-            return res.success(dict_expr)
-        
+            return res.success(dict_expr)   
         elif tok.matches(tokenList.TT_KEYWORD, 'if'):
             if_expression = res.register(self.if_expr())
             if res.error:
@@ -4503,6 +4511,7 @@ class Parser:
         res.register_advancement()
         self.advance()
         start_token = self.current_token
+        
         if self.current_token.type == tokenList.TT_RPAREN:
             res.register_advancement()
             self.advance()
@@ -4542,6 +4551,9 @@ class Parser:
 
             else:
                 element = res.register(self.expr())
+                if self.current_token.type != tokenList.TT_COMMA:
+                    self.skipLines()
+                    return res.success(element)
                 if res.error:
                     return res.failure(self.error['Syntax']({
                         'pos_start': self.current_token.pos_start,
@@ -4551,6 +4563,7 @@ class Parser:
                         'exit': False
                     }))
                 elements.append(element)
+                
             while self.current_token.type == tokenList.TT_COMMA:
                 res.register_advancement()
                 self.advance()
@@ -5481,8 +5494,11 @@ class Parser:
             self.advance()
             if op_tok.matches(tokenList.TT_KEYWORD, 'or'):
                 right = res.register(self.expr())
-            # elif op_tok.matches(tokenList.TT_KEYWORD, 'and'):
-            #     right = res.register(self.expr())
+            elif op_tok.matches(tokenList.TT_KEYWORD, 'and'):
+                right = res.register(self.expr())
+                node = res.success(AND_NODE(left, right))
+                
+                return node
             elif op_tok.matches(tokenList.TT_KEYWORD, 'not'):
                 if self.current_token.matches(tokenList.TT_KEYWORD, 'in'):
                     self.skipLines()
