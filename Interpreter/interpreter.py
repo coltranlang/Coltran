@@ -1783,7 +1783,32 @@ class Value:
         return result, None
 
     def or_by(self, other):
-        return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+        first = self.val_rep
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            elif result == True:
+                result = Boolean(True).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if self.val_rep == result:
+                result = self
+            else:
+                result = other
+            return result, None
 
     def get_comparison_in(self, other):
         return None, self.illegal_operation_typerror({
@@ -1794,10 +1819,11 @@ class Value:
         })
 
     def get_comparison_not_in(self, other):
+        print(self, other, "so")
         return None, self.illegal_operation_typerror({
             'pos_start': self.pos_start,
             'pos_end': self.pos_end,
-            'message': f"'notin' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
+            'message': f"'not in' not supported between type '{TypeOf(self).getType()}' and '{TypeOf(other).getType()}'",
             'context': self.context
         })
 
@@ -2356,8 +2382,31 @@ class Number(Value):
         return result, None
         
     def or_by(self, other):
-        return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-
+        first = self.val_rep
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+            
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if self.val_rep == result:
+                result = self
+            else:
+                result = other
+            return result, None
+      
     def notted(self):
         value = setNumber(self.value)
         return self.setTrueorFalse(not value).setContext(self.context), None
@@ -2545,7 +2594,30 @@ class String(Value):
         return result, None
         
     def or_by(self, other):
-        return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
+        first = self.val_rep
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+            
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if self.val_rep == result:
+                result = self
+            else:
+                result = other
+            return result, None
 
     def upperCase(self, args, kwargs,  var_name=None, has_unpack=False):
         if args == None:
@@ -4370,7 +4442,6 @@ bytes_methods = {
 }
 
 
-
 class Boolean(Value):
     def __init__(self, value):
         super().__init__()
@@ -4601,11 +4672,33 @@ class Boolean(Value):
         return result, None
 
     def or_by(self, other):
-        return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
-    
+        result = self.val_rep or other.val_rep
+        if isinstance(other, Boolean):
+            result = self.val_rep or True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+                
+        if isinstance(self, Boolean) and isinstance(other, Boolean):
+            true = True if self.value == "true" else False
+            false = False if other.value == "false" else True
+            result = Boolean(true or false).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            return result, None
+                
+        elif self.val_rep == result:
+            result = self
+        else:
+            result = other
+            
+        
+        return result, None
+
     def notted(self):
-        value = setNumber(self.value)
-        return self.setTrueorFalse(not value).setContext(self.context), None
+        val = True if self.value == "true" else False
+        return Boolean(not val).setContext(self.context).setPosition(self.pos_start, self.pos_end), None
 
     def is_true(self):
         return True if self.value == "true" else False
@@ -4668,7 +4761,32 @@ class NoneType(Value):
         return result, None
 
     def or_by(self, other):
-        return self.setTrueorFalse(other.value != "none"), None
+        first = None
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            elif result == True:
+                result = Boolean(True).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if result == None:
+                result = self
+            else:
+                result = other
+            return result, None
 
     def notted(self):
         value = setNumber(self.value)
@@ -5148,7 +5266,32 @@ class List(Value):
             })
 
     def or_by(self, other):
-        return self.setTrueorFalse(self.value or other.value), None
+        first = self.val_rep
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            elif result == True:
+                result = Boolean(True).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if self.val_rep == result:
+                result = self
+            else:
+                result = other
+            return result, None
 
     def and_by(self, other):
         result = self.val_rep and other.val_rep
@@ -6715,7 +6858,32 @@ class Pair(Value):
         })
 
     def or_by(self, other):
-        return self.setTrueorFalse(self.value or other.value), None
+        first = self.val_rep
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            elif result == True:
+                result = Boolean(True).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if self.val_rep == result:
+                result = self
+            else:
+                result = other
+            return result, None
 
     def and_by(self, other):
         result = self.val_rep and other.val_rep
@@ -7001,7 +7169,32 @@ class Set(Value):
         return self.setTrueorFalse(True if value == "false" else False), None
     
     def or_by(self, other):
-        return self.setTrueorFalse(self.value or other.value), None
+        first = self.val_rep
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            elif result == True:
+                result = Boolean(True).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if self.val_rep == result:
+                result = self
+            else:
+                result = other
+            return result, None
     
     def and_by(self, other):
         result = self.val_rep and other.val_rep
@@ -7556,7 +7749,32 @@ class Dict(Value):
             })
 
     def or_by(self, other):
-        return self.setTrueorFalse(self.value or other.value), None
+        first = self.val_rep
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            elif result == True:
+                result = Boolean(True).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if self.val_rep == result:
+                result = self
+            else:
+                result = other
+            return result, None
 
     def notted(self):
         value = setNumber(self.value)
@@ -8198,7 +8416,32 @@ class Object(Value):
         })
 
     def or_by(self, other):
-        return self.setTrueorFalse(self.value or other.value), None
+        first = self.val_rep
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            elif result == True:
+                result = Boolean(True).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if self.val_rep == result:
+                result = self
+            else:
+                result = other
+            return result, None
 
     def and_by(self, other):
         result = self.val_rep and other.val_rep
@@ -9014,7 +9257,32 @@ class BaseFunction(Value):
         return res.success(None)
 
     def or_by(self, other):
-        return self.setTrueorFalse(self.value or other.value), None
+        first = self.val_rep
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            elif result == True:
+                result = Boolean(True).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if self.val_rep == result:
+                result = self
+            else:
+                result = other
+            return result, None
 
     def isSame(self, other):
         if isinstance(other, BuiltInFunction):
@@ -9254,7 +9522,32 @@ class BaseClass(Value):
                     })
 
     def or_by(self, other):
-        return self.setTrueorFalse(self.value or other.value), None
+        first = self.val_rep
+        second = other.val_rep
+        
+        if isinstance(other, Boolean):
+            if other.value == "true":
+                second = True
+            else:
+                second = False
+
+            result = first or second
+            if result == False:
+                result = Boolean(False).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            elif result == True:
+                result = Boolean(True).setContext(
+                    self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+            return result, None
+        else:
+            result = first or second
+            if self.val_rep == result:
+                result = self
+            else:
+                result = other
+            return result, None
 
     def is_true(self):
         return True
@@ -18314,9 +18607,16 @@ def BuiltInClass_Set(args, node, context, keyword_args=None, has_unpack=False):
         })
     
 
+config = {
+    "client_id": "isodnosd6eebecwye53283",
+    "client_secret": '35h9ew8734b34723wewe7te7'
+}
+ 
+# check if client_id or client_secret is missing
+if 'client_id' not in config or 'client_secret' not in config:
+    raise KeyError("client_id or client_secret is missing")
 
-    
-
+print(not []) 
 
 class Types(Value):
     def __init__(self, name):
@@ -22340,18 +22640,17 @@ class Interpreter:
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'in'):
             result, error = right.get_comparison_in(left)
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
-            
-            if isinstance(right, Boolean):
-                if right.value == 'false':
-                    result, error = Boolean(True).setContext(context).setPosition(node.pos_start, node.pos_end), None
-                else:
+            if isinstance(left, Boolean):
+                if left.value == 'false':
                     result, error = Boolean(False).setContext(context).setPosition(node.pos_start, node.pos_end), None
+                else:
+                    result, error = Boolean(True).setContext(context).setPosition(node.pos_start, node.pos_end), None
             else:
-                result, error = left.notted()
+                result, error = left.notted() 
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'notin'):
             result, error = right.get_comparison_not_in(left)
-        # elif node.op_tok.matches(tokenList.TT_KEYWORD, 'and'):
-        #     result, error = left.and_by(right)
+            
+            
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'or'):
             result, error = left.or_by(right)
         if error:

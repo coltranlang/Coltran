@@ -5512,7 +5512,7 @@ class Parser:
                 if self.current_token.matches(tokenList.TT_KEYWORD, 'in'):
                     self.skipLines()
                     op_tok = Token(tokenList.TT_KEYWORD, 'notin', op_tok.pos_start, self.current_token.pos_end)
-                    right = res.register(self.expr())
+                    right = res.register(self.atom())
                 else:
                     right = res.register(self.expr())
                     if left != '':

@@ -54,7 +54,7 @@ end
 
 class Client()
     def __@init__(self, config)
-        if not config.hasprop("client_id") or not config.hasprop("client_secret"):
+        if 'client_id' not in config or 'client_secret' not in config:
             raise KeyError("client_id or client_secret is missing")
         end
         self.client_id = config["client_id"]
