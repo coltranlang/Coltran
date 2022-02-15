@@ -86,7 +86,7 @@ class System
     end
     def exit(self, code=0)
         if code != 0:
-            raise SystemExit(fm"Exiting with code: %{code}")
+            raise SystemExit(f"Exiting with code: %{code}")
         end
     end
 end

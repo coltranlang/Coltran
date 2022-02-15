@@ -168,6 +168,15 @@ def string_rpartition(string, string_to_search):
         return (string[:index], string_to_search, string[index + len(string_to_search):])
 
 
+def argum_or_argums(args):
+    if len(args) > 0:
+        return "arguments"
+    elif len(args) == 0 or len(args) == 1:
+        return "argument"
+    else:
+        return "argument(s)"
+
+
 def is_static(string):
     if len(string) == 0:
         return False
@@ -256,6 +265,28 @@ def create_module_path(module_path):
 
 def is_emptyString(value):
     return value == ""
+
+
+def is_astring(value):
+    return isinstance(value, String)
+
+
+def is_string(value):
+    return isinstance(value, str)
+
+
+def is_all_astrings(values):
+    for value in values:
+        if not isinstance(value, String):
+            return False
+    return True
+
+
+def is_all_strings(values):
+    for value in values:
+        if not isinstance(value, str):
+            return False
+    return True
 
 
 def check_args(expected_len, args_given, message, pos_start, pos_end, context):
@@ -1735,7 +1766,21 @@ class Value:
         })
 
     def and_by(self, other):
-        return self.setTrueorFalse(setNumber(self.value) and setNumber(other.value)).setContext(self.context), None
+        result = self.val_rep and other.val_rep
+        if isinstance(other, Boolean):
+            result = self.val_rep and True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+        elif self.val_rep == result:
+            result = self
+        else:
+            result = other
+          
+        return result, None
 
     def or_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
@@ -2294,28 +2339,22 @@ class Number(Value):
             return None, self.illegal_operation_typerror(error, other)
 
     def and_by(self, other):
-        if isinstance(other, Number):
-            value = setNumber(self.value) and setNumber(other.value)
-            return Number(value).setContext(self.context), None
-        
-        elif isinstance(other, String):
-            value = setNumber(self.value) and setNumber(other.value)
-            if isinstance(value, str):
-                return String(value).setContext(self.context), None
-            elif isinstance(value, int) or isinstance(value, float):
-                return Number(value).setContext(self.context), None
-                
-        elif isinstance(other, Boolean):
-            val = False
-            if other.value == "true":
-                val = True
-            value = self.value and val
-            return Boolean(value).setContext(self.context), None
-        
+        result = self.val_rep and other.val_rep
+        if isinstance(other, Boolean):
+            result = self.val_rep and True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+        elif self.val_rep == result:
+            result = self
         else:
-            return other, None
+            result = other
+          
+        return result, None
         
-
     def or_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
 
@@ -2490,12 +2529,21 @@ class String(Value):
 
     def and_by(self, other):
         result = self.val_rep and other.val_rep
-        if self.val_rep == result:
-            return self, None
+        if isinstance(other, Boolean):
+            result = self.val_rep and True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+        elif self.val_rep == result:
+            result = self
         else:
-            return other, None
+            result = other
+          
+        return result, None
         
-
     def or_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
 
@@ -2512,7 +2560,7 @@ class String(Value):
             })
 
 
-        check_args(0, args, f"{len(args)} arguments given, but upperCase() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but upperCase() takes no argument", self.pos_start, self.pos_end, self.context)
 
 
         return String(self.value.upper()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -2531,7 +2579,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but lowerCase() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but lowerCase() takes no argument", self.pos_start, self.pos_end, self.context)
 
         return String(self.value.lower()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -2550,7 +2598,7 @@ class String(Value):
                         'exit': False
                     })
 
-        check_args(0, args, f"{len(args)} arguments given, but capitalize() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but capitalize() takes no argument", self.pos_start, self.pos_end, self.context)
 
 
         return String(self.value.capitalize()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -2569,7 +2617,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but title() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but title() takes no argument", self.pos_start, self.pos_end, self.context)
 
         return String(self.value.title()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -2587,7 +2635,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but zfill() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but zfill() takes 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(Number, args[0], f"zfill() argument must be of type Number, but got {TypeOf(args[0]).getType()}", self.pos_start, self.pos_end, self.context)
 
@@ -2607,7 +2655,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but swapcase() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but swapcase() takes no argument", self.pos_start, self.pos_end, self.context)
 
         return String(self.value.swapcase()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -2626,7 +2674,7 @@ class String(Value):
                         'exit': False
                     })
 
-        check_args(0, args, f"{len(args)} arguments given, but ascii_code() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but ascii_code() takes no argument", self.pos_start, self.pos_end, self.context)
 
         return Number(ord(self.value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -2645,7 +2693,7 @@ class String(Value):
                         'exit': False
                     })
 
-        check_args(1, args, f"{len(args)} arguments given, but partition() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but partition() takes 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(String, args[0], f"partition() argument must be of type String, but got {TypeOf(args[0]).getType()}", self.pos_start, self.pos_end, self.context)
 
@@ -2678,7 +2726,7 @@ class String(Value):
                         'exit': False
                     })
 
-        check_args(1, args, f"{len(args)} arguments given, but rpartition() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but rpartition() takes 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(String, args[0], f"rpartition() argument must be of type String, but got {TypeOf(args[0]).getType()}", self.pos_start, self.pos_end, self.context)
 
@@ -2715,7 +2763,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but strip() takes no argument",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but strip() takes no argument",
                 "context": self.context,
                 'exit': False
             })
@@ -2736,7 +2784,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but rstrip() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but rstrip() takes no argument", self.pos_start, self.pos_end, self.context)
         return String(string_rstrip(self.value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
     def lstrip(self, args, kwargs, var_name=None, has_unpack=False):
@@ -2753,7 +2801,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but lstrip() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but lstrip() takes no argument", self.pos_start, self.pos_end, self.context)
 
         return String(string_lstrip(self.value)).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -2833,7 +2881,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but split() takes 1 or 2 arguments",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but split() takes 1 or 2 arguments",
                 "context": self.context,
                 'exit': False
             })
@@ -2852,7 +2900,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((1,2), args, f"{len(args)} arguments given, but rsplit() takes at least 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args((1,2), args, f"{len(args)} {argum_or_argums(args)} given, but rsplit() takes at least 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(String, args[0], f"argument 1 of type '{TypeOf(args[0]).getType()}' is not a valid argument for rsplit()", self.pos_start, self.pos_end, self.context)
 
@@ -2889,7 +2937,7 @@ class String(Value):
                         'exit': False
                     })
 
-        check_args((0,1), args, f"{len(args)} arguments given, but splitlines() takes 0 or 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but splitlines() takes 0 or 1 argument", self.pos_start, self.pos_end, self.context)
 
         if len(args) == 0:
             value = []
@@ -2976,7 +3024,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but join() takes 1 argument",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but join() takes 1 argument",
                 "context": self.context,
                 'exit': False
             })
@@ -3021,7 +3069,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but replace() takes 2 arguments",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but replace() takes 2 arguments",
                 "context": self.context,
                 'exit': False
             })
@@ -3082,7 +3130,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but substr() takes 2 arguments",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but substr() takes 2 arguments",
                 "context": self.context,
                 'exit': False
             })
@@ -3131,7 +3179,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but slice() takes 2 arguments",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but slice() takes 2 arguments",
                 "context": self.context,
                 'exit': False
             })
@@ -3173,7 +3221,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but charAt() takes 1 argument",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but charAt() takes 1 argument",
                 "context": self.context,
                 'exit': False
             })
@@ -3209,7 +3257,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but includes() takes 1 argument",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but includes() takes 1 argument",
                 "context": self.context,
                 'exit': False
             })
@@ -3265,7 +3313,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but count() takes 1 argument and 2 optional arguments",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but count() takes 1 argument and 2 optional arguments",
                 "context": self.context,
                 'exit': False
             })
@@ -3316,7 +3364,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but startsWith() takes 1 or 2 arguments",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but startsWith() takes 1 or 2 arguments",
                 "context": self.context,
                 'exit': False
             })
@@ -3367,7 +3415,7 @@ class String(Value):
             raise Al_ArgumentError({
                 "pos_start": self.pos_start,
                 "pos_end": self.pos_end,
-                'message': f"{len(args)} arguments given, but endsWith() takes 1 or 2 arguments",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but endsWith() takes 1 or 2 arguments",
                 "context": self.context,
                 'exit': False
             })
@@ -3386,7 +3434,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((1,3), args, f"{len(args)} arguments given, but find() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((1,3), args, f"{len(args)} {argum_or_argums(args)} given, but find() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
 
         if len(args) == 1:
             check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for find()", self.pos_start, self.pos_end, self.context)
@@ -3416,7 +3464,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((1,3), args, f"{len(args)} arguments given, but rfind() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((1,3), args, f"{len(args)} {argum_or_argums(args)} given, but rfind() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
 
         if len(args) == 1:
             check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for rfind()", self.pos_start, self.pos_end, self.context)
@@ -3446,7 +3494,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((1,3), args, f"{len(args)} arguments given, but findIndex() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((1,3), args, f"{len(args)} {argum_or_argums(args)} given, but findIndex() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
 
 
         if len(args) == 1:
@@ -3476,7 +3524,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((1,3), args, f"{len(args)} arguments given, but rfindIndex() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((1,3), args, f"{len(args)} {argum_or_argums(args)} given, but rfindIndex() takes 1, 2 or 3 arguments", self.pos_start, self.pos_end, self.context)
 
         if len(args) == 1:
             check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for rfindIndex()", self.pos_start, self.pos_end, self.context)
@@ -3506,7 +3554,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_upper() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_upper() takes no argument",self.pos_start, self.pos_end, self.context)
 
         return Boolean(self.value.isupper()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3524,7 +3572,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_lower() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_lower() takes no argument",self.pos_start, self.pos_end, self.context)
 
         return Boolean(self.value.islower()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3542,7 +3590,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_alpha() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_alpha() takes no argument",self.pos_start, self.pos_end, self.context)
 
         return Boolean(self.value.isalpha()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3560,7 +3608,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_digit() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_digit() takes no argument",self.pos_start, self.pos_end, self.context)
 
         return Boolean(self.value.isdigit()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3578,7 +3626,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_decimal() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_decimal() takes no argument",self.pos_start, self.pos_end, self.context)
 
         return Boolean(self.value.isdecimal()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3596,7 +3644,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_numeric() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_numeric() takes no argument",self.pos_start, self.pos_end, self.context)
 
         return Boolean(self.value.isnumeric()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3614,7 +3662,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_alnum() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_alnum() takes no argument",self.pos_start, self.pos_end, self.context)
 
         return Boolean(self.value.isalnum()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3632,7 +3680,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_ascii() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_ascii() takes no argument",self.pos_start, self.pos_end, self.context)
 
         return Boolean(self.value.isascii()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3651,7 +3699,7 @@ class String(Value):
                         'exit': False
                     })
 
-        check_args(0, args, f"{len(args)} arguments given, but is_space() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_space() takes no argument",self.pos_start, self.pos_end, self.context)
 
 
         return Boolean(self.value.isspace()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -3670,7 +3718,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_title() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_title() takes no argument",self.pos_start, self.pos_end, self.context)
 
 
         return Boolean(self.value.istitle()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -3689,7 +3737,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_identifier() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_identifier() takes no argument",self.pos_start, self.pos_end, self.context)
 
         return Boolean(self.value.isidentifier()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
 
@@ -3707,7 +3755,7 @@ class String(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_printable() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_printable() takes no argument",self.pos_start, self.pos_end, self.context)
 
 
         return Boolean(self.value.isprintable()).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -3727,7 +3775,7 @@ class String(Value):
                         'exit': False
                     })
 
-        check_args(0, args, f"{len(args)} arguments given, but is_empty() takes no argument",self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_empty() takes no argument",self.pos_start, self.pos_end, self.context)
 
 
         return Boolean(self.value == '').setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -3777,7 +3825,7 @@ class String(Value):
                 raise Al_ArgumentError({
                     "pos_start": self.pos_start,
                     "pos_end": self.pos_end,
-                    'message': f"{len(args)} arguments given, but format() takes 1 or more arguments",
+                    'message': f"{len(args)} {argum_or_argums(args)} given, but format() takes 1 or more arguments",
                     "context": self.context,
                     'exit': False
                 })
@@ -3944,7 +3992,7 @@ class String(Value):
 
 
         string = ''
-        check_args((0, 2), args, f"{len(args)} arguments given, but encode() takes 0, 1 or 2 arguments",
+        check_args((0, 2), args, f"{len(args)} {argum_or_argums(args)} given, but encode() takes 0, 1 or 2 arguments",
                    self.pos_start, self.pos_end, self.context)
 
 
@@ -4232,7 +4280,7 @@ class Bytes(Value):
 
 
         string = ''
-        check_args((0, 2), args, f"{len(args)} arguments given, but decode() takes 0, 1 or 2 arguments",
+        check_args((0, 2), args, f"{len(args)} {argum_or_argums(args)} given, but decode() takes 0, 1 or 2 arguments",
                    self.pos_start, self.pos_end, self.context)
 
 
@@ -4537,10 +4585,20 @@ class Boolean(Value):
     
     def and_by(self, other):
         result = self.val_rep and other.val_rep
-        if self.val_rep == result:
-            return self, None
+        if isinstance(other, Boolean):
+            result = self.val_rep and True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+        elif self.val_rep == result:
+            result = self
         else:
-            return other, None
+            result = other
+          
+        return result, None
 
     def or_by(self, other):
         return self.setTrueorFalse(setNumber(self.value) or setNumber(other.value)).setContext(self.context), None
@@ -4594,10 +4652,20 @@ class NoneType(Value):
 
     def and_by(self, other):
         result = self.val_rep and other.val_rep
-        if self.val_rep == result:
-            return self, None
+        if isinstance(other, Boolean):
+            result = self.val_rep and True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+        elif self.val_rep == result:
+            result = self
         else:
-            return other, None
+            result = other
+          
+        return result, None
 
     def or_by(self, other):
         return self.setTrueorFalse(other.value != "none"), None
@@ -5160,7 +5228,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but append() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but append() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
 
 
@@ -5187,7 +5255,7 @@ class List(Value):
                     })
         
         
-        check_args((0,1), args, f"{len(args)} arguments given, but pop() takes 0 or 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but pop() takes 0 or 1 argument", self.pos_start, self.pos_end, self.context)
 
 
         if len(args) == 0:
@@ -5201,7 +5269,7 @@ class List(Value):
         if args == None:
             return BuiltInFunction("extend", self.context)
 
-        check_args(1, args, f"{len(args)} arguments given, but extend() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but extend() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         if is_iterable(args[0]):
             extended_list = []
@@ -5246,7 +5314,7 @@ class List(Value):
 
 
 
-        check_args(1, args, f"{len(args)} arguments given, but remove() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but remove() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         # check_type((Number, String), args[0], f"argument 1 for remove() must be of type int or string, not {TypeOf(args[0]).getType()}", self.pos_start, self.pos_end, self.context)
 
@@ -5321,7 +5389,7 @@ class List(Value):
 
 
 
-        check_args(1, args, f"{len(args)} arguments given, but removeAll() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but removeAll() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         # check_type((Number, String), args[0], f"argument 1 for removeAll() must be of type int or string, not {TypeOf(args[0]).getType()}", self.pos_start, self.pos_end, self.context)
 
@@ -5391,7 +5459,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(2, args, f"{len(args)} arguments given, but insert() takes exactly 2 argument", self.pos_start, self.pos_end, self.context)
+        check_args(2, args, f"{len(args)} {argum_or_argums(args)} given, but insert() takes exactly 2 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(Number, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for insert()", self.pos_start, self.pos_end, self.context)
 
@@ -5411,7 +5479,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but reverse() takes 0 argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but reverse() takes 0 argument", self.pos_start, self.pos_end, self.context)
 
         new_list = []
         for el in self.elements:
@@ -5436,7 +5504,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but empty() takes 0 argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but empty() takes 0 argument", self.pos_start, self.pos_end, self.context)
 
         value = List([]).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         return value
@@ -5455,7 +5523,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but getItem() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but getItem() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(Number, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for getItem()", self.pos_start, self.pos_end, self.context)
 
@@ -5476,7 +5544,7 @@ class List(Value):
                         'exit': False
                     })
 
-        check_args(2, args, f"{len(args)} arguments given, but setItem() takes exactly 2 argument", self.pos_start, self.pos_end, self.context)
+        check_args(2, args, f"{len(args)} {argum_or_argums(args)} given, but setItem() takes exactly 2 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(Number, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for setItem()", self.pos_start, self.pos_end, self.context)
 
@@ -5499,7 +5567,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((0,1), args, f"{len(args)} arguments given, but join() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but join() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         if len(args) == 1:
             check_type(String, args[0], f"type '{TypeOf(args[0]).getType()}' is not a valid argument for join()", self.pos_start, self.pos_end, self.context)
@@ -5540,7 +5608,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but includes() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but includes() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
 
         new_list = []
@@ -5590,7 +5658,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but count() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but count() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         count = 0
         if isinstance(args[0], String) or isinstance(args[0], Number):
@@ -5625,7 +5693,7 @@ class List(Value):
                         'exit': False
                     })
 
-        check_args(1, args, f"{len(args)} arguments given, but indexOf() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but indexOf() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
 
         if isinstance(args[0], String) or isinstance(args[0], Number):
@@ -5662,7 +5730,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_empty() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_empty() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
 
 
         return Boolean(len(self.elements) == 0).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -5681,7 +5749,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_number() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_number() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
 
         not_numbers = []
 
@@ -5707,7 +5775,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but is_string() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but is_string() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
 
         not_strings = []
         for element in self.elements:
@@ -5734,7 +5802,7 @@ class List(Value):
                     })
 
 
-        check_args(1, args, f"{len(args)} arguments given, but map() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but map() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
 
         check_type(Function, args[0],f"map() takes a function as an argument", self.pos_start, self.pos_end, self.context)
@@ -5785,7 +5853,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but filter() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but filter() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(Function, args[0],f"filter() takes a function as an argument", self.pos_start, self.pos_end, self.context)
 
@@ -5847,7 +5915,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but sort() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but sort() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         if len(self.elements) == 0:
             return List([]).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -5934,12 +6002,12 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but find() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but find() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(Function, args[0],f"find() takes a function as an argument", self.pos_start, self.pos_end, self.context)
 
 
-        check_args((1,3), args, f"{len(args)} arguments given, but find() takes 1 to 3 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((1,3), args, f"{len(args)} {argum_or_argums(args)} given, but find() takes 1 to 3 arguments", self.pos_start, self.pos_end, self.context)
 
 
         res = RuntimeResult()
@@ -5985,7 +6053,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but findIndex() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but findIndex() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(Function, args[0],f"findIndex() takes a function as an argument", self.pos_start, self.pos_end, self.context)
 
@@ -6028,7 +6096,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but removeAt() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but removeAt() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(Number, args[0],f"removeAt() takes a number as an argument", self.pos_start, self.pos_end, self.context)
 
@@ -6060,7 +6128,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((1,2), args, f"{len(args)} arguments given, but slice() takes exactly 2 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((1,2), args, f"{len(args)} {argum_or_argums(args)} given, but slice() takes exactly 2 arguments", self.pos_start, self.pos_end, self.context)
 
         if len(args) == 2:
             check_type(Number, args[0], f"argument 1 of slice() must be a number", self.pos_start, self.pos_end, self.context)
@@ -6087,7 +6155,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((1,2), args, f"{len(args)} arguments given, but splice() takes exactly 2 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((1,2), args, f"{len(args)} {argum_or_argums(args)} given, but splice() takes exactly 2 arguments", self.pos_start, self.pos_end, self.context)
         if len(args) == 2:
             check_type(Number, args[0], f"argument 1 of splice() must be a number", self.pos_start, self.pos_end, self.context)
             check_type(Number, args[1], f"argument 2 of splice() must be a number", self.pos_start, self.pos_end, self.context)
@@ -6125,7 +6193,7 @@ class List(Value):
                         'exit': False
                     })
 
-        check_args((1,2), args, f"{len(args)} arguments given, but reduce() takes exactly 2 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((1,2), args, f"{len(args)} {argum_or_argums(args)} given, but reduce() takes exactly 2 arguments", self.pos_start, self.pos_end, self.context)
 
         check_type(Function, args[0], f"argument 1 of reduce() must be a function", self.pos_start, self.pos_end, self.context)
 
@@ -6216,7 +6284,7 @@ class List(Value):
                         'exit': False
                     })
 
-        check_args(1, args, f"{len(args)} arguments given, but some() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but some() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type(Function, args[0], f"argument 1 of some() must be a function", self.pos_start, self.pos_end, self.context)
 
@@ -6333,7 +6401,7 @@ class List(Value):
                         'context': self.context,
                         'exit': False
                     }) 
-        check_args((0,1), args, f"{len(args)} arguments given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
         
         if len(args) == 1:
             check_type(Number, args[0], f"pretty_print() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
@@ -6370,7 +6438,7 @@ class List(Value):
                         'exit': False
                     })
 
-        check_args(0, args, f"{len(args)} arguments given, but copy() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but copy() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
 
         old_list = []
         for element in self.elements:
@@ -6411,7 +6479,7 @@ class List(Value):
                         'exit': False
                     })
 
-        check_args(0, args, f"{len(args)} arguments given, but __@str__() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but __@str__() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
 
         string = ""
 
@@ -6422,21 +6490,13 @@ class List(Value):
 
     def __str__(self):
         try:
-            if self.type == "split":
-                return f'[{self.elements}]'
-            else:
-                return f'[{", ".join([str(x) for x in self.elements])}]'
+            values = []
+            for element in self.elements:
+                values.append(element)
+            return f'[{", ".join([str(x) for x in values])}]'
         except:
-            return f'{self.elements}'
+            return '[]'
 
-    def __repr__(self):
-        try:
-            if self.type != None and self.type == "split":
-                return f'{self.elements}'
-            else:
-                return f'[{", ".join([str(x) for x in self.elements])}]'
-        except:
-            return f'{self.elements}'
 
 list_methods = {
     'length': List.length,
@@ -6475,6 +6535,7 @@ list_methods = {
     '__@methods__': List.__methods__,
 }
 
+
 class Pair(Value):
     def __init__(self, elements):
         super().__init__()
@@ -6482,8 +6543,7 @@ class Pair(Value):
         self.value = self.elements
         self.id = self.elements
         self.val_rep = self.elements
-        
-        
+                
     def added_to(self, other):
         if isinstance(other, Pair):
             return Pair(self.elements + other.elements), None
@@ -6658,7 +6718,21 @@ class Pair(Value):
         return self.setTrueorFalse(self.value or other.value), None
 
     def and_by(self, other):
-        return self.setTrueorFalse(self.value and other.value), None
+        result = self.val_rep and other.val_rep
+        if isinstance(other, Boolean):
+            result = self.val_rep and True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+        elif self.val_rep == result:
+            result = self
+        else:
+            result = other
+          
+        return result, None
     
     def notted(self):
         val = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
@@ -6708,7 +6782,7 @@ class Pair(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but count() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but count() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
         count = 0
         if isinstance(args[0], String) or isinstance(args[0], Number):
@@ -6755,7 +6829,7 @@ class Pair(Value):
                         'exit': False
                     })
 
-        check_args(1, args, f"{len(args)} arguments given, but indexOf() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but indexOf() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
 
         if isinstance(args[0], String) or isinstance(args[0], Number):
@@ -6815,7 +6889,7 @@ class Pair(Value):
                         'exit': False
                     })
 
-        check_args(0, args, f"{len(args)} arguments given, but __@str__() takes exactly 0 argument",
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but __@str__() takes exactly 0 argument",
                    self.pos_start, self.pos_end, self.context)
 
         string = ""
@@ -6827,9 +6901,12 @@ class Pair(Value):
 
     def __str__(self):
         try:
-            return f'({", ".join([str(x) for x in self.elements])})'
+            values = []
+            for element in self.elements:
+                values.append(element)
+            return f'({", ".join([str(x) for x in values])})'
         except:
-            return "()"
+            return  '()'
 
 
 pair_methods = {
@@ -6927,7 +7004,21 @@ class Set(Value):
         return self.setTrueorFalse(self.value or other.value), None
     
     def and_by(self, other):
-        return self.setTrueorFalse(self.value and other.value), None
+        result = self.val_rep and other.val_rep
+        if isinstance(other, Boolean):
+            result = self.val_rep and True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+        elif self.val_rep == result:
+            result = self
+        else:
+            result = other
+          
+        return result, None
    
     def isSame(self, other):
         if isinstance(other, Set):
@@ -6956,7 +7047,7 @@ class Set(Value):
                     })
 
 
-        check_args(1, args, f"{len(args)} arguments given, but add() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but add() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
 
 
         self.sets.append(args[0])
@@ -6980,7 +7071,7 @@ class Set(Value):
                         'exit': False
                     })
                     
-        check_args(1, args, f"{len(args)} arguments given, but remove() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but remove() takes exactly 1 argument", self.pos_start, self.pos_end, self.context)
         
         
         value_to_remove = args[0]
@@ -7049,7 +7140,7 @@ class Set(Value):
                         'exit': False
                     })
 
-        check_args(0, args, f"{len(args)} arguments given, but clear() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but clear() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
         
         
         self.sets.clear()
@@ -7072,7 +7163,7 @@ class Set(Value):
                         'exit': False
                     })
 
-        check_args(0, args, f"{len(args)} arguments given, but copy() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but copy() takes exactly 0 argument", self.pos_start, self.pos_end, self.context)
 
         old_list = []
         for element in self.sets:
@@ -7087,7 +7178,10 @@ class Set(Value):
 
     def __str__(self):
         try:
-            return f'{{({", ".join([str(x) for x in self.sets])})}}'
+            values = []
+            for set_ in self.sets:
+                values.append(set_)
+            return f'{{({", ".join([str(x) for x in values])})}}'
         except:
             return "{()}"
 
@@ -7497,7 +7591,7 @@ class Dict(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but hasprop() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but hasprop() takes 1 argument", self.pos_start, self.pos_end, self.context)
 
 
         check_type((String,Number), args[0], f"hasprop() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
@@ -7523,7 +7617,7 @@ class Dict(Value):
     #                     'context': self.context,
     #                     'exit': False
     #                 })
-    #     check_args(1, args, f"{len(args)} arguments given, but haskey() takes 1 argument", self.pos_start, self.pos_end, self.context)
+    #     check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but haskey() takes 1 argument", self.pos_start, self.pos_end, self.context)
 
 
     #     check_type((String,Number), args[0], f"haskey() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
@@ -7547,7 +7641,7 @@ class Dict(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but keys() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but keys() takes no argument", self.pos_start, self.pos_end, self.context)
 
 
 
@@ -7570,7 +7664,7 @@ class Dict(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but values() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but values() takes no argument", self.pos_start, self.pos_end, self.context)
 
 
         values = []
@@ -7592,7 +7686,7 @@ class Dict(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but items() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but items() takes no argument", self.pos_start, self.pos_end, self.context)
 
 
         items = []
@@ -7619,7 +7713,7 @@ class Dict(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((1,2), args, f"{len(args)} arguments given, but get() expects at least 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args((1,2), args, f"{len(args)} {argum_or_argums(args)} given, but get() expects at least 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type((String,Number), args[0], f"get() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
 
@@ -7654,7 +7748,7 @@ class Dict(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((1,2), args, f"{len(args)} arguments given, but set() expects 2 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((1,2), args, f"{len(args)} {argum_or_argums(args)} given, but set() expects 2 arguments", self.pos_start, self.pos_end, self.context)
 
 
 
@@ -7696,7 +7790,7 @@ class Dict(Value):
         interpreter = Interpreter()
 
 
-        check_args((0,2), args, f"{len(args)} arguments given, but update() expects 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args((0,2), args, f"{len(args)} {argum_or_argums(args)} given, but update() expects 1 argument", self.pos_start, self.pos_end, self.context)
 
 
 
@@ -7798,7 +7892,7 @@ class Dict(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but delete() expects 1 argument",
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but delete() expects 1 argument",
                    self.pos_start, self.pos_end, self.context)
 
 
@@ -7827,7 +7921,7 @@ class Dict(Value):
                         'exit': False
                     })
 
-        check_args(0, args, f"{len(args)} arguments given, but clear() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but clear() expects 0 arguments", self.pos_start, self.pos_end, self.context)
 
 
         self.properties = {}
@@ -7912,7 +8006,7 @@ class Dict(Value):
                         'context': self.context,
                         'exit': False
                     }) 
-        check_args((0,1), args, f"{len(args)} arguments given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
         
         if len(args) == 1:
             check_type(Number, args[0], f"pretty_print() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
@@ -7952,11 +8046,14 @@ class Dict(Value):
         copy.setPosition(self.pos_start, self.pos_end)
         return copy
 
-    def __repr__(self):
+    def __str__(self):
         try:
-            return f"{{{', '.join([f'{k}: {v}' for k, v in self.properties.items() if not k.startswith('__')])}}}"
+            dict_ = {}
+            for key, value in self.properties.items():
+                dict_[key] = value
+            return f"{{{', '.join([f'{k}: {v}' for k, v in dict_.items()])}}}"
         except:
-            return f'{self.properties}'
+            return '{}'
 
 dict_methods = {
     'length': Dict.length,
@@ -8104,7 +8201,21 @@ class Object(Value):
         return self.setTrueorFalse(self.value or other.value), None
 
     def and_by(self, other):
-        return self.setTrueorFalse(self.value and other.value), None
+        result = self.val_rep and other.val_rep
+        if isinstance(other, Boolean):
+            result = self.val_rep and True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+        elif self.val_rep == result:
+            result = self
+        else:
+            result = other
+          
+        return result, None
     
     def isSame(self, other):
         if isinstance(other, Object):
@@ -8155,7 +8266,7 @@ class Object(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(1, args, f"{len(args)} arguments given, but hasprop() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but hasprop() takes 1 argument", self.pos_start, self.pos_end, self.context)
 
 
         check_type((String,Number), args[0], f"hasprop() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
@@ -8180,7 +8291,7 @@ class Object(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but keys() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but keys() takes no argument", self.pos_start, self.pos_end, self.context)
 
 
 
@@ -8203,7 +8314,7 @@ class Object(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but values() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but values() takes no argument", self.pos_start, self.pos_end, self.context)
 
 
         values = []
@@ -8225,7 +8336,7 @@ class Object(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args(0, args, f"{len(args)} arguments given, but items() takes no argument", self.pos_start, self.pos_end, self.context)
+        check_args(0, args, f"{len(args)} {argum_or_argums(args)} given, but items() takes no argument", self.pos_start, self.pos_end, self.context)
 
 
         items = []
@@ -8248,7 +8359,7 @@ class Object(Value):
                         'context': self.context,
                         'exit': False
                     })
-        check_args((1,2), args, f"{len(args)} arguments given, but get() expects at least 1 argument", self.pos_start, self.pos_end, self.context)
+        check_args((1,2), args, f"{len(args)} {argum_or_argums(args)} given, but get() expects at least 1 argument", self.pos_start, self.pos_end, self.context)
 
         check_type((String,Number), args[0], f"get() argument 1 must be of type string or number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
 
@@ -8342,7 +8453,7 @@ class Object(Value):
                         'context': self.context,
                         'exit': False
                     }) 
-        check_args((0,1), args, f"{len(args)} arguments given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
         
         if len(args) == 1:
             check_type(Number, args[0], f"pretty_print() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
@@ -11565,6 +11676,92 @@ def handle_end(end, type_, node, context):
     return result
 
 
+def BuiltInFunction_ASCII(args, node, context,keyword_args=None, has_unpack=False):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            raise Al_ArgumentError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"input() takes no keyword argument",
+                'context': context,
+                'exit': False
+            })
+    unpacked = False
+    unpacked_args = []
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+               
+    check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but ascii() takes exactly 1 argument", node.pos_start, node.pos_end, context)
+    
+    if isinstance(args[0], List) or isinstance(args[0], Pair) or isinstance(args[0], Set):
+        values = []
+        for element in args[0].elements:
+            if is_astring(element):
+                val = String(ascii(element.value))
+                try:
+                    if val.value[0] == "'":
+                        val = val.value[1:-1]
+                except:
+                    pass
+                values.append(val)
+            else:
+                values.append(element)
+                
+        return String(str(values)).setContext(context).setPosition(node.pos_start, node.pos_end)
+    
+    elif isinstance(args[0], Dict) or isinstance(args[0], Object):
+        dict_ = {}
+        for key, val in args[0].properties.items():
+            if is_astring(val):
+                val = String(ascii(val.value))
+                try:
+                    if val.value[0] == "'":
+                        val = val.value[1:-1]
+                except:
+                    pass
+                dict_[key] = val
+            else:
+                dict_[key] = val
+       
+        return String(str(dict_)).setContext(context).setPosition(node.pos_start, node.pos_end)
+            
+        
+    
+    elif isinstance(args[0], String):
+        return String(ascii(args[0].value)).setContext(context).setPosition(node.pos_start, node.pos_end)
+    else:
+        return String(str(args[0]))
+    
+
 def BuiltInFunction_Print(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
     interpreter = Interpreter()
@@ -11916,7 +12113,7 @@ def BuiltInFunction_Input(args, node, context,keyword_args=None, has_unpack=Fals
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but input() takes 0 or 1 argument(s)",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but input() takes 0 or 1 argument(s)",
             "context": context,
             'exit': False
         })
@@ -12009,7 +12206,7 @@ def BuiltInFunction_InputInt(args, node, context,keyword_args=None, has_unpack=F
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but inputInt() takes 0 or 1 argument(s)",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but inputInt() takes 0 or 1 argument(s)",
             "context": context,
             'exit': False
         })
@@ -12106,7 +12303,7 @@ def BuiltInFunction_InputFloat(args, node, context,keyword_args=None, has_unpack
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but inputFloat() takes 0 or 1 argument(s)",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but inputFloat() takes 0 or 1 argument(s)",
             "context": context,
             'exit': False
         })
@@ -12202,7 +12399,7 @@ def BuiltInFunction_InputBool(args, node, context,keyword_args=None, has_unpack=
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but inputBool() takes 0 or 1 argument(s)",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but inputBool() takes 0 or 1 argument(s)",
             "context": context,
             'exit': False
         })
@@ -12602,7 +12799,7 @@ def BuiltInFunction_Range(args, node, context,keyword_args=None, has_unpack=Fals
         raise Al_ArgumentError({
             'pos_start': node.pos_start,
             'pos_end': node.pos_end,
-            'message': f"{len(args)} arguments given, but range() takes 1 or 3 arguments",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but range() takes 1 or 3 arguments",
             'context': context,
             'exit': False
         })
@@ -12688,8 +12885,44 @@ def BuiltInFunction_Abs(args, node, context, keyword_args=None, has_unpack=False
             })
             
     res = RuntimeResult()
+    unpacked = False
+    unpacked_args = []
     
-    check_args(1, args, "abs() takes exactly 1 argument", node.pos_start, node.pos_end, context)
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+        
+        
+    check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but abs() takes exactly 1 argument",
+               node.pos_start, node.pos_end, context)
     
     check_type(Number, args[0], "abs() argument must be of type number", node.pos_start, node.pos_end, context)
     
@@ -12795,7 +13028,7 @@ def BuiltInFunction_Max(args, node, context,keyword_args=None, has_unpack=False)
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but max() takes 2 arguments",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but max() takes 2 arguments",
             "context": context,
             'exit': False
         })
@@ -12865,7 +13098,7 @@ def BuiltInFunction_Min(args, node, context,keyword_args=None, has_unpack=False)
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but min() takes 2 arguments",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but min() takes 2 arguments",
             "context": context,
             'exit': False
         })
@@ -12934,7 +13167,7 @@ def BuiltInFunction_is_finite(args, node, context,keyword_args=None, has_unpack=
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but is_finite() takes 1 argument",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but is_finite() takes 1 argument",
             "context": context,
             'exit': False
         })
@@ -13042,7 +13275,7 @@ def BuiltInFunction_Sorted(args, node, context,keyword_args=None, has_unpack=Fal
             raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but sorted() takes 1 to 2 arguments",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but sorted() takes 1 to 2 arguments",
             "context": context,
             'exit': False
         })
@@ -13305,7 +13538,7 @@ def BuiltInFunction_Typeof(args, node, context,keyword_args=None, has_unpack=Fal
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but typeof() takes 1 argument",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but typeof() takes 1 argument",
             "context": context,
             'exit': False
         })
@@ -13408,7 +13641,7 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None, has_unpa
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but isinstance() takes 2 arguments",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but isinstance() takes 2 arguments",
             "context": context,
             'exit': False
         })
@@ -13519,7 +13752,7 @@ def BuiltInFunction_hasprop(args, node, context,keyword_args=None, has_unpack=Fa
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but hasprop() takes 2 arguments",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but hasprop() takes 2 arguments",
             "context": context,
             'exit': False
         })
@@ -13599,7 +13832,7 @@ def BuiltInFunction_Line(args, node, context,keyword_args=None, has_unpack=False
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but line() takes 1 argument",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but line() takes 1 argument",
             "context": context,
             'exit': False
         })
@@ -13672,7 +13905,7 @@ def BuiltInFunction_Clear(args, node, context,keyword_args=None, has_unpack=Fals
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but clear() takes no argument",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but clear() takes no argument",
             "context": context,
             'exit': False
         })
@@ -13733,7 +13966,7 @@ def BuiltInFunction_Delay(args, node, context,keyword_args=None, has_unpack=Fals
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but delay() takes 1 argument",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but delay() takes 1 argument",
             "context": context,
             'exit': False
         })
@@ -13812,7 +14045,7 @@ def BuiltInFunction_Require(args, node, context,keyword_args=None, has_unpack=Fa
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but require() takes 1 argument",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but require() takes 1 argument",
             "context": context,
             'exit': False
         })
@@ -14487,7 +14720,7 @@ def BuiltInFunction_Exit(args, node, context,keyword_args=None, has_unpack=False
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} arguments given, but exit() takes 0 or 1 argument(s)",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but exit() takes 0 or 1 argument(s)",
             "context": context,
             'exit': False
         })
@@ -14636,7 +14869,7 @@ def BuiltInFunction_StdInRead(args, node, context,keyword_args=None, has_unpack=
         raise Al_ArgumentError({
             'pos_start': node.pos_start,
             'pos_end': node.pos_end,
-            'message': f"{len(args)} arguments given, but std_in_read() takes 0 argument(s)",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but std_in_read() takes 0 argument(s)",
             'context': context,
             'exit': False
         })
@@ -14716,7 +14949,7 @@ def BuiltInFunction_StdInReadLine(args, node, context,keyword_args=None, has_unp
         raise Al_ArgumentError({
             'pos_start': node.pos_start,
             'pos_end': node.pos_end,
-            'message': f"{len(args)} arguments given, but std_in_read() takes 0 argument(s)",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but std_in_read() takes 0 argument(s)",
             'context': context,
             'exit': False
         })
@@ -14796,7 +15029,7 @@ def BuiltInFunction_StdInReadLines(args, node, context,keyword_args=None, has_un
         raise Al_ArgumentError({
             'pos_start': node.pos_start,
             'pos_end': node.pos_end,
-            'message': f"{len(args)} arguments given, but std_in_read() takes 0 argument(s)",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but std_in_read() takes 0 argument(s)",
             'context': context,
             'exit': False
         })
@@ -17971,7 +18204,7 @@ def BuiltInClass_Int(args, node, context, keyword_args=None, has_unpack=False):
         raise Al_ArgumentError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"{len(args)} arguments given, but int() takes 1 or 2 arguments",
+                'message': f"{len(args)} {argum_or_argums(args)} given, but int() takes 1 or 2 arguments",
                 "context": context,
                 'exit': False
             })
@@ -18080,22 +18313,10 @@ def BuiltInClass_Set(args, node, context, keyword_args=None, has_unpack=False):
             'exit': False
         })
     
-def checklist(arr):
-    if not arr and arr == []:
-        return False
-    return True
 
-def test(arr):
-    print(checklist(arr), not checklist(arr), 'ggpy')
-    if not checklist(arr):
-        raise Exception("Expected a list")
-    else:
-        print("No error")
+
     
-    
-test([1,2,3])
-    
-    
+
 
 class Types(Value):
     def __init__(self, name):
@@ -18121,7 +18342,21 @@ class Types(Value):
         return self.setTrueorFalse(other.value != "none"), None
 
     def and_by(self, other):
-        return self.setTrueorFalse(other.value == "none"), None
+        result = self.val_rep and other.val_rep
+        if isinstance(other, Boolean):
+            result = self.val_rep and True if other.value == "true" else False
+            if result == False:
+                result = Boolean(False).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            elif  result == True:
+                result =  Boolean(True).setContext(self.context).setPosition(self.pos_start, self.pos_end)
+            else:
+                result = self
+        elif self.val_rep == result:
+            result = self
+        else:
+            result = other
+          
+        return result, None
 
     def notted(self):
         value = setNumber(self.value)
@@ -22132,7 +22367,6 @@ class Interpreter:
         # except:
         #     pass
             
-
     def visit_UnaryOpNode(self, node, context):
         res = RuntimeResult()
         number = res.register(self.visit(node.node, context))
@@ -22151,7 +22385,6 @@ class Interpreter:
     def visit_AND_NODE(self, node, context):
         res = RuntimeResult()
         left = res.register(self.visit(node.left, context))
-        print(left, " is lef")
         result = Boolean(False).setContext(
             context).setPosition(node.pos_start, node.pos_end)
         if isinstance(left, Boolean):
@@ -22163,28 +22396,12 @@ class Interpreter:
         else:
             right = res.register(self.visit(node.right, context))
             result, error = left.and_by(right)
-        #print(result, 'rr')
-        return res.success(result)
-    
-    
-    def visit_AND_NODE(self, node, context):
-        res = RuntimeResult()
-        left = res.register(self.visit(node.left, context))
-        
-        result = Boolean(False).setContext(
+            if isinstance(result, Boolean):
+                result = Boolean(True).setContext(
             context).setPosition(node.pos_start, node.pos_end)
-        if isinstance(left, Boolean):
-            if left.value == "true":
-                right = res.register(self.visit(node.right, context))
-                result, error = left.and_by(right)
-            else:
-                return res.success(result)
-        else:
-            right = res.register(self.visit(node.right, context))
-            result, error = left.and_by(right)
-        #print(result, 'rr')
+            
         return res.success(result)
-
+    
     
     def visit_IfNode(self, node, context):
         res = RuntimeResult()
@@ -23147,6 +23364,7 @@ class Interpreter:
         
         
         builtins = {
+            'ascii': BuiltInFunction_ASCII,
             'print': BuiltInFunction_Print,
             'println': BuiltInFunction_PrintLn,
             'len': BuiltInFunction_Len,
@@ -23379,7 +23597,7 @@ Opitional arguments:
 @end: the end of line character to use. Defaults to '\\n'
 """)
 
-
+BuiltInFunction.ascii = BuiltInFunction("ascii", None)
 BuiltInFunction.print = BuiltInFunction("print", print_doc)
 BuiltInFunction.println = BuiltInFunction("println", println_doc)
 BuiltInFunction.exit = BuiltInFunction("exit", None)
@@ -23497,7 +23715,7 @@ Types.dict = Types("dict")
 Types.set = Types("set")
 Types.module = Types("module")
 
-
+symbolTable_.set('ascii', BuiltInFunction.ascii)
 symbolTable_.set('print', BuiltInFunction.print)
 symbolTable_.set('println', BuiltInFunction.println)
 symbolTable_.set('exit', BuiltInFunction.exit)
@@ -23583,10 +23801,4 @@ for key, _ in type_hint_types.items():
 types_val =  List(types_var)
 symbolTable_.set('__@types__', types_val)
 symbolTable_.setSymbol()
-
-
-while (0, 1):
-    print("Hello World")
-    break
-
 

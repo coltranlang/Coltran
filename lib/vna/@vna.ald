@@ -95,7 +95,7 @@ class Vna
         return self.rest_list, self.collected_list 
     end
     def __@str__(self)
-        return fm"Vna %{self.@version}"
+        return f"Vna %{self.@version}"
     end
 end
 

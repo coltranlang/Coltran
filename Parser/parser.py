@@ -5496,6 +5496,15 @@ class Parser:
                 right = res.register(self.expr())
             elif op_tok.matches(tokenList.TT_KEYWORD, 'and'):
                 right = res.register(self.expr())
+                if left == '' or right == '':
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': op_tok.pos_start,
+                        'pos_end': op_tok.pos_end,
+                        'message': f"invalid syntax",
+                        'context': self.context,
+                        'exit': False
+                    }))
                 node = res.success(AND_NODE(left, right))
                 
                 return node
