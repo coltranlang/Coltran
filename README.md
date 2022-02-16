@@ -37,7 +37,7 @@ See  [https://aldenlang.org/docs](https://aldenlang.org/docs) for documentation.
 
 # Features
 
-**Below is a list of features that are currently supported in alden.**
+**Below is a list of features that are currently supported or planned for the future.**
 
 - [x] Dynamic typing
 - [x] Keyword arguments - **experimental**
@@ -60,6 +60,6 @@ Please make sure to read the [Contributing guide](/CONTRIBUTION.md).
 
 ### License
 
-[MIT](/LICENSE.md)
+[BSD-3-Clause](/LICENSE.md)
 <br>
 Copyright (c) 2021-present, Kehinde Akinsanya.
