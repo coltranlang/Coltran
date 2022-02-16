@@ -2652,7 +2652,6 @@ class Parser:
     def function_expr(self):
         res = ParseResult()
         function_name = ''
-        arg_name_tokens = []
         doc_string = None
         Parser.scope = "function_method"
         default_values = {}
@@ -2719,6 +2718,7 @@ class Parser:
                 }))
         res.register_advancement()
         self.advance()
+        arg_name_tokens = []
 
         if self.current_token.type == tokenList.TT_IDENTIFIER or self.current_token.type == tokenList.TT_MUL:
             arg_name_tokens.append(self.current_token)
@@ -3710,7 +3710,6 @@ class Parser:
     def set_methods(self):
         res = ParseResult()
         method_name = ''
-        args_list = []
         methods = []
         Parser.scope = "function_method"
         doc_string = None
@@ -3745,7 +3744,7 @@ class Parser:
                 }))
             res.register_advancement()
             self.advance()
-            
+            args_list = []
             if self.current_token.type == tokenList.TT_IDENTIFIER or self.current_token.type == tokenList.TT_MUL:
                 args_list.append(self.current_token)
                 if self.current_token.type == tokenList.TT_MUL:

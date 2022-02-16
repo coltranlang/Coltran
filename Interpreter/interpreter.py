@@ -1158,7 +1158,7 @@ class Program:
                 else:
                     new_object[key] = value
 
-            print(mod_name)
+           
             if module_name == '*':
                 for key, value in new_object.items():
                     value = value
@@ -1295,8 +1295,23 @@ After successfully opening a file, a file object is returned with the following 
 'write': write to the file.
 'close': close the file."""
 
+math_doc = """Module for mathematical functions.
+
+Methods:
+abs: Return the absolute value of x.
+add: Return the sum of x and y.
+deg: Convert angle x from radians to degrees.
+mul: Return the product of x and y.
+min: Return the smaller of x and y.
+max: Return the larger of x and y.
+pow: Return x to the power of y.
+rad: Convert angle x from degrees to radians.
+sqrt: Return the square root of x.
+sub: Return the difference of x and y.
+"""
+
 builtin_modules_doc = {
-    'math': None,
+    'math': math_doc,
     'http': None,
     'file': file_doc,
     'system': None,
@@ -4164,11 +4179,29 @@ class String(Value):
         return f"'{self.value}'"
 
 
-class DocString(String):
+class DocString(Value):
     def __init__(self, value):
-        super().__init__(value)
+        super().__init__()
+        self.value = str(value)
+        self.val_rep = value
         self.type = 'docstring'
 
+    def setPosition(self, pos_start=None, pos_end=None):
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        return self
+
+    def setContext(self, context=None):
+        self.context = context
+        return self
+
+    def copy(self):
+        copy = DocString(self.value)
+        copy.setPosition(self.pos_start, self.pos_end)
+        copy.setContext(self.context)
+        return copy
+    
+    
     def __str__(self):
         return f"{self.value}"
 
@@ -9565,6 +9598,8 @@ class Function(BaseFunction):
         self.val_rep = self.name
         self.type = type
         self.doc = doc
+        if doc != None:
+            self.doc = DocString(doc).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         self.context = context
         self.type_hints = type_hints
         self.value = f"<function {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
@@ -9572,9 +9607,7 @@ class Function(BaseFunction):
     def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
-        exec_context = Context(self.name, self.context, self.pos_start)
-        exec_context.symbolTable = SymbolTable(exec_context.parent.symbolTable)
-        
+        exec_context = self.generate_new_context()
         self.args = args
         keyword_args = {}
         default_values = {}
@@ -10073,7 +10106,7 @@ class Function(BaseFunction):
                         default_value['value'], exec_context))
                     default_values[name] = value
 
-
+    
         if keyword_args_list != None:
             if len(keyword_args_list) > 0:
 
@@ -10656,6 +10689,8 @@ class BuiltInFunction(BaseFunction):
         self.value = name
         self.doc = doc
         self.context = context
+        if doc != None:
+            self.doc = DocString(doc).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         self.properties = properties
         self.val_rep = self.name
         self.representation = f"<{str(self.name)}()>, [ built-in function_method ]"
@@ -10887,6 +10922,8 @@ class Class(BaseClass):
         self.properties = properties
         self.value = f"<class {str(self.class_name)}>"
         self.doc = doc
+        if doc != None:
+            self.doc = DocString(doc).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         self.context = context
         self.body_node = None
         self.val_rep = self.class_name
@@ -10896,7 +10933,6 @@ class Class(BaseClass):
             args.append(arg.value) if hasattr(arg, "value") else args.append(arg)
         self.class_args = args
 
-    
     def execute(self, args, keyword_args_list, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
@@ -11791,6 +11827,8 @@ class Module(Value):
         self.value = self.properties
         self.type_ = type_
         self.doc = doc
+        if doc != None:
+            self.doc = DocString(doc).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         self.val_rep = self.name
         self.get_property = self.get_property
         self.representation =f"<module {self.name}>"
@@ -12074,6 +12112,62 @@ def BuiltInFunction_ASCII(args, node, context,keyword_args=None, has_unpack=Fals
     else:
         return String(str(args[0]))
     
+ 
+def BuiltInFunction_Help(args, node, context,keyword_args=None, has_unpack=False):
+    if keyword_args != None and len(keyword_args) > 0:
+        for key in keyword_args:
+            raise Al_ArgumentError({
+                'pos_start': node.pos_start,
+                'pos_end': node.pos_end,
+                'message': f"help() takes no keyword argument",
+                'context': context,
+                'exit': False
+            })
+    unpacked = False
+    unpacked_args = []
+    
+    if has_unpack == True:
+        for arg in args:
+            if is_iterable(arg):
+                if isinstance(arg, List) or isinstance(arg, Pair):
+                    unpacked = True
+                    for i in range(len(arg.elements)):
+                        unpacked_args.append(arg.elements[i])
+                elif isinstance(arg, Dict) or isinstance(arg, Object):
+                    keys = arg.get_keys()
+                    unpacked = True
+                    for i in range(len(keys)):
+                        if isinstance(keys[i], str):
+                            unpacked_args.append(String(keys[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+                        if isinstance(keys[i], int) or isinstance(keys[i], float):
+                            unpacked_args.append(Number(keys[i]).setContext(
+                                context).setPosition(node.pos_start, node.pos_end))
+                elif isinstance(arg, String):
+                    values = [x for x in arg.value]
+                    unpacked = True
+                    for i in range(len(values)):
+                        unpacked_args.append(String(values[i]).setContext(context).setPosition(node.pos_start, node.pos_end))
+            else:
+                raise Al_TypeError({
+                    'pos_start': node.pos_start,
+                    'pos_end': node.pos_end,
+                    'message': f"'{TypeOf(arg).getType()}' object is not iterable",
+                    'context': context,
+                    'exit': False
+                })
+    if unpacked == True:
+        args = unpacked_args
+               
+    check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but help() takes exactly 1 argument", node.pos_start, node.pos_end, context)
+    
+    if hasattr(args[0], 'doc'):
+        doc = args[0].doc
+        if doc == None:
+            doc = NoneType().setContext(context).setPosition(node.pos_start, node.pos_end)
+        return doc
+    else:
+        return NoneType().setContext(context).setPosition(node.pos_start, node.pos_end)
+
 
 def BuiltInFunction_Print(args, node, context,keyword_args=None, has_unpack=False):
     res = RuntimeResult()
@@ -19191,8 +19285,6 @@ class Interpreter:
         res = RuntimeResult()
         var_name = node.name.value
         value = context.symbolTable.get(var_name)
-        if var_name == 'i':
-            print(context.symbolTable)
         if type(value) is dict:
             try:
                 value = value['value']
@@ -23634,7 +23726,6 @@ class Interpreter:
                 properties = {**properties, **{method_name: method_value}}
 
         class_value = Class(class_name, class_args,inherits_class_name, inherited_from, properties, doc,context).setContext(context).setPosition(node.pos_start, node.pos_end)
-       
         context.symbolTable.set_object(class_name, class_value)
 
         return res.success(class_value)
@@ -23678,6 +23769,7 @@ class Interpreter:
         
         builtins = {
             'ascii': BuiltInFunction_ASCII,
+            'help': BuiltInFunction_Help,
             'print': BuiltInFunction_Print,
             'println': BuiltInFunction_PrintLn,
             'len': BuiltInFunction_Len,
@@ -23894,25 +23986,29 @@ class Interpreter:
             'type': 'freeze'
         })
 
- 
-print_doc = DocString("""
-Prints the given value to stdout.
-Opitional arguments:
-@file: the file to print to. Defaults to stdout.
-@sep: the separator to use. Defaults to ' '
-@end: the end of line character to use. Defaults to '\\n'
-""")
-println_doc = DocString("""
-Prints the given value to stdout.
-Opitional arguments:
-@file: the file to print to. Defaults to stdout.
-@sep: the separator to use. Defaults to ' '
-@end: the end of line character to use. Defaults to '\\n'
-""")
 
+print_doc = """
+Prints the given value to stdout.
+Opitional arguments:
+@file: the file to print to. Defaults to stdout.
+@sep: the separator to use. Defaults to ' '
+@end: the end of line character to use. Defaults to '\\n'
+"""
+println_doc = """
+Prints the given value to stdout.
+Opitional arguments:
+@file: the file to print to. Defaults to stdout.
+@sep: the separator to use. Defaults to ' '
+@end: the end of line character to use. Defaults to '\\n'
+"""
+help_doc = """
+Prints the help message for the given function.
+@function: the function to print the help message for.
+"""
 BuiltInFunction.ascii = BuiltInFunction("ascii", None)
 BuiltInFunction.print = BuiltInFunction("print", print_doc)
 BuiltInFunction.println = BuiltInFunction("println", println_doc)
+BuiltInFunction.help = BuiltInFunction("help", None)
 BuiltInFunction.exit = BuiltInFunction("exit", None)
 BuiltInFunction.input = BuiltInFunction("input", None)
 BuiltInFunction.inputInt = BuiltInFunction("inputInt", None)
@@ -24113,41 +24209,43 @@ for key, _ in type_hint_types.items():
     types_var.append(String(key))
 types_val =  List(types_var)
 symbolTable_.set('__@types__', types_val)
+symbolTable_.set("help", BuiltInFunction.help)
 symbolTable_.setSymbol()
 
-class Solution:
-    def letterCombinations(self, digits: str):
-        result = []
-        digitToChar = {
-            "2": "abc",
-            "3": "def",
-            "4": "ghi",
-            "5": "jkl",
-            "6": "mno",
-            "7": "pqrs",
-            "8": "tuv",
-            "9": "wxyz"
-        }
 
-        def backtrack(i, curStr):
-            if len(curStr) == len(digits):
-                result.append(curStr)
-                return
-            print(i, digits[i])
-            for c in digitToChar[digits[i]]:
-                backtrack(i + 1, curStr + c)
+# class Solution:
+#     def letterCombinations(self, digits: str):
+#         result = []
+#         digitToChar = {
+#             "2": "abc",
+#             "3": "def",
+#             "4": "ghi",
+#             "5": "jkl",
+#             "6": "mno",
+#             "7": "pqrs",
+#             "8": "tuv",
+#             "9": "wxyz"
+#         }
+
+#         def backtrack(i, curStr):
+#             if len(curStr) == len(digits):
+#                 result.append(curStr)
+#                 return
+#             print(i, digits[i])
+#             for c in digitToChar[digits[i]]:
+#                 backtrack(i + 1, curStr + c)
             
         
 
-        if digits:
-            backtrack(0, "")
+#         if digits:
+#             backtrack(0, "")
         
 
-        return result
+#         return result
     
 
 
-solution = Solution()
-result = solution.letterCombinations("23")
-print(result) # ["ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"]
+# solution = Solution()
+# result = solution.letterCombinations("23")
+# print(result) # ["ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"]
         
