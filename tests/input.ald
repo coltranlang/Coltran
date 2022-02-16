@@ -36,6 +36,7 @@ attempt:
         @result()
         let answer = input("\nWould you like to play again? (y/n) ")
         if answer == "y":
+            println("\n" + "Starting new game..." + "\n")
             continue
         elif answer == "n":
             println("\nThanks for playing!")

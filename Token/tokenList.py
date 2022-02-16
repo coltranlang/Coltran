@@ -44,6 +44,7 @@ TT_POWER_EQ = 'POWER_EQ'
 TT_LSHIFT_EQ = 'LSHIFT_EQ'
 TT_RSHIFT_EQ = 'RSHIFT_EQ'
 TT_AND = 'AND'
+TT_OR = 'OR'
 TT_NOT_IN = 'NOT_IN'
 TT_COLON = 'COLON'
 TT_DOUBLE_COLON = 'DOUBLE_COLON'
@@ -58,9 +59,9 @@ TT_DOUBLE_STRING = 'STRING'
 TT_SINGLE_STRING = 'SINGLE_STRING'
 TT_BACKTICK_STRING = 'BACKTICK_STRING'
 TT_RAW_STRING = 'RAW_STRING'
-TT_BACKTICK = 'BACKTICK'
-TT_STRING_INTERP = 'STRING_INTERP'
-TT_FORMAT = 'FORMAT'
+TT_DOC_STRING = 'DOC_STRING'
+TT_F_STRING = 'F_STRING'
+TT_BYTE_STRING = 'BYTE_STRING'
 TT_LBRACE = 'LBRACE'
 TT_RBRACE = 'RBRACE'
 TT_LSQBRACKET = 'LSQBRACKET'
@@ -101,7 +102,6 @@ NOT_ALLOWED_OBJECTS_KEYS = [
     'for',
     'to',
     'in',
-    'notin',
     'is',
     'as',
     'import',
@@ -120,7 +120,6 @@ NOT_ALLOWED_OBJECTS_KEYS = [
     'return',
     'continue',
     'break',
-    'fm',
     'raise'
 ]
 
@@ -137,7 +136,6 @@ NOT_ALLOWED_OBJECTS_VALUES = [
     'for',
     'to',
     'in',
-    'notin',
     'is',
     'as',
     'step',
@@ -174,7 +172,6 @@ KEYWORDS = [
     'for',
     'to',
     'in',
-    'notin',
     'is',
     'as',
     'import',
@@ -194,9 +191,9 @@ KEYWORDS = [
     'return',
     'continue',
     'break',
-    'fm',
     'raise',
     'del',
+    'freeze',
 ]
 
 TYPES = [
@@ -246,7 +243,6 @@ RETURN= 'return'
 CONTINUE= 'continue'
 BREAK= 'break'
 RAISE= 'raise'
-FM= 'fm'
 PRINT= 'print'
 PRINTLN= 'println'
 

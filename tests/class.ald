@@ -1,7 +1,19 @@
+# Reference to the class is passed to each methods of a class as the first argument, regardless if the class is called or not.
+# For example, if we have a class called "Dog", and we have a function called "bark", then the first argument of bark will be "Dog" the class itself.
+# Example:
+# class Dog
+#   def bark(self)
+#     print("Woof!")
+#   end
+# end
+# dog = Dog()
+# dog.bark() # prints "Woof!"
+# Dog.bark(dog) # prints "Woof!" # even though the Dog class is not called, it is still passed as the first argument.
+
 class Employee
     @employee_db_id = "iobherbndfiuyirre" # @ means static variable and cannot be changed
     url = "http://www.google.com" # url is a instance variable and can be changed
-    def @init(self)
+    def __@init__(self)
         self.name = name
         self.age = age
     end
@@ -13,7 +25,7 @@ class Employee
         return self.@employee_db_id
     end
     def str(self)
-        return fm"Employee(%{self.name}, %{self.age})"
+        return f"Employee(%{self.name}, %{self.age})"
     end
 end
 
@@ -25,7 +37,7 @@ println(employee.url)
 
 class Accounts()
     accounts_list = []
-    def @init(self, config)
+    def __@init__(self, config)
     end
     def create_account(self, data)
         self.accounts_list.append(data)
@@ -41,8 +53,8 @@ end
 
 
 class Client()
-    def @init(self, config)
-        if not config.hasproperty("client_id") or not config.hasproperty("client_secret"):
+    def __@init__(self, config)
+        if 'client_id' not in config or 'client_secret' not in config:
             raise KeyError("client_id or client_secret is missing")
         end
         self.client_id = config["client_id"]
@@ -53,13 +65,13 @@ class Client()
         return self.config
     end
     def str(self)
-        return fm"Client ID: %{self.client_id}, Client Secret: %{self.client_secret}"
+        return f"Client ID: %{self.client_id}, Client Secret: %{self.client_secret}"
     end
 end
 
 
 class Wallet()
-    def @init(self)
+    def __@init__(self)
         self.balance = 0
     end
     def deposit(self, amount)
@@ -72,23 +84,23 @@ class Wallet()
         self.balance -= amount
     end
     def get_balance(self)
-        return fm"Your balance is $%{self.balance}"
+        return f"Your balance is $%{self.balance}"
     end
     def str(self)
-        return fm"Wallet balance: $%{self.balance}"
+        return f"Wallet balance: $%{self.balance}"
     end
 end
 
 
 # class BankAccount(Wallet)
-#     def @init(self)
+#     def __@init__(self)
 #         self.balance = 0
 #     end
 #     def get_balance(self)
-#         return fm"Balance: $%{self.balance}"
+#         return f"Balance: $%{self.balance}"
 #     end
 #     def str(self)
-#         return fm"Bank Account: $%{self.balance}"
+#         return f"Bank Account: $%{self.balance}"
 #     end
 # end
 

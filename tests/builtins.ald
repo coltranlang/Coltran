@@ -117,7 +117,7 @@ let dict_object_methods = {
 line(1)
 in string_methods as method_name, method_value:
 end
-# println(fm'The index of "e" is %{pair.indexOf("e")}')
-# println(fm'Pair count: %{pair.count("e")}')
-# println(fm'List count: %{list.indexOf(5)}')
-# println(fm'List count: %{list.count(5)}')
+# println(f'The index of "e" is %{pair.indexOf("e")}')
+# println(f'Pair count: %{pair.count("e")}')
+# println(f'List count: %{list.indexOf(5)}')
+# println(f'List count: %{list.count(5)}')

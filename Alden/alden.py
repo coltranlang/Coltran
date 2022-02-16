@@ -1,4 +1,3 @@
-from click.core import Argument
 import typer
 import sys
 import os
@@ -21,8 +20,9 @@ def getOs():
 
 
 def repl():
-    """ Repl """
+    """ Alden Repl """
     print(f"Alden 1.0 on {getOs()}")
+    print('Type "help" for more information. Use "exit()" to exit.')
     Al_Program.runRepl()
     
    

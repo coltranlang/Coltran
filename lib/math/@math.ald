@@ -1,6 +1,8 @@
 # Math module
 
 let add = def (a, b) -> a + b
+let sub = def (a, b) -> a - b
+let mul = def (a, b) -> a * b
 let min = def (a, b) -> if a < b: a else: b
 let max = def (a, b) -> if a > b: a else: b
 let pow = def (a, b) -> a ^ b

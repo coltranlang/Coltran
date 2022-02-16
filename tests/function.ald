@@ -74,7 +74,7 @@ end
 
 @Animal(@getAnimal)
 
-final sayHello = def () -> def (name) -> println(fm"Hello %{name}!")
+final sayHello = def () -> def (name) -> println(f"Hello %{name}!")
 
 # We can call the sayHello function using the following syntax:
 sayHello()("David") # double parentheses or assign to a variable : let hello = sayHello() # call the function hello()
@@ -83,7 +83,7 @@ sayHello()("David") # double parentheses or assign to a variable : let hello = s
 def @main()
     let name = "Test"
     def @displayName()
-        println(fm"Hello from %{name}!")
+        println(f"Hello from %{name}!")
     end
     return @displayName()
 end
@@ -121,3 +121,16 @@ def @countZeros(N)
 end
 println(@countZeros(16))
 
+def @test_func(func)
+    func.__@call__("Kenny")
+    func("Dennis")
+    func.__@call__("Bob")
+    func.__@call__()
+end
+
+def @say_hello(name="John")
+    print(f"%{name} says hello")
+end
+
+
+@test_func(@say_hello)
