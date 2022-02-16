@@ -257,6 +257,7 @@ class SymbolTable:
         self.id = 0
         self.parent = parent
         self.scope = Environment(self.parent)
+        self.closures = {}
         
     
     def get_by_value(self, value):

@@ -1,7 +1,10 @@
 
 def outer()
     let x = "inner"
-    return x,
+    def inner()
+        print(x)
+    end
+    return inner
 end 
 
-print(outer())
+outer()()

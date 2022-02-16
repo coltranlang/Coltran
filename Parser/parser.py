@@ -973,7 +973,6 @@ class Parser:
                         val = list(values)
                         val.pop(i)
                         values = tuple(val)
-                        # remove the element from the tuple
                 expr = PairNode(values, pos_start,
                                 self.current_token.pos_end.copy())
 
