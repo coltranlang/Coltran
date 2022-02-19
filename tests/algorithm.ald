@@ -298,21 +298,18 @@ class Solution
             "9": "wxyz"
         }
 
-        def @backtrack(i, curStr)
+        def backtrack(i, curStr)
             if len(curStr) == len(digits):
                 result.append(curStr)
                 return
             end
-            if i >= len(digits):
-                i = len(digits)
-            end
             in digitToChar[digits[i]] as c:
-                @backtrack(i + 1, curStr + c)
+                backtrack(i + 1, curStr + c)
             end
         end
 
         if digits:
-            @backtrack(0, "")
+            backtrack(0, "")
         end
 
         return result
@@ -323,3 +320,47 @@ let solution = Solution()
 let result = solution.letterCombinations("23")
 print(result) # ["ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"]
         
+# Word Break
+class Solution
+    def wordBreak(self, s: str, wordDict: List[str]): bool
+        let wordSet = set(wordDict)
+        let dp = [false] * (len(s) + 1)
+        dp[0] = true
+        in range(1, len(s) + 1) as i:
+            in range(i) as j:
+                if dp[j] and s[j:i] in wordSet:
+                    dp[i] = true
+                    break
+                end
+            end
+        end
+        return dp[len(s)]
+    end
+end
+
+let solution = Solution()
+let result = solution.wordBreak("leetcode", ["leet", "code"])
+print(result, "true") # true
+
+
+# Coin Change
+class Solution
+    def coinChange(self, coins: List[int], amount: int): int
+        let dp = [amount + 1] * (amount + 1)
+        dp[0] = 0
+
+        in range(1, amount + 1) as i:
+            in coins as coin:
+                if i - coin >= 0:
+                    dp[i] = min(dp[i], dp[i - coin] + 1)
+                end
+            end
+        end
+        return if dp[amount] != amount + 1: dp[amount] else: -1
+    end
+end
+
+let solution = Solution()
+let result = solution.coinChange([1, 2, 5], 11)
+print(result) # 3
+

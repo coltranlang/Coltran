@@ -2383,8 +2383,7 @@ class Parser:
                 'message': "expected 'in'"
             }))
 
-        res.register_advancement()
-        self.advance()
+        self.skipLines()
 
 
         iterable_name_token = res.register(self.expr())
@@ -2407,12 +2406,12 @@ class Parser:
                 'exit': False
             }))
 
-        res.register_advancement()
-        self.advance()
+        self.skipLines()
 
         iterator_keys = []
-        if self.current_token.type == tokenList.TT_IDENTIFIER:
-            expr = res.register(self.expr())
+        expr = res.register(self.expr())
+        
+        if isinstance(expr, VarAccessNode):
             iterator_keys.append(expr)
             if self.current_token.type == tokenList.TT_COMMA:
                 while self.current_token.type == tokenList.TT_COMMA:
@@ -2516,7 +2515,6 @@ class Parser:
                 Parser.scope = None
                 return res.success(InNode(iterable_name_token, iterator_keys, body, False))
         else:
-            expr = res.register(self.expr())
             if not isinstance(expr, PairNode):
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -2540,7 +2538,6 @@ class Parser:
                     'exit': False
                 }))
            
-            
 
             if self.current_token.type != tokenList.TT_COLON:
                 self.error_detected = True
@@ -5483,8 +5480,8 @@ class Parser:
 
     def type_hint(self):
         res = ParseResult()
-        res.register(self.expr())
-        return res.success(None)
+        expr = res.register(self.expr())
+        return res.success(expr)
     
     def binaryOperation(self, func_1, ops, func_2=None):
         if func_2 == None:

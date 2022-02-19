@@ -9617,25 +9617,29 @@ class Function(BaseFunction):
         non_unpacked_args = []
         exec_context.symbolTable.set("self", self)
         #new_args = args
+        
+        # type hint
+        # if self.type_hints != None and len(self.type_hints) > 0:
+        #     names = []
+        #     for types in self.type_hints:
+        #         for name in types:
+        #             if name in self.arg_names:
+        #                 names.append(name)
+        #     for i in range(len(names)):
+        #         type_arg = self.type_hints[i][names[i]]['type']
+        #         if type_arg in type_hint_types:
+        #             pass
+        #         else:
+        #             raise Al_TypeError({
+        #                 'pos_start': self.pos_start,
+        #                 'pos_end': self.pos_end,
+        #                 'message': f"type hint for '{names[i]}' is not a valid type",
+        #                 'context': self.context,
+        #                 'exit': False
+        #             })
+        
+        
         # default values
-        if self.type_hints != None and len(self.type_hints) > 0:
-            names = []
-            for types in self.type_hints:
-                for name in types:
-                    if name in self.arg_names:
-                        names.append(name)
-            for i in range(len(names)):
-                type_arg = self.type_hints[i][names[i]]['type']
-                if type_arg in type_hint_types:
-                    pass
-                else:
-                    raise Al_TypeError({
-                        'pos_start': self.pos_start,
-                        'pos_end': self.pos_end,
-                        'message': f"type hint for '{names[i]}' is not valid type",
-                        'context': self.context,
-                        'exit': False
-                    })
         if self.default_values != None:
             if len(self.default_values) > 0:
                 for default_value in self.default_values:
@@ -10083,24 +10087,28 @@ class Function(BaseFunction):
         len_args = len(args)
         len_arg_names = len(self.arg_names)
         unpacked_args = []
-        if self.type_hints != None and len(self.type_hints) > 0:
-            names =  []
-            for types in self.type_hints:
-                for name in types:
-                    if name in self.arg_names:
-                        names.append(name)
-            for i in range(len(names)):
-                type_arg = self.type_hints[i][names[i]]['type']
-                if type_arg in type_hint_types:
-                    pass
-                else:
-                    raise Al_TypeError({
-                        'pos_start': self.pos_start,
-                        'pos_end': self.pos_end,
-                        'message': f"type hint for '{names[i]}' is not valid, can only be a valid type hint type",
-                        'context': self.context,
-                        'exit': False
-                    })
+        
+        #type hint
+        # if self.type_hints != None and len(self.type_hints) > 0:
+        #     names =  []
+        #     for types in self.type_hints:
+        #         for name in types:
+        #             if name in self.arg_names:
+        #                 names.append(name)
+        #     for i in range(len(names)):
+        #         type_arg = self.type_hints[i][names[i]]['type']
+        #         if type_arg in type_hint_types:
+        #             pass
+        #         else:
+        #             raise Al_TypeError({
+        #                 'pos_start': self.pos_start,
+        #                 'pos_end': self.pos_end,
+        #                 'message': f"type hint for '{names[i]}' is not a valid type",
+        #                 'context': self.context,
+        #                 'exit': False
+        #             })
+        
+        # default values
         if self.default_values != None:
             if len(self.default_values) > 0:
                 for default_value in self.default_values:
@@ -23965,9 +23973,7 @@ class Interpreter:
         else:
             return_value = NoneType()
         if return_value is None:  return_value = NoneType()
-        if isinstance(return_value, NoneType):
-            return res.noreturn()
-
+        
         return res.success_return(return_value)
 
 
@@ -24216,39 +24222,38 @@ symbolTable_.set("help", BuiltInFunction.help)
 symbolTable_.setSymbol()
 
 
-# class Solution:
-#     def letterCombinations(self, digits: str):
-#         result = []
-#         digitToChar = {
-#             "2": "abc",
-#             "3": "def",
-#             "4": "ghi",
-#             "5": "jkl",
-#             "6": "mno",
-#             "7": "pqrs",
-#             "8": "tuv",
-#             "9": "wxyz"
-#         }
+class Solution:
+    def letterCombinations(self, digits: str):
+        result = []
+        digitToChar = {
+            "2": "abc",
+            "3": "def",
+            "4": "ghi",
+            "5": "jkl",
+            "6": "mno",
+            "7": "pqrs",
+            "8": "tuv",
+            "9": "wxyz"
+        }
 
-#         def backtrack(i, curStr):
-#             if len(curStr) == len(digits):
-#                 result.append(curStr)
-#                 return
-#             print(i, digits[i])
-#             for c in digitToChar[digits[i]]:
-#                 backtrack(i + 1, curStr + c)
+        def backtrack(i, curStr):
+            if len(curStr) == len(digits):
+                result.append(curStr)
+                return
+            for c in digitToChar[digits[i]]:
+                backtrack(i + 1, curStr + c)
             
         
 
-#         if digits:
-#             backtrack(0, "")
+        if digits:
+            backtrack(0, "")
         
 
-#         return result
+        return result
     
 
 
-# solution = Solution()
-# result = solution.letterCombinations("23")
-# print(result) # ["ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"]
+solution = Solution()
+result = solution.letterCombinations("23")
+print(result, "py") # ["ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"]
         
