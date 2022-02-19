@@ -1,48 +1,10 @@
-
-# def outer()
-#     let x = "inner"
-#     def inner()
-#         print(x)
-#     end
-#     return inner
-# end 
-
-# outer()()
-
-# Letter Combinations of a Phone Number
-class Solution
-    def letterCombinations(self, digits: str)
-        let result = []
-        let digitToChar = {
-            "2": "abc",
-            "3": "def",
-            "4": "ghi",
-            "5": "jkl",
-            "6": "mno",
-            "7": "pqrs",
-            "8": "tuv",
-            "9": "wxyz"
-        }
-
-        def backtrack(i, curStr)
-            if len(curStr) == len(digits):
-                result.append(curStr)
-                return 
-            end
-            in digitToChar[digits[i]] as c:
-                backtrack(i + 1, curStr + c)
-            end
-        end
-
-        if digits:
-            backtrack(0, "")
-        end
-
-        return result
+def outer()
+    let x = "inner"
+    def inner()
+        print(x)
     end
-end
+    return inner
+end 
 
-let solution = Solution()
-let result = solution.letterCombinations("23")
-print(result, "ald") # ["ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"]
-        
+outer()()
+

@@ -13457,7 +13457,7 @@ def BuiltInFunction_Max(args, node, context,keyword_args=None, has_unpack=False)
         raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            'message': f"'{TypeOf(args[0]).getType()}' object is not iterable",
             "context": context,
             'exit': False
         })
@@ -13527,7 +13527,7 @@ def BuiltInFunction_Min(args, node, context,keyword_args=None, has_unpack=False)
         raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            'message': f"'{TypeOf(args[0]).getType()}' object is not iterable",
             "context": context,
             'exit': False
         })
@@ -13600,7 +13600,7 @@ def BuiltInFunction_is_finite(args, node, context,keyword_args=None, has_unpack=
         raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            'message': f"'{TypeOf(args[0]).getType()}' object is not iterable",
             "context": context,
             'exit': False
         })
@@ -13703,7 +13703,7 @@ def BuiltInFunction_Sorted(args, node, context,keyword_args=None, has_unpack=Fal
         raise Al_TypeError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"type '{TypeOf(args[0]).getType()}' is not iterable",
+            'message': f"'{TypeOf(args[0]).getType()}' object is not iterable",
             "context": context,
             'exit': False
         })
@@ -19560,7 +19560,7 @@ class Interpreter:
                                             'name': String('TypeError'),
                                             'pos_start': node.pos_start,
                                             'pos_end': node.pos_end,
-                                            'message': f"type '{TypeOf(value).getType()}' is not iterable",
+                                            'message': f"'{TypeOf(value).getType()}' object is not iterable",
                                             'context': context,
                                             'exit': False
                                         })
@@ -20256,7 +20256,7 @@ class Interpreter:
                                             'name': String('TypeError'),
                                             'pos_start': node.pos_start,
                                             'pos_end': node.pos_end,
-                                            'message': f"type '{TypeOf(value).getType()}' is not iterable",
+                                            'message': f"'{TypeOf(value).getType()}' object is not iterable",
                                             'context': context,
                                             'exit': False
                                         })
@@ -22941,7 +22941,7 @@ class Interpreter:
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'context': context,
-                        'message': f"type 'NoneType' is not iterable",
+                        'message': f"'NoneType' object is not iterable",
                         'exit': False
                     })
 
@@ -23316,7 +23316,7 @@ class Interpreter:
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
                         'context': context,
-                        'message': f"type '{TypeOf(iterable_node).getType()}'' is not iterable",
+                        'message': f"'{TypeOf(iterable_node).getType()}' object is not iterable",
                         'exit': False
                     })
         except KeyboardInterrupt:
@@ -24220,40 +24220,3 @@ types_val =  List(types_var)
 symbolTable_.set('__@types__', types_val)
 symbolTable_.set("help", BuiltInFunction.help)
 symbolTable_.setSymbol()
-
-
-class Solution:
-    def letterCombinations(self, digits: str):
-        result = []
-        digitToChar = {
-            "2": "abc",
-            "3": "def",
-            "4": "ghi",
-            "5": "jkl",
-            "6": "mno",
-            "7": "pqrs",
-            "8": "tuv",
-            "9": "wxyz"
-        }
-
-        def backtrack(i, curStr):
-            if len(curStr) == len(digits):
-                result.append(curStr)
-                return
-            for c in digitToChar[digits[i]]:
-                backtrack(i + 1, curStr + c)
-            
-        
-
-        if digits:
-            backtrack(0, "")
-        
-
-        return result
-    
-
-
-solution = Solution()
-result = solution.letterCombinations("23")
-print(result, "py") # ["ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"]
-        
