@@ -1,0 +1,31 @@
+from Question import Question
+
+let question_promps = [
+    "1. How is a list indexed?\n(a) with a word\n(b) with a letter\n(c) with a number\n(d) with a symbol\n",
+    "2. What is the correct way to write a list?\n(a) {1,2,3}\n(b) [1, 2, 3]\n(c) (1, 2, 3)\n(d) 1, 2, 3\n",
+    "3. What is a string?\n(a) a list of characters\n(b) a list of numbers\n(c) a list of words\n(d) a list of symbols\n",
+    "4. What is the correct way to write a string?\n(a) 'hello'\n(b) \"hello\"\n(c) 'hello'\n(d) all of the above\n",
+    "5. What is a pair?\n(a) a collection of two items\n(b) a collection of values\n(c) a collection of numbers\n(d) a collection of strings\n",
+]
+
+let questions = [
+    Question(question_promps[0], "c"),
+    Question(question_promps[1], "b"),
+    Question(question_promps[2], "a"),
+    Question(question_promps[3], "d"),
+    Question(question_promps[4], "b"),
+]
+
+def run_exam(questions: [Question]): str
+    let score = 0
+    in questions as question:
+        let answer = input(question.prompt)
+        if answer == question.answer:
+            score += 1
+        end
+    end
+    return f"You got %{score} out of %{len(questions)} correct"
+end
+
+
+print(run_exam(questions))

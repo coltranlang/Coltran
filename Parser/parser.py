@@ -2739,15 +2739,15 @@ class Parser:
                     }
                 }
                 self.skipLines()
-                if self.current_token.type != tokenList.TT_IDENTIFIER:
-                    self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "expected a type after ':'",
-                        'context': self.context,
-                        'exit': False
-                    }))
+                # if self.current_token.type != tokenList.TT_IDENTIFIER:
+                #     self.error_detected = True
+                #     return res.failure(self.error['Syntax']({
+                #         'pos_start': self.current_token.pos_start,
+                #         'pos_end': self.current_token.pos_end,
+                #         'message': "expected a type after ':'",
+                #         'context': self.context,
+                #         'exit': False
+                #     }))
                 type_hint[arg_name_tokens[0].value]['type'] = res.register(self.type_hint())
                 type_hints.append(type_hint)
                
@@ -2834,15 +2834,15 @@ class Parser:
                         }
                     }
                     self.skipLines()
-                    if self.current_token.type != tokenList.TT_IDENTIFIER:
-                        self.error_detected = True
-                        return res.failure(self.error['Syntax']({
-                            'pos_start': self.current_token.pos_start,
-                            'pos_end': self.current_token.pos_end,
-                            'message': "expected a type after ':'",
-                            'context': self.context,
-                            'exit': False
-                        }))
+                    # if self.current_token.type != tokenList.TT_IDENTIFIER:
+                    #     self.error_detected = True
+                    #     return res.failure(self.error['Syntax']({
+                    #         'pos_start': self.current_token.pos_start,
+                    #         'pos_end': self.current_token.pos_end,
+                    #         'message': "expected a type after ':'",
+                    #         'context': self.context,
+                    #         'exit': False
+                    #     }))
                     type_hint[arg_name_tokens[-1].value]['type'] = res.register(self.type_hint())
                     type_hints.append(type_hint)
                 if self.current_token.type == tokenList.TT_EQ:
@@ -2930,15 +2930,15 @@ class Parser:
                 }
             }
             self.skipLines()
-            if self.current_token.type != tokenList.TT_IDENTIFIER:
-                    self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "expected a type after ':'",
-                        'context': self.context,
-                        'exit': False
-                    }))
+            # if self.current_token.type != tokenList.TT_IDENTIFIER:
+            #         self.error_detected = True
+            #         return res.failure(self.error['Syntax']({
+            #             'pos_start': self.current_token.pos_start,
+            #             'pos_end': self.current_token.pos_end,
+            #             'message': "expected a type after ':'",
+            #             'context': self.context,
+            #             'exit': False
+            #         }))
             type_hint['return_type']['type'] = res.register(self.type_hint())
             type_hints.append(type_hint)
         if self.current_token.type == tokenList.TT_ARROW:
@@ -3763,15 +3763,15 @@ class Parser:
                         }
                     }
                     self.skipLines()
-                    if self.current_token.type != tokenList.TT_IDENTIFIER:
-                        self.error_detected = True
-                        return res.failure(self.error['Syntax']({
-                            'pos_start': self.current_token.pos_start,
-                            'pos_end': self.current_token.pos_end,
-                            'message': "expected a type after ':' after ':'",
-                            'context': self.context,
-                            'exit': False
-                        }))
+                    # if self.current_token.type != tokenList.TT_IDENTIFIER:
+                    #     self.error_detected = True
+                    #     return res.failure(self.error['Syntax']({
+                    #         'pos_start': self.current_token.pos_start,
+                    #         'pos_end': self.current_token.pos_end,
+                    #         'message': "expected a type after ':' after ':'",
+                    #         'context': self.context,
+                    #         'exit': False
+                    #     }))
                     type_hint[args_list[0].value]['type'] = res.register(self.type_hint())
                     type_hints.append(type_hint)
                 if self.current_token.type == tokenList.TT_EQ:
@@ -3865,15 +3865,15 @@ class Parser:
                             }
                         }
                         self.skipLines()
-                        if self.current_token.type != tokenList.TT_IDENTIFIER:
-                            self.error_detected = True
-                            return res.failure(self.error['Syntax']({
-                                'pos_start': self.current_token.pos_start,
-                                'pos_end': self.current_token.pos_end,
-                                'message': "expected a type after ':'",
-                                'context': self.context,
-                                'exit': False
-                            }))
+                        # if self.current_token.type != tokenList.TT_IDENTIFIER:
+                        #     self.error_detected = True
+                        #     return res.failure(self.error['Syntax']({
+                        #         'pos_start': self.current_token.pos_start,
+                        #         'pos_end': self.current_token.pos_end,
+                        #         'message': "expected a type after ':'",
+                        #         'context': self.context,
+                        #         'exit': False
+                        #     }))
                         type_hint[args_list[-1].value]['type'] = res.register(self.type_hint())
                         type_hints.append(type_hint)
                     if self.current_token.type == tokenList.TT_EQ:
@@ -3961,15 +3961,15 @@ class Parser:
                     }
                 }
                 self.skipLines()
-                if self.current_token.type != tokenList.TT_IDENTIFIER:
-                    self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "expected a type after ':'",
-                        'context': self.context,
-                        'exit': False
-                    }))
+                # if self.current_token.type != tokenList.TT_IDENTIFIER:
+                #     self.error_detected = True
+                #     return res.failure(self.error['Syntax']({
+                #         'pos_start': self.current_token.pos_start,
+                #         'pos_end': self.current_token.pos_end,
+                #         'message': "expected a type after ':'",
+                #         'context': self.context,
+                #         'exit': False
+                #     }))
                 type_hint['return_type']['type'] = res.register(self.type_hint())
                 type_hints.append(type_hint)
             

@@ -1,10 +1,2 @@
-def outer()
-    let x = "inner"
-    def inner()
-        print(x)
-    end
-    return inner
-end 
-
-outer()()
-
+let val = (1 + 2) * 3
+print(val)
