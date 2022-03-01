@@ -14059,7 +14059,7 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None, has_unpa
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"{len(args)} {argum_or_argums(args)} given, but isinstance() takes 2 arguments",
+            'message': f"{len(args)} {argum_or_argums(args)} given, but isinstanceof() takes 2 arguments",
             "context": context,
             'exit': False
         })
@@ -14068,7 +14068,7 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None, has_unpa
         raise Al_ArgumentError({
             "pos_start": node.pos_start,
             "pos_end": node.pos_end,
-            'message': f"isinstance() takes 2 arguments",
+            'message': f"isinstanceof() takes 2 arguments",
             "context": context,
             'exit': False
         })
@@ -14084,7 +14084,7 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None, has_unpa
             raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"isisnstance() argument 2 must be a type",
+                'message': f"isinstanceof() argument 2 must be a type",
                 "context": context,
                 'exit': False
             })
@@ -14093,7 +14093,7 @@ def BuiltInFunction_IsinstanceOf(args, node, context,keyword_args=None, has_unpa
              raise Al_TypeError({
                 "pos_start": node.pos_start,
                 "pos_end": node.pos_end,
-                'message': f"isisnstance() argument 2 must be a type",
+                'message': f"isinstanceof() argument 2 must be a type",
                 "context": context,
                 'exit': False
             })
@@ -22756,12 +22756,14 @@ class Interpreter:
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'in'):
             result, error = right.get_comparison_in(left)
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'not'):
-            if isinstance(left, Boolean):
-                if left.value == 'false':
-                    result, error = Boolean(False).setContext(context).setPosition(node.pos_start, node.pos_end), None
-                else:
-                    result, error = Boolean(True).setContext(context).setPosition(node.pos_start, node.pos_end), None
-            else:
+            # if isinstance(left, Boolean):
+            #     print(left)
+            #     if left.value == 'false':
+            #         result, error = Boolean(False).setContext(context).setPosition(node.pos_start, node.pos_end), None
+            #     else:
+            #         result, error = Boolean(True).setContext(context).setPosition(node.pos_start, node.pos_end), None
+            # else:
+            #     result, error = left.notted()
                 result, error = left.notted() 
         elif node.op_tok.matches(tokenList.TT_KEYWORD, 'notin'):
             result, error = right.get_comparison_not_in(left)
@@ -24220,3 +24222,4 @@ types_val =  List(types_var)
 symbolTable_.set('__@types__', types_val)
 symbolTable_.set("help", BuiltInFunction.help)
 symbolTable_.setSymbol()
+

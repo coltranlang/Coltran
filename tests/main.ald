@@ -1,2 +1,5 @@
 let val = (1 + 2) * 3
 print(val)
+
+import math
+print(math.lt(9, 36))
