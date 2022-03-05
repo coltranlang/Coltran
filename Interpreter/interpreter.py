@@ -6528,7 +6528,7 @@ class List(Value):
 
         return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
           
-    def pretty_print(self,args,kwargs,var_name=None, has_unpack=False):
+    def prettyPrint(self,args,kwargs,var_name=None, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
         
@@ -6539,7 +6539,7 @@ class List(Value):
         
         
         if args == None:
-            return BuiltInFunction("pretty_print", self.context)
+            return BuiltInFunction("prettyPrint", self.context)
         
         if len(kwargs) > 0:
             for key in kwargs:
@@ -6549,14 +6549,14 @@ class List(Value):
                         raise Al_ArgumentError({
                                 'pos_start': self.pos_start,
                                 'pos_end': self.pos_end,
-                                'message': f"pretty_print() got multiple values for argument 'indent'",
+                                'message': f"prettyPrint() got multiple values for argument 'indent'",
                                 'context': self.context,
                                 'exit': False
                             })
                     value = res.register(interpreter.visit(key['value'], self.context))
-                    check_type(Number, value, f"pretty_print() argument 'indent' must be of type number, not '{TypeOf(value).getType()}'", self.pos_start, self.pos_end, self.context)
+                    check_type(Number, value, f"prettyPrint() argument 'indent' must be of type number, not '{TypeOf(value).getType()}'", self.pos_start, self.pos_end, self.context)
                     
-                    check_type(int, value.value, f"pretty_print() argument 'indent' must be of type int, not '{TypeOf(value.value).getType()}'", self.pos_start, self.pos_end, self.context)
+                    check_type(int, value.value, f"prettyPrint() argument 'indent' must be of type int, not '{TypeOf(value.value).getType()}'", self.pos_start, self.pos_end, self.context)
                 
                     if value.value not in valid_indent_levels:
                         raise Al_ArgumentError({
@@ -6572,17 +6572,17 @@ class List(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"pretty_print() got an unexpected keyword argument '{name}'",
+                        'message': f"prettyPrint() got an unexpected keyword argument '{name}'",
                         'context': self.context,
                         'exit': False
                     }) 
-        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but prettyPrint() expects 0 arguments", self.pos_start, self.pos_end, self.context)
         
         if len(args) == 1:
-            check_type(Number, args[0], f"pretty_print() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[0], f"prettyPrint() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
             if isinstance(args[0], Number):
                 
-                check_type(int, args[0].value, f"pretty_print() argument 1 must be of type int, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+                check_type(int, args[0].value, f"prettyPrint() argument 1 must be of type int, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
                 
             if args[0].value in valid_indent_levels:
                 indent = args[0].value
@@ -6703,7 +6703,7 @@ list_methods = {
     'some': List.some,
     'every': List.every,
     'each': List.each,
-    'pretty_print': List.pretty_print,
+    'prettyPrint': List.prettyPrint,
     'is_number': List.is_number,
     'is_string': List.is_string,
     '__@str__': List.__string__,
@@ -8208,7 +8208,7 @@ class Dict(Value):
             
         return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
           
-    def pretty_print(self,args,kwargs,var_name=None, has_unpack=False):
+    def prettyPrint(self,args,kwargs,var_name=None, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
         
@@ -8219,7 +8219,7 @@ class Dict(Value):
         
         
         if args == None:
-            return BuiltInFunction("pretty_print", self.context)
+            return BuiltInFunction("prettyPrint", self.context)
         
         if len(kwargs) > 0:
             for key in kwargs:
@@ -8229,14 +8229,14 @@ class Dict(Value):
                         raise Al_ArgumentError({
                                 'pos_start': self.pos_start,
                                 'pos_end': self.pos_end,
-                                'message': f"pretty_print() got multiple values for argument 'indent'",
+                                'message': f"prettyPrint() got multiple values for argument 'indent'",
                                 'context': self.context,
                                 'exit': False
                             })
                     value = res.register(interpreter.visit(key['value'], self.context))
-                    check_type(Number, value, f"pretty_print() argument 'indent' must be of type number, not '{TypeOf(value).getType()}'", self.pos_start, self.pos_end, self.context)
+                    check_type(Number, value, f"prettyPrint() argument 'indent' must be of type number, not '{TypeOf(value).getType()}'", self.pos_start, self.pos_end, self.context)
                     
-                    check_type(int, value.value, f"pretty_print() argument 'indent' must be of type int, not '{TypeOf(value.value).getType()}'", self.pos_start, self.pos_end, self.context)
+                    check_type(int, value.value, f"prettyPrint() argument 'indent' must be of type int, not '{TypeOf(value.value).getType()}'", self.pos_start, self.pos_end, self.context)
                 
                     if value.value not in valid_indent_levels:
                         raise Al_ArgumentError({
@@ -8252,17 +8252,17 @@ class Dict(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"pretty_print() got an unexpected keyword argument '{name}'",
+                        'message': f"prettyPrint() got an unexpected keyword argument '{name}'",
                         'context': self.context,
                         'exit': False
                     }) 
-        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but prettyPrint() expects 0 arguments", self.pos_start, self.pos_end, self.context)
         
         if len(args) == 1:
-            check_type(Number, args[0], f"pretty_print() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[0], f"prettyPrint() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
             if isinstance(args[0], Number):
                 
-                check_type(int, args[0].value, f"pretty_print() argument 1 must be of type int, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+                check_type(int, args[0].value, f"prettyPrint() argument 1 must be of type int, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
                 
             if args[0].value in valid_indent_levels:
                 indent = args[0].value
@@ -8317,7 +8317,7 @@ dict_methods = {
     'update': Dict.update,
     'delete': Dict.delete,
     'clear': Dict.clear,
-    'pretty_print': Dict.pretty_print,
+    'prettyPrint': Dict.prettyPrint,
     '__@methods__': Dict.__methods__,
 }
 
@@ -8680,7 +8680,7 @@ class Object(Value):
             
         return String(string).setContext(self.context).setPosition(self.pos_start, self.pos_end)
           
-    def pretty_print(self,args,kwargs,var_name=None, has_unpack=False):
+    def prettyPrint(self,args,kwargs,var_name=None, has_unpack=False):
         res = RuntimeResult()
         interpreter = Interpreter()
         
@@ -8691,7 +8691,7 @@ class Object(Value):
         
         
         if args == None:
-            return BuiltInFunction("pretty_print", self.context)
+            return BuiltInFunction("prettyPrint", self.context)
         
         if len(kwargs) > 0:
             for key in kwargs:
@@ -8701,14 +8701,14 @@ class Object(Value):
                         raise Al_ArgumentError({
                                 'pos_start': self.pos_start,
                                 'pos_end': self.pos_end,
-                                'message': f"pretty_print() got multiple values for argument 'indent'",
+                                'message': f"prettyPrint() got multiple values for argument 'indent'",
                                 'context': self.context,
                                 'exit': False
                             })
                     value = res.register(interpreter.visit(key['value'], self.context))
-                    check_type(Number, value, f"pretty_print() argument 'indent' must be of type number, not '{TypeOf(value).getType()}'", self.pos_start, self.pos_end, self.context)
+                    check_type(Number, value, f"prettyPrint() argument 'indent' must be of type number, not '{TypeOf(value).getType()}'", self.pos_start, self.pos_end, self.context)
                     
-                    check_type(int, value.value, f"pretty_print() argument 'indent' must be of type int, not '{TypeOf(value.value).getType()}'", self.pos_start, self.pos_end, self.context)
+                    check_type(int, value.value, f"prettyPrint() argument 'indent' must be of type int, not '{TypeOf(value.value).getType()}'", self.pos_start, self.pos_end, self.context)
                 
                     if value.value not in valid_indent_levels:
                         raise Al_ArgumentError({
@@ -8724,17 +8724,17 @@ class Object(Value):
                     raise Al_ArgumentError({
                         'pos_start': self.pos_start,
                         'pos_end': self.pos_end,
-                        'message': f"pretty_print() got an unexpected keyword argument '{name}'",
+                        'message': f"prettyPrint() got an unexpected keyword argument '{name}'",
                         'context': self.context,
                         'exit': False
                     }) 
-        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but pretty_print() expects 0 arguments", self.pos_start, self.pos_end, self.context)
+        check_args((0,1), args, f"{len(args)} {argum_or_argums(args)} given, but prettyPrint() expects 0 arguments", self.pos_start, self.pos_end, self.context)
         
         if len(args) == 1:
-            check_type(Number, args[0], f"pretty_print() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+            check_type(Number, args[0], f"prettyPrint() argument 1 must be of type number, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
             if isinstance(args[0], Number):
                 
-                check_type(int, args[0].value, f"pretty_print() argument 1 must be of type int, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
+                check_type(int, args[0].value, f"prettyPrint() argument 1 must be of type int, not '{TypeOf(args[0]).getType()}'", self.pos_start, self.pos_end, self.context)
                 
             if args[0].value in valid_indent_levels:
                 indent = args[0].value
@@ -8782,7 +8782,7 @@ object_methods = {
     'values': Object.values,
     'items': Object.items,
     'get': Object.get,
-    'pretty_print': Object.pretty_print,
+    'prettyPrint': Object.prettyPrint,
     '__@methods__': Object.__methods__,
 }
 

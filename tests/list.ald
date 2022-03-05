@@ -30,14 +30,16 @@ for i=0 to fruits.length:
         print(sizes[j], fruits[i])
     end
 end
-# The 'in' loop provides a better way to iterate over an array and is more readable than the for loop.
-# They both produce the same result: ["red apple", "red banana", "red cherry", "big apple", "big banana", "big cherry", "small apple", "small banana", "small cherry"]
+
 
 in fruits as fruit:
     in sizes as size:
         print(size, fruit)
     end
 end
+
+# The For Loop can be used to iterate over an array, so as the in loop, except that the for loop uses the index of the array to iterate while the in loop uses the value of the array to iterate.
+
 
 # list copy
 
