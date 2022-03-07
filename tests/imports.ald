@@ -5,7 +5,7 @@
 
 # The current directory is added to the path of the module, this essentially means you don't have to type the full path of the module, like so:
 # current_directory = functions and module = add, so to import add, you can just type:
-# import add from functions, as opposed to import add from functions::add, which would require you to type functions::add.
+# import add from functions, as opposed to import add from functions.add, which would require you to type functions.add.
 
 # A directory is a package if it contains an @__init.ald file.
 
@@ -23,18 +23,18 @@ print(m) # prints <Module 'math', [built-in]>
 print(m.sqrt(25)) # prints 5
 
 # import style 4
-import @add from tests::functions # import @add function from tests package in functions.ald file
+import @add from tests.functions # import @add function from tests package in functions.ald file
 print(@add(2, 3)) # prints 5
 
 
 # import style 5
-import @add, @sub from tests::functions # import @add and @sub functions from tests package in functions.ald file
+import @add, @sub from tests.functions # import @add and @sub functions from tests package in functions.ald file
 print(@add(2, 3)) # prints 5
 print(@sub(2, 3)) # prints -1
 
 
 # import style 6
-import @add as a from tests::functions # import @add function from tests package in functions.ald file
+import @add as a from tests.functions # import @add function from tests package in functions.ald file
 print(a(2, 3)) # prints 5
 
 
@@ -59,7 +59,7 @@ print(sqrt(25)) # prints 5
 
 
 # import style 10
-from tests::functions import @add # import @add function from tests package in functions.ald file with specifying the directory
+from tests.functions import @add # import @add function from tests package in functions.ald file with specifying the directory
 print(@add(2, 3)) # prints 5
 
 
@@ -70,7 +70,7 @@ print(add(2, 3)) # prints 5
 
 
 # import style 12
-from tests::functions import @add, @sub # import @add and @sub functions from tests package in functions.ald file
+from tests.functions import @add, @sub # import @add and @sub functions from tests package in functions.ald file
 print(@add(2, 3)) # prints 5
 
 # import style 13
@@ -91,9 +91,9 @@ print(@mul(2, 3)) # prints 6
 # print(ADD(1,2))
 # from math import pow, abs, pi  # import pow, abs, pi functions from math module
 # print(pow(2, 3), abs(-2), pi) 
-# import Customer from tests::customer # import Customer class from tests::customer module
+# import Customer from tests.customer # import Customer class from tests.customer module
 # print(Customer)
-# import Customer as C from tests::customer # import Customer class as C from tests::customer module
+# import Customer as C from tests.customer # import Customer class as C from tests.customer module
 # print(C)
 # from math import add # import add function from math module
 # print(add(1,2))
@@ -101,7 +101,7 @@ print(@mul(2, 3)) # prints 6
 # print(square_root(25))
 # from math import * # import everything from math module
 # print(sqrt(16))
-# from tests::customer import Customer # import Customer class from tests::customer module
+# from tests.customer import Customer # import Customer class from tests.customer module
 # print(Customer)
 # from customer import Customer as C # import Customer class as C from customer module
 # print(C)
@@ -109,7 +109,7 @@ print(@mul(2, 3)) # prints 6
 # print(Customer)
 # from customer import * # import everything from customer module
 # print(names)
-# import @add from tests::functions # import @add function from tests::functions module
+# import @add from tests.functions # import @add function from tests.functions module
 # print(@add(1,2)) 
 
 # import functions as f # import functions module as f

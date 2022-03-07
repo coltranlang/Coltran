@@ -1,3 +1,4 @@
+import os
 import sys
 from Lexer.lexer import Lexer
 from Parser.parser import Parser
@@ -99,11 +100,16 @@ class Al_Program:
                     print(f"File '{fileName}' is not a valid alden file")
                     return
                 else:
+                    fileName = os.path.abspath(fileName)
                     result  = Al_Program.run(fileName, text)
                     return result
                 
         except FileNotFoundError:
             print(f"can't open file '{fileName}': No such file or directory")
+            return False
+        except Exception as e:
+            print(f"Error occured while running file '{fileName}'")
+            print(e)
             return False
     
     def repl():

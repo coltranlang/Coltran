@@ -5192,7 +5192,7 @@ class Parser:
         self.skipLines()
         paths.append(path)
         while True:
-            if self.current_token.type == tokenList.TT_DOUBLE_COLON:
+            if self.current_token.type == tokenList.TT_DOT:
                 self.skipLines()
                 if self.current_token.type != tokenList.TT_IDENTIFIER:
                     self.error_detected = True
@@ -5207,7 +5207,7 @@ class Parser:
                     ))
                 paths.append(self.current_token.value)
                 self.skipLines()
-                while self.current_token.type == tokenList.TT_DOUBLE_COLON:
+                while self.current_token.type == tokenList.TT_DOT:
                     self.skipLines()
                     if self.current_token.type != tokenList.TT_IDENTIFIER:
                         self.error_detected = True
@@ -5242,14 +5242,30 @@ class Parser:
 
 
         if self.current_token.type != tokenList.TT_IDENTIFIER:
-            self.error_detected = True
-            return res.failure(self.error['Syntax']({
-                'pos_start': self.current_token.pos_start,
-                'pos_end': self.current_token.pos_end,
-                'message': f"expected an identifier",
-                'context': self.context,
-                'exit': False
-            }))
+            if self.current_token.type == tokenList.TT_DOT:
+                module_name = Token(tokenList.TT_IDENTIFIER, str("."), pos_start, self.current_token.pos_end)
+                self.skipLines()
+                if self.current_token.type != tokenList.TT_IDENTIFIER:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax'](
+                        {
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': 'expected an identifier',
+                            'context': self.context,
+                            'exit': False
+                        }
+                    ))
+                module_path = self.current_token.value
+            else:
+                self.error_detected = True
+                return res.failure(self.error['Syntax']({
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': f"expected an identifier",
+                    'context': self.context,
+                    'exit': False
+                }))
 
         module_name = self.current_token
 
@@ -5356,6 +5372,19 @@ class Parser:
                 module_name = Token(tokenList.TT_IDENTIFIER, str("."), pos_start, self.current_token.pos_end)
                 from_module_name = module_name
                 self.skipLines()
+                if self.current_token.type == tokenList.TT_IDENTIFIER:
+                    module_name = self.current_token
+                    from_module_name = module_name
+                    self.skipLines()
+                else:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': f"expected an identifier",
+                        'context': self.context,
+                        'exit': False
+                    }))
             else:
                 self.error_detected = True
                 return res.failure(self.error['Syntax']({
@@ -5371,7 +5400,7 @@ class Parser:
             from_module_name = module_name
             self.skipLines()
 
-        if self.current_token.type == tokenList.TT_DOUBLE_COLON:
+        if self.current_token.type == tokenList.TT_DOT:
             self.skipLines()
             make_path = self.make_path(module_name.value)
             module_path = make_path
@@ -5384,7 +5413,7 @@ class Parser:
             return res.failure(self.error['Syntax']({
                 'pos_start': self.current_token.pos_start,
                 'pos_end': self.current_token.pos_end,
-                'message': f"expected an identifier",
+                'message': f'invalid syntax',
                 'context': self.context,
                 'exit': False
             }))

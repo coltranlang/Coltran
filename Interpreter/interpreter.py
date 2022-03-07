@@ -507,7 +507,21 @@ class Regex:
             return self.pattern.findall(text)
 
 
-
+class PackageManager:
+    def __init__(self, pacakge_name):
+        self.pacakge_name = pacakge_name
+    def getPackage(self):
+        # check for __@init__.ald file. If there is one, we make the file the module
+        package_file = f'__@init__.ald'
+        if os.path.isfile(self.pacakge_name + "/" + package_file):
+            return self.loadPackageFile(package_file)
+        else:
+            return self.pacakge_name + ".ald"
+    def loadPackageFile(self, package_file):
+        package_file_path = self.pacakge_name + "/" + package_file
+        # load the package file
+        #pacakge_code = Program.runFile(package_file_path)
+        return package_file_path
 
 class TypeOf:
     def __init__(self, type):
@@ -602,8 +616,6 @@ class Context:
         self.parent = parent
         self.parent_entry_pos = parent_entry_pos
         self.symbolTable = None
-
-
 
 
 class Program:
@@ -1094,7 +1106,7 @@ class Program:
 
     def runFile(file):
         try:
-            with open(file, 'r') as file_handle:
+            with open(file, 'r', encoding='utf-8') as file_handle:
                 code = file_handle.read()
                 if file[-4:] != ".ald":
                     print(f"File '{file}' is not a valid alden file")
@@ -1102,6 +1114,8 @@ class Program:
                 else:
                     return code
         except FileNotFoundError:
+            return None
+        except Exception as e:
             return None
 
     def createBuiltIn(path,name, value):
@@ -1134,7 +1148,8 @@ class Program:
             mod_name = module_name
         new_context = Context(mod_name, context, pos_start)
         new_context.symbolTable = SymbolTable(context.symbolTable)
-        lexer = Lexer(path, module, new_context, None, 'module', module_name)
+        M_path = os.path.abspath(path)
+        lexer = Lexer(M_path, module, new_context, None, 'module', module_name)
         mod = None
         tokens, error = lexer.make_tokens()
         if error: return "", error
@@ -1224,7 +1239,8 @@ class Program:
 
     def makeModule(module_path, module,context,pos_start,pos_end):
         res = RuntimeResult()
-        lexer = Lexer(module_path, module, None, 'module')
+        path = os.path.abspath(path)
+        lexer = Lexer(path, module, None, 'module')
         tokens, error = lexer.make_tokens()
         if error: return "", error
         new_context = Context('<module>', context, pos_start)
@@ -22589,7 +22605,39 @@ class Interpreter:
                 module_path = module_name + '.ald'
                 module_path_ = module_name
 
-        module = Program.runFile(module_path)
+        Module_ = Program.runFile(module_path)
+        module = Module_
+        if Module_ == None:
+            if module_from_name != None and hasattr(module_from_name, 'value'):
+                if not module_from_name.value in builtin_modules:
+                    curr_dir = '.'
+                    if os.path.isdir(module_from_name.value):
+                        package = PackageManager(module_from_name.value).getPackage()
+                        module_path = package
+                        Module_ = Program.runFile(package)
+                        module = Module_
+                    else:
+                        module_path = curr_dir + "/" + module_path_ + '.ald'
+                        module_path_ = module_path_
+                        Module_ = Program.runFile(module_path)
+                        module = Module_
+            elif not module_name in builtin_modules:
+                curr_dir = '.'
+                # check if module_name is a package
+                if os.path.isdir(module_name):
+                    package = PackageManager(module_name).getPackage()
+                    module_path = package
+                    Module_ = Program.runFile(package)
+                    module = Module_
+                else:
+                    module_path = curr_dir + "/" + module_path_ + '.ald'
+                    module_path_ = module_path_
+                    Module_ = Program.runFile(module_path)
+                    module = Module_
+            else:
+                module = Module_
+            
+        
         path = module_path
         if module == None:
             if mods != None and len(mods) > 0:
@@ -22649,7 +22697,7 @@ class Interpreter:
                             module = builtin_modules[module_path](path)
                             if node.module_alias is not None:
                                 module_name = node.module_alias.value
-                            module_object = Program.createModule(path,module_name,module_from_name, module, properties_list, context, True, node.pos_start, node.pos_end)
+                            module_object = Program.createModule(path, module_name, module_from_name, module, properties_list, context, True, node.pos_start, node.pos_end)
                             if isinstance(module_object, tuple) and module_object[0] == None:
                                 error['message'] = f"cannot import name '{module_object[1]}' from '{module_path_}'"
                                 raise Al_ImportError(error)
