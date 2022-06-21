@@ -1,7 +1,11 @@
 class Location
-    def __@init__(self)
-        self.lat = 1015673
-        self.lng = 336909
-        print(f"Driver's Location: %{self.lat}, %{self.lng}")
+    def __@init__(self, latitude, longitude)
+        self.latitude = latitude
+        self.longitude = longitude
+    end
+    def get_address(self)
+        let address = ""
+        address = f'The address is %{self.latitude}, %{self.longitude}'
+        return address
     end
 end
