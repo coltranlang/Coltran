@@ -177,10 +177,12 @@ class Program:
                 'pos_start': detail['pos_start'],
                 'pos_end': detail['pos_end'],
                 'context': detail['context'],
-                'exit': True
             }
-
-            raise A_SyntaxError(isDetail)
+            if detail['exit']:
+                Program.printErrorExit(Program.asString(isDetail))
+            else:
+                Program.printError(Program.asString(isDetail))
+            
 
         def Runtime(options):
             error = f'RuntimeError: {options["originator"]}, line {options["line"]}'

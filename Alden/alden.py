@@ -1,4 +1,3 @@
-import typer
 import sys
 import os
 import platform
@@ -6,7 +5,7 @@ sys.path.append("./")
 from Program.program import Al_Program
 
 
-app = typer.Typer()
+
 
 
    
@@ -36,19 +35,31 @@ def run(file):
         sys.exit(1)
  
 
-@app.command()
-def init(cmd: str = typer.Argument(""), file: str = typer.Argument("")):
+
+def init_cmd(cmd: str):
     if cmd:
         run(cmd)
     elif cmd == "repl":
         repl()
-    elif cmd == "-r":
+
+def init_cmd_file(cmd: str, file: str):
+    if cmd == "-r":
         run(file)
+    elif cmd:
+        run(cmd)
     else:
         repl()
+
+def init():
+    repl()
 
 
 
 
 if __name__ == "__main__":
-    typer.run(init)
+    if len(sys.argv) == 1:
+        init()
+    elif len(sys.argv) == 2:
+        init_cmd(sys.argv[1])
+    elif len(sys.argv) == 3:
+        init_cmd_file(sys.argv[1], sys.argv[2])

@@ -123,7 +123,7 @@ class Al_Program:
                         print(result) if result != None else print("")
                     else:
                         result = result.elements
-                        print(result, 'ff')
+                        print(result) if result != None else print("")
                 if error:
                     error = 'none' if error == '' else error
                     print(error)
