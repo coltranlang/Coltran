@@ -94,6 +94,11 @@ class File
         end
         return none
     end
+    def load_apm(self)
+        @check_closed(self)
+        print(f"Loading APM file: %{self.file.name}")
+        # TODO: Load APM file
+    end
     def close(self)
         self.file.close()
         self.closed = true
