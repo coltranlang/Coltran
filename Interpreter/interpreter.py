@@ -509,8 +509,8 @@ class PackageManager:
     def __init__(self, pacakge_name):
         self.pacakge_name = pacakge_name
     def getPackage(self):
-        # check for @init.ald file. If there is one, we make the file the module
-        package_file = f'@init.ald'
+        # check for __@init__.ald file. If there is one, we make the file the module
+        package_file = f'__@init__.ald'
         if os.path.isfile(self.pacakge_name + "/" + package_file):
             return self.loadPackageFile(package_file)
         else:
@@ -9615,6 +9615,7 @@ class Function(BaseFunction):
         if doc != None:
             self.doc = DocString(doc).setContext(self.context).setPosition(self.pos_start, self.pos_end)
         self.context = context
+        self.closure = SymbolTable()
         self.type_hints = type_hints
         self.value = f"<function {str(self.name) if self.name != 'none' else 'anonymous'}()>, {self.arg_names if len(self.arg_names) > 0 else '[no args]'}"
 
@@ -9630,6 +9631,9 @@ class Function(BaseFunction):
         unpacked_args = []
         non_unpacked_args = []
         exec_context.symbolTable.set("self", self)
+    
+       
+
         #new_args = args
         
         # type hint
@@ -9853,7 +9857,7 @@ class Function(BaseFunction):
             #         })
         # if isinstance(return_value, Function):
         #     print(return_value.context.symbolTable.symbols)
-            #print(exec_context.symbolTable.symbols)
+        
         return res.success(return_value)
 
     def make_missing_args(self, missing_args, len_args):
@@ -20970,6 +20974,25 @@ class Interpreter:
 
             elif type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
+                    if hasattr(object_key.node_to_call, 'type'):
+                        if object_key.node_to_call.type == tokenList.TT_IMPLICIT_OBJECT_REF:
+                            if '__@init__' in object_name.properties:
+                                value = object_name.properties['__@init__']
+                                args_node = object_key.args_nodes
+                                keyword_args_list = object_key.keyword_args_list
+                                has_unpack = object_key.has_unpack
+                                args = []
+                                for arg in args_node:
+                                    args.append(res.register(
+                                        self.visit(arg, context)))
+                                    if res.should_return(): return res
+                                return_value = res.register(value.execute(args, keyword_args_list, has_unpack))
+                                if res.should_return(): return res
+                                return res.success(return_value)
+                            else:
+                                error["message"] = f"Implicit object reference 'dict' has no __@init__ method"
+                                raise Al_PropertyError(error)
+                    
                     if object_key.node_to_call.value in dict_methods:
                         method_name = object_key.node_to_call.value
                         args = []
@@ -23804,7 +23827,7 @@ class Interpreter:
             return res
         value_to_call = value_to_call.copy().setPosition(
             node.pos_start, node.pos_end) if hasattr(value_to_call, 'copy') else value_to_call
-
+        
         if not isinstance(value_to_call, Function) and not isinstance(value_to_call, Class) and not isinstance(value_to_call, BuiltInFunction) and not isinstance(value_to_call, BuiltInClass):
             raise Al_TypeError({
                 'pos_start': node.pos_start,
@@ -23912,6 +23935,7 @@ class Interpreter:
         if res.should_return(): return res
         return_value = return_value.copy().setPosition(
             node.pos_start, node.pos_end).setContext(context) if hasattr(return_value, 'copy') else return_value
+        
         
         
         return res.success(return_value)
@@ -24045,7 +24069,7 @@ class Interpreter:
             'value': object,
             'type': 'freeze'
         })
-
+    
 
 print_doc = """
 Prints the given value to stdout.

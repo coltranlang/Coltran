@@ -1465,15 +1465,19 @@ class Parser:
                 res.register_advancement()
                 self.advance()
                 name = self.current_token
+                
                 if name != None and name.value == '' or name.value == None:
-                    self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': "expected property name after '.'",
-                        'context': self.context,
-                        'exit': False
-                    }))
+                    if hasattr(name, 'type') and name.type == tokenList.TT_IMPLICIT_OBJECT_REF:
+                        pass
+                    else:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax']({
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': "expected property name after '.'",
+                            'context': self.context,
+                            'exit': False
+                        }))
                 
                 if name == None:
                     self.error_detected = True
@@ -1506,7 +1510,7 @@ class Parser:
                     atom = res.register(self.access_property(atom))
                     if res.error:
                             return res
-                    if name.type != tokenList.TT_IDENTIFIER and name.type != tokenList.TT_KEYWORD:
+                    if name.type != tokenList.TT_IDENTIFIER and name.type != tokenList.TT_KEYWORD and name.type != tokenList.TT_IMPLICIT_OBJECT_REF:
                         self.error_detected = True
                         return res.failure(self.error['Syntax']({
                             'pos_start': name.pos_start,
@@ -1826,6 +1830,7 @@ class Parser:
     def atom(self):
         res = ParseResult()
         tok = self.current_token
+        
         if tok.type in (tokenList.TT_INT, tokenList.TT_FLOAT, tokenList.TT_BINARY, tokenList.TT_HEX, tokenList.TT_OCTAL):
             res.register_advancement()
             self.advance()

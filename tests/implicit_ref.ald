@@ -1,0 +1,19 @@
+# Note: Implicit object references are only allowed in the following cases:
+# 1. When the reference is to an object defined in a function.
+def logger(type: str)
+    def setMessage(msg: str)
+        print(f"%{type}: %{msg}")
+    end
+    def getType()
+        return type
+    end
+    return {
+        __@init__: setMessage,
+        getType: getType,
+    }
+end
+
+let debug = logger("Debug")
+let info = logger("Info")
+debug.$("Check out this debug message") # we using an implicit o0bject reference to the __@init__ function
+info.$("Check out this info message") # we using an implicit o0bject reference to the __@init__ function
