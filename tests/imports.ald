@@ -77,6 +77,19 @@ print(@add(2, 3)) # prints 5
 from functions import * # import everything from tests package in functions.ald file
 print(@mul(2, 3)) # prints 6
 
+# import style 14
+from .driver_package import Location # import Location class from driver_package package in current directory
+Location()
+
+
+
+
+
+
+
+
+
+
 # import math # import math module
 # print(math)
 # import math, file # import math module and file module

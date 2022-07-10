@@ -1,2 +1,2 @@
-from .driver_package import Location
-Location()
+from driver_package import Location
+print(Location(longitude=8, latitude=2).get_address())

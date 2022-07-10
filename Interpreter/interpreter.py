@@ -509,8 +509,8 @@ class PackageManager:
     def __init__(self, pacakge_name):
         self.pacakge_name = pacakge_name
     def getPackage(self):
-        # check for __@init__.ald file. If there is one, we make the file the module
-        package_file = f'__@init__.ald'
+        # check for @init.ald file. If there is one, we make the file the module
+        package_file = f'@init.ald'
         if os.path.isfile(self.pacakge_name + "/" + package_file):
             return self.loadPackageFile(package_file)
         else:
@@ -21490,6 +21490,9 @@ class Interpreter:
             if type(object_key).__name__ == "Token":
                     if object_key.value in builtin_function_methods:
                         return res.success(builtin_function_methods[object_key.value](object_name, None,None,None))
+                    else:
+                        error["message"] = f"{object_name.name} object has no property '{object_key.value}'"
+                        raise Al_PropertyError(error)
             if type(object_key).__name__ == "CallNode":
                 if type(object_key.node_to_call).__name__ == "Token":
                     if object_key.node_to_call.value in builtin_function_methods:

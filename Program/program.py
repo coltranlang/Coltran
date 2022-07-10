@@ -107,10 +107,7 @@ class Al_Program:
         except FileNotFoundError:
             print(f"can't open file '{fileName}': No such file or directory")
             return False
-        except Exception as e:
-            print(f"Error occured while running file '{fileName}'")
-            print(e)
-            return False
+        
     
     def repl():
         try:
