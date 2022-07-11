@@ -108,7 +108,7 @@ class Al_Program:
             print(f"can't open file '{fileName}': No such file or directory")
             return False
         except Exception as e:
-            print(f"Error occured while running file '{fileName}'")
+            print(f"Unknown error occured at file '{fileName}")
             return False
     
     def repl():

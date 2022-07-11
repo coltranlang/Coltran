@@ -1,16 +1,16 @@
--Name= "My First Alden Package";
--Description= "Alden Package for My First Project";
--Version= "1.0.0";
--Author= "Kehinde Akinsanya";
--License= "MIT";
--Copyright= "Copyright (c) 2020 Kehinde Akinsanya";
--URL= "mfap.tech";
--Requires= {
+-Name: "My First Alden Package";
+-Description: "Alden Package for My First Project";
+-Version: "1.0.0";
+-Author: "Kehinde Akinsanya";
+-License: "MIT";
+-Copyright: "Copyright (c) 2020 Kehinde Akinsanya";
+-URL: "mfap.tech";
+-Requires: {
     "test": "1.0.0",
     "fip": "1.0.0"
 };
--Scripts= {
+-Scripts: {
     "test": "alden ./scripts/test",
     "fip": "alden ./scripts/fip"
 };
--Github= "https://github.com/kehindeakinsanya/mfap";
+-Github: "https://github.com/kehindeakinsanya/mfap";

@@ -247,14 +247,14 @@ def vna_algorithm(params, args):
     return starargs, nonstarargs
 
 
-def create_module_path(module_path):
+def create_module_path(module_path, extension=True):
     new_path = [path for path in module_path]
     # for path in module_path:
     #     if path == '.':
     #         root_path = os.getcwd()
     #         new_path.insert(0, root_path)
     path = '/'.join(module_path)
-    path = path+'.ald'
+    path = path+'.ald' if extension else path
     path_ = ''
     # get last index of the path
     path_ = new_path[-1]
@@ -1283,6 +1283,7 @@ builtin_modules = {
     'random': Program.runFile,
     'hashlib': Program.runFile,
     'vna': Program.runFile,
+    'apm': Program.runFile,
 }
 
 
@@ -1324,6 +1325,21 @@ sqrt: Return the square root of x.
 sub: Return the difference of x and y.
 """
 
+
+apm_doc = """Module for working with APM files.
+
+Methods:
+parse: Parse an APM file and return a list of dictionaries. 
+--------------------------------------------------------------------------------
+    parse: (apmstring) - an APM string to parse.
+--------------------------------------------------------------------------------
+write: Create an APM object from a list of dictionaries.
+--------------------------------------------------------------------------------
+    write: (object) - an alden object to create an APM object from.
+--------------------------------------------------------------------------------
+"""
+
+
 builtin_modules_doc = {
     'math': math_doc,
     'http': None,
@@ -1335,6 +1351,7 @@ builtin_modules_doc = {
     'random': None,
     'hashlib': None,
     'vna': None,
+    'apm': apm_doc,
 }
 
 
@@ -10755,6 +10772,8 @@ class BuiltInFunction(BaseFunction):
 
         return_value = res.register(method(exec_context))
         if res.should_return(): return res
+        return_value = return_value.copy().setPosition(
+            self.pos_start, self.pos_end).setContext(exec_context) if hasattr(return_value, 'copy') else return_value
         return res.success(return_value)
 
 
@@ -10762,7 +10781,7 @@ class BuiltInFunction(BaseFunction):
         res = RuntimeResult()
         res.register(self.check_args(arg_names, default_values,  args, keyword_args, exec_context))
         if res.should_return(): return res
-
+    
         return res.success(None)
 
 
@@ -10843,7 +10862,7 @@ class BuiltInFunction(BaseFunction):
 
     #file
     def execute_read(self, exec_context):
-        return handle_file_read(self.properties['file'], self, exec_context)
+        return handle_file_read(self.properties['file'], self,  exec_context)
 
     execute_read.arg_names = []
     execute_read.default_values = [{}]
@@ -14504,7 +14523,7 @@ def BuiltInFunction_Require(args, node, context,keyword_args=None, has_unpack=Fa
                         raise Al_ImportError(error)
                     else:
                         try:
-                            path = f"./lib/{module_path}/@{module_path}.ald"
+                            path = f"./lib/{module_path}/__@init__.ald"
                             module = builtin_modules[module_path](path)
                             module_object = Program.makeModule(module_path, module, context, node.pos_start, node.pos_end)
                             return res.success(module_object)
@@ -22604,17 +22623,23 @@ class Interpreter:
         current_dir_name = os.path.dirname(node.pos_start.fileName)
         curr_dir = os.path.basename(current_dir_name)
         module_path_ = module_name
+        def determine_dots(calling_module_path, curr_dir): 
+            print(calling_module_path.split(curr_dir))
+        
+        
         if node.module_path != None:
             if len(node.module_path) == 1:
                 calling_module_path = node.pos_start.fileName
                 current_dir_name = os.path.realpath(os.path.dirname(calling_module_path))
                 curr_dir = os.path.basename(current_dir_name)
+                root_dir = os.path.basename(os.path.abspath(os.curdir))
+                determine_dots(calling_module_path, root_dir)
                 paths = []
                 for path in node.module_path:
                     paths = [curr_dir] + [path]
-                module_path = create_module_path(paths)[0]
+                module_path = create_module_path(paths, False)[0] + '/' + module_name + '.ald'
 
-                module_path_ = create_module_path(paths)[1]
+                module_path_ = create_module_path(paths)[1] 
             else:
                 module_path = create_module_path(node.module_path)[0]
                 module_path_ = create_module_path(node.module_path)[1]
@@ -22631,6 +22656,7 @@ class Interpreter:
 
         Module_ = Program.runFile(module_path)
         module = Module_
+        print(module_path, 'gg', module_path_)
         if Module_ == None:
             if module_from_name != None and hasattr(module_from_name, 'value'):
                 if not module_from_name.value in builtin_modules:
@@ -22676,7 +22702,7 @@ class Interpreter:
                             try:
                                 if properties_list != None and len(properties_list) > 0:
                                     module_from_name = node.from_module_name.value if node.from_module_name != None else node.module_name.value
-                                path = f"./lib/{module_path}/@{module_path}.ald"
+                                path = f"./lib/{module_path}/__@init__.ald"
                                 module = builtin_modules[module_path](path)
                                 if node.module_alias is not None:
                                     module_name = node.module_alias.value
@@ -22717,7 +22743,7 @@ class Interpreter:
                         try:
                             if properties_list != None and len(properties_list) > 0:
                                 module_from_name = node.from_module_name.value if node.from_module_name != None else node.module_name.value
-                            path = f"./lib/{module_path}/@{module_path}.ald"
+                            path = f"./lib/{module_path}/__@init__.ald"
                             module = builtin_modules[module_path](path)
                             if node.module_alias is not None:
                                 module_name = node.module_alias.value
@@ -23837,6 +23863,8 @@ class Interpreter:
                 'exit': False
             })
         for arg_node in node.args_nodes:
+            # check type of arg_node, multiline string cannot be used as arguments
+            
             args.append(res.register(self.visit(arg_node, context)))
             if res.should_return():
                 return res

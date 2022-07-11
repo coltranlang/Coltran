@@ -1,7 +1,0 @@
-# Package
-
-let __@modules = []
-
-let __@ignores = ['']
-
-let __@exports = ['']

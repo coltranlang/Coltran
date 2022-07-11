@@ -1,0 +1,12 @@
+# Package
+
+let __@modules = []
+
+let __@ignores = ['']
+
+let __@exports = ['']
+
+def test_suite()
+    print('test_suite')
+    print(__@modules)
+end

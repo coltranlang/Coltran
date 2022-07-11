@@ -1,0 +1,9 @@
+final config = {
+    "client_id": "isodnosd6eebecwye53283",
+    "client_secret": '35h9ew8734b34723wewe7te7'
+}
+
+def test()
+    print(config)
+end
+test()

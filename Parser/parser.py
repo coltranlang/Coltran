@@ -984,6 +984,7 @@ class Parser:
 
         if self.current_token.matches(tokenList.TT_KEYWORD, 'continue'):
             if hasattr(Parser, 'scope'):
+                print(Parser.scope)
                 if Parser.scope != 'loop':
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -2603,6 +2604,7 @@ class Parser:
         self.advance()
 
         condition = res.register(self.expr())
+        
         if condition == None or condition == '':
             self.error_detected = True
             return res.failure(self.error['Syntax']({
@@ -2626,12 +2628,13 @@ class Parser:
 
         res.register_advancement()
         self.advance()
-
+        
         if self.current_token.type == tokenList.TT_NEWLINE:
             res.register_advancement()
             self.advance()
 
             body = res.register(self.statements())
+            
             if body == '':
                 body = ListNode([], pos_start=self.current_token.pos_start, pos_end=self.current_token.pos_end)
             if res.error:
@@ -2644,17 +2647,18 @@ class Parser:
                     'context': self.context,
                     'exit': False
                 }))
+            
             res.register_advancement()
             self.advance()
-            Parser.scope = None
             return res.success(WhileNode(condition, body, True))
-
+        
         body = res.register(self.statement())
+        Parser.scope = None
         if body == '':
             body = ListNode([], pos_start=self.current_token.pos_start, pos_end=self.current_token.pos_end)
         if res.error:
             return res
-
+        
         return res.success(WhileNode(condition, body, False))
 
     def function_expr(self):
