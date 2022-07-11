@@ -22615,196 +22615,196 @@ class Interpreter:
                 "context": context,
                 "exit": False
             }
-        module_name = node.module_name.value
-        module_from_name = node.from_module_name
-        module_name_as = node.module_name_as.value if hasattr(node.module_name_as, 'value') else node.module_name_as
-        properties_list = node.properties
-        mods = node.mods
-        current_dir_name = os.path.dirname(node.pos_start.fileName)
-        curr_dir = os.path.basename(current_dir_name)
-        module_path_ = module_name
-        def determine_dots(calling_module_path, curr_dir): 
-            print(calling_module_path.split(curr_dir))
+        # module_name = node.module_name.value
+        # module_from_name = node.from_module_name
+        # module_name_as = node.module_name_as.value if hasattr(node.module_name_as, 'value') else node.module_name_as
+        # properties_list = node.properties
+        # mods = node.mods
+        # current_dir_name = os.path.dirname(node.pos_start.fileName)
+        # curr_dir = os.path.basename(current_dir_name)
+        # module_path_ = module_name
+        # def determine_dots(calling_module_path, curr_dir): 
+        #     print(calling_module_path.split(curr_dir))
         
         
-        if node.module_path != None:
-            if len(node.module_path) == 1:
-                calling_module_path = node.pos_start.fileName
-                current_dir_name = os.path.realpath(os.path.dirname(calling_module_path))
-                curr_dir = os.path.basename(current_dir_name)
-                root_dir = os.path.basename(os.path.abspath(os.curdir))
-                determine_dots(calling_module_path, root_dir)
-                paths = []
-                for path in node.module_path:
-                    paths = [curr_dir] + [path]
-                module_path = create_module_path(paths, False)[0] + '/' + module_name + '.ald'
+        # if node.module_path != None:
+        #     if len(node.module_path) == 1:
+        #         calling_module_path = node.pos_start.fileName
+        #         current_dir_name = os.path.realpath(os.path.dirname(calling_module_path))
+        #         curr_dir = os.path.basename(current_dir_name)
+        #         root_dir = os.path.basename(os.path.abspath(os.curdir))
+        #         determine_dots(calling_module_path, root_dir)
+        #         paths = []
+        #         for path in node.module_path:
+        #             paths = [curr_dir] + [path]
+        #         module_path = create_module_path(paths, False)[0] + '/' + module_name + '.ald'
 
-                module_path_ = create_module_path(paths)[1] 
-            else:
-                module_path = create_module_path(node.module_path)[0]
-                module_path_ = create_module_path(node.module_path)[1]
-        else:
-            calling_module_path = node.pos_start.fileName
-            current_dir_name = os.path.realpath(os.path.dirname(calling_module_path))
-            curr_dir = os.path.basename(current_dir_name)
-            if not module_name in builtin_modules:
-                module_path =  curr_dir + "/" + module_name + '.ald'
-                module_path_ = module_name
-            else:
-                module_path = module_name + '.ald'
-                module_path_ = module_name
+        #         module_path_ = create_module_path(paths)[1] 
+        #     else:
+        #         module_path = create_module_path(node.module_path)[0]
+        #         module_path_ = create_module_path(node.module_path)[1]
+        # else:
+        #     calling_module_path = node.pos_start.fileName
+        #     current_dir_name = os.path.realpath(os.path.dirname(calling_module_path))
+        #     curr_dir = os.path.basename(current_dir_name)
+        #     if not module_name in builtin_modules:
+        #         module_path =  curr_dir + "/" + module_name + '.ald'
+        #         module_path_ = module_name
+        #     else:
+        #         module_path = module_name + '.ald'
+        #         module_path_ = module_name
 
-        Module_ = Program.runFile(module_path)
-        module = Module_
-        print(module_path, 'gg', module_path_)
-        if Module_ == None:
-            if module_from_name != None and hasattr(module_from_name, 'value'):
-                if not module_from_name.value in builtin_modules:
-                    curr_dir = '.'
-                    if os.path.isdir(module_from_name.value):
-                        package = PackageManager(module_from_name.value).getPackage()
-                        module_path = package
-                        Module_ = Program.runFile(package)
-                        module = Module_
-                    else:
-                        module_path = curr_dir + "/" + module_path_ + '.ald'
-                        module_path_ = module_path_
-                        Module_ = Program.runFile(module_path)
-                        module = Module_
-            elif not module_name in builtin_modules:
-                curr_dir = '.'
-                # check if module_name is a package
-                if os.path.isdir(module_name):
-                    package = PackageManager(module_name).getPackage()
-                    module_path = package
-                    Module_ = Program.runFile(package)
-                    module = Module_
-                else:
-                    module_path = curr_dir + "/" + module_path_ + '.ald'
-                    module_path_ = module_path_
-                    Module_ = Program.runFile(module_path)
-                    module = Module_
-            else:
-                module = Module_
+        # Module_ = Program.runFile(module_path)
+        # module = Module_
+        # print(module_path, 'gg', module_path_)
+        # if Module_ == None:
+        #     if module_from_name != None and hasattr(module_from_name, 'value'):
+        #         if not module_from_name.value in builtin_modules:
+        #             curr_dir = '.'
+        #             if os.path.isdir(module_from_name.value):
+        #                 package = PackageManager(module_from_name.value).getPackage()
+        #                 module_path = package
+        #                 Module_ = Program.runFile(package)
+        #                 module = Module_
+        #             else:
+        #                 module_path = curr_dir + "/" + module_path_ + '.ald'
+        #                 module_path_ = module_path_
+        #                 Module_ = Program.runFile(module_path)
+        #                 module = Module_
+        #     elif not module_name in builtin_modules:
+        #         curr_dir = '.'
+        #         # check if module_name is a package
+        #         if os.path.isdir(module_name):
+        #             package = PackageManager(module_name).getPackage()
+        #             module_path = package
+        #             Module_ = Program.runFile(package)
+        #             module = Module_
+        #         else:
+        #             module_path = curr_dir + "/" + module_path_ + '.ald'
+        #             module_path_ = module_path_
+        #             Module_ = Program.runFile(module_path)
+        #             module = Module_
+        #     else:
+        #         module = Module_
             
         
-        path = module_path
-        if module == None:
-            if mods != None and len(mods) > 0:
-                module_object = None
-                for mod in mods:
-                    module_path = mod.value
-                    module_name = mod.value
-                    if module_path in builtin_modules:
-                        if  context.symbolTable.modules.is_module_in_members(module_name):
-                            pass
-                        else:
-                            try:
-                                if properties_list != None and len(properties_list) > 0:
-                                    module_from_name = node.from_module_name.value if node.from_module_name != None else node.module_name.value
-                                path = f"./lib/{module_path}/__@init__.ald"
-                                module = builtin_modules[module_path](path)
-                                if node.module_alias is not None:
-                                    module_name = node.module_alias.value
-                                module_object = Program.createModule(path, module_name, module_from_name, module, None, context, True, node.pos_start, node.pos_end)
-                            except RecursionError:
-                                    error['message'] = f"cannot import name '{module_name}' from '{module_path}' (most likely due to a circular import)"
-                                    raise Al_ImportError(error)
-                            except FileNotFoundError:
-                                error['message'] = f"cannot import name '{module_name}' from '{module_path}' (file does not exist)"
-                                raise Al_ImportError(error)
-                            except Exception as e:
-                                name = type(e).__name__
-                                if name.split('_')[0] == 'Al':
-                                    raise e
-                                else:
-                                    error['message'] = f"cannot import name '{module_name_as}' (most likely due to a circular import)"
+        # path = module_path
+        # if module == None:
+        #     if mods != None and len(mods) > 0:
+        #         module_object = None
+        #         for mod in mods:
+        #             module_path = mod.value
+        #             module_name = mod.value
+        #             if module_path in builtin_modules:
+        #                 if  context.symbolTable.modules.is_module_in_members(module_name):
+        #                     pass
+        #                 else:
+        #                     try:
+        #                         if properties_list != None and len(properties_list) > 0:
+        #                             module_from_name = node.from_module_name.value if node.from_module_name != None else node.module_name.value
+        #                         path = f"./lib/{module_path}/__@init__.ald"
+        #                         module = builtin_modules[module_path](path)
+        #                         if node.module_alias is not None:
+        #                             module_name = node.module_alias.value
+        #                         module_object = Program.createModule(path, module_name, module_from_name, module, None, context, True, node.pos_start, node.pos_end)
+        #                     except RecursionError:
+        #                             error['message'] = f"cannot import name '{module_name}' from '{module_path}' (most likely due to a circular import)"
+        #                             raise Al_ImportError(error)
+        #                     except FileNotFoundError:
+        #                         error['message'] = f"cannot import name '{module_name}' from '{module_path}' (file does not exist)"
+        #                         raise Al_ImportError(error)
+        #                     except Exception as e:
+        #                         name = type(e).__name__
+        #                         if name.split('_')[0] == 'Al':
+        #                             raise e
+        #                         else:
+        #                             error['message'] = f"cannot import name '{module_name_as}' (most likely due to a circular import)"
 
-                    else:
-                        error['message'] = "Module '{}' not found".format(
-                            module_name_as)
-                        raise Al_ModuleNotFoundError(error)
-                if isinstance(module_object, tuple) and module_object[0] == None:
-                    error['message'] = f"cannot import name '{module_object[1]}' from '{module_path_}'"
-                    raise Al_ImportError(error)
-                if not isinstance(module_object, tuple) and module_object == None:
-                    raise Al_SyntaxError(error)
-                else:
-                    context.symbolTable.modules.add_module(
-                        module_name, module_object)
-                    return res.success(module_object)
-            else:
-                name = node.module_name.value if properties_list == None else node.module_path[0]
-                module_path = name
-                if module_path in builtin_modules:
-                    if  context.symbolTable.modules.is_module_in_members(module_name):
-                        pass
-                    else:
-                        try:
-                            if properties_list != None and len(properties_list) > 0:
-                                module_from_name = node.from_module_name.value if node.from_module_name != None else node.module_name.value
-                            path = f"./lib/{module_path}/__@init__.ald"
-                            module = builtin_modules[module_path](path)
-                            if node.module_alias is not None:
-                                module_name = node.module_alias.value
-                            module_object = Program.createModule(path, module_name, module_from_name, module, properties_list, context, True, node.pos_start, node.pos_end)
-                            if isinstance(module_object, tuple) and module_object[0] == None:
-                                error['message'] = f"cannot import name '{module_object[1]}' from '{module_path_}'"
-                                raise Al_ImportError(error)
-                            if not isinstance(module_object, tuple) and module_object == None:
-                                raise Al_SyntaxError('error')
-                            else:
-                                context.symbolTable.modules.add_module(module_name, module_object)
-                                return res.success(module_object)
-                        except RecursionError:
-                                error['message'] = f"cannot import name '{module_name}' from '{module_path}' (most likely due to a circular import)"
-                                raise Al_ImportError(error)
-                        except FileNotFoundError:
-                            error['message'] = f"cannot import name '{module_name}' from '{module_path}' (file does not exist)"
-                            raise Al_ImportError(error)
-                        except Exception as e:
-                            name = type(e).__name__
-                            if name.split('_')[0] == 'Al':
-                                raise e
-                            else:
-                                error['message'] = f"cannot import name '{module_name_as}' (most likely due to a circular import)"
-                else:
-                    error['message'] = "Module '{}' not found".format(
-                        module_name_as)
-                    raise Al_ModuleNotFoundError(error)
-        else:
-            if  context.symbolTable.modules.is_module_in_members(module_name):
-                pass
-            # if context.symbolTable.modules.is_path_in_members(module_path):
-            #     module = context.symbolTable.modules.get_module(module_name)
-            else:
-                try:
-                    if node.module_alias is not None:
-                        module_name = node.module_alias.value
-                    if properties_list != None and len(properties_list) > 0:
-                            module_from_name = node.from_module_name.value if node.from_module_name != None else node.module_name.value
-                    module_object = Program.createModule(path,module_name, module_from_name, module, properties_list, context, False, node.pos_start, node.pos_end)
-                    if isinstance(module_object, tuple) and module_object[0] == None:
-                        error['message'] = f"cannot import name '{module_object[1]}' from '{module_path_}'"
-                        raise Al_ImportError(error)
-                    if not isinstance(module_object, tuple) and module_object == None:
-                        raise Al_SyntaxError(error)
-                    else:
-                        context.symbolTable.modules.add_module(module_name, module_object)
-                        context.symbolTable.modules.add_path(module_path, module_name)
-                        return res.success(module_object)
-                except RecursionError:
-                    error['message'] = f"cannot import name '{module_name}' from '{module_path}' (most likely due to a circular import)"
-                    raise Al_ImportError(error)
-                except FileNotFoundError:
-                        error['message'] = f"cannot import name '{module_name}' from '{module_path}' (file does not exist)"
-                        raise Al_ImportError(error)
-                except Exception as e:
-                    name = type(e).__name__
-                    if name.split('_')[0] == 'Al':
-                        raise e
-                    else:
-                        error['message'] = f"cannot import name '{module_name_as}' (most likely due to a circular import)"
+        #             else:
+        #                 error['message'] = "Module '{}' not found".format(
+        #                     module_name_as)
+        #                 raise Al_ModuleNotFoundError(error)
+        #         if isinstance(module_object, tuple) and module_object[0] == None:
+        #             error['message'] = f"cannot import name '{module_object[1]}' from '{module_path_}'"
+        #             raise Al_ImportError(error)
+        #         if not isinstance(module_object, tuple) and module_object == None:
+        #             raise Al_SyntaxError(error)
+        #         else:
+        #             context.symbolTable.modules.add_module(
+        #                 module_name, module_object)
+        #             return res.success(module_object)
+        #     else:
+        #         name = node.module_name.value if properties_list == None else node.module_path[0]
+        #         module_path = name
+        #         if module_path in builtin_modules:
+        #             if  context.symbolTable.modules.is_module_in_members(module_name):
+        #                 pass
+        #             else:
+        #                 try:
+        #                     if properties_list != None and len(properties_list) > 0:
+        #                         module_from_name = node.from_module_name.value if node.from_module_name != None else node.module_name.value
+        #                     path = f"./lib/{module_path}/__@init__.ald"
+        #                     module = builtin_modules[module_path](path)
+        #                     if node.module_alias is not None:
+        #                         module_name = node.module_alias.value
+        #                     module_object = Program.createModule(path, module_name, module_from_name, module, properties_list, context, True, node.pos_start, node.pos_end)
+        #                     if isinstance(module_object, tuple) and module_object[0] == None:
+        #                         error['message'] = f"cannot import name '{module_object[1]}' from '{module_path_}'"
+        #                         raise Al_ImportError(error)
+        #                     if not isinstance(module_object, tuple) and module_object == None:
+        #                         raise Al_SyntaxError('error')
+        #                     else:
+        #                         context.symbolTable.modules.add_module(module_name, module_object)
+        #                         return res.success(module_object)
+        #                 except RecursionError:
+        #                         error['message'] = f"cannot import name '{module_name}' from '{module_path}' (most likely due to a circular import)"
+        #                         raise Al_ImportError(error)
+        #                 except FileNotFoundError:
+        #                     error['message'] = f"cannot import name '{module_name}' from '{module_path}' (file does not exist)"
+        #                     raise Al_ImportError(error)
+        #                 except Exception as e:
+        #                     name = type(e).__name__
+        #                     if name.split('_')[0] == 'Al':
+        #                         raise e
+        #                     else:
+        #                         error['message'] = f"cannot import name '{module_name_as}' (most likely due to a circular import)"
+        #         else:
+        #             error['message'] = "Module '{}' not found".format(
+        #                 module_name_as)
+        #             raise Al_ModuleNotFoundError(error)
+        # else:
+        #     if  context.symbolTable.modules.is_module_in_members(module_name):
+        #         pass
+        #     # if context.symbolTable.modules.is_path_in_members(module_path):
+        #     #     module = context.symbolTable.modules.get_module(module_name)
+        #     else:
+        #         try:
+        #             if node.module_alias is not None:
+        #                 module_name = node.module_alias.value
+        #             if properties_list != None and len(properties_list) > 0:
+        #                     module_from_name = node.from_module_name.value if node.from_module_name != None else node.module_name.value
+        #             module_object = Program.createModule(path,module_name, module_from_name, module, properties_list, context, False, node.pos_start, node.pos_end)
+        #             if isinstance(module_object, tuple) and module_object[0] == None:
+        #                 error['message'] = f"cannot import name '{module_object[1]}' from '{module_path_}'"
+        #                 raise Al_ImportError(error)
+        #             if not isinstance(module_object, tuple) and module_object == None:
+        #                 raise Al_SyntaxError(error)
+        #             else:
+        #                 context.symbolTable.modules.add_module(module_name, module_object)
+        #                 context.symbolTable.modules.add_path(module_path, module_name)
+        #                 return res.success(module_object)
+        #         except RecursionError:
+        #             error['message'] = f"cannot import name '{module_name}' from '{module_path}' (most likely due to a circular import)"
+        #             raise Al_ImportError(error)
+        #         except FileNotFoundError:
+        #                 error['message'] = f"cannot import name '{module_name}' from '{module_path}' (file does not exist)"
+        #                 raise Al_ImportError(error)
+        #         except Exception as e:
+        #             name = type(e).__name__
+        #             if name.split('_')[0] == 'Al':
+        #                 raise e
+        #             else:
+        #                 error['message'] = f"cannot import name '{module_name_as}' (most likely due to a circular import)"
 
 
     def visit_BinOpNode(self, node, context):
