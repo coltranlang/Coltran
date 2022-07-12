@@ -1,3 +1,2 @@
-from location import Location
-print("Loading...")
-print(Location(longitude=5, latitude=0).get_address())
+let __version__ = '0.1.0'
+let __author__ = 'Juan Pablo Varela'

@@ -45,6 +45,8 @@ from Token import tokenList
 from Lexer.lexer import Lexer
 import sys
 import re
+import math
+import math as m
 sys.path.append('./Parser/')
 # def match(pattern, text, pos_start, pos_end):
 #     matches = []
@@ -738,28 +740,12 @@ class CallNode:
 
 
 class ImportNode:
-    def __init__(self, module_name, properties, module_alias, module_path, module_name_as,type_,mods=None, from_module_name=None):
-        self.id = module_name
-        self.module_name = module_name
-        self.properties = properties if len(properties) > 0 else None
-        self.module_alias = module_alias
-        self.module_path = module_path
-        self.module_name_as = module_name_as
-        self.type_ = type_
-        self.mods = mods
-        self.from_module_name = from_module_name
-        if self.module_alias:
-            self.pos_start = self.module_alias.pos_start
-        else:
-            self.pos_start = self.module_name.pos_start
-        if len(properties) > 0:
-            self.pos_end = self.properties[len(properties) - 1].pos_end
-        else:
-            self.pos_end = self.module_name.pos_end
-        self.module_object = {
-            'name': self.module_name.value,
-            'path': self.module_path if self.module_path else None
-        }
+    def __init__(self, module, _type):
+        self.id = module['name']
+        self.module = module
+        self._type = _type
+        self.pos_start = module['pos_start']
+        self.pos_end = module['pos_end']
 
     def __repr__(self):
         return f'{self.module_name}'
@@ -5240,20 +5226,29 @@ class Parser:
 
     def import_expr(self):
         res = ParseResult()
-        module_name = ''
         module = {
             'name': '',
             'as': '',
-            'path': '',
+            'paths': [],
+            'is_root': False,
+            'is_package': True, # default to true
+            'pos_start': self.current_token.pos_start,
+            'pos_end': self.current_token.pos_end,
+            'members': []
         }
-        properties = []
-        mods = []
-        relative = []
-        non_relative = []
-        relative_dots = 0
-        module_alias = None
-        module_path = None
-        module_name_as = None
+        # import module_name then module['name'] = module_name
+        # if module_name is not followed by 'as' then module['as'] = module_name
+        # if module_name is followed by 'as' then module['as'] = module_name_as
+        # then module['paths'] = module_name
+        
+        # second case
+        # import library.module_name then the last identifier is the module name
+        # then module['name'] = library.module_name and module['paths'] = [library, module_name]
+        # if module_name is followed by 'as' then module['as'] = module_name_as
+        # if module_name is not followed by 'as' then module['as'] = module_name
+        # because the import statement doesn't end in .ald then module['is_package'] = True
+        # if the import statement ends in .ald then module['is_package'] = False
+
 
         pos_start = self.current_token.pos_start.copy()
         if self.current_token.matches(tokenList.TT_KEYWORD, 'import'):
@@ -5262,15 +5257,64 @@ class Parser:
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             module_name = self.current_token.value
             module['name'] = module_name
+            module['as'] = module_name
+            module['paths'].append(module_name)
+            module['pos_start'] = pos_start
             self.skipLines()
 
-        
 
+        
+        if self.current_token.type == tokenList.TT_DOT:
+            self.skipLines()
+            if module['name'] == '':
+                module['is_root'] = True
+            if self.current_token.type == tokenList.TT_IDENTIFIER:
+                module['as'] = module['name']
+                module['paths'].append(self.current_token.value)
+                # if self.current_token.value != 'ald' then the module['name'] is the last identifier in the module path
+                if self.current_token.value != 'ald':
+                    module['name'] = self.current_token.value
+                    module['as'] = self.current_token.value
+                    module['pos_end'] = self.current_token.pos_end
+                self.skipLines()
+                while self.current_token.type == tokenList.TT_DOT:
+                    self.skipLines()
+                    if self.current_token.type == tokenList.TT_IDENTIFIER:
+                        module['paths'].append(self.current_token.value)
+                        # if self.current_token.value != 'ald' then the module['name'] is the last identifier in the module path
+                        if self.current_token.value != 'ald':
+                            module['name'] = self.current_token.value
+                            module['as'] = self.current_token.value
+                        module['pos_end'] = self.current_token.pos_end
+                        self.skipLines()
+                    else:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax'](
+                            {
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': 'expected an identifier',
+                                'context': self.context,
+                                'exit': False
+                            }
+                        ))
+            else:
+                self.error_detected = True
+                return res.failure(self.error['Syntax'](
+                    {
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': 'expected an identifier',
+                        'context': self.context,
+                        'exit': False
+                    }
+                ))
+    
         if self.current_token.matches(tokenList.TT_KEYWORD, 'as'):
             self.skipLines()
             if self.current_token.type == tokenList.TT_IDENTIFIER:
-                module_name_as = self.current_token.value
-                module['as'] = module_name_as
+                module['as'] = self.current_token.value
+                module['pos_end'] = self.current_token.pos_end
                 self.skipLines()
             else:
                 self.error_detected = True
@@ -5283,289 +5327,176 @@ class Parser:
                         'exit': False
                     }
                 ))
+        # check if the module['paths'] last element is ald
+        if len(module['paths']) > 1:
+            # module['name'] is the last element in module['paths']
+            
+            if module['paths'][-1] == 'ald':
+                module['is_package'] = False
+                module['paths'].pop()
+
+        return res.success(ImportNode(module, "import"))
         
-           
+    def from_import_expr(self):
+        res = ParseResult()
+        module = {
+                'name': '',
+                'as': '',
+                'paths': [],
+                'is_root': False,
+                'is_package': True, # default to true
+                'pos_start': self.current_token.pos_start,
+                'pos_end': self.current_token.pos_end,
+                'members': []
+            }
+        pos_start = self.current_token.pos_start.copy()
         if self.current_token.matches(tokenList.TT_KEYWORD, 'from'):
             self.skipLines()
-            if self.current_token.type == tokenList.TT_SINGLE_STRING or self.current_token.type == tokenList.TT_DOUBLE_STRING:
-                module_path = self.current_token.value
-                module['path'] = module_path
+
+        if self.current_token.type == tokenList.TT_IDENTIFIER:
+            module_name = self.current_token.value
+            module['name'] = module_name
+            module['as'] = module_name
+            module['paths'].append(module_name)
+            module['pos_start'] = pos_start
+            self.skipLines()
+
+
+        
+        if self.current_token.type == tokenList.TT_DOT:
+            self.skipLines()
+            if module['name'] == '':
+                module['is_root'] = True
+            if self.current_token.type == tokenList.TT_IDENTIFIER:
+                module['as'] = module['name']
+                module['paths'].append(self.current_token.value)
+                # if self.current_token.value != 'ald' then the module['name'] is the last identifier in the module path
+                if self.current_token.value != 'ald':
+                    module['name'] = self.current_token.value
+                    module['as'] = self.current_token.value
+                    module['pos_end'] = self.current_token.pos_end
                 self.skipLines()
+                while self.current_token.type == tokenList.TT_DOT:
+                    self.skipLines()
+                    if self.current_token.type == tokenList.TT_IDENTIFIER:
+                        module['paths'].append(self.current_token.value)
+                        # if self.current_token.value != 'ald' then the module['name'] is the last identifier in the module path
+                        if self.current_token.value != 'ald':
+                            module['name'] = self.current_token.value
+                            module['as'] = self.current_token.value
+                        module['pos_end'] = self.current_token.pos_end
+                        self.skipLines()
+                    else:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax'](
+                            {
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': 'expected an identifier',
+                                'context': self.context,
+                                'exit': False
+                            }
+                        ))
             else:
                 self.error_detected = True
                 return res.failure(self.error['Syntax'](
                     {
                         'pos_start': self.current_token.pos_start,
                         'pos_end': self.current_token.pos_end,
-                        'message': 'expected a string',
+                        'message': 'expected an identifier',
                         'context': self.context,
                         'exit': False
                     }
                 ))
-            
-            
+    
         
-        
-        else:
-            module['path'] = module['name']
-            
+
+        if not self.current_token.matches(tokenList.TT_KEYWORD, 'import'):
+            self.error_detected = True
+            return res.failure(self.error['Syntax'](
+                {
+                    'pos_start': self.current_token.pos_start,
+                    'pos_end': self.current_token.pos_end,
+                    'message': 'expected an import',
+                    'context': self.context,
+                    'exit': False
+                }
+            ))
+    
         self.skipLines()
-            
-        print(self.current_token, module)
-        return
-        
-        # if self.current_token.type != tokenList.TT_IDENTIFIER:
-        #     if self.current_token.type == tokenList.TT_DOT:
-        #         module_name = Token(tokenList.TT_IDENTIFIER, str("."), pos_start, self.current_token.pos_end)
-        #         relative.append('.')
-        #         self.skipLines()
-        #         if self.current_token.type != tokenList.TT_IDENTIFIER:
-        #             self.error_detected = True
-        #             return res.failure(self.error['Syntax'](
-        #                 {
-        #                     'pos_start': self.current_token.pos_start,
-        #                     'pos_end': self.current_token.pos_end,
-        #                     'message': 'expected an identifier',
-        #                     'context': self.context,
-        #                     'exit': False
-        #                 }
-        #             ))
-        #         module_path = self.current_token.value
-        #     else:
-        #         self.error_detected = True
-        #         return res.failure(self.error['Syntax']({
-        #             'pos_start': self.current_token.pos_start,
-        #             'pos_end': self.current_token.pos_end,
-        #             'message': f"expected an identifier",
-        #             'context': self.context,
-        #             'exit': False
-        #         }))
-
-        # module_name = self.current_token
-
-        # self.skipLines()
-
-        # while self.current_token.type == tokenList.TT_COMMA:
-        #     self.skipLines()
-        #     if self.current_token.type != tokenList.TT_IDENTIFIER:
-        #         self.error_detected = True
-        #         return res.failure(self.error['Syntax']({
-        #             'pos_start': self.current_token.pos_start,
-        #             'pos_end': self.current_token.pos_end,
-        #             'message': f"expected an identifier",
-        #             'context': self.context,
-        #             'exit': False
-        #         }))
-
-        #     properties.append(module_name)
-        #     properties.append(self.current_token)
-        #     self.skipLines()
-
-        # if self.current_token.matches(tokenList.TT_KEYWORD, 'as'):
-        #     if len(properties) > 0:
-        #         self.error_detected = True
-        #         return res.failure(self.error['Syntax']({
-        #             'pos_start': self.current_token.pos_start,
-        #             'pos_end': self.current_token.pos_end,
-        #             'message': f"invalid syntax",
-        #             'context': self.context,
-        #             'exit': False
-        #         }))
-
-        #     self.skipLines()
-        #     if self.current_token.type != tokenList.TT_IDENTIFIER:
-        #         return res.failure(self.error['Syntax']({
-        #             'pos_start': self.current_token.pos_start,
-        #             'pos_end': self.current_token.pos_end,
-        #             'message': f"expected an identifier",
-        #             'context': self.context,
-        #             'exit': False
-        #         }))
-        #     module_alias = self.current_token
-        #     self.skipLines()
-
-        # if self.current_token.matches(tokenList.TT_KEYWORD, 'from'):
-        #     if len(properties) == 0:
-        #         properties.append(module_name)
-        #     if module_name.value in builtin_modules:
-        #         self.error_detected = True
-        #         return res.failure(self.error['Syntax']({
-        #             'pos_start': self.current_token.pos_start,
-        #             'pos_end': self.current_token.pos_end,
-        #             'message': f"invalid syntax",
-        #             'context': self.context,
-        #             'exit': False
-        #         }))
-        #     self.skipLines()
-        #     if self.current_token.type != tokenList.TT_IDENTIFIER:
-        #         return res.failure(self.error['Syntax']({
-        #             'pos_start': self.current_token.pos_start,
-        #             'pos_end': self.current_token.pos_end,
-        #             'message': f"expected an identifier",
-        #             'context': self.context,
-        #             'exit': False
-        #         }))
-
-        #     base = res.register(self.atom()).name.value
-            
-        #     if self.current_token.type == tokenList.TT_DOUBLE_COLON:
-        #         self.skipLines()
-        #         make_path = self.make_path(base)
-        #         module_path = make_path
-
-        #     if module_path is None:
-        #         module_path = [base]
-
-        #     if self.current_token.type != tokenList.TT_NEWLINE:
-        #         self.error_detected = True
-        #         return res.failure(self.error['Syntax']({
-        #             'pos_start': self.current_token.pos_start,
-        #             'pos_end': self.current_token.pos_end,
-        #             'message': f"invalid syntax",
-        #             'context': self.context,
-        #             'exit': False
-        #         }))
-        # else:
-        #     mods = properties
-        # module_name_as = properties[-1] if len(properties) > 0 else module_name
-        # print(module_name, properties, module_alias, module_path, module_name_as, 'dd')
-        # return res.success(ImportNode(module_name, properties, module_alias, module_path, module_name_as, "import", mods))
-
-    def from_import_expr(self):
-        res = ParseResult()
-        module_name = ''
-        properties = []
-        module_alias = None
-        module_path = None
-        module_name_as = None
-        pos_start = self.current_token.pos_start.copy()
-        if self.current_token.matches(tokenList.TT_KEYWORD, 'from'):
+        if self.current_token.type == tokenList.TT_IDENTIFIER:
+            module['members'].append({
+                'name': self.current_token.value,
+                'as': self.current_token.value,
+            })
+            module['pos_end'] = self.current_token.pos_end
             self.skipLines()
-
-
-        if self.current_token.type != tokenList.TT_IDENTIFIER:
-            if self.current_token.type == tokenList.TT_DOT:
-                module_name = Token(tokenList.TT_IDENTIFIER, str("."), pos_start, self.current_token.pos_end)
-                from_module_name = module_name
+            if self.current_token.matches(tokenList.TT_KEYWORD, 'as'):
                 self.skipLines()
                 if self.current_token.type == tokenList.TT_IDENTIFIER:
-                    module_name = self.current_token
-                    from_module_name = module_name
+                    module['members'][-1]['as'] = self.current_token.value
+                    module['pos_end'] = self.current_token.pos_end
                     self.skipLines()
                 else:
                     self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': f"expected an identifier",
-                        'context': self.context,
-                        'exit': False
-                    }))
-            else:
-                self.error_detected = True
-                return res.failure(self.error['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': f"expected an identifier or '.'",
-                    'context': self.context,
-                    'exit': False
-                }))
-
-        elif self.current_token.type == tokenList.TT_IDENTIFIER:
-            module_name = self.current_token
-            from_module_name = module_name
-            self.skipLines()
-
-        if self.current_token.type == tokenList.TT_DOT:
-            self.skipLines()
-            make_path = self.make_path(module_name.value)
-            module_path = make_path
-
-        if module_path is None:
-            module_path = [module_name.value]
-
-
-        if not self.current_token.matches(tokenList.TT_KEYWORD, 'import'):
-            return res.failure(self.error['Syntax']({
-                'pos_start': self.current_token.pos_start,
-                'pos_end': self.current_token.pos_end,
-                'message': f'invalid syntax',
-                'context': self.context,
-                'exit': False
-            }))
-
-        self.skipLines()
-
-        if self.current_token.type == tokenList.TT_IDENTIFIER:
-            module_name = self.current_token
-            properties.append(self.current_token)
-            self.skipLines()
-
-        elif self.current_token.type == tokenList.TT_MUL:
-                module_name = Token(tokenList.TT_IDENTIFIER, '*', self.current_token.pos_start, self.current_token.pos_end)
-                properties.append(module_name)
+                    return res.failure(self.error['Syntax'](
+                        {
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': 'expected an identifier',
+                            'context': self.context,
+                            'exit': False
+                        }
+                    ))
+            while self.current_token.type == tokenList.TT_COMMA:
                 self.skipLines()
-        else:
-            return res.failure(self.error['Syntax']({
-                'pos_start': self.current_token.pos_start,
-                'pos_end': self.current_token.pos_end,
-                'message': f"expected an identifier",
-                'context': self.context,
-                'exit': False
-            }))
-
-
-        while self.current_token.type == tokenList.TT_COMMA:
-            self.skipLines()
-            if self.current_token.type != tokenList.TT_IDENTIFIER:
-                self.error_detected = True
-                return res.failure(self.error['Syntax']({
-                    'pos_start': self.current_token.pos_start,
-                    'pos_end': self.current_token.pos_end,
-                    'message': f"expected an identifier",
-                    'context': self.context,
-                    'exit': False
-                }))
-            properties.append(self.current_token)
-            self.skipLines()
-
-        if self.current_token.matches(tokenList.TT_KEYWORD, 'as'):
-                if module_name.value  == '*':
+                if self.current_token.type == tokenList.TT_IDENTIFIER:
+                    module['members'].append({
+                        'name': self.current_token.value,
+                        'as': self.current_token.value,
+                    })
+                    module['pos_end'] = self.current_token.pos_end
+                    self.skipLines()
+                    if self.current_token.matches(tokenList.TT_KEYWORD, 'as'):
+                        self.skipLines()
+                        if self.current_token.type == tokenList.TT_IDENTIFIER:
+                            module['members'][-1]['as'] = self.current_token.value
+                            module['pos_end'] = self.current_token.pos_end
+                            self.skipLines()
+                        else:
+                            self.error_detected = True
+                            return res.failure(self.error['Syntax'](
+                                {
+                                    'pos_start': self.current_token.pos_start,
+                                    'pos_end': self.current_token.pos_end,
+                                    'message': 'expected an identifier',
+                                    'context': self.context,
+                                    'exit': False
+                                }
+                            ))
+                else:
                     self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': f"invalid syntax",
-                        'context': self.context,
-                        'exit': False
-                    }))
-                if len(properties) > 1:
-                    self.error_detected = True
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': f"invalid syntax",
-                        'context': self.context,
-                        'exit': False
-                    }))
+                    return res.failure(self.error['Syntax'](
+                        {
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': 'expected an identifier',
+                            'context': self.context,
+                            'exit': False
+                        }
+                    ))
 
-                self.skipLines()
-                if self.current_token.type != tokenList.TT_IDENTIFIER:
-                    return res.failure(self.error['Syntax']({
-                        'pos_start': self.current_token.pos_start,
-                        'pos_end': self.current_token.pos_end,
-                        'message': f"expected an identifier",
-                        'context': self.context,
-                        'exit': False
-                    }))
-                module_alias = self.current_token
-                self.skipLines()
-
-        module_name_as = module_path[-1] if len(
-                module_path) > 0 else module_name
         
-        return res.success(ImportNode(module_name, properties, module_alias, module_path, module_name_as, "from", None, from_module_name))
+        # check if the module['paths'] last element is ald
+        if len(module['paths']) > 1:
+            # module['name'] is the last element in module['paths']
+            if module['paths'][-1] == 'ald':
+                module['is_package'] = False
+                module['paths'].pop()
 
+        
+        return res.success(ImportNode(module, "from"))
+            
     def freeze_expr(self):
         res = ParseResult()
         

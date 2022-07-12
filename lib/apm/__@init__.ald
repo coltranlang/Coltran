@@ -1,4 +1,4 @@
-from apm.tokenList import tokenList
+import lib.apm.tokenList.ald
 def parse(filestr: str): Dict
    
 end

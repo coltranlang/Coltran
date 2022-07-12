@@ -1,0 +1,5 @@
+import file 
+import apm
+let package_apm_file = file.open('package.apm')
+let package_apm = apm.parse(package_apm_file.read())
+print(package_apm)

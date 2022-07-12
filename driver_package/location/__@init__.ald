@@ -1,0 +1,13 @@
+let __version__ = '0.0.1'
+
+class Location
+    def __@init__(self, latitude, longitude)
+        self.latitude = latitude
+        self.longitude = longitude
+    end
+    def get_address(self)
+        let address = ""
+        address = f'The address is %{self.latitude}, %{self.longitude}'
+        return address
+    end
+end

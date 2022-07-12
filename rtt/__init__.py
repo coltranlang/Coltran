@@ -1,1 +1,0 @@
-print("Hello from rtt.__init__.py")

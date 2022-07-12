@@ -39,6 +39,7 @@
 
 
 import os
+from posixpath import abspath
 from random import randint
 from Parser.parser import Parser
 from Parser.stringsWithArrows import *
@@ -504,22 +505,52 @@ class Regex:
         def match(self, text):
             return self.pattern.findall(text)
 
+def join_paths(paths: list):
+            path = ""
+            for p in paths:
+                path += '\\' + p
+            return path
 
+def set_path_from_platform(path: str):
+    platform = sys.platform
+    if platform == 'win32':
+        return path.replace('/', '\\')
+    elif platform == 'linux':
+        return path.replace('\\', '/')
+    else:
+        return path.replace('\\', '/')
+
+def forward_or_backward_slash():
+    platform = sys.platform
+    if platform == 'win32':
+        return '/'
+    elif platform == 'linux':
+        return '\\'
+    else:
+        return '\\'
+        
 class PackageManager:
-    def __init__(self, pacakge_name):
-        self.pacakge_name = pacakge_name
-    def getPackage(self):
-        # check for __@init__.ald file. If there is one, we make the file the module
-        package_file = f'__@init__.ald'
-        if os.path.isfile(self.pacakge_name + "/" + package_file):
-            return self.loadPackageFile(package_file)
+    def __init__(self, module_paths, is_package=True):
+        self.module_paths = module_paths
+        self.is_package = is_package
+    def setPackage(self):
+        if self.is_package:
+            # check for __@init__.ald file. If there is one, we make the file the module
+            package_file = f'__@init__.ald'
+            path = join_paths(self.module_paths) + set_path_from_platform(f"/{package_file}")
+            return path
         else:
-            return self.pacakge_name + ".ald"
-    def loadPackageFile(self, package_file):
-        package_file_path = self.pacakge_name + "/" + package_file
-        # load the package file
-        #pacakge_code = Program.runFile(package_file_path)
-        return package_file_path
+            # if not package then just return the absolute path
+            ext = '.ald'
+            path = join_paths(self.module_paths) + ext
+            return path
+    def isPackage(self, dir):
+        package_file = f'__@init__.ald'
+        path = dir + join_paths(self.module_paths) + set_path_from_platform(f"/{package_file}")
+        if os.path.exists(path):
+            return True
+        else:
+            return False
 
 class TypeOf:
     def __init__(self, type):
@@ -1139,9 +1170,9 @@ class Program:
         result_object = Module(name, new_object, 'builtin')
         return result_object
 
-    def createModule(path, module_name, module_from_name, module,properties_list, context, is_builtin,pos_start,pos_end):
+    def createModule(path, module_name, module,properties_list, context, is_builtin,pos_start,pos_end):
         res = RuntimeResult()
-        mod_name = module_from_name if module_from_name != None else module_name
+        mod_name = module_name
         if mod_name == '.':
             mod_name = module_name
         new_context = Context(mod_name, context, pos_start)
@@ -1164,7 +1195,7 @@ class Program:
             module_namespace_properties = {}
             name = None
             value = None
-
+            
             for key, value in new_context.symbolTable.symbols.items():
                 if isinstance(value, dict):
                     new_object[key] = value['value']
@@ -1184,10 +1215,11 @@ class Program:
                 value = None
                 if len(properties_list) > 1:
                     for property in properties_list:
-                        name = property.value
+                        name = property['name']
+                        name_as = property['as']
                         if name in new_object:
                             value = new_object[name]
-                            context.symbolTable.set(name, value)
+                            context.symbolTable.set(name_as, value)
                             for k, v in value.context.symbolTable.symbols.items():
                                 if  k != name:
                                     module_namespace_properties[k] = v
@@ -1197,10 +1229,12 @@ class Program:
                     return value
 
                 elif len(properties_list) == 1:
-                    name = properties_list[0].value
+                    name = properties_list[0]['name']
+                    name_as = properties_list[0]['as']
+                    
                     if name in new_object:
                         value = new_object[name]
-                        context.symbolTable.set(module_name, value)
+                        context.symbolTable.set(name_as, value)
                         for k, v in value.context.symbolTable.symbols.items():
                             if  k != name:
                                 module_namespace_properties[k] = v
@@ -1220,15 +1254,19 @@ class Program:
                 module_object = {}
                 value_ = None
                 for key, value in new_object.items():
-                    value_ = value
-                if value_ != 'none':
+                    value_ = value.setContext(new_context)
+                if new_object == {}:
+                    module_object = Module(module_name, new_object, 'builtin' if is_builtin else 'module', doc)
+                    value = module_object
+                    context.symbolTable.set(module_name, value)
+                
+                if value_ != 'none' and value_ != None:
                     for k, v in value_.context.symbolTable.symbols.items():
                         module_namespace_properties[k] = v
                         module_namespace.set(module_name, module_namespace_properties)
-                if is_builtin:
-                    module_object = Module(module_name, new_object, 'builtin', doc)
-                else:
-                    module_object = Module(module_name, new_object, 'module', doc)
+                
+               
+                module_object = Module(module_name, new_object, 'builtin' if is_builtin else 'module', doc)
                 value = module_object
                 context.symbolTable.set(module_name, module_object)
                 return value
@@ -22615,6 +22653,628 @@ class Interpreter:
                 "context": context,
                 "exit": False
             }
+        module_name = node.module['name']
+        module_as = node.module['as']
+        module_paths = node.module['paths']
+        module_members = node.module['members']
+        module_is_root = node.module['is_root']
+        is_package = node.module['is_package']
+        is_initial_path = module_paths[-1] 
+        
+        _type = node._type
+        # get the builtin module (standard library) directory, is is a folder outside this current script folder. for example we are in INterpreter/interpreter.py we need to go out one folder back to lib folder.
+        
+        builtin_mod_dir = os.path.normpath(os.getcwd() + "/lib")
+        
+        # get the root dir of the project
+        # if module_is_root then we need to go back one directory from the root
+        root_dir =  os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
+        root_dir_name = os.path.basename(root_dir)
+        # go back one directory from root directory
+        
+        is_not_root = os.path.dirname(root_dir)
+        
+        
+        
+
+        if _type == "import":
+            # get the last value in module_paths
+            if is_package:
+                if module_name in builtin_modules:
+                    if module_is_root:
+                        set_package = PackageManager(module_paths).setPackage()
+                        package = root_dir + set_package if not module_is_root else is_not_root + set_package
+                        try:
+                            module_path = package
+                            Module_ = Program.runFile(package)
+                            module = Module_
+                            if module is None:
+                                error["message"] = f"module '{module_name}' not found"
+                                raise Al_ImportError(error)
+                            else:
+                                module_object = Program.createModule(package, module_as, module, None, context, False, node.pos_start, node.pos_end)
+                                if not isinstance(module_object, tuple) and module_object == None:
+                                    raise Al_SyntaxError(error)
+                                else:
+                                    context.symbolTable.modules.add_module(
+                                        module_as, module_object)
+                                    return res.success(module_object)
+                        except RecursionError:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                raise Al_ImportError(error)
+                        except FileNotFoundError:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                            raise Al_ImportError(error)
+                        except Exception as e:
+                            name = type(e).__name__
+                            if name.split('_')[0] == 'Al':
+                                raise e
+                            else:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                raise Al_ImportError(error)
+                    else:
+                        set_package = PackageManager(module_paths).setPackage()
+                        package = builtin_mod_dir + set_package
+                        print(package)
+                        try:
+                            module_path = package
+                            Module_ = Program.runFile(package)
+                            module = Module_
+                            if module is None:
+                                # then we have to check the ./alden_packges from the root folder
+                                set_package_ = PackageManager(module_paths).setPackage()
+                                package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                                try:
+                                    Module_ = Program.runFile(package_)
+                                    module = Module_
+                                    if module is None:
+                                        # lastly we have to check the root folder for the package
+                                        set_package_ = PackageManager(module_paths).setPackage()
+                                        package_ = root_dir + set_package_
+                                        try:
+                                            Module_ = Program.runFile(package_)
+                                            module = Module_
+                                            if module is None:
+                                                error["message"] = f"module '{module_name}' not found"
+                                                raise Al_ImportError(error)
+                                            else:
+                                                module_object = Program.createModule(package_, module_as, module, None, context, False, node.pos_start, node.pos_end)
+                                                if not isinstance(module_object, tuple) and module_object == None:
+                                                    raise Al_SyntaxError(error)
+                                                else:
+                                                    context.symbolTable.modules.add_module(
+                                                        module_as, module_object)
+                                                    return res.success(module_object)
+                                        except RecursionError:
+                                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                                raise Al_ImportError(error)
+                                        except FileNotFoundError:
+                                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                                            raise Al_ImportError(error)
+                                        except Exception as e:
+                                            name = type(e).__name__
+                                            if name.split('_')[0] == 'Al':
+                                                raise e
+                                            else:
+                                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                                raise Al_ImportError(error)
+                                    else:
+                                        module_object = Program.createModule(package_, module_as, module, None, context, False, node.pos_start, node.pos_end)
+                                        if not isinstance(module_object, tuple) and module_object == None:
+                                            raise Al_SyntaxError(error)
+                                        else:
+                                            context.symbolTable.modules.add_module(
+                                                module_as, module_object)
+                                            return res.success(module_object)
+                                except RecursionError:
+                                    error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                    raise Al_ImportError(error)
+                                except FileNotFoundError:
+                                    error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                                    raise Al_ImportError(error)
+                                except Exception as e:
+                                    name = type(e).__name__
+                                    if name.split('_')[0] == 'Al':
+                                        raise e
+                                    else:
+                                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                        raise Al_ImportError(error)
+                            else:
+                                module_object = Program.createModule(package, module_as, module, None, context, True, node.pos_start, node.pos_end)
+                                if not isinstance(module_object, tuple) and module_object == None:
+                                    raise Al_SyntaxError(error)
+                                else:
+                                    context.symbolTable.modules.add_module(
+                                        module_as, module_object)
+                                    return res.success(module_object)
+                        except RecursionError:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                raise Al_ImportError(error)
+                        except FileNotFoundError:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                            raise Al_ImportError(error)
+                        except Exception as e:
+                            name = type(e).__name__
+                            if name.split('_')[0] == 'Al':
+                                raise e
+                            else:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                raise Al_ImportError(error)
+                else:
+                    set_package = PackageManager(module_paths).setPackage()
+                    package = root_dir + set_package if not module_is_root else is_not_root + set_package
+                    try:
+                        module_path = package
+                        Module_ = Program.runFile(package)
+                        module = Module_
+                        if module is None:
+                            # then we have to check the ./alden_packges from the root folder
+                            set_package_ = PackageManager(module_paths).setPackage()
+                            package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                            try:
+                                Module_ = Program.runFile(package_)
+                                module = Module_
+                                if module is None:
+                                    # lastly we have to check the root folder for the package
+                                    set_package_ = PackageManager(module_paths).setPackage()
+                                    package_ = root_dir + set_package_
+                                    try:
+                                        Module_ = Program.runFile(package_)
+                                        module = Module_
+                                        if module is None:
+                                            error["message"] = f"module '{module_name}' not found"
+                                            raise Al_ImportError(error)
+                                        else:
+                                            module_object = Program.createModule(package_, module_as, module, None, context, False, node.pos_start, node.pos_end)
+                                            if not isinstance(module_object, tuple) and module_object == None:
+                                                raise Al_SyntaxError(error)
+                                            else:
+                                                context.symbolTable.modules.add_module(
+                                                    module_as, module_object)
+                                                return res.success(module_object)
+                                    except RecursionError:
+                                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                            raise Al_ImportError(error)
+                                    except FileNotFoundError:
+                                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                                        raise Al_ImportError(error)
+                                    except Exception as e:
+                                        name = type(e).__name__
+                                        if name.split('_')[0] == 'Al':
+                                            raise e
+                                        else:
+                                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                            raise Al_ImportError(error)
+                                else:
+                                    module_object = Program.createModule(package_, module_as, module, None, context, False, node.pos_start, node.pos_end)
+                                    if not isinstance(module_object, tuple) and module_object == None:
+                                        raise Al_SyntaxError(error)
+                                    else:
+                                        context.symbolTable.modules.add_module(
+                                            module_as, module_object)
+                                        return res.success(module_object)
+                            except RecursionError:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                raise Al_ImportError(error)
+                            except FileNotFoundError:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                                raise Al_ImportError(error)
+                            except Exception as e:
+                                name = type(e).__name__
+                                if name.split('_')[0] == 'Al':
+                                    raise e
+                                else:
+                                    error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                    raise Al_ImportError(error)
+                        else:
+                            module_object = Program.createModule(package, module_as, module, None, context, False, node.pos_start, node.pos_end)
+                            if not isinstance(module_object, tuple) and module_object == None:
+                                raise Al_SyntaxError(error)
+                            else:
+                                context.symbolTable.modules.add_module(
+                                    module_as, module_object)
+                                return res.success(module_object)
+                        
+                    except RecursionError:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                            raise Al_ImportError(error)
+                    except FileNotFoundError:
+                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                        raise Al_ImportError(error)
+                    except Exception as e:
+                        name = type(e).__name__
+                        if name.split('_')[0] == 'Al':
+                            raise e
+                        else:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                            raise Al_ImportError(error)
+            else:
+                set_package = PackageManager(module_paths, is_package).setPackage()
+                package = root_dir + set_package if not module_is_root else is_not_root + set_package
+                try:
+                    module_path = package
+                    Module_ = Program.runFile(package)
+                    module = Module_
+                    if module is None:
+                        # then we have to check the ./alden_packges from the root folder
+                        set_package_ = PackageManager(module_paths, is_package).setPackage()
+                        package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                        try:
+                            Module_ = Program.runFile(package_)
+                            module = Module_
+                            if module is None:
+                                # lastly we have to check the root folder for the package
+                                set_package_ = PackageManager(module_paths, is_package).setPackage()
+                                package_ = root_dir + set_package_
+                                try:
+                                    Module_ = Program.runFile(package_)
+                                    module = Module_
+                                    if module is None:
+                                        error["message"] = f"module '{module_name}' not found"
+                                        raise Al_ImportError(error)
+                                    else:
+                                        module_object = Program.createModule(package_, module_as, module, None, context, False, node.pos_start, node.pos_end)
+                                        if not isinstance(module_object, tuple) and module_object == None:
+                                            raise Al_SyntaxError(error)
+                                        else:
+                                            context.symbolTable.modules.add_module(
+                                                module_as, module_object)
+                                            return res.success(module_object)
+                                except RecursionError:
+                                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                        raise Al_ImportError(error)
+                                except FileNotFoundError:
+                                    error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                                    raise Al_ImportError(error)
+                                except Exception as e:
+                                    name = type(e).__name__
+                                    if name.split('_')[0] == 'Al':
+                                        raise e
+                                    else:
+                                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                        raise Al_ImportError(error)
+                            else:
+                                module_object = Program.createModule(package_, module_as, module, None, context, False, node.pos_start, node.pos_end)
+                                if not isinstance(module_object, tuple) and module_object == None:
+                                    raise Al_SyntaxError(error)
+                                else:
+                                    context.symbolTable.modules.add_module(
+                                        module_as, module_object)
+                                    return res.success(module_object)
+                        except RecursionError:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                            raise Al_ImportError(error)
+                        except FileNotFoundError:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                            raise Al_ImportError(error)
+                        except Exception as e:
+                            name = type(e).__name__
+                            if name.split('_')[0] == 'Al':
+                                raise e
+                            else:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                raise Al_ImportError(error)
+                    else:
+                        module_object = Program.createModule(package, module_as, module, None, context, False, node.pos_start, node.pos_end)
+                        if not isinstance(module_object, tuple) and module_object == None:
+                            raise Al_SyntaxError(error)
+                        else:
+                            context.symbolTable.modules.add_module(
+                                module_as, module_object)
+                            return res.success(module_object)
+                    
+                except RecursionError:
+                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                        raise Al_ImportError(error)
+                except FileNotFoundError:
+                    error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                    raise Al_ImportError(error)
+                except Exception as e:
+                    name = type(e).__name__
+                    if name.split('_')[0] == 'Al':
+                        raise e
+                    else:
+                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                        raise Al_ImportError(error)            
+        else:
+            if is_package:
+                if module_name in builtin_modules:
+                    if module_is_root:
+                        set_package = PackageManager(module_paths).setPackage()
+                        package = root_dir + set_package if not module_is_root else is_not_root + set_package
+                        try:
+                            module_path = package
+                            Module_ = Program.runFile(package)
+                            module = Module_
+                            if module is None:
+                                error["message"] = f"module '{module_name}' not found"
+                                raise Al_ImportError(error)
+                            else:
+                                module_object = Program.createModule(package, module_as, module, module_members, context, False, node.pos_start, node.pos_end)
+                                if not isinstance(module_object, tuple) and module_object == None:
+                                    raise Al_SyntaxError(error)
+                                else:
+                                    context.symbolTable.modules.add_module(
+                                        module_as, module_object)
+                                    return res.success(module_object)
+                        except RecursionError:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                raise Al_ImportError(error)
+                        except FileNotFoundError:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                            raise Al_ImportError(error)
+                        except Exception as e:
+                            name = type(e).__name__
+                            if name.split('_')[0] == 'Al':
+                                raise e
+                            else:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                raise Al_ImportError(error)
+                    else:
+                        set_package = PackageManager(module_paths).setPackage()
+                        package = builtin_mod_dir + set_package
+                        try:
+                            module_path = package
+                            Module_ = Program.runFile(package)
+                            module = Module_
+                            if module is None:
+                                # then we have to check the ./alden_packges from the root folder
+                                set_package_ = PackageManager(module_paths).setPackage()
+                                package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                                try:
+                                    Module_ = Program.runFile(package_)
+                                    module = Module_
+                                    if module is None:
+                                        # lastly we have to check the root folder for the package
+                                        set_package_ = PackageManager(module_paths).setPackage()
+                                        package_ = root_dir + set_package_
+                                        try:
+                                            Module_ = Program.runFile(package_)
+                                            module = Module_
+                                            if module is None:
+                                                error["message"] = f"module '{module_name}' not found"
+                                                raise Al_ImportError(error)
+                                            else:
+                                                module_object = Program.createModule(package_, module_as, module, module_members, context, False, node.pos_start, node.pos_end)
+                                                if not isinstance(module_object, tuple) and module_object == None:
+                                                    raise Al_SyntaxError(error)
+                                                else:
+                                                    context.symbolTable.modules.add_module(
+                                                        module_as, module_object)
+                                                    return res.success(module_object)
+                                        except RecursionError:
+                                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                                raise Al_ImportError(error)
+                                        except FileNotFoundError:
+                                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                                            raise Al_ImportError(error)
+                                        except Exception as e:
+                                            name = type(e).__name__
+                                            if name.split('_')[0] == 'Al':
+                                                raise e
+                                            else:
+                                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                                raise Al_ImportError(error)
+                                    else:
+                                        module_object = Program.createModule(package_, module_as, module, module_members, context, False, node.pos_start, node.pos_end)
+                                        if not isinstance(module_object, tuple) and module_object == None:
+                                            raise Al_SyntaxError(error)
+                                        else:
+                                            context.symbolTable.modules.add_module(
+                                                module_as, module_object)
+                                            return res.success(module_object)
+                                except RecursionError:
+                                    error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                    raise Al_ImportError(error)
+                                except FileNotFoundError:
+                                    error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                                    raise Al_ImportError(error)
+                                except Exception as e:
+                                    name = type(e).__name__
+                                    if name.split('_')[0] == 'Al':
+                                        raise e
+                                    else:
+                                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                        raise Al_ImportError(error)
+                            else:
+                                module_object = Program.createModule(package, module_as, module, module_members, context, True, node.pos_start, node.pos_end)
+                                
+                                if not isinstance(module_object, tuple) and module_object == None:
+                                    raise Al_SyntaxError(error)
+                                else:
+                                    context.symbolTable.modules.add_module(
+                                                module_as, module_object)
+                                    return res.success(module_object)
+                        except RecursionError:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                raise Al_ImportError(error)
+                        except FileNotFoundError:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                            raise Al_ImportError(error)
+                        except Exception as e:
+                            name = type(e).__name__
+                            if name.split('_')[0] == 'Al':
+                                raise e
+                            else:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                raise Al_ImportError(error)
+                else:
+                    set_package = PackageManager(module_paths).setPackage()
+                    package = root_dir + set_package if not module_is_root else is_not_root + set_package
+                    try:
+                        module_path = package
+                        Module_ = Program.runFile(package)
+                        module = Module_
+                        if module is None:
+                            # then we have to check the ./alden_packges from the root folder
+                            set_package_ = PackageManager(module_paths).setPackage()
+                            package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                            try:
+                                Module_ = Program.runFile(package_)
+                                module = Module_
+                                if module is None:
+                                    # lastly we have to check the root folder for the package
+                                    set_package_ = PackageManager(module_paths).setPackage()
+                                    package_ = root_dir + set_package_
+                                    try:
+                                        Module_ = Program.runFile(package_)
+                                        module = Module_
+                                        if module is None:
+                                            error["message"] = f"module '{module_name}' not found"
+                                            raise Al_ImportError(error)
+                                        else:
+                                            module_object = Program.createModule(package_, module_as, module, module_members, context, False, node.pos_start, node.pos_end)
+                                            if not isinstance(module_object, tuple) and module_object == None:
+                                                raise Al_SyntaxError(error)
+                                            else:
+                                                context.symbolTable.modules.add_module(
+                                                    module_as, module_object)
+                                                return res.success(module_object)
+                                    except RecursionError:
+                                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                            raise Al_ImportError(error)
+                                    except FileNotFoundError:
+                                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                                        raise Al_ImportError(error)
+                                    except Exception as e:
+                                        name = type(e).__name__
+                                        if name.split('_')[0] == 'Al':
+                                            raise e
+                                        else:
+                                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                            raise Al_ImportError(error)
+                                else:
+                                    module_object = Program.createModule(package_, module_as, module, module_members, context, False, node.pos_start, node.pos_end)
+                                    if not isinstance(module_object, tuple) and module_object == None:
+                                        raise Al_SyntaxError(error)
+                                    else:
+                                        context.symbolTable.modules.add_module(
+                                            module_as, module_object)
+                                        return res.success(module_object)
+                            except RecursionError:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                raise Al_ImportError(error)
+                            except FileNotFoundError:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                                raise Al_ImportError(error)
+                            except Exception as e:
+                                name = type(e).__name__
+                                if name.split('_')[0] == 'Al':
+                                    raise e
+                                else:
+                                    error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                    raise Al_ImportError(error)
+                        else:
+                            module_object = Program.createModule(package, module_as, module, module_members, context, False, node.pos_start, node.pos_end)
+                            if not isinstance(module_object, tuple) and module_object == None:
+                                raise Al_SyntaxError(error)
+                            else:
+                                context.symbolTable.modules.add_module(
+                                    module_as, module_object)
+                                return res.success(module_object)
+                        
+                    except RecursionError:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                            raise Al_ImportError(error)
+                    except FileNotFoundError:
+                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                        raise Al_ImportError(error)
+                    except Exception as e:
+                        name = type(e).__name__
+                        if name.split('_')[0] == 'Al':
+                            raise e
+                        else:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                            raise Al_ImportError(error)
+            else:
+                set_package = PackageManager(module_paths, is_package).setPackage()
+                package = root_dir + set_package if not module_is_root else is_not_root + set_package
+                try:
+                    module_path = package
+                    Module_ = Program.runFile(package)
+                    module = Module_
+                    if module is None:
+                        # then we have to check the ./alden_packges from the root folder
+                        set_package_ = PackageManager(module_paths, is_package).setPackage()
+                        package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                        try:
+                            Module_ = Program.runFile(package_)
+                            module = Module_
+                            if module is None:
+                                # lastly we have to check the root folder for the package
+                                set_package_ = PackageManager(module_paths, is_package).setPackage()
+                                package_ = root_dir + set_package_
+                                try:
+                                    Module_ = Program.runFile(package_)
+                                    module = Module_
+                                    if module is None:
+                                        error["message"] = f"module '{module_name}' not found"
+                                        raise Al_ImportError(error)
+                                    else:
+                                        module_object = Program.createModule(package_, module_as, module, module_members, context, False, node.pos_start, node.pos_end)
+                                        if not isinstance(module_object, tuple) and module_object == None:
+                                            raise Al_SyntaxError(error)
+                                        else:
+                                            context.symbolTable.modules.add_module(
+                                                module_as, module_object)
+                                            return res.success(module_object)
+                                except RecursionError:
+                                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                                        raise Al_ImportError(error)
+                                except FileNotFoundError:
+                                    error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                                    raise Al_ImportError(error)
+                                except Exception as e:
+                                    name = type(e).__name__
+                                    if name.split('_')[0] == 'Al':
+                                        raise e
+                                    else:
+                                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                        raise Al_ImportError(error)
+                            else:
+                                module_object = Program.createModule(package_, module_as, module, module_members, context, False, node.pos_start, node.pos_end)
+                                if not isinstance(module_object, tuple) and module_object == None:
+                                    raise Al_SyntaxError(error)
+                                else:
+                                    context.symbolTable.modules.add_module(
+                                        module_as, module_object)
+                                    return res.success(module_object)
+                        except RecursionError:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                            raise Al_ImportError(error)
+                        except FileNotFoundError:
+                            error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                            raise Al_ImportError(error)
+                        except Exception as e:
+                            name = type(e).__name__
+                            if name.split('_')[0] == 'Al':
+                                raise e
+                            else:
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                raise Al_ImportError(error)
+                    else:
+                        module_object = Program.createModule(package, module_as, module, module_members, context, False, node.pos_start, node.pos_end)
+                        if not isinstance(module_object, tuple) and module_object == None:
+                            raise Al_SyntaxError(error)
+                        else:
+                            context.symbolTable.modules.add_module(
+                                module_as, module_object)
+                            return res.success(module_object)
+                    
+                except RecursionError:
+                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (most likely due to a circular import)"
+                        raise Al_ImportError(error)
+                except FileNotFoundError:
+                    error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (file does not exist)"
+                    raise Al_ImportError(error)
+                except Exception as e:
+                    name = type(e).__name__
+                    if name.split('_')[0] == 'Al':
+                        raise e
+                    else:
+                        error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                        raise Al_ImportError(error) 
+        
         # module_name = node.module_name.value
         # module_from_name = node.from_module_name
         # module_name_as = node.module_name_as.value if hasattr(node.module_name_as, 'value') else node.module_name_as
