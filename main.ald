@@ -1,5 +1,9 @@
 import file 
-import apm
-let package_apm_file = file.open('package.apm')
-let package_apm = apm.parse(package_apm_file.read())
-print(package_apm)
+import apcm
+let package_apcm_file = file.open('package.apcm')
+let package_apcm = apcm.parse(package_apcm_file.read())
+let name = package_apcm['Name']
+let version = package_apcm['Version']
+let description = package_apcm['Description']
+let author = package_apcm['Author']
+println(name, version, description, author)

@@ -1210,7 +1210,6 @@ class Program:
                 return value
 
 
-
             if properties_list != None:
                 value = None
                 if len(properties_list) > 1:
@@ -1231,17 +1230,24 @@ class Program:
                 elif len(properties_list) == 1:
                     name = properties_list[0]['name']
                     name_as = properties_list[0]['as']
-                    
-                    if name in new_object:
-                        value = new_object[name]
-                        context.symbolTable.set(name_as, value)
-                        for k, v in value.context.symbolTable.symbols.items():
-                            if  k != name:
-                                module_namespace_properties[k] = v
-                                module_namespace.set(name, module_namespace_properties)
-
+                    if  name == "*":
+                        if name_as == "all":
+                            for key, value in new_object.items():
+                                context.symbolTable.set(key, value)
+                        else: 
+                            value = Module(name_as, new_object, 'module')
+                            context.symbolTable.set(name_as, value)
                     else:
-                        return None, name
+                        if name in new_object:
+                            value = new_object[name]
+                            context.symbolTable.set(name_as, value)
+                            for k, v in value.context.symbolTable.symbols.items():
+                                if  k != name:
+                                    module_namespace_properties[k] = v
+                                    module_namespace.set(name, module_namespace_properties)
+
+                        else:
+                            return None, name
                     return value
 
             else:
@@ -1321,7 +1327,7 @@ builtin_modules = {
     'random': Program.runFile,
     'hashlib': Program.runFile,
     'vna': Program.runFile,
-    'apm': Program.runFile,
+    'apcm': Program.runFile,
 }
 
 
@@ -1364,12 +1370,12 @@ sub: Return the difference of x and y.
 """
 
 
-apm_doc = """Module for working with APM files.
+apcm_doc = """Module for working with APM files.
 
 Methods:
 parse: Parse an APM file and return a list of dictionaries. 
 --------------------------------------------------------------------------------
-    parse: (apmstring) - an APM string to parse.
+    parse: (apcmstring) - an APM string to parse.
 --------------------------------------------------------------------------------
 write: Create an APM object from a list of dictionaries.
 --------------------------------------------------------------------------------
@@ -1389,7 +1395,7 @@ builtin_modules_doc = {
     'random': None,
     'hashlib': None,
     'vna': None,
-    'apm': apm_doc,
+    'apcm': apcm_doc,
 }
 
 
@@ -11202,18 +11208,38 @@ class Class(BaseClass):
         res = RuntimeResult()
         string = f"<class {str(self.class_name)}>"
         if len(self.properties) > 0:
-            for method_name, method in self.properties.items():
-                if method_name == "__@str__":
-                    _str = method
-                    _str_args = method.arg_names
-                    default_values = method.default_values
-                    string = res.register(_str.run([], [], self, self.generate_new_context()))
-                    if res.should_return(): return res
+            try:
+                for method_name, method in self.properties.items():
+                    if method_name == "__@str__":
+                        _str = method
+                        _str_args = method.arg_names
+                        # special string method should only have one argument
+                        if len(_str_args) != 1:
+                            raise Al_ArgumentError({
+                                "pos_start": self.pos_start,
+                                "pos_end": self.pos_end,
+                                'message': f"{len(_str_args)} arguments passed to '__@str__' but expected none",
+                                "context": self.context,
+                                'exit': False
+                            })
+                        _str_arg = _str_args[0]
+                        default_values = method.default_values
+                        string = res.register(_str.run([], [], self, self.generate_new_context()))
+                        if res.should_return(): return res
+            except Exception as e:
+                name = type(e).__name__
+                if name.split('_')[0] == 'Al':
+                    raise e
+                else:
+                    pass
         return string
 
 
     def __repr__(self):
-        return str(self.__set_str__())
+        try:
+            return str(self.__set_str__())
+        except Exception:
+            return self.value
 
 class_methods = {
     '__@name__': '__@name__',  # Class.__@name__()
@@ -22715,7 +22741,6 @@ class Interpreter:
                     else:
                         set_package = PackageManager(module_paths).setPackage()
                         package = builtin_mod_dir + set_package
-                        print(package)
                         try:
                             module_path = package
                             Module_ = Program.runFile(package)
@@ -22798,7 +22823,7 @@ class Interpreter:
                             if name.split('_')[0] == 'Al':
                                 raise e
                             else:
-                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)"
+                                error['message'] = f"cannot import name '{module_name}' from '{is_initial_path}' (unknown error)ggg"
                                 raise Al_ImportError(error)
                 else:
                     set_package = PackageManager(module_paths).setPackage()

@@ -970,7 +970,6 @@ class Parser:
 
         if self.current_token.matches(tokenList.TT_KEYWORD, 'continue'):
             if hasattr(Parser, 'scope'):
-                print(Parser.scope)
                 if Parser.scope != 'loop':
                     self.error_detected = True
                     return res.failure(self.error['Syntax']({
@@ -5424,6 +5423,33 @@ class Parser:
             ))
     
         self.skipLines()
+        if self.current_token.type == tokenList.TT_MUL:
+            module['members'].append({
+                'name': '*',
+                'as': 'all',
+            })
+            module['is_package'] = True
+            module['pos_end'] = self.current_token.pos_end
+            self.skipLines()
+            if self.current_token.matches(tokenList.TT_KEYWORD, 'as'):
+                self.skipLines()
+                if self.current_token.type == tokenList.TT_IDENTIFIER:
+                    module['members'][-1]['as'] = self.current_token.value
+                    module['pos_end'] = self.current_token.pos_end
+                    self.skipLines()
+                else:
+                    self.error_detected = True
+                    return res.failure(self.error['Syntax'](
+                        {
+                            'pos_start': self.current_token.pos_start,
+                            'pos_end': self.current_token.pos_end,
+                            'message': 'expected an identifier',
+                            'context': self.context,
+                            'exit': False
+                        }
+                    ))
+            return res.success(ImportNode(module, "from"))
+        
         if self.current_token.type == tokenList.TT_IDENTIFIER:
             module['members'].append({
                 'name': self.current_token.value,

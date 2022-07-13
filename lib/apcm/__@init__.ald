@@ -1,0 +1,601 @@
+import lib.apcm.tokenList.ald
+let __@version__ = "0.0.1"
+def parse(filestr: str): Dict
+/**
+* @param filestr: str
+* @return: Dict
+* Parse an apcm file and return a dictionary of the parsed data.
+*/
+# apcm file format:
+# -Name: "My First Alden Package";
+# -Description: "Alden Package for My First Project";
+# -Version: "1.0.0";
+# -Author: "Kehinde Akinsanya";
+# -License: "MIT";
+# -Copyright: "Copyright (c) 2020 Kehinde Akinsanya";
+# -URL: "mfap.tech";
+# -Requires: {
+#     "test": "1.0.0",
+#     "fip": "1.0.0"
+# };
+# -Scripts: {
+#     "test": "alden ./scripts/test",
+#     "fip": "alden ./scripts/fip"
+# };
+# -Github: "https://github.com/kehindeakinsanya/mfap";
+    let lexer = Lexer(filestr)
+    let tokens, error = lexer.tokenize()
+    let parser = Parser(tokens)
+    let ast = parser.parse()
+    if error: 
+        raise Exception(error)
+    end
+    return parser.dict
+end
+
+
+class Lexer 
+    def __@init__(self, filestr: str):
+    # remove last newline character if it exists
+        if len(filestr) > 0 and filestr[-1] == "\n":
+            self.filestr = filestr.split("\n")[:-1].join("\n")
+        else:
+            self.filestr = filestr
+        end
+        self.pos = Position(-1, 0, -1)
+        self.current_char = none
+        self.advance()
+    end
+    def tokenize(self):
+        let tokens = []
+        let error = ''
+        while self.current_char != none:
+            if self.current_char in ' \t':
+                self.advance()
+            elif self.current_char in '\n':
+                self.advance()
+                tokens.append(Token(value='NEWLINE', type=tokenList.TT_NEWLINE, pos_start=self.pos))
+            elif self.current_char in tokenList.LETTERS:
+                let string = ""
+                let token_type = tokenList.TT_IDENTIFIER
+                while self.current_char != none and self.current_char in tokenList.LETTERS:
+                    string += self.current_char
+                    self.advance()
+                end
+                tokens.append(Token(type=token_type, value=string, pos_start=self.pos))
+            elif self.current_char == "'":
+                error = "Only double quotes are allowed in strings"
+                break
+            elif self.current_char == '"':
+                self.advance()
+                if self.current_char == "\n":
+                    error = 'String literal cannot be on a new line ' + str(self.pos.line + 1) + ' column ' + str(self.pos.column + 1)
+                    break
+                end
+                let string = ""
+                while self.current_char != none and (self.current_char != '"'):
+                    string += self.current_char
+                    self.advance()
+                    if self.current_char == "\n":
+                        error = 'Unterminated string literal at line ' + str(self.pos.line + 1) + ' column ' + str(self.pos.column + 1)
+                        break
+                    end
+                end
+                if self.current_char == '"':
+                    self.advance()
+                    tokens.append(Token(type=tokenList.TT_STRING, value=string, pos_start=self.pos))
+                else:
+                    error = "Unclosed string literal at line " + str(self.pos.line + 1) + " column " + str(self.pos.column + 1)
+                end
+            elif self.current_char == '{':
+                self.advance()
+                tokens.append(Token(type=tokenList.TT_LBRACE, value='{', pos_start=self.pos))
+            elif self.current_char == '}':
+                self.advance()
+                tokens.append(Token(type=tokenList.TT_RBRACE, value='}', pos_start=self.pos))
+            elif self.current_char == '[':
+                self.advance()
+                tokens.append(Token(type=tokenList.TT_LBRACKET, value='[', pos_start=self.pos))
+            elif self.current_char == ']':
+                self.advance()
+                tokens.append(Token(type=tokenList.TT_RBRACKET, value=']', pos_start=self.pos))
+            elif self.current_char == ',':
+                self.advance()
+                tokens.append(Token(type=tokenList.TT_COMMA, value=',', pos_start=self.pos))
+            elif self.current_char == ':':
+                self.advance()
+                tokens.append(Token(type=tokenList.TT_COLON, value=':', pos_start=self.pos))
+            elif self.current_char == '#': 
+                self.advance()
+                while self.current_char != none and self.current_char != '\n':
+                    self.advance()
+                end
+            else:
+                error = "Lexer error: Illegal character " + self.current_char + " at line " + str(self.pos.line + 1) + " column " + str(self.pos.column + 1)
+                break
+            end
+        end
+        tokens.append(Token(value='EOF', type=tokenList.TT_EOF, pos_start=self.pos))
+        return tokens, error
+    end
+    def advance(self):
+        self.pos.advance(self.current_char)
+        self.current_char = if self.pos.index < len(self.filestr): self.filestr[self.pos.index] else: none
+    end
+end
+
+
+
+class Parser
+    def __@init__(self, tokens: List)
+        self.tokens = tokens
+        self.tokIndex = -1
+        self.current_token = none
+        self.advance()
+        self.dict = {}
+    end
+    def advance(self):
+        self.tokIndex += 1
+        self.updateCurrentToken()
+        return self.current_token
+    end
+    def reverse(self, count=1):
+        self.tokIndex -= count
+        self.updateCurrentToken()
+        return self.current_token
+    end
+    def updateCurrentToken(self):
+        if self.tokIndex >= 0 and self.tokIndex < len(self.tokens):
+            self.current_token = self.tokens[self.tokIndex]
+        end
+    end
+    def parse(self)
+        let res = self.expr() 
+        return res
+    end
+    def statements(self):
+        attempt:
+            let res = ParserResult()
+            let statements = []
+            let pos_start = self.current_token.pos_start.copy()
+            
+            let statement = res.register(self.statement())
+            if res.error:
+                return res
+            end
+            statements.append(statement)
+            let more_satements = true
+            
+            return res.success(none)
+        catch Exception as e:
+            if isinstanceof(e, dict):
+                raise Exception(e.get('message'))
+            else:
+                raise Exception('Error parsing statements')
+            end
+        end
+    end
+    def statement(self):
+        let res = ParserResult()
+        let pos_start = self.current_token.pos_start.copy()
+        let expr = res.register(self.expr())
+        if res.error:
+            return res
+        end
+        return res.success(expr)
+    end
+    def expr(self):
+        let res = ParserResult()
+        let pos_start = self.current_token.pos_start.copy()
+        let expr = res.register(self.assignment())
+        if res.error:
+            return res
+        end
+        
+        return res.success(expr)
+    end
+    def assignment(self):
+        let res = ParserResult()
+        let pos_start = self.current_token.pos_start.copy()
+        while self.current_token.type == tokenList.TT_NEWLINE:
+            res.register_advancement()
+            self.advance() 
+        end
+        if not self.current_token.type == tokenList.TT_IDENTIFIER:
+            return res.failure('Expected identifier')
+        end
+        while self.current_token.type == tokenList.TT_IDENTIFIER:
+            self.set_assignment()
+        end
+        return res.success(none)
+    end
+    def set_assignment(self)
+        let res = ParserResult()
+        let pos_start = self.current_token.pos_start.copy()
+        if self.current_token.type == tokenList.TT_IDENTIFIER:
+            let name = self.current_token.value
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type == tokenList.TT_COLON:
+                res.register_advancement()
+                self.advance()
+            else:
+                return res.failure('Expected ":" after an identifier')
+            end
+            if self.current_token.type == tokenList.TT_STRING:
+                let value = self.current_token.value
+                res.register_advancement()
+                self.advance()
+                self.dict[self.createName(name)] = value
+                if not self.current_token.type == tokenList.TT_NEWLINE:
+                    if not self.current_token.type == tokenList.TT_EOF:
+                        return res.failure('Invalid syntax')
+                    end
+                end
+                while self.current_token.type == tokenList.TT_NEWLINE:
+                    res.register_advancement()
+                    self.advance()
+                end
+            elif self.current_token.type == tokenList.TT_LBRACE:
+                let v = self.make_dict(name)
+                self.dict[self.createName(name)] = v.value
+            elif self.current_token.type == tokenList.TT_LBRACKET:
+                let v = self.make_list(name)
+                self.dict[self.createName(name)] = v.value
+            else:
+                return res.failure("Expected string,  '{' or '[' after an identifier")
+            end
+        end
+    end
+    def make_dict(self, name):
+        let res = ParserResult()
+        let pos_start = self.current_token.pos_start.copy()
+        res.register_advancement()
+        self.advance()
+        let dict = {}
+        while self.current_token.type == tokenList.TT_NEWLINE:
+            res.register_advancement()
+            self.advance() 
+        end
+        if self.current_token.type == tokenList.TT_RBRACE:
+            res.register_advancement()
+            self.advance()
+            if not self.current_token.type == tokenList.TT_NEWLINE:
+                if not self.current_token.type == tokenList.TT_EOF:
+                    return res.failure('Invalid syntax')
+                end
+            end
+        else:
+            while self.current_token.type == tokenList.TT_NEWLINE:
+                res.register_advancement()
+                self.advance()
+            end
+            if not self.current_token.type == tokenList.TT_STRING:
+                res.failure('Expected a string or "}"')
+            else:
+                let key = str(self.current_token.value)
+                res.register_advancement()
+                self.advance()
+                if self.current_token.type == tokenList.TT_COLON:
+                    res.register_advancement()
+                    self.advance()
+                    if self.current_token.type == tokenList.TT_STRING:
+                        let value = self.current_token.value
+                        res.register_advancement()
+                        self.advance()
+                        dict[key] = value
+                        while self.current_token.type == tokenList.TT_COMMA:
+                            res.register_advancement()
+                            self.advance()
+                            while self.current_token.type == tokenList.TT_NEWLINE:
+                                res.register_advancement()
+                                self.advance()
+                            end
+                            if self.current_token.type == tokenList.TT_STRING:
+                                let key = self.current_token.value
+                                res.register_advancement()
+                                self.advance()
+                            else:
+                                res.failure('Expected a string')
+                            end
+                            if self.current_token.type == tokenList.TT_COLON:
+                                res.register_advancement()
+                                self.advance()
+                                if self.current_token.type == tokenList.TT_STRING:
+                                    let value = self.current_token.value
+                                    res.register_advancement()
+                                    self.advance()
+                                    dict[key] = value
+                                else:
+                                    if self.current_token.type == tokenList.TT_LBRACE:
+                                        let new_dict = self.make_dict(key)
+                                        dict[key] = new_dict.value
+                                    elif self.current_token.type == tokenList.TT_LBRACKET:
+                                        let new_list = self.make_list(key)
+                                        dict[key] = new_list.value
+                                    else:
+                                        res.failure('Expected a string or "{" or "["')
+                                    end
+                                end
+                                while self.current_token.type == tokenList.TT_NEWLINE:
+                                    res.register_advancement()
+                                    self.advance()
+                                end
+                            else:
+                                res.failure('Expected ":"')
+                            end
+                        end
+                    else:
+                        if self.current_token.type == tokenList.TT_LBRACE:
+                            let new_dict = self.make_dict(key)
+                            dict[key] = new_dict.value
+                        elif self.current_token.type == tokenList.TT_LBRACKET:
+                            let arr = self.make_list(key)
+                            dict[key] = arr.value
+                        else:
+                            res.failure('Expected a string or "{" or "["')
+                        end
+                    end
+                    while self.current_token.type == tokenList.TT_NEWLINE:
+                        res.register_advancement()
+                        self.advance()
+                    end
+                    
+                    if self.current_token.type == tokenList.TT_RBRACE:
+                        res.register_advancement()
+                        self.advance()
+                    else:
+                        if self.current_token.type == tokenList.TT_IDENTIFIER:
+                            self.set_assignment()
+                        else:
+                            if not self.current_token.type == tokenList.TT_NEWLINE:
+                                if not self.current_token.type == tokenList.TT_EOF:
+                                    return res.failure('Invalid syntax')
+                                end
+                            end
+                        end
+                    end
+                    if not self.current_token.type == tokenList.TT_NEWLINE:
+                        if not self.current_token.type == tokenList.TT_EOF or self.current_token.type == tokenList.TT_COMMA:
+                            return res.failure('Invalid syntax')
+                        end
+                    end
+                    while self.current_token.type == tokenList.TT_NEWLINE:
+                        res.register_advancement()
+                        self.advance()
+                    end
+                    while self.current_token.type == tokenList.TT_IDENTIFIER:
+                        self.set_assignment()
+                    end
+                else:
+                    res.failure('Expected ":"')
+                end
+            end
+        end
+        return res.success(dict)
+    end
+    def make_list(self, name):
+        let res = ParserResult()
+        let pos_start = self.current_token.pos_start.copy()
+        res.register_advancement()
+        self.advance()
+        let array = []
+        while self.current_token.type == tokenList.TT_NEWLINE:
+            res.register_advancement()
+            self.advance() 
+        end
+        if self.current_token.type == tokenList.TT_RBRACKET:
+            res.register_advancement()
+            self.advance()
+            if not self.current_token.type == tokenList.TT_NEWLINE:
+                if not self.current_token.type == tokenList.TT_EOF:
+                    return res.failure('Invalid syntax')
+                end
+            end
+        else:
+            while self.current_token.type == tokenList.TT_NEWLINE:
+                res.register_advancement()
+                self.advance()
+            end
+            if self.current_token.type == tokenList.TT_STRING:
+                let value = self.current_token.value
+                res.register_advancement()
+                self.advance()
+                array.append(value)
+                while self.current_token.type == tokenList.TT_COMMA:
+                    res.register_advancement()
+                    self.advance()
+                    while self.current_token.type == tokenList.TT_NEWLINE:
+                        res.register_advancement()
+                        self.advance()
+                    end
+                    if self.current_token.type == tokenList.TT_STRING:
+                        let value = self.current_token.value
+                        res.register_advancement()
+                        self.advance()
+                        array.append(value)
+                    else:
+                        if self.current_token.type == tokenList.TT_LBRACKET:
+                            array.append(self.make_list(value).value)
+                        elif self.current_token.type == tokenList.TT_LBRACE:
+                            array.append(self.make_dict(value).value)
+                        else:
+                            res.failure("Expected a string or '[' or '{'")
+                        end
+                    end
+                    while self.current_token.type == tokenList.TT_NEWLINE:
+                        res.register_advancement()
+                        self.advance()
+                    end
+                    if self.current_token.type == tokenList.TT_RBRACKET or self.current_token.type == tokenList.TT_RBRACE:
+                        res.register_advancement()
+                        self.advance()
+                    else:
+                        res.failure('Expected "]"')
+                    end
+                    if not self.current_token.type == tokenList.TT_NEWLINE:
+                        if not self.current_token.type == tokenList.TT_EOF:
+                            return res.failure('Invalid syntax')
+                        end
+                    end
+                    while self.current_token.type == tokenList.TT_NEWLINE:
+                        res.register_advancement()
+                        self.advance()
+                    end
+                    while self.current_token.type == tokenList.TT_IDENTIFIER:
+                        self.set_assignment()
+                    end
+                end
+                
+            elif self.current_token.type == tokenList.TT_LBRACE:
+                array.append(self.make_dict(name).value)
+            elif self.current_token.type == tokenList.TT_LBRACKET:
+                array.append(self.make_list(name).value)
+            else:
+                res.failure("Expected a string or '[' or '{'")
+            end
+            while self.current_token.type == tokenList.TT_NEWLINE:
+                res.register_advancement()
+                self.advance()
+            end
+            if self.current_token.type == tokenList.TT_RBRACKET or self.current_token.type == tokenList.TT_RBRACE:
+                res.register_advancement()
+                self.advance()
+            else:
+                if not self.current_token.type == tokenList.TT_NEWLINE:
+                    if not self.current_token.type == tokenList.TT_EOF:
+                        return res.failure('Invalid syntax')
+                    end
+                end
+            end
+            if not self.current_token.type == tokenList.TT_NEWLINE:
+                if not self.current_token.type == tokenList.TT_EOF:
+                    return res.failure('Invalid syntax')
+                end
+            end
+        end  
+        return res.success(array)     
+    end
+    def createName(self, v: str)
+        if isinstanceof(v, str) and v.startsWith('-'):
+            return v[1:]
+        else:
+            return v
+        end 
+    end
+end
+
+
+class ParserResult
+    def __@init__(self):
+        self.error = none
+        self.value = none
+        self.last_registered_advance_count = 0
+        self.advance_count = 0
+        self.to_reverse_count = 0
+    end
+    def register_advancement(self):
+        self.last_registered_advance_count = 1
+        self.advance_count += 1
+    end
+    def register(self, res):
+        self.last_registered_advance_count = if res: res.advance_count else: 0
+        self.advance_count += if res: res.advance_count else: 0
+        if res:
+            if res.error:
+                self.error = res.error
+            end
+        else:
+            self.error = ''
+        end
+        return if res: res.value  else: ''
+    end
+    def try_register(self, res):
+        if res.error:
+            self.to_reverse_count = res.advance_count
+            return none
+        end
+        return self.register(res)
+    end
+    def success(self, value):
+        self.value = value
+        return self
+    end
+    def failure(self, error):
+        raise Exception(error)
+    end
+    def noreturn(self):
+        return self
+    end
+end
+
+
+
+class DICTNODE
+    def __@init__(self, dict):
+        self.dict = dict
+    end
+    def get_dict(self):
+        return self.dict
+    end
+    def __@str__(self):
+        return str(self.dict)
+    end
+end
+
+
+class Token()
+    def __@init__(self, type: str, value: str, pos_start=none, pos_end=none):
+        self.type = type
+        self.value = value
+        if pos_start and hasprop(pos_start, 'copy'):
+            self.pos_start = pos_start.copy()
+            self.pos_end = pos_start.copy()
+            self.pos_end.advance()
+        end
+
+        if pos_end:
+            self.pos_end = pos_end
+        end
+    end
+    def __@str__(self):
+        return f"{type:%{self.type},value:%{self.value}}"
+    end
+end
+
+
+class Position()
+    def __@init__(self, index: int, line: int, column: int):
+        self.index = index
+        self.line = line
+        self.column = column
+    end
+    def advance(self, current_char=none):
+        self.index += 1
+        self.column += 1
+        if current_char == '\n':
+            self.line += 1
+            self.column = 0
+        end
+        return self
+    end
+    def __@str__(self):
+        return f"line:%{self.line}, column:%{self.column}"
+    end
+    def copy(self):
+        return Position(self.index, self.line, self.column)
+    end
+end
+
+
+
+class ListNode
+    def __@init__(self, elements, pos_start, pos_end):
+        self.elements = elements
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+    end
+    def __@str__(self):
+        return f"{elements:%{self.elements}}"
+    end
+end
