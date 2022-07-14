@@ -6,6 +6,8 @@
   Alden is an open source dynamic programming language that is designed to be simple, easy to learn, and easy to use to build efficient programs.
 </p>
 
+**DISCLAIMER:** This project is in it's very early development state, expect bugs and frequent breaking changes.
+
 ## Example
 ```ruby
 class Wallet
