@@ -1073,7 +1073,21 @@ class Parser:
                 expr = res.register(self.expr())
                 if res.error:
                         return res
-                values = expr.elements
+                if isinstance(expr, PairNode):
+                    values = expr.elements
+                else:
+                    values = (expr,)
+                # check for multiple starred expressions
+                multiple_spread_operators_values = [name.name.value  for name in values if is_varags(name.name.value)]
+                if len(multiple_spread_operators_values) > 1:
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "assignment to multiple starred expressions",
+                        'context': self.context,
+                        'exit': False
+                    }))
+
                 for val in values:
                     if isinstance(val, StringNode):
                         single_check_for_rest_operator = val.name.value.split(
@@ -1110,6 +1124,16 @@ class Parser:
                 if res.error:
                     return res
                 values = expr.elements
+                # check for multiple starred expressions
+                multiple_spread_operators_values = [name.name.value  for name in values if is_varags(name.name.value)]
+                if len(multiple_spread_operators_values) > 1:
+                    return res.failure(self.error['Syntax']({
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': "assignment to multiple starred expressions",
+                        'context': self.context,
+                        'exit': False
+                    }))
                 for val in values:
                     if isinstance(val, StringNode):
                         single_check_for_rest_operator = val.name.value.split(

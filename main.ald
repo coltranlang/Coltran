@@ -2,8 +2,5 @@ import file
 import apcm
 let package_apcm_file = file.open('package.apcm')
 let package_apcm = apcm.parse(package_apcm_file.read())
-let name = package_apcm['Name']
-let version = package_apcm['Version']
-let description = package_apcm['Description']
-let author = package_apcm['Author']
-println(name, version, description, author)
+let Name, Version, Description, Author, *rest = package_apcm
+println(Version)

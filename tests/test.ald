@@ -1001,8 +1001,8 @@ let a,*args,b,c = li
 print(a,b,c, args, "is args list", @sep='-')
 
 let d = {'name': 'John', 'age': 21, 'hobby': 'Playing soccer'}
-let (a, *args,b,c) = d
-println(a,b,c, args, "is args dict", @sep='-')
+let (name, *args,age, hobby) = d
+println(name,age,hobby, args, "is args dict", @sep='-') 
 
 line(88)
 # class 
@@ -1093,7 +1093,7 @@ line(95)
 let a,b,c = "123"
 print(a,b,c)#1,2,3
 let my_dict = {'one': 1, 'two': 2, 'three': 3}
-let a,b,c = my_dict
+let one,two,three = my_dict
 print(a,b,c)#[1,2,3]
 let a,b,c = my_dict.values()
 print(a,b,c)#[1, 2, 3]

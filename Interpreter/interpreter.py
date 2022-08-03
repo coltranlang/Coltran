@@ -19095,7 +19095,7 @@ class Interpreter:
                     raise Al_ValueError({
                         'pos_start': node.pos_start,
                         'pos_end': node.pos_end,
-                        'message': f"expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
+                        'message': f"expected {len(var_name)} values, got {len(value.elements)} value(s)",
                         'context': context,
                         'exit': False
                     })
@@ -19105,90 +19105,107 @@ class Interpreter:
                             var_name[i].name.value, value.elements[i])
 
             elif isinstance(value, Object) or isinstance(value, Dict) or isinstance(value, Module):
-                if len(var_name) != len(value.properties):
-                    has_star = False
-                    var = []
-                    var_names = [name.name.value for name in var_name]
-                    for name in var_names:
-                        if is_varags(name):
-                            has_star = True
-                            break
-                    values = [v  for v in value.properties.values()]
-                    for v in var_name:
-                        if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
-                            raise Al_ValueError({
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'message': f"Cannot pair '{TypeOf(value).getType()}' with '{TypeOf(v).getType()}'",
-                                'context': context,
-                                'exit': False
-                            })
-                        var.append(v.name.value)
-
-                        if has_star:
-                            star_names = [name for name in var_names if is_varags(name) == True]
-                            non_star_names = [name for name in var_names if is_varags(name) == False]
-                            starags, nonstarargs = vna_algorithm(var_names, values)
-                            for star_name in star_names:
-                                name = make_varargs(star_name)
-                                context.symbolTable.set(name, List(starags))
-                            for i in range(len(non_star_names)):
-                                try:
-                                    context.symbolTable.set(non_star_names[i], nonstarargs[i])
-                                except:
-                                    raise Al_ValueError({
-                                            'pos_start': node.pos_start,
-                                            'pos_end': node.pos_end,
-                                            'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
-                                            'context': context,
-                                            'exit': False
-                                    })
-                        else:
-                            properties = [v for v in value.properties.values()]
-
-                            raise Al_ValueError({
-                                'pos_start': node.pos_start,
-                                'pos_end': node.pos_end,
-                                'message': f"expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
-                                'context': context,
-                                'exit': False
-                            })
-                else:
-                    has_star = False
-                    properties = []
-                    var = []
-                    var_names = [name.name.value for name in var_name]
-                    for name in var_names:
-                        if is_varags(name):
-                            has_star = True
-                            break
-                    values = [v for v in value.properties.keys()]
-                    for prop in value.properties.values():
-                        properties.append(prop)
-                    for v in var_name:
-                        var.append(v.name.value)
-                        if has_star:
-                            star_names = [name for name in var_names if is_varags(name) == True]
-                            non_star_names = [name for name in var_names if is_varags(name) == False]
-                            starags, nonstarargs = vna_algorithm(var_names, values)
-                            for star_name in star_names:
-                                name = make_varargs(star_name)
-                                context.symbolTable.set(name, List(starags))
-                            for i in range(len(non_star_names)):
-                                try:
-                                    context.symbolTable.set(non_star_names[i], nonstarargs[i])
-                                except:
-                                    raise Al_ValueError({
+                has_star = False
+                var = []
+                var_names = [name.name.value for name in var_name]
+                star_names = [name for name in var_names if is_varags(name) == True]
+                non_star_names = [name for name in var_names if is_varags(name) == False]
+                for name in var_names:
+                    if is_varags(name):
+                        has_star = True
+                        break
+                
+                values = []
+                v_ = [v for v in value.properties.values()]
+                if (len(non_star_names) > len(v_)):
+                    raise Al_ValueError({
+                        'pos_start': node.pos_start,
+                        'pos_end': node.pos_end,
+                        'message': f"expected {len(non_star_names)} value(s), got {len(v_)} value(s)",
+                        'context': context,
+                        'exit': False
+                    })
+                
+                # if (len(non_star_names) < len(v_)):
+                #     raise Al_ValueError({
+                #         'pos_start': node.pos_start,
+                #         'pos_end': node.pos_end,
+                #         'message': f"expected {len(non_star_names)} value(s), got {len(v_)} value(s)",
+                #         'context': context,
+                #         'exit': False
+                #     })
+                
+                
+                
+                for v in var_name:
+                    if type(v).__name__ != "VarAccessNode" and type(v).__name__ != "StringNode":
+                        raise Al_ValueError({
+                            'pos_start': node.pos_start,
+                            'pos_end': node.pos_end,
+                            'message': f"Cannot pair '{TypeOf(value).getType()}' with '{TypeOf(v).getType()}'",
+                            'context': context,
+                            'exit': False
+                        })
+                        
+                    var.append(v.name.value)
+                    
+                    if has_star:
+                        star_values = []
+                        star_name_ = make_varargs(star_names[0])
+                        for name in var_names:
+                            if name in non_star_names:
+                                if name in value.properties:
+                                    values.append(value.properties[name])
+                                    context.symbolTable.set(name, value.properties[name])
+                                else:
+                                    raise Al_PropertyError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"expected {len(var_name)} values, unable to pair {len(value.properties)} value(s)",
+                                        'message': f"property '{name}' does not exist on type {TypeOf(value).getType()}",
                                         'context': context,
                                         'exit': False
                                     })
-                        else:
-                            for i in range(len(var_name)):
-                                context.symbolTable.set(
-                                    var_name[i].name.value, properties[i])
+                            else:
+                                for n in value.properties:
+                                    if n not in non_star_names:
+                                    # make list and append remaining values
+                                        star_values.append(value.properties[n])
+                        context.symbolTable.set(star_name_, List(star_values).setContext(context).setPosition(node.pos_start, node.pos_end))
+
+                    else:
+                        if (len(var_names) > len(value.properties)):
+                            raise Al_ValueError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"expected {len(var_names)} value(s), got {len(value.properties)} value(s)",
+                                'context': context,
+                                'exit': False
+                            })
+
+                        if (len(var_names) < len(value.properties)):
+                            raise Al_ValueError({
+                                'pos_start': node.pos_start,
+                                'pos_end': node.pos_end,
+                                'message': f"expected {len(var_names)} value(s), got {len(value.properties)} value(s)",
+                                'context': context,
+                                'exit': False
+                            })
+                        
+                        for name in var_names:
+                            if name in value.properties:
+                                values.append(value.properties[name])
+                                context.symbolTable.set(name, value.properties[name])
+                            else:
+                                raise Al_PropertyError({
+                                    'pos_start': node.pos_start,
+                                    'pos_end': node.pos_end,
+                                    'message': f"property '{name}' does not exist on type {TypeOf(value).getType()}",
+                                    'context': context,
+                                    'exit': False
+                                })
+                                
+                            
+                
 
             elif isinstance(value, Pair) or isinstance(value, List):
                 if len(var_name) != len(value.elements):
@@ -19225,7 +19242,7 @@ class Interpreter:
                                     raise Al_ValueError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
+                                        'message': f"expected at least {len(var_names) - 1} values, got {len(values)} value(s)",
                                         'context': context,
                                         'exit': False
                                     })
@@ -19233,7 +19250,7 @@ class Interpreter:
                             raise Al_ValueError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
-                                'message': f"expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
+                                'message': f"expected {len(var_name)} values, got {len(value.elements)} value(s)",
                                 'context': context,
                                 'exit': False
                             })
@@ -19269,7 +19286,7 @@ class Interpreter:
                                     raise Al_ValueError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"expected {len(var_name)} values, unable to pair {len(value.elements)} value(s)",
+                                        'message': f"expected {len(var_name)} values, got {len(value.elements)} value(s)",
                                         'context': context,
                                         'exit': False
                                     })
@@ -19312,7 +19329,7 @@ class Interpreter:
                                     raise Al_ValueError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
+                                        'message': f"expected at least {len(var_names) - 1} values, got {len(values)} value(s)",
                                         'context': context,
                                         'exit': False
                                     })
@@ -19320,7 +19337,7 @@ class Interpreter:
                             raise Al_ValueError({
                                 'pos_start': node.pos_start,
                                 'pos_end': node.pos_end,
-                                'message': f"expected {len(var_name)} values, unable to pair {len(value.value)} value(s)",
+                                'message': f"expected {len(var_name)} values, got {len(value.value)} value(s)",
                                 'context': context,
                                 'exit': False
                             })
@@ -19352,7 +19369,7 @@ class Interpreter:
                                     raise Al_ValueError({
                                         'pos_start': node.pos_start,
                                         'pos_end': node.pos_end,
-                                        'message': f"expected at least {len(var_names) - 1} values, unable to pair {len(values)} value(s)",
+                                        'message': f"expected at least {len(var_names) - 1} values, got {len(values)} value(s)",
                                         'context': context,
                                         'exit': False
                                     })
