@@ -1,0 +1,6 @@
+import file 
+import apcm
+let package_apcm_file = file.open('package.apcm')
+let package_apcm = apcm.parse(package_apcm_file.read())
+let (Name, Version, Description, Author, *rest) = package_apcm
+println(Name, Version, Description, Author, rest)

@@ -1,6 +1,36 @@
-import file 
-import apcm
-let package_apcm_file = file.open('package.apcm')
-let package_apcm = apcm.parse(package_apcm_file.read())
-let Name, Version, Description, Author, *rest = package_apcm
-println(Version)
+let productInventory = [
+  {
+    id: 1,
+    name: "Rice",
+    price: 2500.00
+  },
+  {
+    id: 2,
+    name: "Garri",
+    price: 500.00,
+    discount: 20
+  },
+  {
+    id: 3,
+    name: "Cup",
+    price: 360.50,
+    discount: 10
+  },
+]
+
+def displayProduct(product)
+    println(f"%{product.id} %{product.name} %{product.price}")
+end
+
+def calculateDiscount(price, discount)
+  return (price - (price * discount / 100)).round(2)
+end
+
+
+in productInventory as (product):
+    displayProduct({
+        id: product.id,
+        name: product.name,
+        price: if hasprop(product, "discount"): calculateDiscount(product.price, product.discount) else: product.price
+    })
+end

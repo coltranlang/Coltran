@@ -2500,6 +2500,44 @@ class Number(Value):
         value = setNumber(self.value)
         return self.setTrueorFalse(not value).setContext(self.context), None
 
+
+    def round(self, args, kwargs, var_name=None, has_unpack=False):
+        if args == None:
+            return BuiltInFunction("round", self.context)
+        if len(kwargs) > 0:
+            for key in kwargs:
+                name = key['name']
+                if name:
+                    raise Al_ArgumentError({
+                        'pos_start': self.pos_start,
+                        'pos_end': self.pos_end,
+                        'message': f"round() takes no keyword argument",
+                        'context': self.context,
+                        'exit': False
+                    })
+        
+        check_args(1, args, f"{len(args)} {argum_or_argums(args)} given, but round() takes 1 argument", self.pos_start, self.pos_end, self.context)
+        check_type(Number, args[0], f"round() argument must be of type Number, but {TypeOf(args[0]).getType()} given", self.pos_start, self.pos_end, self.context)
+        value_toRound = self.value
+        digits_ = args[0].value
+        if type(digits_) != int:
+            raise Al_TypeError({
+                'pos_start': self.pos_start,
+                'pos_end': self.pos_end,
+                'message': f"round() argument must be of type int, but {TypeOf(args[0]).getType()} given",
+                'context': self.context,
+                'exit': False
+            })
+        
+        if digits_ == 0:
+            return Number(round(value_toRound)).setContext(self.context)
+        else:
+            return Number(round(value_toRound, digits_)).setContext(self.context)
+
+
+
+
+
     def copy(self):
         copy = Number(self.value)
         copy.setPosition(self.pos_start, self.pos_end)
@@ -2514,6 +2552,7 @@ class Number(Value):
 
 
 number_methods = {
+    'round': Number.round,
 }
 
 
