@@ -1,6 +1,6 @@
-import file 
-import apm
-let package_apm_file = file.open('package.apm')
-let package_apm = apm.parse(package_apm_file.read())
-package_apm_file.close()
-print(package_apm)
+import file
+import apcm
+final config_file = file.open("package.apcm")
+final config = apcm.parse(config_file.read())
+config_file.close()
+print(config.Name) 

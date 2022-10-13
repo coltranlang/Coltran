@@ -477,6 +477,20 @@ def unique_(sets):
     return unique_set
 
 
+def forward_or_backward_slash():
+        platform = sys.platform
+        if platform == 'win32':
+            return '\\'
+        elif platform == 'linux':
+            return '/'
+        else:
+            return '\\'
+
+
+is_forward_slash = True if forward_or_backward_slash() == '/' else False
+slash = '/' if is_forward_slash else '\\'
+
+
 symbolTable_ = SymbolTable()
 
 module_namespace = ModuleNameSpace()
@@ -508,49 +522,48 @@ class Regex:
 def join_paths(paths: list):
             path = ""
             for p in paths:
-                path += '\\' + p
+                path += slash + p
             return path
 
-def set_path_from_platform(path: str):
-    platform = sys.platform
-    if platform == 'win32':
-        return path.replace('/', '\\')
-    elif platform == 'linux':
-        return path.replace('\\', '/')
-    else:
-        return path.replace('\\', '/')
-
-def forward_or_backward_slash():
-    platform = sys.platform
-    if platform == 'win32':
-        return '/'
-    elif platform == 'linux':
-        return '\\'
-    else:
-        return '\\'
         
 class PackageManager:
     def __init__(self, module_paths, is_package=True):
         self.module_paths = module_paths
         self.is_package = is_package
+
     def setPackage(self):
         if self.is_package:
             # check for __@init__.ald file. If there is one, we make the file the module
             package_file = f'__@init__.ald'
-            path = join_paths(self.module_paths) + set_path_from_platform(f"/{package_file}")
+            is_forward_slash = True if self.forward_or_backward_slash() == '/' else False
+            slash = '/' if is_forward_slash else '\\'
+            path = join_paths(self.module_paths) + f"{slash}{package_file}"
             return path
         else:
             # if not package then just return the absolute path
             ext = '.ald'
             path = join_paths(self.module_paths) + ext
             return path
+
     def isPackage(self, dir):
         package_file = f'__@init__.ald'
-        path = dir + join_paths(self.module_paths) + set_path_from_platform(f"/{package_file}")
+        is_forward_slash = True if self.forward_or_backward_slash() == '/' else False
+        slash = '/' if is_forward_slash else '\\'
+        path = dir + join_paths(self.module_paths) + f"{slash}{package_file}"
         if os.path.exists(path):
             return True
         else:
             return False
+    
+    def forward_or_backward_slash(self):
+        platform = sys.platform
+        if platform == 'win32':
+            return '\\'
+        elif platform == 'linux':
+            return '/'
+        else:
+            return '\\'
+
 
 class TypeOf:
     def __init__(self, type):
@@ -22746,7 +22759,7 @@ class Interpreter:
         _type = node._type
         # get the builtin module (standard library) directory, is is a folder outside this current script folder. for example we are in INterpreter/interpreter.py we need to go out one folder back to lib folder.
         
-        builtin_mod_dir = os.path.normpath(os.getcwd() + "/lib")
+        builtin_mod_dir = os.path.normpath(os.getcwd() + f"{slash}lib")
         
         # get the root dir of the project
         # if module_is_root then we need to go back one directory from the root
@@ -22804,7 +22817,7 @@ class Interpreter:
                             if module is None:
                                 # then we have to check the ./alden_packges from the root folder
                                 set_package_ = PackageManager(module_paths).setPackage()
-                                package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                                package_ = root_dir + f'{slash}.alden_packages' + set_package_
                                 try:
                                     Module_ = Program.runFile(package_)
                                     module = Module_
@@ -22891,7 +22904,7 @@ class Interpreter:
                         if module is None:
                             # then we have to check the ./alden_packges from the root folder
                             set_package_ = PackageManager(module_paths).setPackage()
-                            package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                            package_ = root_dir + f'{slash}.alden_packages' + set_package_
                             try:
                                 Module_ = Program.runFile(package_)
                                 module = Module_
@@ -22979,7 +22992,7 @@ class Interpreter:
                     if module is None:
                         # then we have to check the ./alden_packges from the root folder
                         set_package_ = PackageManager(module_paths, is_package).setPackage()
-                        package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                        package_ = root_dir + f'{slash}.alden_packages' + set_package_
                         try:
                             Module_ = Program.runFile(package_)
                             module = Module_
@@ -23101,7 +23114,7 @@ class Interpreter:
                             if module is None:
                                 # then we have to check the ./alden_packges from the root folder
                                 set_package_ = PackageManager(module_paths).setPackage()
-                                package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                                package_ = root_dir + f'{slash}.alden_packages' + set_package_
                                 try:
                                     Module_ = Program.runFile(package_)
                                     module = Module_
@@ -23189,7 +23202,7 @@ class Interpreter:
                         if module is None:
                             # then we have to check the ./alden_packges from the root folder
                             set_package_ = PackageManager(module_paths).setPackage()
-                            package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                            package_ = root_dir + f'{slash}.alden_packages' + set_package_
                             try:
                                 Module_ = Program.runFile(package_)
                                 module = Module_
@@ -23277,7 +23290,7 @@ class Interpreter:
                     if module is None:
                         # then we have to check the ./alden_packges from the root folder
                         set_package_ = PackageManager(module_paths, is_package).setPackage()
-                        package_ = root_dir + set_path_from_platform('/.alden_packages') + set_package_
+                        package_ = root_dir + 'f{slash}.alden_packages' + set_package_
                         try:
                             Module_ = Program.runFile(package_)
                             module = Module_
