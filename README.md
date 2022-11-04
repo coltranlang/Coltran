@@ -1,9 +1,9 @@
 <p>
-  <h1>The Official Alden Programming Language</h1>
+  <h1>The Official Coltran Programming Language</h1>
 </p>
 
 <p>
-  Alden is an open source dynamic programming language that is designed to be simple, easy to learn, and easy to use to build efficient programs.
+  Coltran is an open source high-level general-purpose programming language that is designed to be simple, easy to learn, and easy to use to build efficient programs.
 </p>
 
 **DISCLAIMER:** This project is in it's very early development state, expect bugs and frequent breaking changes.
@@ -35,7 +35,7 @@ end
 
 ## Documentation
 
-See  [https://aldenlang.org/docs](https://aldenlang.org/docs) for documentation.
+See  [https://coltranlang.org/docs](https://coltranlang.org/docs) for documentation.
 
 # Features
 
@@ -50,7 +50,7 @@ See  [https://aldenlang.org/docs](https://aldenlang.org/docs) for documentation.
 - [x] Modules
 - [x] Exception handling
 
-see [features](https://aldenlang.org/features) for more language features.
+see [features](https://coltranlang.org/features) for more language features.
 
 ### Issues
 
