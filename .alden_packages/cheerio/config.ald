@@ -1,7 +1,0 @@
-let config_ = {
-    api_key: 'AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY',
-    api_url: 'https://api.hyd.io/api/v1/',
-    api_version: 'v1',
-    username: 'bob23f',
-    email: 'bob23f@gmail.com'
-}

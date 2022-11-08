@@ -19,15 +19,15 @@ def getOs():
 
 
 def repl():
-    """ Alden Repl """
-    print(f"Alden 1.0 on {getOs()}")
+    """ Coltran Repl """
+    print(f"Coltran 1.0 on {getOs()}")
     print('Type "help" for more information. Use "exit()" to exit.')
     Al_Program.runRepl()
     
    
 
 def run(file):
-    """ Run an Alden file"""
+    """ Run an Coltran file"""
     if file:
         Al_Program.runFile(file)
     else:

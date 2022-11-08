@@ -1,0 +1,24 @@
+-Name: "My First Coltran Package"
+-Description: "Coltran Package for My First Project"
+-Version: "1.0.0"
+-Author: "Kehinde Akinsanya"
+-Keywords: "Coltran Package, My First Project, apcm, coltran, package, project"
+-License: "MIT"
+-Copyright: "Copyright (c) 2020 Kehinde Akinsanya"
+-URL: "mfap.tech"
+-Requires: {
+    "test": "1.0.0",
+    "fip": "1.0.0"
+}
+-Scripts: {
+    "test": "coltran ./scripts/test",
+    "fip": {
+        "f": "coltran ./scripts/fip/test",
+        "r": "coltran ./scripts/fip/fip"
+    },
+    "fip2": [
+        "coltran ./scripts/fip/test",
+        "coltran ./scripts/fip/fip"
+    ]
+}
+-GithubURL: "https://github.com/kehindeakinsanya/mfap"

@@ -1,0 +1,9 @@
+package cheerio as _
+def join(a,b,c):
+    return f'%{a}_%{b}_%{c}'
+end
+
+_.curry.fn = join
+
+let curry_join = _.curry()
+print(curry_join('1')('2')('3'))

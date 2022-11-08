@@ -5,6 +5,12 @@ from Parser.parser import Parser
 from Interpreter.interpreter import Context, Interpreter, symbolTable_, Program, ModuleNameSpace
 
 I_Al_Program = Program
+language_ext = {
+    'coltran': 'coltran',
+    'ctrn': 'ctrn',
+    'ctn': 'ctn',
+    'ct': 'ct',
+}
 
 class Al_Program:
     def error():
@@ -96,8 +102,8 @@ class Al_Program:
         try:
             with open(fileName, 'r', encoding='utf-8') as file:
                 text = file.read()
-                if fileName[-4:] != ".ald":
-                    print(f"File '{fileName}' is not a valid alden file")
+                if fileName[-7:] != language_ext['coltran'] and fileName[-4:] != language_ext['ctrn'] and fileName[-3:] != language_ext['ctn'] and fileName[-2:] != language_ext['ct']:
+                    print(f"File '{fileName}' is not a valid coltran file")
                     return
                 else:
                     fileName = os.path.abspath(fileName)
@@ -108,13 +114,16 @@ class Al_Program:
             print(f"can't open file '{fileName}': No such file or directory")
             return False
         except Exception as e:
-            print(f"Unknown error occured at file '{fileName}")
-            return False
+            raise e
     
     def repl():
         try:
             while True:
                 text = input('>>> ')
+                # allow user to be able to create a function
+                if text == 'def':
+                    text = input('>>> ')
+                    text = 'def ' + text
                 result, error = Al_Program.run("<stdin>", text)
                 if type(result).__name__ == "List":
                     if len(result.elements) == 1:

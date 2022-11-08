@@ -1,0 +1,6 @@
+package file
+package cmol
+final config_file = file.open("package.cmol")
+final config = cmol.parse(config_file.read())
+config_file.close()
+print(config) 

@@ -1,6 +1,0 @@
-import file
-import apcm
-final config_file = file.open("package.apcm")
-final config = apcm.parse(config_file.read())
-config_file.close()
-print(config.Name) 

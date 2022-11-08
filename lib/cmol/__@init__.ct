@@ -1,4 +1,5 @@
-import lib.apcm.tokenList.ald
+import lib.cmol.tokenList
+package math 
 let __@version__ = "0.0.1"
 def parse(filestr: str): Dict
 /**

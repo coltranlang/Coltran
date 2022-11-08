@@ -250,7 +250,6 @@ class Al_NameError(Exception):
   
     
 class SymbolTable:
-   
     def __init__(self, parent=None):
         self.symbols = {}
         self.modules = Module()
@@ -265,7 +264,7 @@ class SymbolTable:
                 return key
         return None
       
-    def set(self, name, value, type_=None):
+    def set(self, name, value, type_=None, var_type=None):
         if not value:
             value = "none"
         if type_:
@@ -275,6 +274,7 @@ class SymbolTable:
             }
         else:
             self.symbols[name] = value
+            
         
         
     def get(self, name):

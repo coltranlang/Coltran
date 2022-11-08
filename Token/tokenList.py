@@ -176,6 +176,7 @@ KEYWORDS = [
     'is',
     'as',
     'import',
+    'package',
     'from',
     'step',
     'while',

@@ -1,4 +1,4 @@
-#  Copyright (c) 2021, Alden Authors.
+#  Copyright (c) 2021, Coltran Authors.
 # All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #    this list of conditions and the following disclaimer in the documentation
 #    and/or other materials provided with the distribution.
 
-# 3. Neither the name of Alden Org. nor the names of its
+# 3. Neither the name of Coltran Org. nor the names of its
 #    contributors may be used to endorse or promote products derived from
 #    this software without specific prior written permission.
 
@@ -1974,6 +1974,11 @@ class Parser:
             return res.success(del_expr)
         elif tok.matches(tokenList.TT_KEYWORD, 'import'):
             import_expr = res.register(self.import_expr())
+            if res.error:
+                return res
+            return res.success(import_expr)
+        elif tok.matches(tokenList.TT_KEYWORD, 'package'):
+            import_expr = res.register(self.package_expr())
             if res.error:
                 return res
             return res.success(import_expr)
@@ -5254,7 +5259,7 @@ class Parser:
             'as': '',
             'paths': [],
             'is_root': False,
-            'is_package': True, # default to true
+            'is_package': False, # default to true
             'pos_start': self.current_token.pos_start,
             'pos_end': self.current_token.pos_end,
             'members': []
@@ -5269,8 +5274,8 @@ class Parser:
         # then module['name'] = library.module_name and module['paths'] = [library, module_name]
         # if module_name is followed by 'as' then module['as'] = module_name_as
         # if module_name is not followed by 'as' then module['as'] = module_name
-        # because the import statement doesn't end in .ald then module['is_package'] = True
-        # if the import statement ends in .ald then module['is_package'] = False
+        # because the import statement doesn't end in .ct then module['is_package'] = True
+        # if the import statement ends in .ct then module['is_package'] = False
 
 
         pos_start = self.current_token.pos_start.copy()
@@ -5294,8 +5299,8 @@ class Parser:
             if self.current_token.type == tokenList.TT_IDENTIFIER:
                 module['as'] = module['name']
                 module['paths'].append(self.current_token.value)
-                # if self.current_token.value != 'ald' then the module['name'] is the last identifier in the module path
-                if self.current_token.value != 'ald':
+                # if self.current_token.value != 'ct' then the module['name'] is the last identifier in the module path
+                if self.current_token.value != 'ct':
                     module['name'] = self.current_token.value
                     module['as'] = self.current_token.value
                     module['pos_end'] = self.current_token.pos_end
@@ -5304,8 +5309,8 @@ class Parser:
                     self.skipLines()
                     if self.current_token.type == tokenList.TT_IDENTIFIER:
                         module['paths'].append(self.current_token.value)
-                        # if self.current_token.value != 'ald' then the module['name'] is the last identifier in the module path
-                        if self.current_token.value != 'ald':
+                        # if self.current_token.value != 'ct' then the module['name'] is the last identifier in the module path
+                        if self.current_token.value != 'ct':
                             module['name'] = self.current_token.value
                             module['as'] = self.current_token.value
                         module['pos_end'] = self.current_token.pos_end
@@ -5350,14 +5355,117 @@ class Parser:
                         'exit': False
                     }
                 ))
-        # check if the module['paths'] last element is ald
-        if len(module['paths']) > 1:
-            # module['name'] is the last element in module['paths']
-            
-            if module['paths'][-1] == 'ald':
-                module['is_package'] = False
-                module['paths'].pop()
 
+        
+    
+        return res.success(ImportNode(module, "import"))
+    
+    def package_expr(self):
+        res = ParseResult()
+        module = {
+            'name': '',
+            'as': '',
+            'paths': [],
+            'is_root': False,
+            'is_package': True, # default to true
+            'pos_start': self.current_token.pos_start,
+            'pos_end': self.current_token.pos_end,
+            'members': []
+        }
+        # import module_name then module['name'] = module_name
+        # if module_name is not followed by 'as' then module['as'] = module_name
+        # if module_name is followed by 'as' then module['as'] = module_name_as
+        # then module['paths'] = module_name
+        
+        # second case
+        # import library.module_name then the last identifier is the module name
+        # then module['name'] = library.module_name and module['paths'] = [library, module_name]
+        # if module_name is followed by 'as' then module['as'] = module_name_as
+        # if module_name is not followed by 'as' then module['as'] = module_name
+        # because the import statement doesn't end in .ct then module['is_package'] = True
+        # if the import statement ends in .ct then module['is_package'] = False
+
+
+        pos_start = self.current_token.pos_start.copy()
+        if self.current_token.matches(tokenList.TT_KEYWORD, 'package'):
+            self.skipLines()
+
+        if self.current_token.type == tokenList.TT_IDENTIFIER:
+            module_name = self.current_token.value
+            module['name'] = module_name
+            module['as'] = module_name
+            module['paths'].append(module_name)
+            module['pos_start'] = pos_start
+            self.skipLines()
+
+
+        
+        if self.current_token.type == tokenList.TT_DOT:
+            self.skipLines()
+            if module['name'] == '':
+                module['is_root'] = True
+            if self.current_token.type == tokenList.TT_IDENTIFIER:
+                module['as'] = module['name']
+                module['paths'].append(self.current_token.value)
+                # if self.current_token.value != 'ct' then the module['name'] is the last identifier in the module path
+                if self.current_token.value != 'ct':
+                    module['name'] = self.current_token.value
+                    module['as'] = self.current_token.value
+                    module['pos_end'] = self.current_token.pos_end
+                self.skipLines()
+                while self.current_token.type == tokenList.TT_DOT:
+                    self.skipLines()
+                    if self.current_token.type == tokenList.TT_IDENTIFIER:
+                        module['paths'].append(self.current_token.value)
+                        # if self.current_token.value != 'ct' then the module['name'] is the last identifier in the module path
+                        if self.current_token.value != 'ct':
+                            module['name'] = self.current_token.value
+                            module['as'] = self.current_token.value
+                        module['pos_end'] = self.current_token.pos_end
+                        self.skipLines()
+                    else:
+                        self.error_detected = True
+                        return res.failure(self.error['Syntax'](
+                            {
+                                'pos_start': self.current_token.pos_start,
+                                'pos_end': self.current_token.pos_end,
+                                'message': 'expected an identifier',
+                                'context': self.context,
+                                'exit': False
+                            }
+                        ))
+            else:
+                self.error_detected = True
+                return res.failure(self.error['Syntax'](
+                    {
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': 'expected an identifier',
+                        'context': self.context,
+                        'exit': False
+                    }
+                ))
+    
+        if self.current_token.matches(tokenList.TT_KEYWORD, 'as'):
+            self.skipLines()
+            if self.current_token.type == tokenList.TT_IDENTIFIER:
+                module['as'] = self.current_token.value
+                module['pos_end'] = self.current_token.pos_end
+                self.skipLines()
+            else:
+                self.error_detected = True
+                return res.failure(self.error['Syntax'](
+                    {
+                        'pos_start': self.current_token.pos_start,
+                        'pos_end': self.current_token.pos_end,
+                        'message': 'expected an identifier',
+                        'context': self.context,
+                        'exit': False
+                    }
+                ))
+
+        
+    
         return res.success(ImportNode(module, "import"))
         
     def from_import_expr(self):
@@ -5393,8 +5501,8 @@ class Parser:
             if self.current_token.type == tokenList.TT_IDENTIFIER:
                 module['as'] = module['name']
                 module['paths'].append(self.current_token.value)
-                # if self.current_token.value != 'ald' then the module['name'] is the last identifier in the module path
-                if self.current_token.value != 'ald':
+                # if self.current_token.value != 'ct' then the module['name'] is the last identifier in the module path
+                if self.current_token.value != 'ct':
                     module['name'] = self.current_token.value
                     module['as'] = self.current_token.value
                     module['pos_end'] = self.current_token.pos_end
@@ -5403,8 +5511,8 @@ class Parser:
                     self.skipLines()
                     if self.current_token.type == tokenList.TT_IDENTIFIER:
                         module['paths'].append(self.current_token.value)
-                        # if self.current_token.value != 'ald' then the module['name'] is the last identifier in the module path
-                        if self.current_token.value != 'ald':
+                        # if self.current_token.value != 'ct' then the module['name'] is the last identifier in the module path
+                        if self.current_token.value != 'ct':
                             module['name'] = self.current_token.value
                             module['as'] = self.current_token.value
                         module['pos_end'] = self.current_token.pos_end
@@ -5537,10 +5645,10 @@ class Parser:
                     ))
 
         
-        # check if the module['paths'] last element is ald
+        # check if the module['paths'] last element is ct
         if len(module['paths']) > 1:
             # module['name'] is the last element in module['paths']
-            if module['paths'][-1] == 'ald':
+            if module['paths'][-1] == 'ct':
                 module['is_package'] = False
                 module['paths'].pop()
 
