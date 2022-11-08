@@ -9758,8 +9758,6 @@ class Function(BaseFunction):
         unpacked_args = []
         non_unpacked_args = []
         exec_context.symbolTable.set("self", self)
-    
-        
 
         #new_args = args
         
@@ -10147,6 +10145,17 @@ class Function(BaseFunction):
         new_args_names = self.arg_names
         new_args = args[1:]
         has_star = False
+        
+        # we set the arg_name and arg_value to self.properties, this way a function args would be accessbile by self.[prop_name] for example:
+        #def log(title):
+            #def output(msg):
+                #print(f'%{log.title}: %{msg}')
+            #end
+            #return output
+        #end
+        # log('hello')('world')
+        # hello: world
+        # This way we can access the title variable in the output function which makes curry functions possible
 
         for i in range(len(self.arg_names)):
             if is_varags(self.arg_names[i]):
@@ -10157,11 +10166,13 @@ class Function(BaseFunction):
             starags, nonstarargs = vna_algorithm(self.arg_names, args)
             for star_name in star_names:
                 name = make_varargs(star_name)
+                self.properties[name] = List(starags)
                 exec_context.symbolTable.set(name, List(starags))
             for i in range(len(non_star_names)):
                 try:
                     name = non_star_names[i]
                     value = nonstarargs[i].setContext(exec_context)
+                    self.properties[name] = value
                     exec_context.symbolTable.set(name, value)
                 except Exception as e:
                     raise Al_ValueError({
@@ -10176,11 +10187,9 @@ class Function(BaseFunction):
                 arg_name = self.arg_names[i]
                 arg_value = args[i]
                 arg_value.setContext(exec_context)
+                self.properties[arg_name] = arg_value
                 exec_context.symbolTable.set(arg_name, arg_value, None, 'function')
-                exec_context.symbolTable.closures[self.name] = {
-                    'name': arg_name,
-                    'value': arg_value
-                }
+                
 
 
         if len(self.default_values) > 0:
@@ -10196,13 +10205,16 @@ class Function(BaseFunction):
                         arg_name = new_args_names[i]
                         arg_value = default_values[arg_name]
                         arg_value.setContext(exec_context)
+                        self.properties[arg_name] = arg_value
                         exec_context.symbolTable.set(arg_name, arg_value, None, 'function')
+                    
 
 
         if len(keyword_args) > 0:
             for key, value in keyword_args.items():
                 value.setContext(exec_context)
                 if key in self.arg_names:
+                    self.properties[key] = value
                     exec_context.symbolTable.set(key, value, None, 'function')
                     # the rest of the arg_names should be default values
                     if len(self.arg_names) > len(args):
@@ -10210,6 +10222,7 @@ class Function(BaseFunction):
                             if name not in keyword_args:
                                 if len(self.default_values) > 0:
                                     if name in self.default_values:
+                                        self.properties[name] = self.default_values[name]
                                         exec_context.symbolTable.set(
                                             name, default_values[name], None, 'function')
 
@@ -24540,15 +24553,19 @@ class Interpreter:
         type_hints = node.type_hints
         doc = node.doc
         
+
+
         if doc != None:
             doc = res.register(self.visit(doc, context))
         if _type == None:
             _type = "function"
 
 
-
+        
         function_value = Function(function_name, body_node, arg_names, node.implicit_return, defualt_values, _properties, _type, doc,  context, type_hints).setContext(
             context).setPosition(node.pos_start, node.pos_end)
+
+
         if node.type != 'method':
             if node.function_name:
                 context.symbolTable.set(function_name, function_value)

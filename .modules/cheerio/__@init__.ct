@@ -1,16 +1,14 @@
-def curry():
-    def g(*args):
-        
-        if len(args) == 0:
-            return none
-        else:
-            if len(args) < len(curry.fn.__@params__):
-                # if the number of arguments is less than the number of parameters of the function to be curried then return a new function with the arguments
-                return curry.fn
-            else:
-                return curry.__@call__(*args)
-            end
+def log(f):
+    def t(title):
+        return def m(msg):
+            return log.f(log.t.title, msg)
         end
     end
-    return g
+    log.t = t
+    return t
 end
+
+# let logger  = _.log(console)
+# logger('WARN')('This is a warning')
+# logger('INFO')( 'This is an info message')
+# logger('ERROR')( 'This is an error message')
