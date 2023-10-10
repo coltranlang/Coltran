@@ -15,5 +15,5 @@ end
 
 let debug = logger("Debug")
 let info = logger("Info")
-debug.$("Check out this debug message") # we using an implicit o0bject reference to the __@init__ function
-info.$("Check out this info message") # we using an implicit o0bject reference to the __@init__ function
+debug.$("Check out this debug message") # we using an implicit object reference to the __@init__ function
+info.$("Check out this info message") # we using an implicit object reference to the __@init__ function

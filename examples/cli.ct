@@ -1,0 +1,23 @@
+class Program
+    def __@init__(self, name)
+        print(f"Hello %{name}")
+        print("Please login to continue....")
+        final account = Account()
+        final email = input("Enter email: ")
+        final password = input("Enter password: ")
+        account.validate(email, password)
+    end
+end
+
+class Account
+    def __@init__(self)
+        print("Account created")
+    end
+
+    def validate(self, email, password)
+        print(f"Account initialized with %{email} and %{password}")
+    end
+end
+
+
+final program = Program("Program")
