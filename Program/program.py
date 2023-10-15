@@ -4,7 +4,7 @@ from Lexer.lexer import Lexer
 from Parser.parser import Parser
 from Interpreter.interpreter import Context, Interpreter, symbolTable_, Program, ModuleNameSpace
 
-I_Al_Program = Program
+I_Ct_Program = Program
 language_ext = {
     'coltran': 'coltran',
     'ctrn': 'ctrn',
@@ -12,21 +12,21 @@ language_ext = {
     'ct': 'ct',
 }
 
-class Al_Program:
+class Ct_Program:
     def error():
         def IllegalCharacter(options):
             error = f'\nFile: {options["pos_start"].fileName} at line {options["pos_start"].line + 1}\n\nSyntaxError: Illegal character unexpected  {options["originator"]}\n'
-            Al_Program.printError(error)
+            Ct_Program.printError(error)
 
         def Syntax(options):
             error = ""
             error += f'\nFile: {options["fileName"]}  \n\nSyntaxError: {options["originator"]}\n'
-            Al_Program.printError(error)
+            Ct_Program.printError(error)
 
         def Runtime(options):
             error = ""
             error += f'\nFile: {options["fileName"]}  \n\nRuntimeError: {options["originator"]}\n'
-            Al_Program.printError(error)
+            Ct_Program.printError(error)
         methods = {
             'IllegalCharacter': IllegalCharacter,
             'Syntax': Syntax,
@@ -94,7 +94,7 @@ class Al_Program:
                 else:
                     return None
             except Exception as e:
-                return I_Al_Program.error()[e.name](e.message)
+                return I_Ct_Program.error()[e.name](e.message)
         except Exception as e:
            raise e
         
@@ -107,7 +107,7 @@ class Al_Program:
                     return
                 else:
                     fileName = os.path.abspath(fileName)
-                    result  = Al_Program.run(fileName, text)
+                    result  = Ct_Program.run(fileName, text)
                     return result
                 
         except FileNotFoundError:
@@ -124,7 +124,7 @@ class Al_Program:
                 if text == 'def':
                     text = input('>>> ')
                     text = 'def ' + text
-                result, error = Al_Program.run("<stdin>", text)
+                result, error = Ct_Program.run("<stdin>", text)
                 if type(result).__name__ == "List":
                     if len(result.elements) == 1:
                         result = result.elements[0]
@@ -138,13 +138,13 @@ class Al_Program:
         except KeyboardInterrupt:
             print("\nExit?")
             print('Use exit() to exit')
-            Al_Program.repl()
+            Ct_Program.repl()
         except Exception as e:
             if text == "exit()" or text == "exit":
                 sys.exit(0)
-            Al_Program.repl()
+            Ct_Program.repl()
    
     def runRepl():
-        Al_Program.repl()
+        Ct_Program.repl()
             
 

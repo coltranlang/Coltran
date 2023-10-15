@@ -239,7 +239,7 @@ class Module:
         return output
    
     
-class Al_NameError(Exception):
+class Ct_NameError(Exception):
     def __init__(self, message):
         self.name = "NameError"
         self.message = message
